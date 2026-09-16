@@ -41,11 +41,18 @@ independently reviewed.
   same block where relevant.
 - Complete C02 contract classification for every emitter used by the fixture.
 
-For the Curve sub-gate, independent successful-event expectations are complete. A bounded scan of
-blocks 64375300–64377300 found 26 transactions targeting the fixture curve, Pons factory or
-launch-and-buy contract, but no failed receipt. The official Blockscout index required an API key
-or X402 payment. See `evidence/c03-negative-discovery.json`; this does not satisfy the required
-historical negative fixture, so `C03-PONS-CURVE` remains `PARTIAL`.
+For the Curve sub-gate, independent successful-event expectations are complete. The reproducible
+`cmd/find-pons-reverts` scanner covered all 20,001 blocks from 64365338 through 64385338 with zero
+block or receipt read failures. It found 210 transactions targeting the fixture curve, Pons
+factory or launch-and-buy contract, but no failed receipt. See
+`evidence/c03-revert-search-plusminus-10000.json`. This result is
+`HISTORICAL_NEGATIVE_NOT_OBSERVED`, not evidence that historical failures do not exist, and does
+not satisfy the required negative fixture. `C03-PONS-CURVE` remains `PARTIAL`.
+
+Search stops for admission review after either 250,000 relevant historical blocks or 1,000
+Pons-targeted transactions have been examined without a failed receipt. At that point a local
+deterministic revert test and an explicit Feed `receipt.status == successful` gate may be reviewed
+as substitute safety evidence, but neither may be labeled a historical negative fixture.
 
 Long discovery found no candidate in the scanned ranges; a full-history query timed out. This is
 not evidence that Long has no history. `C03-LONG` remains `NOT_STARTED` and does not block the

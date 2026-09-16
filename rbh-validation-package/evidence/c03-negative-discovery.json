@@ -1,5 +1,5 @@
 {
-  "status": "NO_FAILED_PONS_TARGET_FOUND_IN_SCANNED_RANGE",
+  "status": "SUPERSEDED_BY_C03_REVERT_SEARCH_2000",
   "chain_id": 4663,
   "method": "read-only full-block transaction scan followed by receipt lookup",
   "from_block": 64375300,
@@ -12,5 +12,5 @@
   "targeted_transactions": 26,
   "failed_receipts": 0,
   "blockscout_index_attempt": "API_KEY_OR_X402_REQUIRED",
-  "conclusion": "Historical negative fixture remains open; absence in this bounded range is not evidence that no failed Pons transaction exists."
+  "conclusion": "Superseded by evidence/c03-revert-search-2000.json from cmd/find-pons-reverts; historical negative fixture remains open."
 }
