@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "provenance": "REAL_HISTORY_REQUIRED",
+  "status": "INCOMPLETE",
+  "chain_id": 4663,
+  "transactions": [],
+  "required_cases": [
+    "pons_curve_buy",
+    "pons_curve_sell",
+    "pons_graduation",
+    "pons_v4_buy",
+    "pons_v4_sell",
+    "long_launch_initialize",
+    "long_v4_buy",
+    "long_v4_sell",
+    "long_fee_time_boundaries"
+  ],
+  "warning": "No real transaction hashes or receipts are bundled. Captured data must acquire independent expectations."
+}

@@ -1,0 +1,58 @@
+{
+  "sources": [
+    {
+      "id": "S01",
+      "title": "Parser go.mod",
+      "url": "https://github.com/0xfnzero/rbh-parser-sdk/blob/72cf9cee394bbd2566fca1d03202b05981eb51b4/go.mod",
+      "blob": "4240c54cf70e27acd27edf2680039720e15fa69d",
+      "supports": "Go/module/toolchain declarations",
+      "review": "GitHub connector contents supplied in this conversation; not a compile test"
+    },
+    {
+      "id": "S02",
+      "title": "Trade go.mod",
+      "url": "https://github.com/0xfnzero/rbh-trade-sdk/blob/a894cf496b862144ea00910e73afe553073a858b/go.mod",
+      "blob": "1500d7099824653ef7dc679acf12cbfb1e38d4ed",
+      "supports": "Go/module/toolchain declarations",
+      "review": "GitHub connector contents supplied in this conversation; not a compile test"
+    },
+    {
+      "id": "S03",
+      "title": "Sequencer client.go",
+      "url": "https://github.com/0xfnzero/rbh-parser-sdk/blob/72cf9cee394bbd2566fca1d03202b05981eb51b4/feed/sequencer/client.go",
+      "blob": "dbfd25a317a8284e8f52854e8de39b3b4089f9f2",
+      "supports": "OnSequence before handler; historical backlog filtering",
+      "review": "Pinned source excerpt reviewed, server replay not tested"
+    },
+    {
+      "id": "S04",
+      "title": "Pons calldata.go",
+      "url": "https://github.com/0xfnzero/rbh-trade-sdk/blob/a894cf496b862144ea00910e73afe553073a858b/adapters/pons/calldata.go",
+      "blob": "d7ba545b4a5c2ffda0d650441f2976ed3a53c94f",
+      "supports": "PackBuy/PackSell have no deadline argument; application minOut guard needed",
+      "review": "Pinned source excerpt reviewed, deployed ABI not independently checked"
+    },
+    {
+      "id": "S05",
+      "title": "Long quote implementation",
+      "url": "https://github.com/0xfnzero/rbh-trade-sdk/blob/a894cf496b862144ea00910e73afe553073a858b/rbhtrade/long_quote.go",
+      "blob": "30e7395c574cc6f409e3e6ba6fa745122c651fc6",
+      "supports": "Specific hook and fee preconditions, not universal Long support",
+      "review": "Source reviewed; no quote executed"
+    },
+    {
+      "id": "S06",
+      "title": "Parser liquidity tests",
+      "url": "https://github.com/0xfnzero/rbh-parser-sdk/blob/72cf9cee394bbd2566fca1d03202b05981eb51b4/rbhparser/liquidity_test.go",
+      "supports": "ModifyLiquidity position-poke test exists",
+      "review": "Search excerpt reviewed, not exhaustive LP API audit or user ownership verification"
+    },
+    {
+      "id": "S08",
+      "title": "SQLite PRAGMA synchronous",
+      "url": "https://www.sqlite.org/pragma.html#pragma_synchronous",
+      "supports": "WAL synchronous FULL/NORMAL durability distinction",
+      "review": "Official documentation read; hardware durability not tested"
+    }
+  ]
+}

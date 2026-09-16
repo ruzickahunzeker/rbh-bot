@@ -1,0 +1,38 @@
+{
+  "status": "CANDIDATE_DESIGN_NOT_IMPLEMENTED",
+  "transport": "HTTP over Unix Domain Socket",
+  "stream_encoding": "NDJSON",
+  "delivery": "at-least-once after durable producer commit",
+  "ordering": "per producer durable offset, not cross-provider total order",
+  "endpoints": [
+    {
+      "owner": "feed_service",
+      "method": "GET",
+      "path": "/internal/events",
+      "query": [
+        "after_offset",
+        "limit"
+      ],
+      "failure": "CURSOR_EXPIRED"
+    },
+    {
+      "owner": "feed_service",
+      "method": "GET",
+      "path": "/internal/snapshots/latest"
+    },
+    {
+      "owner": "trade_service",
+      "method": "POST",
+      "path": "/v1/operations",
+      "success": "durable admission returns operation_id, not trade confirmation"
+    },
+    {
+      "owner": "trade_service",
+      "method": "GET",
+      "path": "/v1/operations/{id}"
+    }
+  ],
+  "lp_write_endpoints": [],
+  "authentication": "required before real service integration; not implemented here",
+  "backpressure": "bounded queues; reconnect and replay committed events; expire stale signals"
+}

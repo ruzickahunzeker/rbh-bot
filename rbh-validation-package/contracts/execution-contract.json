@@ -1,0 +1,36 @@
+{
+  "status": "CANDIDATE_DESIGN",
+  "hierarchy": [
+    "Operation",
+    "ExecutionStep",
+    "TransactionAttempt"
+  ],
+  "production_idempotency_key": [
+    "chain_id",
+    "execution_wallet_id",
+    "idempotency_key"
+  ],
+  "input_amount_format": "unsigned decimal string in smallest asset unit; uint256 range validation",
+  "asset_budget": {
+    "shape": [
+      "asset_ref",
+      "max_debit_raw"
+    ],
+    "same_asset": "aggregate before reservation"
+  },
+  "quote_binding": [
+    "chain_id",
+    "epoch",
+    "route_version",
+    "state_version",
+    "block_hash",
+    "fee_time_context"
+  ],
+  "position_ownership": {
+    "pool_state": "feed_service",
+    "wallet_positions_and_budget": "trade_service"
+  },
+  "sender_barrier": "raw signed transaction encrypted and durably committed before broadcast",
+  "on_unknown_submission": "reconcile the same artifact; block new wallet nonce",
+  "lp": "reservation only, no implementation or schedule"
+}

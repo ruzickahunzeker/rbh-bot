@@ -1,0 +1,59 @@
+test_01_uint256_boundaries (verification.test_model.ContractTests.test_01_uint256_boundaries) ... ok
+test_02_reject_noncanonical_amounts (verification.test_model.ContractTests.test_02_reject_noncanonical_amounts) ... ok
+test_03_address_width_and_normalization (verification.test_model.ContractTests.test_03_address_width_and_normalization) ... ok
+test_04_request_canonicalization (verification.test_model.ContractTests.test_04_request_canonicalization) ... ok
+test_05_zero_minout_rejected (verification.test_model.ContractTests.test_05_zero_minout_rejected) ... ok
+test_06_zero_input_rejected (verification.test_model.ContractTests.test_06_zero_input_rejected) ... ok
+test_07_untrusted_execution_fields_rejected (verification.test_model.ContractTests.test_07_untrusted_execution_fields_rejected) ... ok
+test_08_no_live_mode_in_model (verification.test_model.ContractTests.test_08_no_live_mode_in_model) ... ok
+test_09_lp_actions_hard_rejected (verification.test_model.ContractTests.test_09_lp_actions_hard_rejected) ... ok
+test_10_lp_observation_not_claimed_supported (verification.test_model.ContractTests.test_10_lp_observation_not_claimed_supported) ... ok
+test_11_environment_cannot_enable_lp (verification.test_model.ContractTests.test_11_environment_cannot_enable_lp) ... ok
+test_12_cross_provider_logical_action_dedupe (verification.test_model.ContractTests.test_12_cross_provider_logical_action_dedupe) ... ok
+test_13_distinct_action_paths (verification.test_model.ContractTests.test_13_distinct_action_paths) ... ok
+test_14_wrong_chain_rejected (verification.test_model.ContractTests.test_14_wrong_chain_rejected) ... ok
+test_15_quote_epoch_block_and_expiry (verification.test_model.ContractTests.test_15_quote_epoch_block_and_expiry) ... ok
+test_16_unverified_route_rejected (verification.test_model.ContractTests.test_16_unverified_route_rejected) ... ok
+test_39_real_process_exit_model_chain (verification.test_model.CrashTests.test_39_real_process_exit_model_chain) ... ok
+test_35_event_outbox_cursor_atomic (verification.test_model.FeedAndReorgTests.test_35_event_outbox_cursor_atomic) ... ok
+test_36_commit_before_memory_publication_recovers (verification.test_model.FeedAndReorgTests.test_36_commit_before_memory_publication_recovers) ... ok
+test_37_observation_replay_one_outbox (verification.test_model.FeedAndReorgTests.test_37_observation_replay_one_outbox) ... ok
+test_38_reorg_append_only_reversal (verification.test_model.FeedAndReorgTests.test_38_reorg_append_only_reversal) ... ok
+test_17_wal_full_foreign_keys (verification.test_model.StoreTests.test_17_wal_full_foreign_keys) ... ok
+test_18_ten_replays_one_operation (verification.test_model.StoreTests.test_18_ten_replays_one_operation) ... ok
+test_19_same_key_different_params_conflict (verification.test_model.StoreTests.test_19_same_key_different_params_conflict) ... ok
+test_20_restart_retains_idempotency (verification.test_model.StoreTests.test_20_restart_retains_idempotency) ... ok
+test_21_multiasset_reservation_atomicity (verification.test_model.StoreTests.test_21_multiasset_reservation_atomicity) ... ok
+test_22_cross_strategy_budget (verification.test_model.StoreTests.test_22_cross_strategy_budget) ... ok
+test_23_reservation_retry_idempotent (verification.test_model.StoreTests.test_23_reservation_retry_idempotent) ... ok
+test_24_unresolved_wallet_lane (verification.test_model.StoreTests.test_24_unresolved_wallet_lane) ... ok
+test_25_nonce_bound_to_step (verification.test_model.StoreTests.test_25_nonce_bound_to_step) ... ok
+test_26_no_broadcast_without_durable_artifact (verification.test_model.StoreTests.test_26_no_broadcast_without_durable_artifact) ... ok
+test_27_non_model_payload_rejected (verification.test_model.StoreTests.test_27_non_model_payload_rejected) ... ok
+test_28_unknown_does_not_release_nonce (verification.test_model.StoreTests.test_28_unknown_does_not_release_nonce) ... ok
+test_29_same_artifact_rebroadcast_one_model_effect (verification.test_model.StoreTests.test_29_same_artifact_rebroadcast_one_model_effect) ... ok
+test_30_replacement_not_implemented (verification.test_model.StoreTests.test_30_replacement_not_implemented) ... ok
+test_31_halt_preserves_reconciliation (verification.test_model.StoreTests.test_31_halt_preserves_reconciliation) ... ok
+test_32_database_busy_fails_closed (verification.test_model.StoreTests.test_32_database_busy_fails_closed) ... ok
+test_33_concurrent_idempotent_admission (verification.test_model.StoreTests.test_33_concurrent_idempotent_admission) ... ok
+test_34_backup_integrity_and_journal (verification.test_model.StoreTests.test_34_backup_integrity_and_journal) ... ok
+
+----------------------------------------------------------------------
+Ran 39 tests in 21.034s
+
+OK
+
+{
+  "scope": "OFFLINE_REFERENCE_MODEL_ONLY",
+  "created_at_runtime_utc": "2026-09-15T18:30:33.739290+00:00",
+  "python": "3.13.5",
+  "sqlite": "3.46.1",
+  "tests": 39,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "status": "PASS",
+  "production_ready": false,
+  "sdk_tests_executed": false,
+  "mainnet_tests_executed": false
+}

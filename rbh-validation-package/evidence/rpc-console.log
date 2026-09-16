@@ -1,0 +1,14 @@
+{
+  "scope": "READ_ONLY_RPC",
+  "created_at_runtime_utc": "2026-09-15T18:33:42.650096+00:00",
+  "checks": {
+    "eth_chainId": {
+      "status": "TRANSPORT_OR_DECODE_ERROR",
+      "error_class": "URLError"
+    }
+  },
+  "signed_or_broadcast": false,
+  "finality_semantics_verified": false,
+  "status": "BLOCKED",
+  "reason": "CHAIN_ID_READ_FAILED"
+}

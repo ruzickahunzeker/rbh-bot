@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "implementation_status": "REFERENCE_MODEL_ONLY",
+  "active_reference_operation_kinds": [
+    "swap"
+  ],
+  "reserved_namespace": "liquidity.*",
+  "lp": {
+    "observe_pool_liquidity": "unknown",
+    "observe_wallet_position": "unknown",
+    "execute": "not_implemented"
+  },
+  "live": false,
+  "lp_execution_error": "LP_EXECUTION_NOT_IMPLEMENTED",
+  "no_lp_roadmap": true
+}

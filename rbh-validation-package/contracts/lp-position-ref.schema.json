@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LP PositionRef reservation only",
+  "description": "Non-executable schema reservation. It does not imply an implemented LP reader or writer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "chain_id",
+    "manager",
+    "schema",
+    "opaque_id"
+  ],
+  "properties": {
+    "chain_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "manager": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{40}$"
+    },
+    "schema": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "opaque_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    }
+  }
+}

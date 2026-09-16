@@ -1,0 +1,250 @@
+{
+  "scope": "OFFLINE_REFERENCE_MODEL_ONLY",
+  "created_at_runtime_utc": "2026-09-15T18:30:33.739290+00:00",
+  "python": "3.13.5",
+  "sqlite": "3.46.1",
+  "tests": 39,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "status": "PASS",
+  "production_ready": false,
+  "sdk_tests_executed": false,
+  "mainnet_tests_executed": false,
+  "records": [
+    {
+      "id": "verification.test_model.ContractTests.test_01_uint256_boundaries",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.322
+    },
+    {
+      "id": "verification.test_model.ContractTests.test_02_reject_noncanonical_amounts",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.234
+    },
+    {
+      "id": "verification.test_model.ContractTests.test_03_address_width_and_normalization",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.157
+    },
+    {
+      "id": "verification.test_model.ContractTests.test_04_request_canonicalization",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.049
+    },
+    {
+      "id": "verification.test_model.ContractTests.test_05_zero_minout_rejected",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.038
+    },
+    {
+      "id": "verification.test_model.ContractTests.test_06_zero_input_rejected",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.033
+    },
+    {
+      "id": "verification.test_model.ContractTests.test_07_untrusted_execution_fields_rejected",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.097
+    },
+    {
+      "id": "verification.test_model.ContractTests.test_08_no_live_mode_in_model",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.035
+    },
+    {
+      "id": "verification.test_model.ContractTests.test_09_lp_actions_hard_rejected",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.082
+    },
+    {
+      "id": "verification.test_model.ContractTests.test_10_lp_observation_not_claimed_supported",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.02
+    },
+    {
+      "id": "verification.test_model.ContractTests.test_11_environment_cannot_enable_lp",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.042
+    },
+    {
+      "id": "verification.test_model.ContractTests.test_12_cross_provider_logical_action_dedupe",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.971
+    },
+    {
+      "id": "verification.test_model.ContractTests.test_13_distinct_action_paths",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.053
+    },
+    {
+      "id": "verification.test_model.ContractTests.test_14_wrong_chain_rejected",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.124
+    },
+    {
+      "id": "verification.test_model.ContractTests.test_15_quote_epoch_block_and_expiry",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.055
+    },
+    {
+      "id": "verification.test_model.ContractTests.test_16_unverified_route_rejected",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 0.018
+    },
+    {
+      "id": "verification.test_model.CrashTests.test_39_real_process_exit_model_chain",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 20716.399
+    },
+    {
+      "id": "verification.test_model.FeedAndReorgTests.test_35_event_outbox_cursor_atomic",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 2.222
+    },
+    {
+      "id": "verification.test_model.FeedAndReorgTests.test_36_commit_before_memory_publication_recovers",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 2.505
+    },
+    {
+      "id": "verification.test_model.FeedAndReorgTests.test_37_observation_replay_one_outbox",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 1.913
+    },
+    {
+      "id": "verification.test_model.FeedAndReorgTests.test_38_reorg_append_only_reversal",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 1.968
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_17_wal_full_foreign_keys",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 3.541
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_18_ten_replays_one_operation",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 3.724
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_19_same_key_different_params_conflict",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 5.464
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_20_restart_retains_idempotency",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 8.232
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_21_multiasset_reservation_atomicity",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 5.531
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_22_cross_strategy_budget",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 5.172
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_23_reservation_retry_idempotent",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 3.401
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_24_unresolved_wallet_lane",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 3.436
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_25_nonce_bound_to_step",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 3.526
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_26_no_broadcast_without_durable_artifact",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 3.696
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_27_non_model_payload_rejected",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 3.355
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_28_unknown_does_not_release_nonce",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 3.594
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_29_same_artifact_rebroadcast_one_model_effect",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 3.877
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_30_replacement_not_implemented",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 3.767
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_31_halt_preserves_reconciliation",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 3.539
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_32_database_busy_fails_closed",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 205.867
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_33_concurrent_idempotent_admission",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 30.042
+    },
+    {
+      "id": "verification.test_model.StoreTests.test_34_backup_integrity_and_journal",
+      "status": "PASS",
+      "detail": null,
+      "duration_ms": 5.17
+    }
+  ]
+}

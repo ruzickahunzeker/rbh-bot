@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "report_date": "2026-09-16",
+  "release_ready": false,
+  "repositories": {
+    "parser": {
+      "url": "https://github.com/0xfnzero/rbh-parser-sdk.git",
+      "commit": "72cf9cee394bbd2566fca1d03202b05981eb51b4",
+      "go_mod_blob": "4240c54cf70e27acd27edf2680039720e15fa69d",
+      "go_sum_blob": "de0154eea285ae0ed91b9fe96ae183ed4460460e",
+      "go_directive": "1.25.0",
+      "toolchain_directive": "go1.26.6"
+    },
+    "trade": {
+      "url": "https://github.com/0xfnzero/rbh-trade-sdk.git",
+      "commit": "a894cf496b862144ea00910e73afe553073a858b",
+      "go_mod_blob": "1500d7099824653ef7dc679acf12cbfb1e38d4ed",
+      "go_sum_blob": "deee1f98d76f91ab9ed1651fc72b8989538780de",
+      "go_directive": "1.26.0",
+      "toolchain_directive": "go1.26.6"
+    }
+  },
+  "verification_toolchain": "go1.26.6",
+  "shared_go_ethereum_requirement": "v1.17.5",
+  "combined_dependency_graph": "NOT_RESOLVED",
+  "chain": {
+    "expected_id": 4663,
+    "runtime_verified": false
+  },
+  "capabilities": {
+    "swap_protocol_scope": [
+      "pons-v2",
+      "long"
+    ],
+    "live": false,
+    "lp": {
+      "observe_pool_liquidity": "unknown",
+      "observe_wallet_position": "unknown",
+      "execute": "not_implemented"
+    }
+  }
+}

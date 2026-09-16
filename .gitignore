@@ -1,0 +1,9 @@
+.env
+.DS_Store
+*.db
+*.db-shm
+*.db-wal
+*.sock
+bin/
+dist/
+runs/

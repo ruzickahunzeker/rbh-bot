@@ -1,0 +1,10 @@
+{
+  "scope": "PINNED_SDK_OFFLINE_CHECKS",
+  "created_at_runtime_utc": "2026-09-15T18:33:41.130998+00:00",
+  "checks": [],
+  "mainnet_validated": false,
+  "observed_go_version": "go version go1.23.2 linux/amd64",
+  "required_go_version": "go1.26.6",
+  "status": "BLOCKED",
+  "reason": "TOOLCHAIN_MISMATCH_NO_AUTO_DOWNLOAD"
+}
