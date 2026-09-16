@@ -5,7 +5,38 @@
   "pons_status": "DISCOVERY_IN_PROGRESS",
   "long_status": "NOT_STARTED",
   "chain_id": 4663,
-  "transactions": [],
+  "transactions": [
+    {
+      "case": "pons_launch_candidate",
+      "tx_hash": "0x84551fcfe69d9b531cac1afdfcdfd75df562dcd721a324b10fa89709a42e6cfa",
+      "status": "CANDIDATE_NOT_GOLDEN"
+    },
+    {
+      "case": "pons_curve_buy_candidate",
+      "tx_hash": "0x04fc83e1a45cbbc7a0dc6e18dd996f91225c7d97158412560dc0d2fbec5c9d2d",
+      "status": "CANDIDATE_NOT_GOLDEN"
+    },
+    {
+      "case": "pons_curve_sell_candidate",
+      "tx_hash": "0x876b0e2978c4a6960fb84a1f9c6ebda3d974b186391949857ee1c3adc665231b",
+      "status": "CANDIDATE_NOT_GOLDEN"
+    },
+    {
+      "case": "pons_graduation_candidate",
+      "tx_hash": "0xcfd26c84f8c352af7d40984dbb45b3245818f73bb9b336e748783a192c668d56",
+      "status": "CANDIDATE_NOT_GOLDEN"
+    },
+    {
+      "case": "pons_v4_direction_a_candidate",
+      "tx_hash": "0xd6e22ef615042f57475eed8da0e1f32a51315fa72def7eb26917a12c2f645ff7",
+      "status": "CANDIDATE_NOT_GOLDEN"
+    },
+    {
+      "case": "pons_v4_direction_b_candidate",
+      "tx_hash": "0x7e9002defc7f972326d99148813ef1853dd8f6e9ae088925e8564b253353ce35",
+      "status": "CANDIDATE_NOT_GOLDEN"
+    }
+  ],
   "required_cases": [
     "pons_curve_buy",
     "pons_curve_sell",
@@ -17,5 +48,5 @@
     "long_v4_sell",
     "long_fee_time_boundaries"
   ],
-  "warning": "No real transaction hashes or receipts are bundled. Captured data must acquire independent expectations."
+  "warning": "Candidate hashes are discovery inputs, not golden fixtures. RPC captures must acquire independent parser expectations and transaction-prestate evidence."
 }
