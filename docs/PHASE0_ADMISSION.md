@@ -17,6 +17,12 @@ Historical negative discovery has a fixed stop-loss: admission review begins aft
 250,000 relevant blocks or 1,000 Pons-targeted transactions with no observed failed receipt. A
 synthetic/local revert can supplement the review but can never be relabeled as historical data.
 
+The deterministic substitute package must prove all of: failed receipt audit persistence, an
+explicit pre-parser success gate, zero economic events, zero copy eligibility and zero parser
+registry mutation. Its existence does not itself authorize
+`PASS_WITH_HISTORICAL_NEGATIVE_NOT_OBSERVED`; that status requires the stop-loss threshold and an
+explicit admission review decision.
+
 ## PR-002 Feed admission
 
 Required:

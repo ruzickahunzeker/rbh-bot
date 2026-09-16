@@ -54,6 +54,17 @@ Pons-targeted transactions have been examined without a failed receipt. At that 
 deterministic revert test and an explicit Feed `receipt.status == successful` gate may be reviewed
 as substitute safety evidence, but neither may be labeled a historical negative fixture.
 
+The substitute safety package is prepared but does not change the current PARTIAL status:
+
+- `fixtures/synthetic/pons-reverted-receipt.json` is explicitly marked
+  `SYNTHETIC_LOCAL_SAFETY_TEST_NOT_HISTORICAL`.
+- `internal/feed.ReceiptGate` persists the failed receipt as an audit fact but returns zero
+  economic events and `copy_eligible=false` before invoking parser-sdk.
+- The deterministic test attaches real launch logs to a locally failed receipt and proves the
+  parser registry is not mutated; the later curve-buy receipt consequently remains unattributed.
+- A control test confirms the unchanged successful launch receipt still produces two eligible
+  normalized events.
+
 Long discovery found no candidate in the scanned ranges; a full-history query timed out. This is
 not evidence that Long has no history. `C03-LONG` remains `NOT_STARTED` and does not block the
 Pons Feed slice.
