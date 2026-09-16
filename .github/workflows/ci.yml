@@ -33,4 +33,6 @@ jobs:
       - working-directory: rbh-validation-package
         run: python3 scripts/check_package.py
       - working-directory: rbh-validation-package
+        run: python3 scripts/verify_curve_expected.py
+      - working-directory: rbh-validation-package
         run: python3 scripts/verify_offline.py

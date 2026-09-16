@@ -1,6 +1,6 @@
 # C03｜Historical Fixture Status
 
-Status: **C03-PONS PARTIAL / C03-LONG NOT STARTED**.
+Status: **C03-PONS-CURVE PARTIAL / C03-PONS-V4 PARTIAL / C03-LONG NOT STARTED**.
 
 Read-only topic-scoped discovery found successful candidates for Pons launch, curve buy, curve
 sell, graduation and two graduated-v4 swap directions. The graduation candidate contains
@@ -15,6 +15,12 @@ All seven receipts now replay successfully through locked parser SDK v0.4.0 when
 block/transaction order. The supporting launch seeds the registry required to attribute the later
 curve buy and sell. Observed normalized output is in `evidence/parser-replay-observed.json`; it is
 explicitly not an independently authored golden expectation.
+
+Pons Curve launch/buy/sell expectations are now independently authored under
+`fixtures/historical/expected/`. `scripts/verify_curve_expected.py` derives the same fields
+directly from raw topics and 256-bit ABI words without importing parser-sdk. A Go CI test then
+replays the raw receipts through the locked parser and compares its normalized projection with
+those expectations. This also prevents JSON tooling from silently rounding large token amounts.
 
 PoolKey plus signed-delta classification currently observes:
 
@@ -34,6 +40,12 @@ independently reviewed.
 - For quote fixtures, record transaction-prestate evidence, including earlier transactions in the
   same block where relevant.
 - Complete C02 contract classification for every emitter used by the fixture.
+
+For the Curve sub-gate, independent successful-event expectations are complete. A bounded scan of
+blocks 64375300–64377300 found 26 transactions targeting the fixture curve, Pons factory or
+launch-and-buy contract, but no failed receipt. The official Blockscout index required an API key
+or X402 payment. See `evidence/c03-negative-discovery.json`; this does not satisfy the required
+historical negative fixture, so `C03-PONS-CURVE` remains `PARTIAL`.
 
 Long discovery found no candidate in the scanned ranges; a full-history query timed out. This is
 not evidence that Long has no history. `C03-LONG` remains `NOT_STARTED` and does not block the

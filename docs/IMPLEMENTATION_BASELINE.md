@@ -18,6 +18,9 @@ Track A is limited to closing Phase 0 blockers C01-C08. New research must be att
 specific Slice admission decision. Track B starts with the production skeleton and proceeds
 through Feed, Bot Strategy and Pons dry-run.
 
+Phase 0 gates are split by protocol path in [PHASE0_ADMISSION.md](PHASE0_ADMISSION.md). In
+particular, PR-002 depends on the Pons Curve C02/C03 gates, not on Pons v4 quote replay or Long.
+
 Phase 0 is budgeted at 5-10 engineering days (3-5 only when every prerequisite is already
 available). A 72-hour soak is elapsed observation time and restarts after a qualifying failure.
 
@@ -44,4 +47,3 @@ available). A 72-hour soak is elapsed observation time and restarts after a qual
 The 10,000 concurrency target means concurrent admission requests, not 10,000 broadcasts.
 Acceptance requires zero duplicate economic executions, nonce collisions, reservation
 overcommit and unexplained accepted requests.
-

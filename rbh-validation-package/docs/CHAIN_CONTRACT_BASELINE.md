@@ -1,6 +1,7 @@
 # C02｜Chain / Contract Baseline
 
-Status: **CAPTURED / CLASSIFICATION REVIEW REQUIRED**. This is not yet C02 PASS.
+Status: **C02-PONS-CURVE PARTIAL / C02-PONS-V4 PARTIAL / C02-LONG NOT STARTED**.
+The combined capture remains `CAPTURED_REQUIRES_CLASSIFICATION_REVIEW`; no path is yet C02 PASS.
 
 The read-only capture at block `64376127` (`0x7607f685fe685f7952bd366fb338ee32c26bd35f517a11065a725ebb9ebaefad`)
 confirmed chain ID 4663 and non-empty runtime code for every Pons V0.1 and shared Uniswap v4
