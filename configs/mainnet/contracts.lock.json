@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "status": "CAPTURED_REQUIRES_CLASSIFICATION_REVIEW",
+  "chain_id": 4663,
+  "verified_block_number": 64376127,
+  "verified_block_hash": "0x7607f685fe685f7952bd366fb338ee32c26bd35f517a11065a725ebb9ebaefad",
+  "captured_at": "2026-09-16T08:48:47.985239894Z",
+  "rpc_source": "ROBINHOOD_RPC_URL (redacted)",
+  "parser_sdk_commit": "72cf9cee394bbd2566fca1d03202b05981eb51b4",
+  "trade_sdk_commit": "a894cf496b862144ea00910e73afe553073a858b",
+  "sdk_addressbooks_match": true,
+  "contracts": [
+    {
+      "protocol": "pons-v2",
+      "role": "factory",
+      "address": "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e",
+      "runtime_bytecode_hash": "0x89a27da6f703e0a7cdd4f233e7cb57604ff75b164530962d3ff7cf8483a67d84",
+      "runtime_bytecode_bytes": 24177,
+      "proxy_type": "no_eip1967_implementation_slot"
+    },
+    {
+      "protocol": "pons-v2",
+      "role": "launch_and_buy",
+      "address": "0xe33E9E479dF8802cb0866d5d05258bEc4cF62948",
+      "runtime_bytecode_hash": "0xed9065184519eaa24a22c2556403d5d8bbb230ff94dbc5c414cf5028e20e52e7",
+      "runtime_bytecode_bytes": 4416,
+      "proxy_type": "no_eip1967_implementation_slot"
+    },
+    {
+      "protocol": "pons-v2",
+      "role": "meme_hook",
+      "address": "0xE5e702641Ea86F4ae6cC3cDaeD2B886f976Be044",
+      "runtime_bytecode_hash": "0xc21b1e6c1b45403e81a581f22ed6d9c747997af1cfdac1b1dc9f4b1d346a10db",
+      "runtime_bytecode_bytes": 15167,
+      "proxy_type": "no_eip1967_implementation_slot"
+    },
+    {
+      "protocol": "pons-v2",
+      "role": "fee_escrow",
+      "address": "0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e",
+      "runtime_bytecode_hash": "0xf25f75cfbc1637ba068dc34f69098fa4e8a80f8ee8fe7bf7820594e0b3fed2f1",
+      "runtime_bytecode_bytes": 1932,
+      "proxy_type": "no_eip1967_implementation_slot"
+    },
+    {
+      "protocol": "pons-v2",
+      "role": "buyback_vault",
+      "address": "0x42df2a798f82289E177311362e8f5ccC45c1219c",
+      "runtime_bytecode_hash": "0x5de8480874faffefa539648f1a7d6c1e69b39da3fa34de22fc95eb7586aece03",
+      "runtime_bytecode_bytes": 4602,
+      "proxy_type": "no_eip1967_implementation_slot"
+    },
+    {
+      "protocol": "pons-v2",
+      "role": "launch_locker",
+      "address": "0x267444D099b10fB5Ed7c3Cc7B7c767AdcA574952",
+      "runtime_bytecode_hash": "0x58455f80b3773871d601a025e56ec27c71ab3bbb8e2ca6b17828954450742025",
+      "runtime_bytecode_bytes": 1969,
+      "proxy_type": "no_eip1967_implementation_slot"
+    },
+    {
+      "protocol": "pons-v2",
+      "role": "launch_deployer",
+      "address": "0x3711ceA4feaDE896C913C68F01Eda97Cb06D1A42",
+      "runtime_bytecode_hash": "0xeade22566c766377f6adfb99534f2772251efad9568642c0704a7051418e624c",
+      "runtime_bytecode_bytes": 20906,
+      "proxy_type": "no_eip1967_implementation_slot"
+    },
+    {
+      "protocol": "pons-v2",
+      "role": "graduation_executor",
+      "address": "0xC7819B64A1dAECD7eC19856d026cb14EfBd89046",
+      "runtime_bytecode_hash": "0xf59f43072fdc50674bb88eabef0318906a803e4af2e9ff115239d53e50046e2a",
+      "runtime_bytecode_bytes": 4402,
+      "proxy_type": "no_eip1967_implementation_slot"
+    },
+    {
+      "protocol": "pons-v2",
+      "role": "graduation_guard",
+      "address": "0xf5695117b99B6f6401e67d4195BD653628176C6C",
+      "runtime_bytecode_hash": "0x6847e5d5df83bb7a51c5780302a5da9cfbdae60b7f7fa850f83ade5be816ecea",
+      "runtime_bytecode_bytes": 2896,
+      "proxy_type": "no_eip1967_implementation_slot"
+    },
+    {
+      "protocol": "uniswap-v4",
+      "role": "pool_manager",
+      "address": "0x8366a39CC670B4001A1121B8F6A443A643e40951",
+      "runtime_bytecode_hash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+      "runtime_bytecode_bytes": 24009,
+      "proxy_type": "no_eip1967_implementation_slot"
+    },
+    {
+      "protocol": "uniswap-v4",
+      "role": "position_manager",
+      "address": "0x58daec3116aae6D93017bAAea7749052E8a04fA7",
+      "runtime_bytecode_hash": "0xc873e135dc9aaec88489cfbad146b4cb49d6a32e0d80326377784b7ba17670b2",
+      "runtime_bytecode_bytes": 23877,
+      "proxy_type": "no_eip1967_implementation_slot"
+    },
+    {
+      "protocol": "uniswap-v4",
+      "role": "quoter",
+      "address": "0x8Dc178eFB8111BB0973Dd9d722ebeFF267c98F94",
+      "runtime_bytecode_hash": "0xd707b1da8cb165e5ea35a3b4450d971eb562ec171e23492aa117036b78a868f6",
+      "runtime_bytecode_bytes": 6118,
+      "proxy_type": "no_eip1967_implementation_slot"
+    },
+    {
+      "protocol": "uniswap-v4",
+      "role": "state_view",
+      "address": "0xF3334192D15450CdD385c8B70e03f9A6bD9E673b",
+      "runtime_bytecode_hash": "0x7d9c591e0956fd89d98feb4ffcfe8bf1f7a62bd485edd979fa21d104b49878a6",
+      "runtime_bytecode_bytes": 3531,
+      "proxy_type": "no_eip1967_implementation_slot"
+    },
+    {
+      "protocol": "uniswap-v4",
+      "role": "universal_router",
+      "address": "0x8876789976dEcBfCbBbe364623C63652db8C0904",
+      "runtime_bytecode_hash": "0x2ce6aaaf9f4151f5e1cbf774668772f17f532ae11b15e9284fd0a072a8b0fbde",
+      "runtime_bytecode_bytes": 24546,
+      "proxy_type": "no_eip1967_implementation_slot"
+    },
+    {
+      "protocol": "uniswap-v4",
+      "role": "permit2",
+      "address": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+      "runtime_bytecode_hash": "0x5208783f52488f7d3493e5e38311ab707c1d75457fe472a19b0b4d57d66a7fca",
+      "runtime_bytecode_bytes": 9152,
+      "proxy_type": "no_eip1967_implementation_slot"
+    },
+    {
+      "protocol": "shared",
+      "role": "weth",
+      "address": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+      "runtime_bytecode_hash": "0x5706be52f64875fee65a2cec0d80e47a23d8793cbe85d214b48445e2d05f5353",
+      "runtime_bytecode_bytes": 2202,
+      "proxy_type": "eip1967",
+      "implementation_address": "0xC6B81b429797E0f555440b70cD99e032D7AE947e",
+      "implementation_bytecode_hash": "0xbe1295f37be34ffe03ad779bda0ef278907e1856b51a3be2f35ee541d75d4650"
+    },
+    {
+      "protocol": "shared",
+      "role": "usdg",
+      "address": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+      "runtime_bytecode_hash": "0x864cc9ad53b338b82da1f7cab85ab0b3d5c8861acb422b6fec63cf36234f36a6",
+      "runtime_bytecode_bytes": 170,
+      "proxy_type": "eip1967",
+      "implementation_address": "0x68184C449E1a8f34fA18d289737129FD27B66f8F",
+      "implementation_bytecode_hash": "0x3a551ac5c744af57e68a1d1431ac403c0f516ffd7d224a75746aee11fc4f3baf"
+    }
+  ]
+}
