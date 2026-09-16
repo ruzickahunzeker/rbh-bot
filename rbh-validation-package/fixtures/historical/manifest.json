@@ -2,6 +2,8 @@
   "schema_version": 1,
   "provenance": "REAL_HISTORY_REQUIRED",
   "status": "INCOMPLETE",
+  "pons_status": "DISCOVERY_IN_PROGRESS",
+  "long_status": "NOT_STARTED",
   "chain_id": 4663,
   "transactions": [],
   "required_cases": [
