@@ -1,8 +1,3 @@
-PRAGMA journal_mode = WAL;
-PRAGMA foreign_keys = ON;
-PRAGMA busy_timeout = 5000;
-
-CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
 CREATE TABLE feed_events(
   offset INTEGER PRIMARY KEY AUTOINCREMENT,
   observation_id TEXT NOT NULL UNIQUE,

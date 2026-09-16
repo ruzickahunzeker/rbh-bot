@@ -1,5 +1,5 @@
 # 04｜SDK 兼容性报告
-**结论：NOT READY FOR LIVE。源码基线已核查；真实 SDK 与主网链路未完成验证。**
+**结论：NOT READY FOR LIVE。C01 离线 SDK 兼容性已通过；主网链路仍未完成验证。**
 
 ## 版本基线
 
@@ -14,22 +14,27 @@
 
 依据为本次会话 GitHub 连接器取得的固定提交和 go.mod。[S01][S02]
 完整值与 go.mod/go.sum blob 在 versions.lock.json。
-组合业务模块的依赖图尚未解析；锁两个顶层提交不等于完成所有依赖供应链审计。
+组合 smoke 的依赖图已在固定 Go 1.26.6 工具链下解析并保存；
+锁两个顶层提交和解析依赖图仍不等于完成所有依赖供应链审计。
 
 ## 本次结果
 
 | 检查 | 状态 | 证据 |
 |---|---|---|
 | 离线参考模型 | 39 项通过，0 失败、0 跳过 | evidence/offline-results.json |
-| SDK build/test/race/vet | BLOCKED：当前 Go 1.23.2 | evidence/sdk-report.json |
-| 组合 SDK smoke 输入 | 已提供，未执行 | spike/sdk_smoke_test.go |
+| SDK build/test/race/vet | PASS_OFFLINE_ONLY：792 pass、0 fail、10 upstream skip | evidence/sdk-report.json |
+| 组合 SDK smoke | PASS：依赖解析及 Parser/Feed、Pons ABI、Long fail-closed、共享符号测试 | spike/sdk_smoke_test.go、evidence/resolved-spike-go.mod |
 | RPC eth_chainId 只读检查 | 以实际报告为准；本次未取得有效响应 | evidence/rpc-report.json |
 | safe/finalized/pending 语义 | 未验证 | 不把返回值或 SDK 配置当语义证据 |
 | 真实历史 fixtures | 未采集 | historical/manifest 的 transactions 为空 |
 | Pons 真实 SDK → eth_call dry-run | 未完成 | 参考模型不是替代品 |
 | 主网 canary / soak / 延迟 | 未执行 | 未使用资金或签名 |
 
-环境阻塞不能说成 SDK 失败或链不支持；上游 skip 不计作在线通过。
+固定工具链验证于 2026-09-16 使用 `golang:1.26.6-bookworm` 执行；
+两个仓库均校验锁定 commit 和 go.mod/go.sum blob，依次运行
+`go mod download`、`go mod verify`、`go build ./...`、`go test ./...`、
+`go test -race ./...` 与 `go vet ./...`，再运行组合 smoke。
+上游 skip 不计作在线通过，C01 通过也不解除 C02–C08。
 本包没有完成真实 Pons dry-run 纵向闭环，也没有部署三个生产服务。
 
 ## 源码核查发现
@@ -50,7 +55,7 @@
 
 | 编号 | 缺口 | 所需证据 |
 |---|---|---|
-| C01 | 工具链/依赖无法完整执行 | 固定源 build/test/race/vet、组合 smoke、解析 go.sum |
+| C01 | **PASS_OFFLINE_ONLY** | 固定源 build/test/race/vet、组合 smoke、解析 go.mod/go.sum 已留证；不含链上验证 |
 | C02 | 链身份/合约/代理升级路径未验证 | chainId、地址、代码 hash、实现/升级依据、区块绑定 |
 | C03 | 历史样本缺失 | 原始 tx/Receipt/块、独立期望值、交易前状态 |
 | C04 | replay/finality/pending 语义未知 | 可复现实验和异常案例 |

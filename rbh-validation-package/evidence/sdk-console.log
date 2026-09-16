@@ -1,10 +1,305 @@
 {
   "scope": "PINNED_SDK_OFFLINE_CHECKS",
-  "created_at_runtime_utc": "2026-09-15T18:33:41.130998+00:00",
-  "checks": [],
+  "created_at_runtime_utc": "2026-09-16T05:47:31.690885+00:00",
+  "checks": [
+    {
+      "name": "parser-init",
+      "command": [
+        "git",
+        "init",
+        "/workspace/rbh-validation-package/.work/rbh-parser-sdk"
+      ],
+      "exit_code": 0,
+      "log": "01-parser-init.log",
+      "status": "PASS"
+    },
+    {
+      "name": "parser-remote",
+      "command": [
+        "git",
+        "-C",
+        "/workspace/rbh-validation-package/.work/rbh-parser-sdk",
+        "remote",
+        "add",
+        "origin",
+        "https://github.com/0xfnzero/rbh-parser-sdk.git"
+      ],
+      "exit_code": 0,
+      "log": "02-parser-remote.log",
+      "status": "PASS"
+    },
+    {
+      "name": "parser-fetch",
+      "command": [
+        "git",
+        "-C",
+        "/workspace/rbh-validation-package/.work/rbh-parser-sdk",
+        "fetch",
+        "--depth=1",
+        "origin",
+        "72cf9cee394bbd2566fca1d03202b05981eb51b4"
+      ],
+      "exit_code": 0,
+      "log": "03-parser-fetch.log",
+      "status": "PASS"
+    },
+    {
+      "name": "parser-checkout",
+      "command": [
+        "git",
+        "-C",
+        "/workspace/rbh-validation-package/.work/rbh-parser-sdk",
+        "checkout",
+        "--detach",
+        "FETCH_HEAD"
+      ],
+      "exit_code": 0,
+      "log": "04-parser-checkout.log",
+      "status": "PASS"
+    },
+    {
+      "name": "parser-download",
+      "command": [
+        "go",
+        "mod",
+        "download"
+      ],
+      "exit_code": 0,
+      "log": "05-parser-download.log",
+      "status": "PASS"
+    },
+    {
+      "name": "parser-verify",
+      "command": [
+        "go",
+        "mod",
+        "verify"
+      ],
+      "exit_code": 0,
+      "log": "06-parser-verify.log",
+      "status": "PASS"
+    },
+    {
+      "name": "parser-build",
+      "command": [
+        "go",
+        "build",
+        "./..."
+      ],
+      "exit_code": 0,
+      "log": "07-parser-build.log",
+      "status": "PASS"
+    },
+    {
+      "name": "parser-test",
+      "command": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./..."
+      ],
+      "exit_code": 0,
+      "log": "08-parser-test.log",
+      "status": "PASS"
+    },
+    {
+      "name": "parser-race",
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-json",
+        "-count=1",
+        "./..."
+      ],
+      "exit_code": 0,
+      "log": "09-parser-race.log",
+      "status": "PASS"
+    },
+    {
+      "name": "parser-vet",
+      "command": [
+        "go",
+        "vet",
+        "./..."
+      ],
+      "exit_code": 0,
+      "log": "10-parser-vet.log",
+      "status": "PASS"
+    },
+    {
+      "name": "trade-init",
+      "command": [
+        "git",
+        "init",
+        "/workspace/rbh-validation-package/.work/rbh-trade-sdk"
+      ],
+      "exit_code": 0,
+      "log": "11-trade-init.log",
+      "status": "PASS"
+    },
+    {
+      "name": "trade-remote",
+      "command": [
+        "git",
+        "-C",
+        "/workspace/rbh-validation-package/.work/rbh-trade-sdk",
+        "remote",
+        "add",
+        "origin",
+        "https://github.com/0xfnzero/rbh-trade-sdk.git"
+      ],
+      "exit_code": 0,
+      "log": "12-trade-remote.log",
+      "status": "PASS"
+    },
+    {
+      "name": "trade-fetch",
+      "command": [
+        "git",
+        "-C",
+        "/workspace/rbh-validation-package/.work/rbh-trade-sdk",
+        "fetch",
+        "--depth=1",
+        "origin",
+        "a894cf496b862144ea00910e73afe553073a858b"
+      ],
+      "exit_code": 0,
+      "log": "13-trade-fetch.log",
+      "status": "PASS"
+    },
+    {
+      "name": "trade-checkout",
+      "command": [
+        "git",
+        "-C",
+        "/workspace/rbh-validation-package/.work/rbh-trade-sdk",
+        "checkout",
+        "--detach",
+        "FETCH_HEAD"
+      ],
+      "exit_code": 0,
+      "log": "14-trade-checkout.log",
+      "status": "PASS"
+    },
+    {
+      "name": "trade-download",
+      "command": [
+        "go",
+        "mod",
+        "download"
+      ],
+      "exit_code": 0,
+      "log": "15-trade-download.log",
+      "status": "PASS"
+    },
+    {
+      "name": "trade-verify",
+      "command": [
+        "go",
+        "mod",
+        "verify"
+      ],
+      "exit_code": 0,
+      "log": "16-trade-verify.log",
+      "status": "PASS"
+    },
+    {
+      "name": "trade-build",
+      "command": [
+        "go",
+        "build",
+        "./..."
+      ],
+      "exit_code": 0,
+      "log": "17-trade-build.log",
+      "status": "PASS"
+    },
+    {
+      "name": "trade-test",
+      "command": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./..."
+      ],
+      "exit_code": 0,
+      "log": "18-trade-test.log",
+      "status": "PASS"
+    },
+    {
+      "name": "trade-race",
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-json",
+        "-count=1",
+        "./..."
+      ],
+      "exit_code": 0,
+      "log": "19-trade-race.log",
+      "status": "PASS"
+    },
+    {
+      "name": "trade-vet",
+      "command": [
+        "go",
+        "vet",
+        "./..."
+      ],
+      "exit_code": 0,
+      "log": "20-trade-vet.log",
+      "status": "PASS"
+    },
+    {
+      "name": "spike-resolve",
+      "command": [
+        "go",
+        "mod",
+        "tidy"
+      ],
+      "exit_code": 0,
+      "log": "21-spike-resolve.log",
+      "status": "PASS"
+    },
+    {
+      "name": "spike-dependencies",
+      "command": [
+        "go",
+        "list",
+        "-m",
+        "-json",
+        "all"
+      ],
+      "exit_code": 0,
+      "log": "22-spike-dependencies.log",
+      "status": "PASS"
+    },
+    {
+      "name": "spike-smoke",
+      "command": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./..."
+      ],
+      "exit_code": 0,
+      "log": "23-spike-smoke.log",
+      "status": "PASS"
+    }
+  ],
   "mainnet_validated": false,
-  "observed_go_version": "go version go1.23.2 linux/amd64",
+  "observed_go_version": "go version go1.26.6 linux/amd64",
   "required_go_version": "go1.26.6",
-  "status": "BLOCKED",
-  "reason": "TOOLCHAIN_MISMATCH_NO_AUTO_DOWNLOAD"
+  "go_test_events": {
+    "pass_count": 792,
+    "fail_count": 0,
+    "skip_count": 10
+  },
+  "status": "PASS_OFFLINE_ONLY",
+  "reason": "NO_MAINNET_OR_HISTORICAL_VALIDATION"
 }
