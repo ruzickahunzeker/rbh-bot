@@ -25,8 +25,13 @@ go run ./cmd/bot-service
 go run ./cmd/trade-service
 ```
 
-默认 socket 与数据库位于 `./data/`。当前骨架仅开放 `/health`、`/ready` 和
-`/metrics`；交易、签名和广播尚未启用。
+默认 socket 与数据库位于 `./data/`。启动时服务会打开自己的数据库、独占执行
+嵌入式 migration，并在 config、database、migration、socket 和 live-disabled 五个
+gate 全部通过后才返回 ready。当前仅开放 `/health`、`/ready` 和 `/metrics`；交易、
+签名和广播尚未启用。
+
+内部 IPC 基础包提供 Unix socket client、HMAC body 签名、时间窗、request nonce
+防重放、request ID 和结构化错误。业务端点接入前必须配置独立认证 secret。
 
 ## 实施基线
 
@@ -36,4 +41,3 @@ go run ./cmd/trade-service
 - LP 仅保留模型扩展点，执行能力固定关闭。
 
 Phase 0 证据与运行手册见 [`rbh-validation-package`](rbh-validation-package/README.md)。
-

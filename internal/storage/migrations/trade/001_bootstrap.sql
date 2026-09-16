@@ -1,9 +1,3 @@
-PRAGMA journal_mode = WAL;
-PRAGMA synchronous = FULL;
-PRAGMA foreign_keys = ON;
-PRAGMA busy_timeout = 5000;
-
-CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
 CREATE TABLE operations(
   id TEXT PRIMARY KEY,
   chain_id INTEGER NOT NULL CHECK(chain_id = 4663),

@@ -22,7 +22,7 @@
   },
   "verification_toolchain": "go1.26.6",
   "shared_go_ethereum_requirement": "v1.17.5",
-  "combined_dependency_graph": "NOT_RESOLVED",
+  "combined_dependency_graph": "RESOLVED_AND_SMOKE_TESTED_OFFLINE",
   "chain": {
     "expected_id": 4663,
     "runtime_verified": false

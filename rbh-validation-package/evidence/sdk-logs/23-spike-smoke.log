@@ -1,0 +1,20 @@
+{"Time":"2026-09-16T05:51:59.276413506Z","Action":"start","Package":"example.invalid/rbh-verification"}
+{"Time":"2026-09-16T05:51:59.325736102Z","Action":"run","Package":"example.invalid/rbh-verification","Test":"TestParserAndFeedConstructors"}
+{"Time":"2026-09-16T05:51:59.325839911Z","Action":"output","Package":"example.invalid/rbh-verification","Test":"TestParserAndFeedConstructors","Output":"=== RUN   TestParserAndFeedConstructors\n"}
+{"Time":"2026-09-16T05:51:59.326107504Z","Action":"output","Package":"example.invalid/rbh-verification","Test":"TestParserAndFeedConstructors","Output":"--- PASS: TestParserAndFeedConstructors (0.00s)\n"}
+{"Time":"2026-09-16T05:51:59.326145181Z","Action":"pass","Package":"example.invalid/rbh-verification","Test":"TestParserAndFeedConstructors","Elapsed":0}
+{"Time":"2026-09-16T05:51:59.326181827Z","Action":"run","Package":"example.invalid/rbh-verification","Test":"TestPonsABIEncoding"}
+{"Time":"2026-09-16T05:51:59.326188106Z","Action":"output","Package":"example.invalid/rbh-verification","Test":"TestPonsABIEncoding","Output":"=== RUN   TestPonsABIEncoding\n"}
+{"Time":"2026-09-16T05:51:59.326230943Z","Action":"output","Package":"example.invalid/rbh-verification","Test":"TestPonsABIEncoding","Output":"--- PASS: TestPonsABIEncoding (0.00s)\n"}
+{"Time":"2026-09-16T05:51:59.326263478Z","Action":"pass","Package":"example.invalid/rbh-verification","Test":"TestPonsABIEncoding","Elapsed":0}
+{"Time":"2026-09-16T05:51:59.326291656Z","Action":"run","Package":"example.invalid/rbh-verification","Test":"TestUnknownLongStateRejected"}
+{"Time":"2026-09-16T05:51:59.326297296Z","Action":"output","Package":"example.invalid/rbh-verification","Test":"TestUnknownLongStateRejected","Output":"=== RUN   TestUnknownLongStateRejected\n"}
+{"Time":"2026-09-16T05:51:59.326325793Z","Action":"output","Package":"example.invalid/rbh-verification","Test":"TestUnknownLongStateRejected","Output":"--- PASS: TestUnknownLongStateRejected (0.00s)\n"}
+{"Time":"2026-09-16T05:51:59.326354389Z","Action":"pass","Package":"example.invalid/rbh-verification","Test":"TestUnknownLongStateRejected","Elapsed":0}
+{"Time":"2026-09-16T05:51:59.326381996Z","Action":"run","Package":"example.invalid/rbh-verification","Test":"TestSharedSymbols"}
+{"Time":"2026-09-16T05:51:59.326388216Z","Action":"output","Package":"example.invalid/rbh-verification","Test":"TestSharedSymbols","Output":"=== RUN   TestSharedSymbols\n"}
+{"Time":"2026-09-16T05:51:59.326414432Z","Action":"output","Package":"example.invalid/rbh-verification","Test":"TestSharedSymbols","Output":"--- PASS: TestSharedSymbols (0.00s)\n"}
+{"Time":"2026-09-16T05:51:59.326464308Z","Action":"pass","Package":"example.invalid/rbh-verification","Test":"TestSharedSymbols","Elapsed":0}
+{"Time":"2026-09-16T05:51:59.326494755Z","Action":"output","Package":"example.invalid/rbh-verification","Output":"PASS\n"}
+{"Time":"2026-09-16T05:51:59.333235526Z","Action":"output","Package":"example.invalid/rbh-verification","Output":"ok  \texample.invalid/rbh-verification\t0.045s\n"}
+{"Time":"2026-09-16T05:51:59.333278583Z","Action":"pass","Package":"example.invalid/rbh-verification","Elapsed":0.057}

@@ -11,10 +11,10 @@
 
 | 项目 | 本次结果 | 证据及边界 |
 |---|---|---|
-| SDK 版本 | 两个不可变 commit 与模块文件 blob 已记录 | [versions.lock.json](versions.lock.json)，不等于已编译 |
+| SDK 版本 | 两个不可变 commit 与模块文件 blob 已记录 | [versions.lock.json](versions.lock.json) |
 | 离线参考模型 | **39 项通过，0 失败、0 跳过** | [JSON 逐项结果](evidence/offline-results.json)、[测试日志](evidence/offline-results.log) |
 | 崩溃模型 | 3 个边界 × 5 次真实子进程退出通过 | SQLite + 本地 FakeChain，不是链上广播证明 |
-| SDK 编译/测试 | **BLOCKED** | [SDK 报告](evidence/sdk-report.json)：Go 1.23.2 与锁定 go1.26.6 不符 |
+| SDK 编译/测试 | **PASS_OFFLINE_ONLY** | [SDK 报告](evidence/sdk-report.json)：固定 Go 1.26.6 下 23 个检查通过，792 pass、0 fail、10 upstream skip |
 | RPC 只读检查 | **BLOCKED** | [RPC 报告](evidence/rpc-report.json)：eth_chainId 传输错误 |
 | 历史主网 fixtures / 真实 Pons dry-run | **未完成** | 未捏造 Receipt、成交数据或报价结果 |
 | 主网 canary / soak / 性能 SLO | **未执行** | 不构成实盘上线批准 |
@@ -48,7 +48,7 @@ SHA256SUMS
 
 Python 仅用于验证工具和可执行规格，拟议生产服务仍采用 Go。
 参考模型不含真实签名器、加密实现或 RPC；其假字节不会构成有效 EVM 交易。
-SDK runner 执行上游测试前需要显式联网授权和正确工具链；Go smoke 输入本次未执行。
+SDK runner 执行上游测试前需要显式联网授权和正确工具链；组合 Go smoke 已在固定工具链执行并留存解析后的 go.mod/go.sum。
 
 ## 本地复现
 
