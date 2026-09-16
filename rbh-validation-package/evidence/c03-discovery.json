@@ -26,6 +26,18 @@
       "note": "Recent successful PonsFactory TokenLaunched candidate."
     },
     {
+      "event_type": "curve_context_launch",
+      "tx_hash": "0x45142a829ca4ce83909c0f87408b27f70da8a1853a101921fffc20ff5fc08b10",
+      "block_number": 64375338,
+      "block_hash": "0x99efcbca891daf8204227b2ace0e3195212fc2e46ee809f53f9a184b14f90400",
+      "receipt_status": "0x1",
+      "emitter": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e",
+      "topic0": "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607",
+      "token": "0x3c1da17b9690a00dccc5e1d7a31bf65daaf1b07b",
+      "curve": "0x4197749b1b3bbb9e1d8a183f968cc54c42e882a7",
+      "note": "Supporting launch context required to seed the parser registry for the curve buy/sell candidates."
+    },
+    {
       "event_type": "curve_buy",
       "tx_hash": "0x04fc83e1a45cbbc7a0dc6e18dd996f91225c7d97158412560dc0d2fbec5c9d2d",
       "block_number": 64375362,
@@ -33,7 +45,7 @@
       "receipt_status": "0x1",
       "emitter": "0x4197749b1b3bbb9e1d8a183f968cc54c42e882a7",
       "topic0": "0xec36bf571f136799e8dc0b0b8bea4b04d8bd3d43de838aab0d5fc21d4cbfc455",
-      "note": "Successful CurveBuy from curve learned from launch tx 0x8455...6cfa."
+      "note": "Successful CurveBuy from curve learned from supporting launch tx 0x4514...8b10."
     },
     {
       "event_type": "curve_sell",
@@ -67,7 +79,7 @@
       "block_hash": "0xcb9e06b73c45c8af0351b7fa91b93d1e76b8444d30b533f1db429637ab31e2a7",
       "receipt_status": "0x1",
       "pool_id": "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
-      "note": "Successful v4 Swap one block after registration; classify buy/sell only after decoding PoolKey currency order and signed deltas."
+      "note": "Observed as sell: registered token is currency1 and its signed PoolManager delta is positive, so token enters the pool. Independent review is still required."
     },
     {
       "event_type": "graduated_v4_swap_direction_candidate_b",
@@ -76,7 +88,7 @@
       "block_hash": "0x09b756faad62366ffcf70c71a57ea54437ecf788b8aeb9500b0fbbd0359d9c3e",
       "receipt_status": "0x1",
       "pool_id": "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
-      "note": "Successful Swap with opposite signed-delta orientation to candidate A; classify after PoolKey decoding."
+      "note": "Observed as buy: registered token is currency1 and its signed PoolManager delta is negative, so token leaves the pool. Independent review is still required."
     }
   ],
   "long": {

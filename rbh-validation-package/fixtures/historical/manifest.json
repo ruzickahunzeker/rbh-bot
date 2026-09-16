@@ -2,7 +2,7 @@
   "schema_version": 1,
   "provenance": "REAL_HISTORY_REQUIRED",
   "status": "INCOMPLETE",
-  "pons_status": "DISCOVERY_IN_PROGRESS",
+  "pons_status": "PARSER_REPLAY_OBSERVED_REVIEW_REQUIRED",
   "long_status": "NOT_STARTED",
   "chain_id": 4663,
   "transactions": [
@@ -10,6 +10,11 @@
       "case": "pons_launch_candidate",
       "tx_hash": "0x84551fcfe69d9b531cac1afdfcdfd75df562dcd721a324b10fa89709a42e6cfa",
       "status": "CANDIDATE_NOT_GOLDEN"
+    },
+    {
+      "case": "pons_curve_context_launch_candidate",
+      "tx_hash": "0x45142a829ca4ce83909c0f87408b27f70da8a1853a101921fffc20ff5fc08b10",
+      "status": "SUPPORTING_CONTEXT_CANDIDATE_NOT_GOLDEN"
     },
     {
       "case": "pons_curve_buy_candidate",
@@ -27,12 +32,12 @@
       "status": "CANDIDATE_NOT_GOLDEN"
     },
     {
-      "case": "pons_v4_direction_a_candidate",
+      "case": "pons_v4_sell_candidate",
       "tx_hash": "0xd6e22ef615042f57475eed8da0e1f32a51315fa72def7eb26917a12c2f645ff7",
       "status": "CANDIDATE_NOT_GOLDEN"
     },
     {
-      "case": "pons_v4_direction_b_candidate",
+      "case": "pons_v4_buy_candidate",
       "tx_hash": "0x7e9002defc7f972326d99148813ef1853dd8f6e9ae088925e8564b253353ce35",
       "status": "CANDIDATE_NOT_GOLDEN"
     }
@@ -48,5 +53,5 @@
     "long_v4_sell",
     "long_fee_time_boundaries"
   ],
-  "warning": "Candidate hashes are discovery inputs, not golden fixtures. RPC captures must acquire independent parser expectations and transaction-prestate evidence."
+  "warning": "Candidate hashes and parser replay are observed evidence, not independent golden expectations. Revert coverage, transaction-prestate evidence, emitter classification, and independent review remain open."
 }

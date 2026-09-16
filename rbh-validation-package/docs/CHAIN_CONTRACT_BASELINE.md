@@ -26,14 +26,16 @@ ROBINHOOD_RPC_URL=... go run ./cmd/chain-baseline \
 The command permits only chain/header, code and storage reads through `ethclient`; it has no key,
 signing or send path. The endpoint itself is redacted from evidence.
 
+The generator fails closed if the locked Parser and Trade SDK shared AddressBooks disagree.
+`TestLockedSDKAddressBooksMatch` runs the same comparison in CI without requiring RPC access;
+the baseline contract list also has an offline uniqueness/non-zero-address test.
+
 ## Remaining C02 gates
 
 - Independently classify every `no_eip1967_implementation_slot` entry.
 - Verify beacon/custom proxy slots where applicable.
-- Compare the generated address set with both locked SDK AddressBooks in CI.
 - Record authoritative deployment/source evidence, not only an RPC observation.
 - Re-run the locked-block capture from an independent archive RPC.
 
 Until these gates are reviewed, `status` remains `CAPTURED_REQUIRES_CLASSIFICATION_REVIEW` and
 execution must fail closed.
-

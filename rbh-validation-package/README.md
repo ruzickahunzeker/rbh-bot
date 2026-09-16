@@ -15,8 +15,8 @@
 | 离线参考模型 | **39 项通过，0 失败、0 跳过** | [JSON 逐项结果](evidence/offline-results.json)、[测试日志](evidence/offline-results.log) |
 | 崩溃模型 | 3 个边界 × 5 次真实子进程退出通过 | SQLite + 本地 FakeChain，不是链上广播证明 |
 | SDK 编译/测试 | **PASS_OFFLINE_ONLY** | [SDK 报告](evidence/sdk-report.json)：固定 Go 1.26.6 下 23 个检查通过，792 pass、0 fail、10 upstream skip |
-| RPC 只读检查 | **BLOCKED** | [RPC 报告](evidence/rpc-report.json)：eth_chainId 传输错误 |
-| 历史主网 fixtures / 真实 Pons dry-run | **未完成** | 未捏造 Receipt、成交数据或报价结果 |
+| RPC 只读检查 | **OBSERVED / 语义未验证** | [C03 RPC 报告](evidence/c03-rpc-report.json)：chain 4663、7 个 canonical captures；finality/pending 语义仍未验收 |
+| Pons 历史 fixtures | **PARTIAL** | 6 个语义候选 + 1 个 launch context 已完成 parser replay；仍非 golden，缺 revert、pre-state 与独立复核 |
 | 主网 canary / soak / 性能 SLO | **未执行** | 不构成实盘上线批准 |
 
 运行证据使用机器实际 UTC 时间，报告日期采用本次交付日期；分别保存。
@@ -40,7 +40,7 @@ contracts/     候选数据契约和 PositionRef schema
 verification/  Python + SQLite 可执行参考模型及 39 项测试
 scripts/       离线检查、固定 SDK 检查、只读 RPC/样本采集、包校验
 spike/         待正确工具链执行的 Go SDK smoke 输入
-fixtures/      合成身份样本 + 尚为空的真实历史交易清单
+fixtures/      合成身份样本 + 尚未晋升 golden 的真实历史候选
 evidence/      本次实际运行 JSON 和日志
 versions.lock.json
 SHA256SUMS
@@ -66,6 +66,6 @@ python3 scripts/verify_offline.py
 
 **release_ready=false。** 可以评审设计、复现模型、继续补齐兼容性验证；
 不能把“39 项通过”表述为“Pons/Long 主网交易通过”。
-真实 Pons dry-run、历史样本和生产服务集成仍未交付，已在报告列为阻塞。
+真实 Pons dry-run、golden fixture 晋升和生产服务集成仍未交付，已在报告列为阻塞。
 
 本次未创建或修改远程仓库，未部署服务，未导入钱包，未签名或发送真实交易。

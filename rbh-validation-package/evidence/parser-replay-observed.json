@@ -1,0 +1,619 @@
+{
+  "status": "PARSER_OBSERVED_REQUIRES_INDEPENDENT_REVIEW",
+  "created_at": "2026-09-16T10:36:30.339902679Z",
+  "parser_module": "github.com/0xfnzero/rbh-parser-sdk",
+  "parser_commit": "72cf9cee394bbd2566fca1d03202b05981eb51b4",
+  "independent_golden": false,
+  "replays": [
+    {
+      "tx_hash": "0xcfd26c84f8c352af7d40984dbb45b3245818f73bb9b336e748783a192c668d56",
+      "block_number": 64288718,
+      "transaction_index": 1,
+      "outcome": "NORMALIZED_EVENTS_OBSERVED",
+      "event_count": 4,
+      "event_kinds": [
+        "pool-initialized",
+        "launch",
+        "liquidity-modified",
+        "swap"
+      ],
+      "protocols": [
+        "pons-v2",
+        "pons-v2",
+        "pons-v2",
+        "pons-v2"
+      ],
+      "v4_direction": "sell",
+      "direction_basis": "PoolManager pool delta: registered token is currency1; negative token delta means token leaves pool (buy), positive means token enters pool (sell)",
+      "events": [
+        {
+          "Kind": 2,
+          "Protocol": 1,
+          "Data": {
+            "PoolID": "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+            "PoolKey": {
+              "Currency0": "0x0000000000000000000000000000000000000000",
+              "Currency1": "0x348902a64e8e6c86c31332b07c5b0a4c215e8cb4",
+              "Fee": 0,
+              "TickSpacing": 200,
+              "Hooks": "0xe5e702641ea86f4ae6cc3cdaed2b886f976be044"
+            },
+            "SqrtPriceX96": 552276925551777206777919287667728,
+            "Tick": 176998
+          },
+          "Log": {
+            "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+            "topics": [
+              "0xdd466e674ea557f56295e2d0218a125ea4b4f0f6f3307b95f85e6110838d6438",
+              "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+              "0x000000000000000000000000348902a64e8e6c86c31332b07c5b0a4c215e8cb4"
+            ],
+            "data": "0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c8000000000000000000000000e5e702641ea86f4ae6cc3cdaed2b886f976be0440000000000000000000000000000000000001b3ab6fd93aa9a23e4f8206d2c10000000000000000000000000000000000000000000000000000000000002b366",
+            "blockNumber": "0x3d4f7ce",
+            "transactionHash": "0xcfd26c84f8c352af7d40984dbb45b3245818f73bb9b336e748783a192c668d56",
+            "transactionIndex": "0x1",
+            "blockHash": "0x0952d1acedd99242ccc7e8b8978548a422c64167836f1357681c42c30ca9a08c",
+            "blockTimestamp": "0x6aaa34f4",
+            "logIndex": "0xe",
+            "removed": false
+          }
+        },
+        {
+          "Kind": 1,
+          "Protocol": 1,
+          "Data": {
+            "Protocol": 1,
+            "Token": "0x348902a64e8e6c86c31332b07c5b0a4c215e8cb4",
+            "Quote": "0x0000000000000000000000000000000000000000",
+            "Creator": "0x4aed9babac443c145659d4fd8f9c63c41e0480c1",
+            "Curve": "0x0000000000000000000000000000000000000000",
+            "PoolID": "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+            "Pool": {
+              "Currency0": "0x0000000000000000000000000000000000000000",
+              "Currency1": "0x348902a64e8e6c86c31332b07c5b0a4c215e8cb4",
+              "Fee": 0,
+              "TickSpacing": 200,
+              "Hooks": "0xe5e702641ea86f4ae6cc3cdaed2b886f976be044"
+            },
+            "Name": "",
+            "Symbol": "",
+            "MetadataURI": "",
+            "TickerKey": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "NormalizedTicker": "",
+            "PoolOrHook": "0x0000000000000000000000000000000000000000",
+            "PoolInitializer": "0x0000000000000000000000000000000000000000",
+            "LaunchSupply": null,
+            "LaunchConfigID": null,
+            "GraduationThreshold": null,
+            "TickSpacing": 0,
+            "DeployedAt": 0,
+            "ReservedUntil": 0,
+            "Venue": "0x0000000000000000000000000000000000000000",
+            "BuyFeeBPS": 0,
+            "SellFeeBPS": 0,
+            "FeesVerified": false,
+            "PreLaunch": false,
+            "LaunchMode": 0,
+            "AirdropBPS": 0,
+            "NeedACF": false,
+            "AntiSniperTaxType": 0,
+            "IsProject60Days": false,
+            "TokenVersion": 0,
+            "MigratorType": 0,
+            "DexID": 0,
+            "LPFeeProfile": 0,
+            "CurveR": null,
+            "CurveH": null,
+            "CurveK": null,
+            "DexSupplyThreshold": null
+          },
+          "Log": {
+            "address": "0xe5e702641ea86f4ae6cc3cdaed2b886f976be044",
+            "topics": [
+              "0x01bf263a1db1652580721573296e1a1fa70b3d4c87f61d02a69c4e1109d2d573",
+              "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4"
+            ],
+            "data": "0x000000000000000000000000348902a64e8e6c86c31332b07c5b0a4c215e8cb400000000000000000000000000000000000000000000000000000000000000000000000000000000000000004aed9babac443c145659d4fd8f9c63c41e0480c1",
+            "blockNumber": "0x3d4f7ce",
+            "transactionHash": "0xcfd26c84f8c352af7d40984dbb45b3245818f73bb9b336e748783a192c668d56",
+            "transactionIndex": "0x1",
+            "blockHash": "0x0952d1acedd99242ccc7e8b8978548a422c64167836f1357681c42c30ca9a08c",
+            "blockTimestamp": "0x6aaa34f4",
+            "logIndex": "0xf",
+            "removed": false
+          }
+        },
+        {
+          "Kind": 3,
+          "Protocol": 1,
+          "Data": {
+            "PoolID": "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+            "Sender": "0x58daec3116aae6d93017baaea7749052e8a04fa7",
+            "TickLower": -887200,
+            "TickUpper": 887200,
+            "LiquidityDelta": 29277002188455995394075,
+            "Salt": "0x00000000000000000000000000000000000000000000000000000000002a48b4"
+          },
+          "Log": {
+            "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+            "topics": [
+              "0xf208f4912782fd25c7f114ca3723a2d5dd6f3bcc3ac8db5af63baa85f711d5ec",
+              "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+              "0x00000000000000000000000058daec3116aae6d93017baaea7749052e8a04fa7"
+            ],
+            "data": "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffff2766000000000000000000000000000000000000000000000000000000000000d89a00000000000000000000000000000000000000000000006331c062631f58a481b00000000000000000000000000000000000000000000000000000000002a48b4",
+            "blockNumber": "0x3d4f7ce",
+            "transactionHash": "0xcfd26c84f8c352af7d40984dbb45b3245818f73bb9b336e748783a192c668d56",
+            "transactionIndex": "0x1",
+            "blockHash": "0x0952d1acedd99242ccc7e8b8978548a422c64167836f1357681c42c30ca9a08c",
+            "blockTimestamp": "0x6aaa34f4",
+            "logIndex": "0x14",
+            "removed": false
+          }
+        },
+        {
+          "Kind": 4,
+          "Protocol": 1,
+          "Data": {
+            "PoolID": "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+            "Sender": "0x8876789976decbfcbbbe364623c63652db8c0904",
+            "Amount0": -130620555914673560,
+            "Amount1": 6155528050756863017829674,
+            "SqrtPriceX96": 535619100627380557690626379623102,
+            "Liquidity": 29277002188455995394075,
+            "Tick": 176385,
+            "Fee": 0,
+            "Registration": {
+              "PoolID": "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+              "Protocol": 1,
+              "Token": "0x348902a64e8e6c86c31332b07c5b0a4c215e8cb4",
+              "Quote": "0x0000000000000000000000000000000000000000",
+              "PoolKey": {
+                "Currency0": "0x0000000000000000000000000000000000000000",
+                "Currency1": "0x348902a64e8e6c86c31332b07c5b0a4c215e8cb4",
+                "Fee": 0,
+                "TickSpacing": 200,
+                "Hooks": "0xe5e702641ea86f4ae6cc3cdaed2b886f976be044"
+              }
+            }
+          },
+          "Log": {
+            "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+            "topics": [
+              "0x40e9cecb9f5f1f1c5b9c97dec2917b7ee92e57ba5563708daca94dd84ad7112f",
+              "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+              "0x0000000000000000000000008876789976decbfcbbbe364623c63652db8c0904"
+            ],
+            "data": "0xfffffffffffffffffffffffffffffffffffffffffffffffffe2ff14be457826800000000000000000000000000000000000000000005177bd8222a01e537452a0000000000000000000000000000000000001a6876a7c086e68c739bd63c2abe0000000000000000000000000000000000000000000006331c062631f58a481b000000000000000000000000000000000000000000000000000000000002b1010000000000000000000000000000000000000000000000000000000000000000",
+            "blockNumber": "0x3d4f7ce",
+            "transactionHash": "0xcfd26c84f8c352af7d40984dbb45b3245818f73bb9b336e748783a192c668d56",
+            "transactionIndex": "0x1",
+            "blockHash": "0x0952d1acedd99242ccc7e8b8978548a422c64167836f1357681c42c30ca9a08c",
+            "blockTimestamp": "0x6aaa34f4",
+            "logIndex": "0x1c",
+            "removed": false
+          }
+        }
+      ]
+    },
+    {
+      "tx_hash": "0xd6e22ef615042f57475eed8da0e1f32a51315fa72def7eb26917a12c2f645ff7",
+      "block_number": 64288719,
+      "transaction_index": 10,
+      "outcome": "NORMALIZED_EVENTS_OBSERVED",
+      "event_count": 1,
+      "event_kinds": [
+        "swap"
+      ],
+      "protocols": [
+        "pons-v2"
+      ],
+      "v4_direction": "sell",
+      "direction_basis": "PoolManager pool delta: registered token is currency1; negative token delta means token leaves pool (buy), positive means token enters pool (sell)",
+      "events": [
+        {
+          "Kind": 4,
+          "Protocol": 1,
+          "Data": {
+            "PoolID": "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+            "Sender": "0x8876789976decbfcbbbe364623c63652db8c0904",
+            "Amount0": -100000000000000000,
+            "Amount1": 4467232120297057808224202,
+            "SqrtPriceX96": 523530069443873908125320372787702,
+            "Liquidity": 29277002188455995394075,
+            "Tick": 175929,
+            "Fee": 0,
+            "Registration": {
+              "PoolID": "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+              "Protocol": 1,
+              "Token": "0x348902a64e8e6c86c31332b07c5b0a4c215e8cb4",
+              "Quote": "0x0000000000000000000000000000000000000000",
+              "PoolKey": {
+                "Currency0": "0x0000000000000000000000000000000000000000",
+                "Currency1": "0x348902a64e8e6c86c31332b07c5b0a4c215e8cb4",
+                "Fee": 0,
+                "TickSpacing": 200,
+                "Hooks": "0xe5e702641ea86f4ae6cc3cdaed2b886f976be044"
+              }
+            }
+          },
+          "Log": {
+            "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+            "topics": [
+              "0x40e9cecb9f5f1f1c5b9c97dec2917b7ee92e57ba5563708daca94dd84ad7112f",
+              "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+              "0x0000000000000000000000008876789976decbfcbbbe364623c63652db8c0904"
+            ],
+            "data": "0xfffffffffffffffffffffffffffffffffffffffffffffffffe9cba87a276000000000000000000000000000000000000000000000003b1f923742804baaf0fca00000000000000000000000000000000000019cfe0e38852c131d6ee643f99f60000000000000000000000000000000000000000000006331c062631f58a481b000000000000000000000000000000000000000000000000000000000002af390000000000000000000000000000000000000000000000000000000000000000",
+            "blockNumber": "0x3d4f7cf",
+            "transactionHash": "0xd6e22ef615042f57475eed8da0e1f32a51315fa72def7eb26917a12c2f645ff7",
+            "transactionIndex": "0xa",
+            "blockHash": "0xcb9e06b73c45c8af0351b7fa91b93d1e76b8444d30b533f1db429637ab31e2a7",
+            "blockTimestamp": "0x6aaa34f4",
+            "logIndex": "0x36",
+            "removed": false
+          }
+        }
+      ]
+    },
+    {
+      "tx_hash": "0x7e9002defc7f972326d99148813ef1853dd8f6e9ae088925e8564b253353ce35",
+      "block_number": 64288723,
+      "transaction_index": 6,
+      "outcome": "NORMALIZED_EVENTS_OBSERVED",
+      "event_count": 1,
+      "event_kinds": [
+        "swap"
+      ],
+      "protocols": [
+        "pons-v2"
+      ],
+      "v4_direction": "buy",
+      "direction_basis": "PoolManager pool delta: registered token is currency1; negative token delta means token leaves pool (buy), positive means token enters pool (sell)",
+      "events": [
+        {
+          "Kind": 4,
+          "Protocol": 1,
+          "Data": {
+            "PoolID": "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+            "Sender": "0x8876789976decbfcbbbe364623c63652db8c0904",
+            "Amount0": 117371563347489918,
+            "Amount1": -4422559799094087230141960,
+            "SqrtPriceX96": 492355291451921730603911136176003,
+            "Liquidity": 29277002188455995394075,
+            "Tick": 174701,
+            "Fee": 0,
+            "Registration": {
+              "PoolID": "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+              "Protocol": 1,
+              "Token": "0x348902a64e8e6c86c31332b07c5b0a4c215e8cb4",
+              "Quote": "0x0000000000000000000000000000000000000000",
+              "PoolKey": {
+                "Currency0": "0x0000000000000000000000000000000000000000",
+                "Currency1": "0x348902a64e8e6c86c31332b07c5b0a4c215e8cb4",
+                "Fee": 0,
+                "TickSpacing": 200,
+                "Hooks": "0xe5e702641ea86f4ae6cc3cdaed2b886f976be044"
+              }
+            }
+          },
+          "Log": {
+            "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+            "topics": [
+              "0x40e9cecb9f5f1f1c5b9c97dec2917b7ee92e57ba5563708daca94dd84ad7112f",
+              "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+              "0x0000000000000000000000008876789976decbfcbbbe364623c63652db8c0904"
+            ],
+            "data": "0x00000000000000000000000000000000000000000000000001a0fcd0a40f347efffffffffffffffffffffffffffffffffffffffffffc577c8d8a71fb516c49f8000000000000000000000000000000000000184665bf93b15cd01516086c67830000000000000000000000000000000000000000000006331c062631f58a481b000000000000000000000000000000000000000000000000000000000002aa6d0000000000000000000000000000000000000000000000000000000000000000",
+            "blockNumber": "0x3d4f7d3",
+            "transactionHash": "0x7e9002defc7f972326d99148813ef1853dd8f6e9ae088925e8564b253353ce35",
+            "transactionIndex": "0x6",
+            "blockHash": "0x09b756faad62366ffcf70c71a57ea54437ecf788b8aeb9500b0fbbd0359d9c3e",
+            "blockTimestamp": "0x6aaa34f4",
+            "logIndex": "0x28",
+            "removed": false
+          }
+        }
+      ]
+    },
+    {
+      "tx_hash": "0x45142a829ca4ce83909c0f87408b27f70da8a1853a101921fffc20ff5fc08b10",
+      "block_number": 64375338,
+      "transaction_index": 6,
+      "outcome": "NORMALIZED_EVENTS_OBSERVED",
+      "event_count": 2,
+      "event_kinds": [
+        "launch",
+        "curve-buy"
+      ],
+      "protocols": [
+        "pons-v2",
+        "pons-v2"
+      ],
+      "events": [
+        {
+          "Kind": 1,
+          "Protocol": 1,
+          "Data": {
+            "Protocol": 1,
+            "Token": "0x3c1da17b9690a00dccc5e1d7a31bf65daaf1b07b",
+            "Quote": "0x0000000000000000000000000000000000000000",
+            "Creator": "0x120c64b791ba111a86dbaf5fc31b246d9624ab1f",
+            "Curve": "0x4197749b1b3bbb9e1d8a183f968cc54c42e882a7",
+            "PoolID": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "Pool": null,
+            "Name": "",
+            "Symbol": "",
+            "MetadataURI": "",
+            "TickerKey": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "NormalizedTicker": "",
+            "PoolOrHook": "0x0000000000000000000000000000000000000000",
+            "PoolInitializer": "0x0000000000000000000000000000000000000000",
+            "LaunchSupply": null,
+            "LaunchConfigID": 0,
+            "GraduationThreshold": 4200000000000000000,
+            "TickSpacing": 0,
+            "DeployedAt": 0,
+            "ReservedUntil": 0,
+            "Venue": "0x0000000000000000000000000000000000000000",
+            "BuyFeeBPS": 0,
+            "SellFeeBPS": 0,
+            "FeesVerified": false,
+            "PreLaunch": false,
+            "LaunchMode": 0,
+            "AirdropBPS": 0,
+            "NeedACF": false,
+            "AntiSniperTaxType": 0,
+            "IsProject60Days": false,
+            "TokenVersion": 0,
+            "MigratorType": 0,
+            "DexID": 0,
+            "LPFeeProfile": 0,
+            "CurveR": null,
+            "CurveH": null,
+            "CurveK": null,
+            "DexSupplyThreshold": null
+          },
+          "Log": {
+            "address": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e",
+            "topics": [
+              "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607",
+              "0x0000000000000000000000003c1da17b9690a00dccc5e1d7a31bf65daaf1b07b",
+              "0x0000000000000000000000004197749b1b3bbb9e1d8a183f968cc54c42e882a7",
+              "0x000000000000000000000000120c64b791ba111a86dbaf5fc31b246d9624ab1f"
+            ],
+            "data": "0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a4965bf58a40000",
+            "blockNumber": "0x3d64a2a",
+            "transactionHash": "0x45142a829ca4ce83909c0f87408b27f70da8a1853a101921fffc20ff5fc08b10",
+            "transactionIndex": "0x6",
+            "blockHash": "0x99efcbca891daf8204227b2ace0e3195212fc2e46ee809f53f9a184b14f90400",
+            "blockTimestamp": "0x6aaa5703",
+            "logIndex": "0x23",
+            "removed": false
+          }
+        },
+        {
+          "Kind": 5,
+          "Protocol": 1,
+          "Data": {
+            "BuyerOrSeller": "0xe33e9e479df8802cb0866d5d05258bec4cf62948",
+            "Recipient": "0x120c64b791ba111a86dbaf5fc31b246d9624ab1f",
+            "AmountIn": 14305265407056533,
+            "AmountOut": 8359419568196249182143607,
+            "Fee": 143052654070565,
+            "Tax": 0
+          },
+          "Log": {
+            "address": "0x4197749b1b3bbb9e1d8a183f968cc54c42e882a7",
+            "topics": [
+              "0xec36bf571f136799e8dc0b0b8bea4b04d8bd3d43de838aab0d5fc21d4cbfc455",
+              "0x000000000000000000000000e33e9e479df8802cb0866d5d05258bec4cf62948",
+              "0x000000000000000000000000120c64b791ba111a86dbaf5fc31b246d9624ab1f"
+            ],
+            "data": "0x0000000000000000000000000000000000000000000000000032d29027015a9500000000000000000000000000000000000000000006ea2d0af6c36d9e4204770000000000000000000000000000000000000000000000000000821b0aa14b250000000000000000000000000000000000000000000000000000000000000000",
+            "blockNumber": "0x3d64a2a",
+            "transactionHash": "0x45142a829ca4ce83909c0f87408b27f70da8a1853a101921fffc20ff5fc08b10",
+            "transactionIndex": "0x6",
+            "blockHash": "0x99efcbca891daf8204227b2ace0e3195212fc2e46ee809f53f9a184b14f90400",
+            "blockTimestamp": "0x6aaa5703",
+            "logIndex": "0x31",
+            "removed": false
+          }
+        }
+      ]
+    },
+    {
+      "tx_hash": "0x84551fcfe69d9b531cac1afdfcdfd75df562dcd721a324b10fa89709a42e6cfa",
+      "block_number": 64375351,
+      "transaction_index": 3,
+      "outcome": "NORMALIZED_EVENTS_OBSERVED",
+      "event_count": 2,
+      "event_kinds": [
+        "launch",
+        "curve-buy"
+      ],
+      "protocols": [
+        "pons-v2",
+        "pons-v2"
+      ],
+      "events": [
+        {
+          "Kind": 1,
+          "Protocol": 1,
+          "Data": {
+            "Protocol": 1,
+            "Token": "0x20d2d1fa47c6f619d867d1e4080ce31da3fd61d9",
+            "Quote": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+            "Creator": "0xd1b62082fa2bc914c90a9941d096275407cab082",
+            "Curve": "0xe77a69dcb2acad2eccb107f1ea26ee7a68fd6f4f",
+            "PoolID": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "Pool": null,
+            "Name": "",
+            "Symbol": "",
+            "MetadataURI": "",
+            "TickerKey": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "NormalizedTicker": "",
+            "PoolOrHook": "0x0000000000000000000000000000000000000000",
+            "PoolInitializer": "0x0000000000000000000000000000000000000000",
+            "LaunchSupply": null,
+            "LaunchConfigID": 0,
+            "GraduationThreshold": 8090000000,
+            "TickSpacing": 0,
+            "DeployedAt": 0,
+            "ReservedUntil": 0,
+            "Venue": "0x0000000000000000000000000000000000000000",
+            "BuyFeeBPS": 0,
+            "SellFeeBPS": 0,
+            "FeesVerified": false,
+            "PreLaunch": false,
+            "LaunchMode": 0,
+            "AirdropBPS": 0,
+            "NeedACF": false,
+            "AntiSniperTaxType": 0,
+            "IsProject60Days": false,
+            "TokenVersion": 0,
+            "MigratorType": 0,
+            "DexID": 0,
+            "LPFeeProfile": 0,
+            "CurveR": null,
+            "CurveH": null,
+            "CurveK": null,
+            "DexSupplyThreshold": null
+          },
+          "Log": {
+            "address": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e",
+            "topics": [
+              "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607",
+              "0x00000000000000000000000020d2d1fa47c6f619d867d1e4080ce31da3fd61d9",
+              "0x000000000000000000000000e77a69dcb2acad2eccb107f1ea26ee7a68fd6f4f",
+              "0x000000000000000000000000d1b62082fa2bc914c90a9941d096275407cab082"
+            ],
+            "data": "0x0000000000000000000000005fc5360d0400a0fd4f2af552add042d716f1d168000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001e2339a80",
+            "blockNumber": "0x3d64a37",
+            "transactionHash": "0x84551fcfe69d9b531cac1afdfcdfd75df562dcd721a324b10fa89709a42e6cfa",
+            "transactionIndex": "0x3",
+            "blockHash": "0xb12d7a366713b124605b06fa0a0582352615638f78ae42cbe7e99c7ea2035908",
+            "blockTimestamp": "0x6aaa5704",
+            "logIndex": "0xc",
+            "removed": false
+          }
+        },
+        {
+          "Kind": 5,
+          "Protocol": 1,
+          "Data": {
+            "BuyerOrSeller": "0xd1b62082fa2bc914c90a9941d096275407cab082",
+            "Recipient": "0xf7d07942e1f8633f54f9200cb3b54d05ee60dca2",
+            "AmountIn": 3000000,
+            "AmountOut": 916958168800575491591462,
+            "Fee": 30000,
+            "Tax": 0
+          },
+          "Log": {
+            "address": "0xe77a69dcb2acad2eccb107f1ea26ee7a68fd6f4f",
+            "topics": [
+              "0xec36bf571f136799e8dc0b0b8bea4b04d8bd3d43de838aab0d5fc21d4cbfc455",
+              "0x000000000000000000000000d1b62082fa2bc914c90a9941d096275407cab082",
+              "0x000000000000000000000000f7d07942e1f8633f54f9200cb3b54d05ee60dca2"
+            ],
+            "data": "0x00000000000000000000000000000000000000000000000000000000002dc6c000000000000000000000000000000000000000000000c22c66e52f87a0c6cd2600000000000000000000000000000000000000000000000000000000000075300000000000000000000000000000000000000000000000000000000000000000",
+            "blockNumber": "0x3d64a37",
+            "transactionHash": "0x84551fcfe69d9b531cac1afdfcdfd75df562dcd721a324b10fa89709a42e6cfa",
+            "transactionIndex": "0x3",
+            "blockHash": "0xb12d7a366713b124605b06fa0a0582352615638f78ae42cbe7e99c7ea2035908",
+            "blockTimestamp": "0x6aaa5704",
+            "logIndex": "0x12",
+            "removed": false
+          }
+        }
+      ]
+    },
+    {
+      "tx_hash": "0x04fc83e1a45cbbc7a0dc6e18dd996f91225c7d97158412560dc0d2fbec5c9d2d",
+      "block_number": 64375362,
+      "transaction_index": 4,
+      "outcome": "NORMALIZED_EVENTS_OBSERVED",
+      "event_count": 1,
+      "event_kinds": [
+        "curve-buy"
+      ],
+      "protocols": [
+        "pons-v2"
+      ],
+      "events": [
+        {
+          "Kind": 5,
+          "Protocol": 1,
+          "Data": {
+            "BuyerOrSeller": "0x3a655ac880d0d49d96f94f4e38b563acef8c1972",
+            "Recipient": "0x3a655ac880d0d49d96f94f4e38b563acef8c1972",
+            "AmountIn": 5000000000000000,
+            "AmountOut": 2883404429203314317149106,
+            "Fee": 59500000000000,
+            "Tax": 0
+          },
+          "Log": {
+            "address": "0x4197749b1b3bbb9e1d8a183f968cc54c42e882a7",
+            "topics": [
+              "0xec36bf571f136799e8dc0b0b8bea4b04d8bd3d43de838aab0d5fc21d4cbfc455",
+              "0x0000000000000000000000003a655ac880d0d49d96f94f4e38b563acef8c1972",
+              "0x0000000000000000000000003a655ac880d0d49d96f94f4e38b563acef8c1972"
+            ],
+            "data": "0x0000000000000000000000000000000000000000000000000011c37937e08000000000000000000000000000000000000000000000026295aad525023bfb43b20000000000000000000000000000000000000000000000000000361d6c5d38000000000000000000000000000000000000000000000000000000000000000000",
+            "blockNumber": "0x3d64a42",
+            "transactionHash": "0x04fc83e1a45cbbc7a0dc6e18dd996f91225c7d97158412560dc0d2fbec5c9d2d",
+            "transactionIndex": "0x4",
+            "blockHash": "0x471a558b838403023f6168a4c9b7845d7ed6ad8dee64e1914c345738af3cb820",
+            "blockTimestamp": "0x6aaa5705",
+            "logIndex": "0x14",
+            "removed": false
+          }
+        }
+      ]
+    },
+    {
+      "tx_hash": "0x876b0e2978c4a6960fb84a1f9c6ebda3d974b186391949857ee1c3adc665231b",
+      "block_number": 64375544,
+      "transaction_index": 2,
+      "outcome": "NORMALIZED_EVENTS_OBSERVED",
+      "event_count": 1,
+      "event_kinds": [
+        "curve-sell"
+      ],
+      "protocols": [
+        "pons-v2"
+      ],
+      "events": [
+        {
+          "Kind": 6,
+          "Protocol": 1,
+          "Data": {
+            "BuyerOrSeller": "0x120c64b791ba111a86dbaf5fc31b246d9624ab1f",
+            "Recipient": "0x120c64b791ba111a86dbaf5fc31b246d9624ab1f",
+            "AmountIn": 8359419568196249182143607,
+            "AmountOut": 14102139512239850,
+            "Fee": 142445853658988,
+            "Tax": 0
+          },
+          "Log": {
+            "address": "0x4197749b1b3bbb9e1d8a183f968cc54c42e882a7",
+            "topics": [
+              "0x8113d738abdcb6b38357e9d53a54a7157861a09031b453651f0fe7fe151f59df",
+              "0x000000000000000000000000120c64b791ba111a86dbaf5fc31b246d9624ab1f",
+              "0x000000000000000000000000120c64b791ba111a86dbaf5fc31b246d9624ab1f"
+            ],
+            "data": "0x00000000000000000000000000000000000000000006ea2d0af6c36d9e420477000000000000000000000000000000000000000000000000003219d2383336ea0000000000000000000000000000000000000000000000000000818dc281cf6c0000000000000000000000000000000000000000000000000000000000000000",
+            "blockNumber": "0x3d64af8",
+            "transactionHash": "0x876b0e2978c4a6960fb84a1f9c6ebda3d974b186391949857ee1c3adc665231b",
+            "transactionIndex": "0x2",
+            "blockHash": "0xc25b4c49ab9f66cde370d0c43a6281c9e114b411c55ea22dc33b8005184e1ebb",
+            "blockTimestamp": "0x6aaa5718",
+            "logIndex": "0x3",
+            "removed": false
+          }
+        }
+      ]
+    }
+  ]
+}
