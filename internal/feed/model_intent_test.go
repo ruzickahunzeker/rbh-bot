@@ -36,12 +36,19 @@ func TestObservationIdentityIgnoresDeliverySequence(t *testing.T) {
 	}
 }
 
-func TestPonsCurveIntentNormalizerUsesHistoricalBuyCalldata(t *testing.T) {
-	path := filepath.Join("..", "..", "rbh-validation-package", "fixtures", "historical", "candidates", "0x04fc83e1a45cbbc7a0dc6e18dd996f91225c7d97158412560dc0d2fbec5c9d2d.json")
+func TestPonsCurveIntentNormalizerUsesConfirmedRegistryContext(t *testing.T) {
+	root := filepath.Join("..", "..", "rbh-validation-package", "fixtures", "historical", "candidates")
+	value := parser.New()
+	launch := loadReceipt(t, filepath.Join(root, "0x45142a829ca4ce83909c0f87408b27f70da8a1853a101921fffc20ff5fc08b10.json"))
+	if events, err := value.ParseReceipt(launch); err != nil || len(events) == 0 {
+		t.Fatalf("bootstrap confirmed Pons launch: events=%d err=%v", len(events), err)
+	}
+
+	path := filepath.Join(root, "0x04fc83e1a45cbbc7a0dc6e18dd996f91225c7d97158412560dc0d2fbec5c9d2d.json")
 	tx, sender := loadCapturedTransaction(t, path)
-	normalizer := NewPonsCurveIntentNormalizer(parser.New())
+	normalizer := NewPonsCurveIntentNormalizer(value)
 	if !normalizer.Potential(tx) {
-		t.Fatal("historical Pons Curve buy was not recognized as potential intent")
+		t.Fatal("registered Pons Curve buy was not recognized as potential intent")
 	}
 	observations, err := normalizer.Normalize(tx, sender, SourceSequencer, 77, time.Unix(1_700_000_500, 0).UTC())
 	if err != nil {
