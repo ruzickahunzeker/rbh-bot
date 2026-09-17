@@ -20,7 +20,7 @@ class Probe:
         if method not in ALLOWED: raise ValueError("RPC method prohibited")
         self.i+=1
         r=urllib.request.Request(self.url,data=json.dumps(dict(jsonrpc="2.0",id=self.i,method=method,params=params)).encode(),
-                                 headers={"Content-Type":"application/json"})
+                                 headers={"Content-Type":"application/json","User-Agent":"rbh-validation-package/1"})
         try:
             with urllib.request.urlopen(r,timeout=12) as response: raw=response.read(16*1024*1024+1)
             if len(raw)>16*1024*1024: return dict(status="RESPONSE_TOO_LARGE")

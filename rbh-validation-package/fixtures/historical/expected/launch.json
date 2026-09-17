@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "provenance": "INDEPENDENT_RAW_LOG_ABI_REVIEW",
+  "tx_hash": "0x45142a829ca4ce83909c0f87408b27f70da8a1853a101921fffc20ff5fc08b10",
+  "events": [
+    {
+      "kind": "launch",
+      "protocol": "pons-v2",
+      "source_log_index": 35,
+      "source_topic0": "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607",
+      "token": "0x3c1da17b9690a00dccc5e1d7a31bf65daaf1b07b",
+      "quote": "0x0000000000000000000000000000000000000000",
+      "curve": "0x4197749b1b3bbb9e1d8a183f968cc54c42e882a7",
+      "creator": "0x120c64b791ba111a86dbaf5fc31b246d9624ab1f",
+      "launch_config_id": "0",
+      "graduation_threshold": "4200000000000000000"
+    },
+    {
+      "kind": "curve-buy",
+      "protocol": "pons-v2",
+      "source_log_index": 49,
+      "source_topic0": "0xec36bf571f136799e8dc0b0b8bea4b04d8bd3d43de838aab0d5fc21d4cbfc455",
+      "buyer_or_seller": "0xe33e9e479df8802cb0866d5d05258bec4cf62948",
+      "recipient": "0x120c64b791ba111a86dbaf5fc31b246d9624ab1f",
+      "amount_in": "14305265407056533",
+      "amount_out": "8359419568196249182143607",
+      "fee": "143052654070565",
+      "tax": "0"
+    }
+  ]
+}

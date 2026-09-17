@@ -1,9 +1,16 @@
 {
   "provenance": "SYNTHETIC",
   "may_submit_to_rpc_collector": false,
-  "purpose": "Offline contract-model identities only; not real Pons/Long chain data.",
+  "purpose": "Offline contract-model identities and explicitly synthetic receipt-gate safety cases; never real Pons/Long historical evidence.",
   "source_tx_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
   "old_block_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
   "new_block_hash": "0x2222222222222222222222222222222222222222222222222222222222222222",
-  "consumed_by": "verification/test_model.py embeds these synthetic identities"
+  "consumed_by": "verification/test_model.py and internal/feed receipt-gate tests",
+  "fixtures": [
+    {
+      "path": "pons-reverted-receipt.json",
+      "provenance": "SYNTHETIC_LOCAL_SAFETY_TEST_NOT_HISTORICAL",
+      "purpose": "prove failed receipt produces audit only, zero economic events, zero copy eligibility and no parser-registry mutation"
+    }
+  ]
 }

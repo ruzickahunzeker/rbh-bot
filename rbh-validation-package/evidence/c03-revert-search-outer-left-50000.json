@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "status": "HISTORICAL_NEGATIVE_OBSERVED",
+  "chain_id": 4663,
+  "from_block": 64325338,
+  "to_block": 64365337,
+  "last_block_attempted": 64365337,
+  "blocks_requested": 40000,
+  "blocks_scanned": 40000,
+  "block_read_failures": 0,
+  "pons_target_transactions": 381,
+  "receipt_read_failures": 0,
+  "failed_receipts": 1,
+  "targets": [
+    "0x4197749b1b3bbb9e1d8a183f968cc54c42e882a7",
+    "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e",
+    "0xe33e9e479df8802cb0866d5d05258bec4cf62948"
+  ],
+  "matches": [
+    {
+      "block_number": 64339048,
+      "transaction_hash": "0xa056fd548d5251ba0ccbbf005932d1ee665eca0dc5fdcb6d2e79451b32954e4e",
+      "target": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e",
+      "calldata_selector": "0xa72101af",
+      "receipt_status": 0
+    }
+  ],
+  "started_at": "2026-09-16T13:56:19.838297555Z",
+  "completed_at": "2026-09-16T14:30:01.457595154Z",
+  "signed_or_broadcast": false
+}

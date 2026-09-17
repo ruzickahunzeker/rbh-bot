@@ -1,0 +1,104 @@
+{
+  "status": "CANDIDATE_DISCOVERY_ONLY_NOT_GOLDEN",
+  "chain_id": 4663,
+  "rpc": "https://rpc.mainnet.chain.robinhood.com",
+  "sdk": {
+    "module": "github.com/0xfnzero/rbh-parser-sdk",
+    "version": "v0.4.0",
+    "commit": "72cf9cee394bbd2566fca1d03202b05981eb51b4"
+  },
+  "discovery_method": [
+    "Read DefaultAddressBook and exported event topics from locked parser SDK v0.4.0.",
+    "Used read-only eth_getLogs scoped by SDK address/topic, then eth_getTransactionReceipt for status and block anchoring.",
+    "No transaction was signed or broadcast. Candidates require parser replay, full fixture capture, C02 classification, and human review before golden promotion."
+  ],
+  "pons": [
+    {
+      "event_type": "launch",
+      "tx_hash": "0x84551fcfe69d9b531cac1afdfcdfd75df562dcd721a324b10fa89709a42e6cfa",
+      "block_number": 64375351,
+      "block_hash": "0xb12d7a366713b124605b06fa0a0582352615638f78ae42cbe7e99c7ea2035908",
+      "receipt_status": "0x1",
+      "emitter": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e",
+      "topic0": "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607",
+      "token": "0x20d2d1fa47c6f619d867d1e4080ce31da3fd61d9",
+      "curve": "0xe77a69dcb2acad2eccb107f1ea26ee7a68fd6f4f",
+      "note": "Recent successful PonsFactory TokenLaunched candidate."
+    },
+    {
+      "event_type": "curve_context_launch",
+      "tx_hash": "0x45142a829ca4ce83909c0f87408b27f70da8a1853a101921fffc20ff5fc08b10",
+      "block_number": 64375338,
+      "block_hash": "0x99efcbca891daf8204227b2ace0e3195212fc2e46ee809f53f9a184b14f90400",
+      "receipt_status": "0x1",
+      "emitter": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e",
+      "topic0": "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607",
+      "token": "0x3c1da17b9690a00dccc5e1d7a31bf65daaf1b07b",
+      "curve": "0x4197749b1b3bbb9e1d8a183f968cc54c42e882a7",
+      "note": "Supporting launch context required to seed the parser registry for the curve buy/sell candidates."
+    },
+    {
+      "event_type": "curve_buy",
+      "tx_hash": "0x04fc83e1a45cbbc7a0dc6e18dd996f91225c7d97158412560dc0d2fbec5c9d2d",
+      "block_number": 64375362,
+      "block_hash": "0x471a558b838403023f6168a4c9b7845d7ed6ad8dee64e1914c345738af3cb820",
+      "receipt_status": "0x1",
+      "emitter": "0x4197749b1b3bbb9e1d8a183f968cc54c42e882a7",
+      "topic0": "0xec36bf571f136799e8dc0b0b8bea4b04d8bd3d43de838aab0d5fc21d4cbfc455",
+      "note": "Successful CurveBuy from curve learned from supporting launch tx 0x4514...8b10."
+    },
+    {
+      "event_type": "curve_sell",
+      "tx_hash": "0x876b0e2978c4a6960fb84a1f9c6ebda3d974b186391949857ee1c3adc665231b",
+      "block_number": 64375544,
+      "block_hash": "0xc25b4c49ab9f66cde370d0c43a6281c9e114b411c55ea22dc33b8005184e1ebb",
+      "receipt_status": "0x1",
+      "emitter": "0x4197749b1b3bbb9e1d8a183f968cc54c42e882a7",
+      "topic0": "0x8113d738abdcb6b38357e9d53a54a7157861a09031b453651f0fe7fe151f59df",
+      "note": "Successful CurveSell from same launched curve."
+    },
+    {
+      "event_type": "graduation_initialize_pool_registered_and_initial_v4_swap",
+      "tx_hash": "0xcfd26c84f8c352af7d40984dbb45b3245818f73bb9b336e748783a192c668d56",
+      "block_number": 64288718,
+      "block_hash": "0x0952d1acedd99242ccc7e8b8978548a422c64167836f1357681c42c30ca9a08c",
+      "receipt_status": "0x1",
+      "pool_id": "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+      "token": "0x348902a64e8e6c86c31332b07c5b0a4c215e8cb4",
+      "evidence": [
+        {"emitter":"0x8366a39cc670b4001a1121b8f6a443a643e40951","topic0":"0xdd466e674ea557f56295e2d0218a125ea4b4f0f6f3307b95f85e6110838d6438","log_index":"0xe"},
+        {"emitter":"0xe5e702641ea86f4ae6cc3cdaed2b886f976be044","topic0":"0x01bf263a1db1652580721573296e1a1fa70b3d4c87f61d02a69c4e1109d2d573","log_index":"0xf"},
+        {"emitter":"0x8366a39cc670b4001a1121b8f6a443a643e40951","topic0":"0x40e9cecb9f5f1f1c5b9c97dec2917b7ee92e57ba5563708daca94dd84ad7112f","log_index":"0x1c"}
+      ],
+      "note": "Receipt contains PoolManager Initialize, PonsMemeHook PoolRegistered, and PoolManager Swap for the same pool id. Strong graduation candidate, not yet golden."
+    },
+    {
+      "event_type": "graduated_v4_swap_direction_candidate_a",
+      "tx_hash": "0xd6e22ef615042f57475eed8da0e1f32a51315fa72def7eb26917a12c2f645ff7",
+      "block_number": 64288719,
+      "block_hash": "0xcb9e06b73c45c8af0351b7fa91b93d1e76b8444d30b533f1db429637ab31e2a7",
+      "receipt_status": "0x1",
+      "pool_id": "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+      "note": "Observed as sell: registered token is currency1 and its signed PoolManager delta is positive, so token enters the pool. Independent review is still required."
+    },
+    {
+      "event_type": "graduated_v4_swap_direction_candidate_b",
+      "tx_hash": "0x7e9002defc7f972326d99148813ef1853dd8f6e9ae088925e8564b253353ce35",
+      "block_number": 64288723,
+      "block_hash": "0x09b756faad62366ffcf70c71a57ea54437ecf788b8aeb9500b0fbbd0359d9c3e",
+      "receipt_status": "0x1",
+      "pool_id": "0x4bd58a038bd794ea21036ac67bb35b723b8dbbd792129bf726c54563ff9076f4",
+      "note": "Observed as buy: registered token is currency1 and its signed PoolManager delta is negative, so token leaves the pool. Independent review is still required."
+    }
+  ],
+  "long": {
+    "status": "NO_CANDIDATE_IN_SCANNED_RANGES",
+    "address": "0x22e99278308b393ea1260859b181ad7e78f5eeed",
+    "topic0": "0xadc6f1f726f7c710f77ec06adc75f3bb964e5be19581b072c67f7b9b4039267b",
+    "ranges": [
+      {"from": 64276315, "to": 64376315, "result_count": 0},
+      {"from": 59441915, "to": 64276315, "result_count": 0}
+    ],
+    "note": "Full-history query timed out. Absence in sampled ranges is not evidence that Long has no history."
+  }
+}

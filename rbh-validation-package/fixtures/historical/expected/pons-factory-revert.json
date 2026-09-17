@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "provenance": "HISTORICAL_CHAIN_NEGATIVE",
+  "historical_negative_observed": true,
+  "chain_id": 4663,
+  "tx_hash": "0xa056fd548d5251ba0ccbbf005932d1ee665eca0dc5fdcb6d2e79451b32954e4e",
+  "block_number": 64339048,
+  "block_hash": "0xc4d0fe320b07ddd378709113d5a3031c606eef04eb801fe648c62a51e141d131",
+  "transaction_index": 5,
+  "to": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e",
+  "calldata_selector": "0xa72101af",
+  "receipt_status": 0,
+  "expected": {
+    "audit_reason": "receipt_reverted",
+    "audit_persisted": true,
+    "normalized_economic_events": 0,
+    "copy_eligible": false,
+    "parser_invoked": false,
+    "parser_registry_mutated": false
+  }
+}

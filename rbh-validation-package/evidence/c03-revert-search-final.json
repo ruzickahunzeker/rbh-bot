@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "status": "HISTORICAL_NEGATIVE_OBSERVED",
+  "chain_id": 4663,
+  "ranges_are_non_overlapping": true,
+  "ranges": [
+    {
+      "from_block": 64365338,
+      "to_block": 64385338,
+      "blocks_scanned": 20001,
+      "pons_target_transactions": 210,
+      "block_read_failures": 0,
+      "receipt_read_failures": 0,
+      "failed_receipts": 0,
+      "evidence": "c03-revert-search-plusminus-10000.json"
+    },
+    {
+      "from_block": 64325338,
+      "to_block": 64365337,
+      "blocks_scanned": 40000,
+      "pons_target_transactions": 381,
+      "block_read_failures": 0,
+      "receipt_read_failures": 0,
+      "failed_receipts": 1,
+      "evidence": "c03-revert-search-outer-left-50000.json"
+    }
+  ],
+  "totals": {
+    "blocks_scanned": 60001,
+    "pons_target_transactions": 591,
+    "block_read_failures": 0,
+    "receipt_read_failures": 0,
+    "failed_receipts": 1
+  },
+  "historical_negative": {
+    "tx_hash": "0xa056fd548d5251ba0ccbbf005932d1ee665eca0dc5fdcb6d2e79451b32954e4e",
+    "block_number": 64339048,
+    "transaction_index": 5,
+    "target": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e",
+    "calldata_selector": "0xa72101af",
+    "receipt_status": 0
+  },
+  "search_closed_by": "REAL_HISTORICAL_REVERT_OBSERVED",
+  "right_outer_range_scanned": false,
+  "right_outer_range_required": false
+}

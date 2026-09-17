@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "provenance": "INDEPENDENT_RAW_LOG_ABI_REVIEW",
+  "tx_hash": "0x04fc83e1a45cbbc7a0dc6e18dd996f91225c7d97158412560dc0d2fbec5c9d2d",
+  "events": [
+    {
+      "kind": "curve-buy",
+      "protocol": "pons-v2",
+      "source_log_index": 20,
+      "source_topic0": "0xec36bf571f136799e8dc0b0b8bea4b04d8bd3d43de838aab0d5fc21d4cbfc455",
+      "buyer_or_seller": "0x3a655ac880d0d49d96f94f4e38b563acef8c1972",
+      "recipient": "0x3a655ac880d0d49d96f94f4e38b563acef8c1972",
+      "amount_in": "5000000000000000",
+      "amount_out": "2883404429203314317149106",
+      "fee": "59500000000000",
+      "tax": "0"
+    }
+  ]
+}

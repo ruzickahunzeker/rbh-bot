@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "status": "C02_PONS_CURVE_PASS",
+  "chain_id": 4663,
+  "block_number": 64478214,
+  "block_hash": "0x1b89a2ea12014d0a4581c17d0f56f37561ed0e798ccc1397b59abd025b8d9116",
+  "captured_at": "2026-09-16T11:37:35.190831941Z",
+  "contracts": [
+    {
+      "address": "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e",
+      "role": "pons_factory",
+      "classification": "direct_implementation",
+      "runtime_code_hash": "0x89a27da6f703e0a7cdd4f233e7cb57604ff75b164530962d3ff7cf8483a67d84",
+      "runtime_code_bytes": 24177,
+      "verified_block": 64478214,
+      "authoritative_source": "parser-sdk v0.4.0 commit 72cf9cee394bbd2566fca1d03202b05981eb51b4 AddressBook plus official ponsdotdev/ponsfamily commit 58cba1cb2bbc7f8dc4b13b810929461eb36bc15b PonsV2LaunchFactory",
+      "required_for_feed": true,
+      "trusted_for_feed": true,
+      "reachable_delegatecall_count": 0,
+      "reason": "no proxy slots, no EIP-1167 pattern and no DELEGATECALL opcode"
+    },
+    {
+      "address": "0x4197749b1b3bbb9e1d8a183f968cc54c42e882a7",
+      "role": "pons_curve",
+      "classification": "direct_implementation",
+      "runtime_code_hash": "0xf2b593a629a279392a33bc0e8be50393024c614a5e48ff24a13ae274582a1b78",
+      "runtime_code_bytes": 10229,
+      "verified_block": 64478214,
+      "authoritative_source": "PonsFactory TokenLaunched raw log in tx 0x45142a829ca4ce83909c0f87408b27f70da8a1853a101921fffc20ff5fc08b10 plus official ponsdotdev/ponsfamily commit 58cba1cb2bbc7f8dc4b13b810929461eb36bc15b PonsV2BondingCurve",
+      "required_for_feed": true,
+      "trusted_for_feed": true,
+      "reachable_delegatecall_count": 0,
+      "reason": "no proxy slots, no EIP-1167 pattern and no DELEGATECALL opcode"
+    },
+    {
+      "address": "0xe33e9e479df8802cb0866d5d05258bec4cf62948",
+      "role": "pons_launch_and_buy",
+      "classification": "direct_implementation",
+      "runtime_code_hash": "0xed9065184519eaa24a22c2556403d5d8bbb230ff94dbc5c414cf5028e20e52e7",
+      "runtime_code_bytes": 4416,
+      "verified_block": 64478214,
+      "authoritative_source": "parser-sdk v0.4.0 commit 72cf9cee394bbd2566fca1d03202b05981eb51b4 DefaultAddressBook.PonsLaunchAndBuy",
+      "required_for_feed": false,
+      "trusted_for_feed": true,
+      "reachable_delegatecall_count": 0,
+      "reason": "no proxy slots, no EIP-1167 pattern and no DELEGATECALL opcode"
+    }
+  ]
+}

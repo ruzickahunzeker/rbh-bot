@@ -1,19 +1,64 @@
 {
   "schema_version": 1,
   "provenance": "REAL_HISTORY_REQUIRED",
-  "status": "INCOMPLETE",
+  "status": "CURVE_COMPLETE_V4_LONG_INCOMPLETE",
+  "pons_status": "CURVE_PASS_V4_REVIEW_REQUIRED",
+  "long_status": "NOT_STARTED",
   "chain_id": 4663,
-  "transactions": [],
+  "transactions": [
+    {
+      "case": "pons_launch_candidate",
+      "tx_hash": "0x84551fcfe69d9b531cac1afdfcdfd75df562dcd721a324b10fa89709a42e6cfa",
+      "status": "CANDIDATE_NOT_GOLDEN"
+    },
+    {
+      "case": "pons_curve_context_launch_candidate",
+      "tx_hash": "0x45142a829ca4ce83909c0f87408b27f70da8a1853a101921fffc20ff5fc08b10",
+      "status": "GOLDEN_EXPECTATION_AVAILABLE"
+    },
+    {
+      "case": "pons_curve_buy_candidate",
+      "tx_hash": "0x04fc83e1a45cbbc7a0dc6e18dd996f91225c7d97158412560dc0d2fbec5c9d2d",
+      "status": "GOLDEN_EXPECTATION_AVAILABLE"
+    },
+    {
+      "case": "pons_curve_sell_candidate",
+      "tx_hash": "0x876b0e2978c4a6960fb84a1f9c6ebda3d974b186391949857ee1c3adc665231b",
+      "status": "GOLDEN_EXPECTATION_AVAILABLE"
+    },
+    {
+      "case": "pons_graduation_candidate",
+      "tx_hash": "0xcfd26c84f8c352af7d40984dbb45b3245818f73bb9b336e748783a192c668d56",
+      "status": "CANDIDATE_NOT_GOLDEN"
+    },
+    {
+      "case": "pons_v4_sell_candidate",
+      "tx_hash": "0xd6e22ef615042f57475eed8da0e1f32a51315fa72def7eb26917a12c2f645ff7",
+      "status": "CANDIDATE_NOT_GOLDEN"
+    },
+    {
+      "case": "pons_v4_buy_candidate",
+      "tx_hash": "0x7e9002defc7f972326d99148813ef1853dd8f6e9ae088925e8564b253353ce35",
+      "status": "CANDIDATE_NOT_GOLDEN"
+    },
+    {
+      "case": "pons_factory_historical_revert",
+      "tx_hash": "0xa056fd548d5251ba0ccbbf005932d1ee665eca0dc5fdcb6d2e79451b32954e4e",
+      "status": "HISTORICAL_NEGATIVE_GOLDEN"
+    }
+  ],
   "required_cases": [
+    "pons_launch",
     "pons_curve_buy",
     "pons_curve_sell",
     "pons_graduation",
     "pons_v4_buy",
     "pons_v4_sell",
+    "pons_factory_historical_revert",
     "long_launch_initialize",
     "long_v4_buy",
     "long_v4_sell",
     "long_fee_time_boundaries"
   ],
-  "warning": "No real transaction hashes or receipts are bundled. Captured data must acquire independent expectations."
+  "warning": "Pons Curve launch/buy/sell and historical revert expectations are independent golden evidence. Pons v4 and Long remain incomplete and do not block PR-002 Curve Feed."
 }

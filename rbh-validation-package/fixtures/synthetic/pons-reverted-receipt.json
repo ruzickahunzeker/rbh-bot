@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "provenance": "SYNTHETIC_LOCAL_SAFETY_TEST_NOT_HISTORICAL",
+  "description": "A successful historical Pons launch receipt is copied in memory and only its status is changed to failed. This deliberately impossible log-bearing failed receipt proves the success gate runs before parser invocation.",
+  "source_fixture_tx_hash": "0x45142a829ca4ce83909c0f87408b27f70da8a1853a101921fffc20ff5fc08b10",
+  "mutation": {
+    "receipt_status": 0
+  },
+  "expected": {
+    "audit_reason": "receipt_reverted",
+    "normalized_economic_events": 0,
+    "copy_eligible": false,
+    "parser_registry_mutated": false
+  },
+  "historical_negative_observed": false
+}

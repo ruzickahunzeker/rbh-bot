@@ -1,0 +1,16 @@
+{
+  "status": "SUPERSEDED_BY_C03_REVERT_SEARCH_2000",
+  "chain_id": 4663,
+  "method": "read-only full-block transaction scan followed by receipt lookup",
+  "from_block": 64375300,
+  "to_block": 64377300,
+  "targets": [
+    "0x4197749b1b3bbb9e1d8a183f968cc54c42e882a7",
+    "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e",
+    "0xe33e9e479df8802cb0866d5d05258bec4cf62948"
+  ],
+  "targeted_transactions": 26,
+  "failed_receipts": 0,
+  "blockscout_index_attempt": "API_KEY_OR_X402_REQUIRED",
+  "conclusion": "Superseded by evidence/c03-revert-search-final.json; the later RPC-only scan observed and captured a historical reverted Pons Factory transaction."
+}

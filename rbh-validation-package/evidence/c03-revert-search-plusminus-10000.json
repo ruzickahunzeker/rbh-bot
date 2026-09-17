@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "status": "HISTORICAL_NEGATIVE_NOT_OBSERVED",
+  "chain_id": 4663,
+  "from_block": 64365338,
+  "to_block": 64385338,
+  "last_block_attempted": 64385338,
+  "blocks_requested": 20001,
+  "blocks_scanned": 20001,
+  "block_read_failures": 0,
+  "pons_target_transactions": 210,
+  "receipt_read_failures": 0,
+  "failed_receipts": 0,
+  "targets": [
+    "0x4197749b1b3bbb9e1d8a183f968cc54c42e882a7",
+    "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e",
+    "0xe33e9e479df8802cb0866d5d05258bec4cf62948"
+  ],
+  "matches": [],
+  "started_at": "2026-09-16T12:06:55.070144574Z",
+  "completed_at": "2026-09-16T12:23:36.531993537Z",
+  "signed_or_broadcast": false
+}
