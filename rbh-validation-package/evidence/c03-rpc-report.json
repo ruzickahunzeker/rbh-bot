@@ -1,6 +1,6 @@
 {
   "scope": "READ_ONLY_RPC",
-  "created_at_runtime_utc": "2026-09-16T10:36:10.515218+00:00",
+  "created_at_runtime_utc": "2026-09-17T01:02:26.993747+00:00",
   "checks": {
     "eth_chainId": {
       "status": "RESPONSE_RECEIVED",
@@ -9,44 +9,44 @@
     "block_tag_latest": {
       "status": "RESPONSE_RECEIVED",
       "result": {
-        "number": "0x3d74d42",
-        "hash": "0x368d579849c4fcc47b67356df2e9bfb8566247abcd1604e2306e02a5999c581d",
-        "parentHash": "0x69042a0a9deecb56e8a69004431e69f2b9447c504f94b514dee312b3d506049b",
-        "timestamp": "0x6aaa7119"
+        "number": "0x3df2def",
+        "hash": "0xdc8304c313087da3a66abac7d596f0acd1ca2f68d44cfbf880afaf3adc435e32",
+        "parentHash": "0xbe4bc153bf04fa35e86ae281acf110fc052ba4cdfa77a374d5e21f29851844a9",
+        "timestamp": "0x6aab3c22"
       }
     },
     "block_tag_safe": {
       "status": "RESPONSE_RECEIVED",
       "result": {
-        "number": "0x3d7300e",
-        "hash": "0x3f95bd5704afce9e3432153da125b02b991f363141f10a0cf057d629de25df9d",
-        "parentHash": "0xfb8a341f1a337cbd947e36527d5bb4c62d698c7fa9420d1c0a0086b0e3b64984",
-        "timestamp": "0x6aaa6e29"
+        "number": "0x3df1b1f",
+        "hash": "0x85e221b698c7dc44668d8ca28b925741ad8d04769cf4169144185f972fa9e4d1",
+        "parentHash": "0x6c50a832992bb85599e4e276ed3df1beb63037bc3cadd1a0c15e8d4b27d9fc36",
+        "timestamp": "0x6aab3a40"
       }
     },
     "block_tag_finalized": {
       "status": "RESPONSE_RECEIVED",
       "result": {
-        "number": "0x3d72272",
-        "hash": "0xbf141c75d691e2b68e397b749d0c47014d5e70ae63011f0bea14e0dc756a52cc",
-        "parentHash": "0xe280b98eddcddeaf265d6ea3fb4a80a828f1201eb2641d12dc1d645f30e8b8ed",
-        "timestamp": "0x6aaa6ccb"
+        "number": "0x3df0c05",
+        "hash": "0x85b3a3c239589462e52f9464af80e3ee576a443c00129cfcb95974f73749161b",
+        "parentHash": "0x984e20ded115bb25e2522fb06e9444398f2bc0530b2bdd74debda7731d220f04",
+        "timestamp": "0x6aab38bb"
       }
     },
     "block_tag_pending": {
       "status": "RESPONSE_RECEIVED",
       "result": {
-        "number": "0x3d74d47",
-        "hash": "0xd350c3a758247249f9be98d83586c639fdfbdd9b3a57fdffaab5b37fec9433fb",
-        "parentHash": "0x5900f3e258d7c00a5dc8f2b12f8e7eb64ddb4def7cb00950f702a070fb67a90d",
-        "timestamp": "0x6aaa711a"
+        "number": "0x3df2def",
+        "hash": "0xdc8304c313087da3a66abac7d596f0acd1ca2f68d44cfbf880afaf3adc435e32",
+        "parentHash": "0xbe4bc153bf04fa35e86ae281acf110fc052ba4cdfa77a374d5e21f29851844a9",
+        "timestamp": "0x6aab3c22"
       }
     }
   },
   "signed_or_broadcast": false,
   "finality_semantics_verified": false,
   "fixtures_status": "CAPTURE_ATTEMPTED",
-  "fixtures_saved": 7,
+  "fixtures_saved": 8,
   "fixture_failures": [],
   "status": "OBSERVED_NOT_SEMANTICALLY_VERIFIED",
   "reason": "INSPECT_RESULTS_AND_COVERAGE"

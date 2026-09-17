@@ -12,5 +12,5 @@
   "targeted_transactions": 26,
   "failed_receipts": 0,
   "blockscout_index_attempt": "API_KEY_OR_X402_REQUIRED",
-  "conclusion": "Superseded by evidence/c03-revert-search-2000.json from cmd/find-pons-reverts; historical negative fixture remains open."
+  "conclusion": "Superseded by evidence/c03-revert-search-final.json; the later RPC-only scan observed and captured a historical reverted Pons Factory transaction."
 }

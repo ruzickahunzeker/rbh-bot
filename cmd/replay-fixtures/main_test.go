@@ -54,6 +54,9 @@ func TestLockedParserMatchesIndependentCurveExpectations(t *testing.T) {
 	for _, path := range paths {
 		var expected expectedFile
 		decodeFile(t, path, &expected)
+		if expected.Provenance == "HISTORICAL_CHAIN_NEGATIVE" {
+			continue
+		}
 		if expected.Provenance != "INDEPENDENT_RAW_LOG_ABI_REVIEW" {
 			t.Fatalf("%s has invalid provenance", path)
 		}

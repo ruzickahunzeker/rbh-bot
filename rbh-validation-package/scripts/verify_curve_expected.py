@@ -61,6 +61,43 @@ def main():
     errors = []
     for path in sorted(EXPECTED.glob("*.json")):
         expectation = json.loads(path.read_text())
+        if expectation.get("provenance") == "HISTORICAL_CHAIN_NEGATIVE":
+            tx_hash = expectation.get("tx_hash", "").lower()
+            capture_path = CANDIDATES / f"{tx_hash}.json"
+            if not capture_path.exists():
+                errors.append(f"{path.name}: negative capture missing")
+                continue
+            capture = json.loads(capture_path.read_text())
+            receipt = capture.get("receipt", {})
+            transaction = capture.get("transaction", {})
+            block = capture.get("block", {})
+            expected = expectation.get("expected", {})
+            actual = {
+                "chain_id": capture.get("chain_id"),
+                "canonical": capture.get("canonical_at_read"),
+                "status": int(receipt.get("status", "-1"), 16),
+                "block_number": int(receipt.get("blockNumber", "0x0"), 16),
+                "block_hash": receipt.get("blockHash", "").lower(),
+                "transaction_index": int(receipt.get("transactionIndex", "0x0"), 16),
+                "to": (transaction.get("to") or "").lower(),
+                "selector": transaction.get("input", "")[:10].lower(),
+                "logs": len(receipt.get("logs", [])),
+                "block_matches": block.get("hash", "").lower() == receipt.get("blockHash", "").lower(),
+            }
+            required = {
+                "chain_id": expectation.get("chain_id"), "canonical": True,
+                "status": expectation.get("receipt_status"), "block_number": expectation.get("block_number"),
+                "block_hash": expectation.get("block_hash", "").lower(),
+                "transaction_index": expectation.get("transaction_index"), "to": expectation.get("to", "").lower(),
+                "selector": expectation.get("calldata_selector", "").lower(), "logs": 0, "block_matches": True,
+            }
+            safety = expected == {"audit_reason": "receipt_reverted", "audit_persisted": True,
+                                   "normalized_economic_events": 0, "copy_eligible": False,
+                                   "parser_invoked": False, "parser_registry_mutated": False}
+            if actual != required or not safety:
+                errors.append(f"{path.name}: historical negative mismatch")
+            checked += 1
+            continue
         if expectation.get("provenance") != "INDEPENDENT_RAW_LOG_ABI_REVIEW":
             errors.append(f"{path.name}: invalid provenance")
             continue
