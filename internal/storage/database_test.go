@@ -9,6 +9,11 @@ import (
 )
 
 func TestOpenMigrateAndValidateEveryOwner(t *testing.T) {
+	wantMigrations := map[Owner]int{
+		FeedOwner:  4,
+		BotOwner:   1,
+		TradeOwner: 1,
+	}
 	for _, owner := range []Owner{FeedOwner, BotOwner, TradeOwner} {
 		t.Run(string(owner), func(t *testing.T) {
 			database, err := Open(context.Background(), owner, filepath.Join(t.TempDir(), "service.db"))
@@ -26,8 +31,8 @@ func TestOpenMigrateAndValidateEveryOwner(t *testing.T) {
 			if err := database.db.QueryRow("SELECT COUNT(*) FROM schema_migrations").Scan(&count); err != nil {
 				t.Fatal(err)
 			}
-			if count != 1 {
-				t.Fatalf("got %d migrations, want 1", count)
+			if count != wantMigrations[owner] {
+				t.Fatalf("got %d migrations, want %d", count, wantMigrations[owner])
 			}
 		})
 	}

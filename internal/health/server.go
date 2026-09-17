@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -13,12 +14,15 @@ import (
 	"time"
 )
 
+type MetricsWriter func(context.Context, io.Writer) error
+
 type Server struct {
-	name  string
-	path  string
-	log   *slog.Logger
-	ready *Readiness
-	http  *http.Server
+	name          string
+	path          string
+	log           *slog.Logger
+	ready         *Readiness
+	metricsWriter MetricsWriter
+	http          *http.Server
 }
 
 func New(name, path string, log *slog.Logger, ready *Readiness) *Server {
@@ -29,6 +33,14 @@ func New(name, path string, log *slog.Logger, ready *Readiness) *Server {
 	mux.HandleFunc("GET /metrics", s.metrics)
 	s.http = &http.Server{Handler: mux, ReadHeaderTimeout: 2 * time.Second}
 	return s
+}
+
+// SetMetricsWriter must be called before Serve. It allows service-specific
+// metrics without coupling the generic health package to service internals.
+func (s *Server) SetMetricsWriter(writer MetricsWriter) {
+	if s != nil {
+		s.metricsWriter = writer
+	}
 }
 
 func (s *Server) Listen() (net.Listener, error) {
@@ -73,13 +85,18 @@ func (s *Server) readiness(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"status": "ready", "service": s.name, "gates": gates})
 }
 
-func (s *Server) metrics(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 	value := 0
 	if ready, _ := s.ready.Snapshot(); ready {
 		value = 1
 	}
 	_, _ = fmt.Fprintf(w, "# TYPE rbh_service_ready gauge\nrbh_service_ready{service=%q} %d\n", s.name, value)
+	if s.metricsWriter != nil {
+		if err := s.metricsWriter(r.Context(), w); err != nil {
+			s.log.Error("write service metrics", "error", err)
+		}
+	}
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {

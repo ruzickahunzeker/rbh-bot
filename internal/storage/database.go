@@ -64,6 +64,19 @@ func (d *Database) Ping(ctx context.Context) error {
 	return d.db.PingContext(ctx)
 }
 
+// SQLDB returns the underlying handle only to code that proves the expected
+// service owner. This keeps service-owned write boundaries explicit while
+// allowing domain stores to use transactions directly.
+func (d *Database) SQLDB(owner Owner) (*sql.DB, error) {
+	if d == nil || d.db == nil {
+		return nil, errors.New("database is closed")
+	}
+	if owner != d.owner {
+		return nil, fmt.Errorf("database owner mismatch: have %s want %s", d.owner, owner)
+	}
+	return d.db, nil
+}
+
 func (d *Database) Migrate(ctx context.Context) error {
 	if d == nil || d.db == nil {
 		return errors.New("database is closed")
