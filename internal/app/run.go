@@ -12,6 +12,7 @@ import (
 	"time"
 
 	parser "github.com/0xfnzero/rbh-parser-sdk/rbhparser"
+	"github.com/ethereum/go-ethereum/common"
 	botcore "github.com/ruzickahunzeker/rbh-bot/internal/bot"
 	"github.com/ruzickahunzeker/rbh-bot/internal/config"
 	feedcore "github.com/ruzickahunzeker/rbh-bot/internal/feed"
@@ -19,6 +20,7 @@ import (
 	"github.com/ruzickahunzeker/rbh-bot/internal/ipc"
 	"github.com/ruzickahunzeker/rbh-bot/internal/observability"
 	"github.com/ruzickahunzeker/rbh-bot/internal/storage"
+	tradecore "github.com/ruzickahunzeker/rbh-bot/internal/trade"
 )
 
 func Run(service config.Service) error {
@@ -40,6 +42,9 @@ func Run(service config.Service) error {
 	if service == config.BotService {
 		gates = append(gates, "bot_feed_consumer_configured")
 	}
+	if service == config.TradeService {
+		gates = append(gates, "pons_curve_dry_run_configured")
+	}
 	ready := health.NewReadiness(gates...)
 	ready.Set("config_valid", true)
 	ready.Set("live_disabled", true)
@@ -60,7 +65,7 @@ func Run(service config.Service) error {
 	var runner *feedcore.SequencerRunner
 	var botConsumer *botcore.Consumer
 	var authenticator *ipc.Authenticator
-	if service == config.FeedService || service == config.BotService {
+	if service == config.FeedService || service == config.BotService || service == config.TradeService {
 		authenticator, err = ipc.NewAuthenticator([]byte(cfg.InternalAuthSecret), 30*time.Second)
 		if err != nil {
 			return fmt.Errorf("configure business IPC authentication: %w", err)
@@ -104,6 +109,33 @@ func Run(service config.Service) error {
 			return err
 		}
 		ready.Set("bot_feed_consumer_configured", true)
+	}
+	var tradeBackend *tradecore.RPCBackend
+	if service == config.TradeService {
+		if cfg.RPCURL == "" || cfg.DryRunWalletID == "" || !common.IsHexAddress(cfg.DryRunFromAddress) || common.HexToAddress(cfg.DryRunFromAddress) == (common.Address{}) {
+			return errors.New("trade dry-run requires ROBINHOOD_RPC_URL, RBH_DRY_RUN_WALLET_ID and a nonzero RBH_DRY_RUN_FROM_ADDRESS")
+		}
+		store, err := tradecore.NewStore(database)
+		if err != nil {
+			return err
+		}
+		if err := store.RegisterDryRunWallet(ctx, cfg.DryRunWalletID, common.HexToAddress(cfg.DryRunFromAddress)); err != nil {
+			return err
+		}
+		tradeBackend, err = tradecore.DialRPCBackend(ctx, cfg.RPCURL)
+		if err != nil {
+			return err
+		}
+		defer tradeBackend.Close()
+		engine, err := tradecore.NewEngine(store, tradeBackend)
+		if err != nil {
+			return err
+		}
+		if _, err := engine.Recover(ctx); err != nil {
+			return fmt.Errorf("recover trade dry-runs: %w", err)
+		}
+		server.Handle("POST /internal/trade/dry-run", authenticator.Middleware(tradecore.NewDryRunHTTPHandler(engine)))
+		ready.Set("pons_curve_dry_run_configured", true)
 	}
 
 	listener, err := server.Listen()

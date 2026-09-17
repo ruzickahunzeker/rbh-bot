@@ -44,7 +44,21 @@ PR-002 is limited to Sequencer input, Pons intent parsing, durable observation, 
 restart/replay behavior. It does not quote, sign or broadcast and therefore does not depend on
 Pons v4 quote pre-state, live execution policy or Long fixtures.
 
-## PR-004 Pons dry-run admission
+## PR-004 Pons v2 Curve dry-run / C06 admission
 
-Adds the applicable C02-PONS-V4 classification, C03 quote/pre-state evidence and C05 admission
-policy. No lower-slice PASS implies approval for a higher-risk slice.
+Scope is limited to Pons v2 Curve Buy/Sell.
+
+Required:
+
+- C02-PONS-CURVE `PASS`.
+- C03-PONS-CURVE `PASS`.
+- C05 Curve admission policy.
+- Pinned trade SDK.
+- Deterministic route and execution parameters.
+- Unsigned transaction build.
+- `eth_call` simulation.
+- Durable operation, execution step and dry-run result.
+- Restart, replay and failure-path evidence.
+
+C02-PONS-V4, C03-PONS-V4 and Long are not admission dependencies for PR-004 and remain deferred.
+No lower-slice PASS implies approval for a higher-risk slice.
