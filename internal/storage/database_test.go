@@ -10,7 +10,7 @@ import (
 
 func TestOpenMigrateAndValidateEveryOwner(t *testing.T) {
 	wantMigrations := map[Owner]int{
-		FeedOwner:  2,
+		FeedOwner:  3,
 		BotOwner:   1,
 		TradeOwner: 1,
 	}
