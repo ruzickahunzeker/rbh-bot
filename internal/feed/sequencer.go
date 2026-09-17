@@ -73,7 +73,8 @@ func (r *SequencerRunner) Config(ctx context.Context) (sequencer.Config, error) 
 			return r.store.MarkDegraded(callbackCtx, fmt.Sprintf("sequencer_gap expected=%d received=%d", gap.Expected, gap.Received))
 		},
 		OnReorg: func(callbackCtx context.Context, reorg sequencer.Reorg) error {
-			return r.store.MarkDegraded(callbackCtx, fmt.Sprintf("sequencer_reorg sequence=%d previous=%s replacement=%s", reorg.SequenceNumber, reorg.PreviousHash.Hex(), reorg.ReplacementHash.Hex()))
+			_, err := r.store.RetractSequencerSequence(callbackCtx, reorg)
+			return err
 		},
 		OnVerificationFailure: func(callbackCtx context.Context, failure sequencer.VerificationFailure) error {
 			return r.store.MarkDegraded(callbackCtx, fmt.Sprintf("sequencer_verification_failure sequence=%d signer=%s", failure.SequenceNumber, failure.RecoveredSigner.Hex()))
