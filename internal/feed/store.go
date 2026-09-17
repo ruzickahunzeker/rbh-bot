@@ -3,11 +3,13 @@ package feed
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
+	parser "github.com/0xfnzero/rbh-parser-sdk/rbhparser"
 	"github.com/ruzickahunzeker/rbh-bot/internal/storage"
 )
 
@@ -56,16 +58,24 @@ ON CONFLICT(tx_hash) DO NOTHING`,
 // one full sequence before reconnecting so a crash inside a multi-tx sequence
 // cannot skip the unprocessed suffix.
 func (s *Store) CommitSequencer(ctx context.Context, observations []Observation, observedSequence uint64) (CommitResult, error) {
-	return s.commit(ctx, observations, &observedSequence)
+	return s.commit(ctx, observations, &observedSequence, nil)
 }
 
-// CommitObservations is used by confirmed RPC receipts. It advances the durable
-// event offset but never changes sequencer progress.
+// CommitObservations persists observations and outbox rows without changing
+// sequencer progress. Use CommitReceipt when parser registry state changed.
 func (s *Store) CommitObservations(ctx context.Context, observations []Observation) (CommitResult, error) {
-	return s.commit(ctx, observations, nil)
+	return s.commit(ctx, observations, nil, nil)
 }
 
-func (s *Store) commit(ctx context.Context, observations []Observation, observedSequence *uint64) (CommitResult, error) {
+// CommitReceipt binds confirmed receipt observations to the parser registry
+// snapshot produced by the same receipt. The snapshot and outbox become durable
+// in the same SQLite transaction, so restart hydration cannot observe one
+// without the other.
+func (s *Store) CommitReceipt(ctx context.Context, observations []Observation, snapshot parser.RegistrySnapshot) (CommitResult, error) {
+	return s.commit(ctx, observations, nil, &snapshot)
+}
+
+func (s *Store) commit(ctx context.Context, observations []Observation, observedSequence *uint64, registrySnapshot *parser.RegistrySnapshot) (CommitResult, error) {
 	if s == nil || s.db == nil || ctx == nil {
 		return CommitResult{}, ErrFeedStoreUnavailable
 	}
@@ -140,11 +150,53 @@ WHERE id = 1`, *observedSequence, *observedSequence, result.DurableEventOffset, 
 			return CommitResult{}, fmt.Errorf("update feed progress: %w", err)
 		}
 	}
+	if registrySnapshot != nil {
+		payload, err := json.Marshal(registrySnapshot)
+		if err != nil {
+			return CommitResult{}, fmt.Errorf("marshal registry snapshot: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+INSERT INTO feed_registry_snapshot(id, payload_json, durable_event_offset, updated_at)
+VALUES(1, ?, ?, ?)
+ON CONFLICT(id) DO UPDATE SET
+  payload_json = excluded.payload_json,
+  durable_event_offset = excluded.durable_event_offset,
+  updated_at = excluded.updated_at`, string(payload), result.DurableEventOffset, stamp); err != nil {
+			return CommitResult{}, fmt.Errorf("persist registry snapshot: %w", err)
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return CommitResult{}, fmt.Errorf("commit feed transaction: %w", err)
 	}
 	committed = true
 	return result, nil
+}
+
+func (s *Store) LoadRegistrySnapshot(ctx context.Context) (parser.RegistrySnapshot, bool, error) {
+	if s == nil || s.db == nil || ctx == nil {
+		return parser.RegistrySnapshot{}, false, ErrFeedStoreUnavailable
+	}
+	var payload string
+	var snapshotOffset int64
+	err := s.db.QueryRowContext(ctx, `SELECT payload_json, durable_event_offset FROM feed_registry_snapshot WHERE id = 1`).Scan(&payload, &snapshotOffset)
+	if errors.Is(err, sql.ErrNoRows) {
+		return parser.RegistrySnapshot{}, false, nil
+	}
+	if err != nil {
+		return parser.RegistrySnapshot{}, false, fmt.Errorf("read registry snapshot: %w", err)
+	}
+	var progressOffset int64
+	if err := s.db.QueryRowContext(ctx, `SELECT durable_event_offset FROM feed_progress WHERE id = 1`).Scan(&progressOffset); err != nil {
+		return parser.RegistrySnapshot{}, false, fmt.Errorf("read registry snapshot progress: %w", err)
+	}
+	if snapshotOffset < 0 || snapshotOffset > progressOffset {
+		return parser.RegistrySnapshot{}, false, fmt.Errorf("registry snapshot offset %d exceeds durable offset %d", snapshotOffset, progressOffset)
+	}
+	var snapshot parser.RegistrySnapshot
+	if err := json.Unmarshal([]byte(payload), &snapshot); err != nil {
+		return parser.RegistrySnapshot{}, false, fmt.Errorf("decode registry snapshot: %w", err)
+	}
+	return snapshot, true, nil
 }
 
 func (s *Store) Progress(ctx context.Context) (Progress, error) {
