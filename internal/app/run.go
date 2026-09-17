@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
@@ -47,18 +48,10 @@ func Run(service config.Service) error {
 	}
 	ready.Set("migrations_current", true)
 
-	server := health.New(string(service), cfg.Socket, log, ready)
-	listener, err := server.Listen()
-	if err != nil {
-		return err
-	}
-	ready.Set("socket_bound", true)
-
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
-	errCh := make(chan error, 2)
-	go func() { errCh <- server.Serve(listener) }()
-
+	server := health.New(string(service), cfg.Socket, log, ready)
+	var runner *feedcore.SequencerRunner
 	if service == config.FeedService {
 		store, err := feedcore.NewStore(database)
 		if err != nil {
@@ -74,10 +67,23 @@ func Run(service config.Service) error {
 				return fmt.Errorf("restore feed parser registry: %w", err)
 			}
 		}
-		runner, err := feedcore.NewSequencerRunner(value, store)
+		runner, err = feedcore.NewSequencerRunner(value, store)
 		if err != nil {
 			return err
 		}
+		server.SetMetricsWriter(func(metricCtx context.Context, writer io.Writer) error {
+			return writeFeedMetrics(metricCtx, writer, store)
+		})
+	}
+
+	listener, err := server.Listen()
+	if err != nil {
+		return err
+	}
+	ready.Set("socket_bound", true)
+	errCh := make(chan error, 2)
+	go func() { errCh <- server.Serve(listener) }()
+	if runner != nil {
 		go func() { errCh <- runner.Run(ctx) }()
 		go monitorFeedReadiness(ctx, ready, runner)
 	}
@@ -100,6 +106,27 @@ func Run(service config.Service) error {
 	case <-ctx.Done():
 		return shutdownServer(server)
 	}
+}
+
+func writeFeedMetrics(ctx context.Context, writer io.Writer, store *feedcore.Store) error {
+	metrics, err := store.Metrics(ctx)
+	if err != nil {
+		return err
+	}
+	degraded := 0
+	if metrics.Degraded {
+		degraded = 1
+	}
+	_, err = fmt.Fprintf(writer,
+		"# TYPE rbh_feed_observations_total gauge\nrbh_feed_observations_total %d\n"+
+			"# TYPE rbh_feed_orphaned_total gauge\nrbh_feed_orphaned_total %d\n"+
+			"# TYPE rbh_feed_outbox_rows gauge\nrbh_feed_outbox_rows %d\n"+
+			"# TYPE rbh_feed_receipt_audits_total gauge\nrbh_feed_receipt_audits_total %d\n"+
+			"# TYPE rbh_feed_durable_event_offset gauge\nrbh_feed_durable_event_offset %d\n"+
+			"# TYPE rbh_feed_degraded gauge\nrbh_feed_degraded %d\n",
+		metrics.Observations, metrics.Orphaned, metrics.OutboxRows, metrics.ReceiptAudits, metrics.DurableEventOffset, degraded,
+	)
+	return err
 }
 
 func monitorFeedReadiness(ctx context.Context, ready *health.Readiness, runner *feedcore.SequencerRunner) {
