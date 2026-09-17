@@ -22,6 +22,7 @@ type Server struct {
 	log           *slog.Logger
 	ready         *Readiness
 	metricsWriter MetricsWriter
+	mux           *http.ServeMux
 	http          *http.Server
 }
 
@@ -31,8 +32,16 @@ func New(name, path string, log *slog.Logger, ready *Readiness) *Server {
 	mux.HandleFunc("GET /health", s.health)
 	mux.HandleFunc("GET /ready", s.readiness)
 	mux.HandleFunc("GET /metrics", s.metrics)
+	s.mux = mux
 	s.http = &http.Server{Handler: mux, ReadHeaderTimeout: 2 * time.Second}
 	return s
+}
+
+// Handle registers a service-owned internal endpoint before Serve starts.
+func (s *Server) Handle(pattern string, handler http.Handler) {
+	if s != nil && s.mux != nil && handler != nil {
+		s.mux.Handle(pattern, handler)
+	}
 }
 
 // SetMetricsWriter must be called before Serve. It allows service-specific

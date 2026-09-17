@@ -10,6 +10,7 @@ import (
 	"time"
 
 	parser "github.com/0xfnzero/rbh-parser-sdk/rbhparser"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ruzickahunzeker/rbh-bot/internal/storage"
 )
 
@@ -251,7 +252,13 @@ func (s *Store) ReadOutboxAfter(ctx context.Context, after int64, limit int) ([]
 	if limit <= 0 || limit > 1000 {
 		limit = 100
 	}
-	rows, err := s.db.QueryContext(ctx, `SELECT offset, payload_json FROM feed_outbox WHERE offset > ? ORDER BY offset LIMIT ?`, after, limit)
+	rows, err := s.db.QueryContext(ctx, `
+SELECT o.offset, e.observation_id, e.source, e.source_sequence, e.tx_hash, e.stable_action_path, o.payload_json
+FROM feed_outbox o
+JOIN feed_events e ON e.offset = o.offset
+WHERE o.offset > ?
+ORDER BY o.offset
+LIMIT ?`, after, limit)
 	if err != nil {
 		return nil, fmt.Errorf("query feed outbox: %w", err)
 	}
@@ -259,10 +266,18 @@ func (s *Store) ReadOutboxAfter(ctx context.Context, after int64, limit int) ([]
 	items := make([]OutboxItem, 0, limit)
 	for rows.Next() {
 		var item OutboxItem
-		var payload string
-		if err := rows.Scan(&item.Offset, &payload); err != nil {
+		var payload, sourceSequence, transactionHash string
+		if err := rows.Scan(&item.Offset, &item.ObservationID, &item.Source, &sourceSequence, &transactionHash, &item.StableActionPath, &payload); err != nil {
 			return nil, fmt.Errorf("scan feed outbox: %w", err)
 		}
+		item.SourceSequence, err = strconv.ParseUint(sourceSequence, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("decode feed outbox source sequence: %w", err)
+		}
+		if len(transactionHash) != 66 {
+			return nil, fmt.Errorf("decode feed outbox transaction hash %q", transactionHash)
+		}
+		item.TransactionHash = common.HexToHash(transactionHash)
 		item.PayloadJSON = []byte(payload)
 		items = append(items, item)
 	}

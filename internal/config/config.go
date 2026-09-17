@@ -19,14 +19,15 @@ const (
 )
 
 type Config struct {
-	Service     Service
-	DataDir     string
-	SocketDir   string
-	Database    string
-	Socket      string
-	LogLevel    string
-	ChainID     uint64
-	LiveEnabled bool
+	Service            Service
+	DataDir            string
+	SocketDir          string
+	Database           string
+	Socket             string
+	LogLevel           string
+	ChainID            uint64
+	LiveEnabled        bool
+	InternalAuthSecret string
 }
 
 func Load(service Service) (Config, error) {
@@ -47,6 +48,7 @@ func Load(service Service) (Config, error) {
 		Socket:   filepath.Join(socketDir, string(service)+".sock"),
 		LogLevel: strings.ToUpper(env("RBH_LOG_LEVEL", "INFO")),
 		ChainID:  chainID, LiveEnabled: live,
+		InternalAuthSecret: os.Getenv("RBH_INTERNAL_AUTH_SECRET"),
 	}, nil
 }
 

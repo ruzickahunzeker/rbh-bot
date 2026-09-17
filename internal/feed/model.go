@@ -65,8 +65,13 @@ func (o Observation) ID() string {
 }
 
 type OutboxItem struct {
-	Offset      int64
-	PayloadJSON json.RawMessage
+	Offset           int64           `json:"offset"`
+	ObservationID    string          `json:"observation_id"`
+	Source           Source          `json:"source"`
+	SourceSequence   uint64          `json:"source_sequence"`
+	TransactionHash  common.Hash     `json:"transaction_hash"`
+	StableActionPath string          `json:"stable_action_path"`
+	PayloadJSON      json.RawMessage `json:"payload"`
 }
 
 type Progress struct {

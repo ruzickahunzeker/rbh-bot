@@ -11,7 +11,7 @@ import (
 func TestOpenMigrateAndValidateEveryOwner(t *testing.T) {
 	wantMigrations := map[Owner]int{
 		FeedOwner:  4,
-		BotOwner:   1,
+		BotOwner:   2,
 		TradeOwner: 1,
 	}
 	for _, owner := range []Owner{FeedOwner, BotOwner, TradeOwner} {
