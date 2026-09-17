@@ -46,11 +46,16 @@ func loadCapturedTransaction(t *testing.T, path string) (*gethtypes.Transaction,
 func TestSequencerHandlerCommitsOnlyAfterNormalization(t *testing.T) {
 	store, database := openFeedStore(t)
 	defer database.Close()
-	runner, err := NewSequencerRunner(parser.New(), store)
+	root := filepath.Join("..", "..", "rbh-validation-package", "fixtures", "historical", "candidates")
+	value := parser.New()
+	if events, err := value.ParseReceipt(loadReceipt(t, filepath.Join(root, "0x45142a829ca4ce83909c0f87408b27f70da8a1853a101921fffc20ff5fc08b10.json"))); err != nil || len(events) == 0 {
+		t.Fatalf("bootstrap confirmed Pons launch: events=%d err=%v", len(events), err)
+	}
+	runner, err := NewSequencerRunner(value, store)
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join("..", "..", "rbh-validation-package", "fixtures", "historical", "candidates", "0x04fc83e1a45cbbc7a0dc6e18dd996f91225c7d97158412560dc0d2fbec5c9d2d.json")
+	path := filepath.Join(root, "0x04fc83e1a45cbbc7a0dc6e18dd996f91225c7d97158412560dc0d2fbec5c9d2d.json")
 	tx, sender := loadCapturedTransaction(t, path)
 	receivedAt := time.Unix(1_700_000_300, 0).UTC()
 	if err := runner.Handle(context.Background(), sequencer.FeedTransaction{
