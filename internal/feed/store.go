@@ -25,9 +25,6 @@ func NewStore(database *storage.Database) (*Store, error) {
 	return &Store{db: db}, nil
 }
 
-// PersistReceiptAudit implements ReceiptAuditSink. Receipt audits are durable
-// even when parsing fails later; this is intentional because the receipt fact
-// is independently auditable.
 func (s *Store) PersistReceiptAudit(audit ReceiptAudit) error {
 	if s == nil || s.db == nil || audit.TransactionHash == ([32]byte{}) {
 		return ErrFeedStoreUnavailable
@@ -54,10 +51,21 @@ ON CONFLICT(tx_hash) DO NOTHING`,
 	return nil
 }
 
-// Commit persists observations, their outbox rows and progress in one SQLite
-// transaction. durable_event_offset only advances after the transaction
-// commits; SDK sequence callbacks are never treated as durable business state.
-func (s *Store) Commit(ctx context.Context, observations []Observation, observedSequence uint64) (CommitResult, error) {
+// CommitSequencer persists observations, outbox rows and the highest transaction
+// handler sequence in one SQLite transaction. On restart ResumeSequence rewinds
+// one full sequence before reconnecting so a crash inside a multi-tx sequence
+// cannot skip the unprocessed suffix.
+func (s *Store) CommitSequencer(ctx context.Context, observations []Observation, observedSequence uint64) (CommitResult, error) {
+	return s.commit(ctx, observations, &observedSequence)
+}
+
+// CommitObservations is used by confirmed RPC receipts. It advances the durable
+// event offset but never changes sequencer progress.
+func (s *Store) CommitObservations(ctx context.Context, observations []Observation) (CommitResult, error) {
+	return s.commit(ctx, observations, nil)
+}
+
+func (s *Store) commit(ctx context.Context, observations []Observation, observedSequence *uint64) (CommitResult, error) {
 	if s == nil || s.db == nil || ctx == nil {
 		return CommitResult{}, ErrFeedStoreUnavailable
 	}
@@ -114,13 +122,23 @@ ON CONFLICT(observation_id) DO NOTHING`,
 		}
 	}
 	stamp := time.Now().UTC().Format(time.RFC3339Nano)
-	if _, err := tx.ExecContext(ctx, `
+	if observedSequence == nil {
+		if _, err := tx.ExecContext(ctx, `
+UPDATE feed_progress
+SET durable_event_offset = CASE WHEN durable_event_offset < ? THEN ? ELSE durable_event_offset END,
+    updated_at = ?
+WHERE id = 1`, result.DurableEventOffset, result.DurableEventOffset, stamp); err != nil {
+			return CommitResult{}, fmt.Errorf("update durable feed offset: %w", err)
+		}
+	} else {
+		if _, err := tx.ExecContext(ctx, `
 UPDATE feed_progress
 SET observed_sequence = CASE WHEN observed_sequence IS NULL OR observed_sequence < ? THEN ? ELSE observed_sequence END,
     durable_event_offset = CASE WHEN durable_event_offset < ? THEN ? ELSE durable_event_offset END,
     updated_at = ?
-WHERE id = 1`, observedSequence, observedSequence, result.DurableEventOffset, result.DurableEventOffset, stamp); err != nil {
-		return CommitResult{}, fmt.Errorf("update feed progress: %w", err)
+WHERE id = 1`, *observedSequence, *observedSequence, result.DurableEventOffset, result.DurableEventOffset, stamp); err != nil {
+			return CommitResult{}, fmt.Errorf("update feed progress: %w", err)
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return CommitResult{}, fmt.Errorf("commit feed transaction: %w", err)
@@ -159,11 +177,6 @@ FROM feed_progress WHERE id = 1`).Scan(&sequence, &progress.DurableEventOffset, 
 	return progress, nil
 }
 
-// ResumeSequence deliberately rewinds one full sequencer sequence. The parser
-// SDK invokes OnSequence before transaction handlers, and a sequence can carry
-// multiple transactions, so the last observed sequence is not a safe exact
-// resume checkpoint. Replaying one sequence plus deterministic DB dedupe avoids
-// loss across process crashes.
 func (s *Store) ResumeSequence(ctx context.Context) (*uint64, error) {
 	progress, err := s.Progress(ctx)
 	if err != nil {
