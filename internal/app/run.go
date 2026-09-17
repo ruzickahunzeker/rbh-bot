@@ -7,13 +7,16 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	parser "github.com/0xfnzero/rbh-parser-sdk/rbhparser"
+	botcore "github.com/ruzickahunzeker/rbh-bot/internal/bot"
 	"github.com/ruzickahunzeker/rbh-bot/internal/config"
 	feedcore "github.com/ruzickahunzeker/rbh-bot/internal/feed"
 	"github.com/ruzickahunzeker/rbh-bot/internal/health"
+	"github.com/ruzickahunzeker/rbh-bot/internal/ipc"
 	"github.com/ruzickahunzeker/rbh-bot/internal/observability"
 	"github.com/ruzickahunzeker/rbh-bot/internal/storage"
 )
@@ -34,6 +37,9 @@ func Run(service config.Service) error {
 	if service == config.FeedService {
 		gates = append(gates, "feed_stream_healthy")
 	}
+	if service == config.BotService {
+		gates = append(gates, "bot_feed_consumer_configured")
+	}
 	ready := health.NewReadiness(gates...)
 	ready.Set("config_valid", true)
 	ready.Set("live_disabled", true)
@@ -52,6 +58,14 @@ func Run(service config.Service) error {
 	defer stop()
 	server := health.New(string(service), cfg.Socket, log, ready)
 	var runner *feedcore.SequencerRunner
+	var botConsumer *botcore.Consumer
+	var authenticator *ipc.Authenticator
+	if service == config.FeedService || service == config.BotService {
+		authenticator, err = ipc.NewAuthenticator([]byte(cfg.InternalAuthSecret), 30*time.Second)
+		if err != nil {
+			return fmt.Errorf("configure business IPC authentication: %w", err)
+		}
+	}
 	if service == config.FeedService {
 		store, err := feedcore.NewStore(database)
 		if err != nil {
@@ -74,6 +88,22 @@ func Run(service config.Service) error {
 		server.SetMetricsWriter(func(metricCtx context.Context, writer io.Writer) error {
 			return writeFeedMetrics(metricCtx, writer, store)
 		})
+		server.Handle("GET /internal/feed/outbox", authenticator.Middleware(feedcore.NewOutboxHTTPHandler(store)))
+	}
+	if service == config.BotService {
+		store, err := botcore.NewStore(database)
+		if err != nil {
+			return err
+		}
+		source, err := botcore.NewHTTPOutboxSource(filepath.Join(cfg.SocketDir, string(config.FeedService)+".sock"), authenticator)
+		if err != nil {
+			return err
+		}
+		botConsumer, err = botcore.NewConsumer(store, source, 100)
+		if err != nil {
+			return err
+		}
+		ready.Set("bot_feed_consumer_configured", true)
 	}
 
 	listener, err := server.Listen()
@@ -86,6 +116,9 @@ func Run(service config.Service) error {
 	if runner != nil {
 		go func() { errCh <- runner.Run(ctx) }()
 		go monitorFeedReadiness(ctx, ready, runner)
+	}
+	if botConsumer != nil {
+		go func() { errCh <- botConsumer.Run(ctx, 100*time.Millisecond) }()
 	}
 
 	select {

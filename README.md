@@ -4,7 +4,7 @@ Robinhood Chain 低延迟交易与 Copy Trading 系统。生产依赖锁定的
 `rbh-parser-sdk` 与 `rbh-trade-sdk`，产品工程参考 `solana-bot`，但执行、nonce、
 Receipt、reorg 和恢复按 EVM 模型实现。
 
-当前状态：**PR-001 Bootstrap / live disabled**。
+当前状态：**PR-003 Bot Strategy / live execution disabled**。
 
 ## 服务
 
@@ -25,10 +25,11 @@ go run ./cmd/bot-service
 go run ./cmd/trade-service
 ```
 
-默认 socket 与数据库位于 `./data/`。启动时服务会打开自己的数据库、独占执行
+默认 socket 与数据库位于 `./data/`。Feed 与 Bot 的业务 IPC 还要求配置相同的
+`RBH_INTERNAL_AUTH_SECRET`（至少 32 bytes）。启动时服务会打开自己的数据库、独占执行
 嵌入式 migration，并在 config、database、migration、socket 和 live-disabled 五个
-gate 全部通过后才返回 ready。当前仅开放 `/health`、`/ready` 和 `/metrics`；交易、
-签名和广播尚未启用。
+gate 全部通过后才返回 ready。Feed 通过认证的 Unix-socket outbox 向 Bot 发布持久事件；
+交易、报价、模拟、nonce、签名和广播尚未启用。
 
 内部 IPC 基础包提供 Unix socket client、HMAC body 签名、时间窗、request nonce
 防重放、request ID 和结构化错误。业务端点接入前必须配置独立认证 secret。
