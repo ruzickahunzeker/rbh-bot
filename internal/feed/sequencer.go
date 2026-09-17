@@ -41,6 +41,21 @@ func (r *SequencerRunner) Status() SequencerStatus {
 	return r.status
 }
 
+// Ready is deliberately stricter than connection health. A live socket is not
+// ready for economic consumers after a detected gap/reorg/verification failure
+// until explicit recovery clears the durable degraded marker.
+func (r *SequencerRunner) Ready(ctx context.Context) bool {
+	if r == nil || r.store == nil || ctx == nil {
+		return false
+	}
+	status := r.Status()
+	if status.State != sequencer.ConnectionLive {
+		return false
+	}
+	progress, err := r.store.Progress(ctx)
+	return err == nil && !progress.Degraded
+}
+
 func (r *SequencerRunner) Config(ctx context.Context) (sequencer.Config, error) {
 	if r == nil || r.store == nil || r.normalizer == nil || ctx == nil {
 		return sequencer.Config{}, ErrSequencerRunnerUnavailable
