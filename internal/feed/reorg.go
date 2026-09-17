@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/0xfnzero/rbh-parser-sdk/feed/sequencer"
@@ -65,7 +66,7 @@ ORDER BY offset`, string(SourceSequencer), strconv.FormatUint(reorg.SequenceNumb
 			_ = rows.Close()
 			return 0, fmt.Errorf("scan orphaned sequencer observation: %w", err)
 		}
-		if !common.IsHexHash(txHash) {
+		if len(txHash) != 66 || !strings.HasPrefix(txHash, "0x") {
 			_ = rows.Close()
 			return 0, fmt.Errorf("invalid stored transaction hash %q", txHash)
 		}
