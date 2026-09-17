@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "status": "C06_PONS_CURVE_PASS",
+  "scope": "PONS_V2_CURVE_DRY_RUN_ONLY",
+  "chain_id": 4663,
+  "rpc_source": "official Robinhood Chain mainnet RPC (URL redacted)",
+  "trade_sdk_version": "github.com/0xfnzero/rbh-trade-sdk v0.4.0",
+  "captured_at": "2026-09-17T18:05:18.784368062Z",
+  "curve_buy": {
+    "operation_id": "c06-curve-buy",
+    "step_id": "a4e59ccc5ee0b547044d57b5a9df45346e6cd628ebac4b3d8627a43925cff3de",
+    "status": "success",
+    "route": {
+      "protocol": "pons-v2-curve",
+      "token": "0xe278bb96d14482f161148aeed8ba3fa482fc78d9",
+      "curve": "0xdfd1d026c1f6c32c499832769853c61e4cc46f6c",
+      "quote_token": "0x0000000000000000000000000000000000000000",
+      "native_quote": true
+    },
+    "parameters": {
+      "direction": "buy",
+      "amount_in": "1000000000000",
+      "minimum_out": "357843887053925772507",
+      "quoted_out": "376677775846237655271",
+      "slippage_bps": 500,
+      "recipient": "0x727D2eC9C2517F02508dcE569F795012BF5974d0"
+    },
+    "unsigned_call": {
+      "from": "0x727D2eC9C2517F02508dcE569F795012BF5974d0",
+      "to": "0xDfd1D026c1f6C32c499832769853C61E4cc46f6C",
+      "value": "1000000000000",
+      "data": "0x59a87bc1000000000000000000000000000000000000000000000000000000e8d4a510000000000000000000000000000000000000000000000000136614df565e3fecdb000000000000000000000000727d2ec9c2517f02508dce569f795012bf5974d0"
+    },
+    "block": {
+      "number": 65565167,
+      "hash": "0xd190d03bcea4d93337b003cf78c525b94da24fec870949a7da2b91b5606e5be8",
+      "time": "2026-09-17T18:00:49Z"
+    },
+    "return_data": "0x0000000000000000000000000000000000000000000000146b7449686335d0e7",
+    "duplicate": false
+  },
+  "curve_sell": {
+    "operation_id": "c06-curve-sell",
+    "step_id": "d47d56a3e8d50b47e90b2f0684d0fc2924b5d416cae6f14d3e3bc3e4b1d3c8ef",
+    "status": "success",
+    "route": {
+      "protocol": "pons-v2-curve",
+      "token": "0xe278bb96d14482f161148aeed8ba3fa482fc78d9",
+      "curve": "0xdfd1d026c1f6c32c499832769853c61e4cc46f6c",
+      "quote_token": "0x0000000000000000000000000000000000000000",
+      "native_quote": true
+    },
+    "parameters": {
+      "direction": "sell",
+      "amount_in": "2401101526378237250105063",
+      "minimum_out": "5739587990286459",
+      "quoted_out": "6041671568722589",
+      "slippage_bps": 500,
+      "recipient": "0x727D2eC9C2517F02508dcE569F795012BF5974d0"
+    },
+    "unsigned_call": {
+      "from": "0x727D2eC9C2517F02508dcE569F795012BF5974d0",
+      "to": "0xDfd1D026c1f6C32c499832769853C61E4cc46f6C",
+      "value": "0",
+      "data": "0xd04c698300000000000000000000000000000000000000000001fc73f97cf3e5cdddeee70000000000000000000000000000000000000000000000000014641ff751707b000000000000000000000000727d2ec9c2517f02508dce569f795012bf5974d0"
+    },
+    "block": {
+      "number": 65565167,
+      "hash": "0xd190d03bcea4d93337b003cf78c525b94da24fec870949a7da2b91b5606e5be8",
+      "time": "2026-09-17T18:00:49Z"
+    },
+    "return_data": "0x000000000000000000000000000000000000000000000000001576de47b40a9d",
+    "duplicate": false
+  },
+  "revert_simulation": {
+    "operation_id": "c06-revert",
+    "step_id": "eb3ba9f189de0c8f5bb570bea9004576b5400ace0a08dbeceb8e40c81f47d3f4",
+    "status": "fail_closed",
+    "route": {
+      "protocol": "pons-v2-curve",
+      "token": "0xe278bb96d14482f161148aeed8ba3fa482fc78d9",
+      "curve": "0xdfd1d026c1f6c32c499832769853c61e4cc46f6c",
+      "quote_token": "0x0000000000000000000000000000000000000000",
+      "native_quote": true
+    },
+    "parameters": {
+      "direction": "buy",
+      "amount_in": "1000000000000000000000000",
+      "minimum_out": "126907803697291366695684215902706",
+      "quoted_out": "519919059214268387821937196",
+      "slippage_bps": 500,
+      "recipient": "0x000000000000000000000000000000000000dEaD"
+    },
+    "unsigned_call": {
+      "from": "0x000000000000000000000000000000000000dEaD",
+      "to": "0xDfd1D026c1f6C32c499832769853C61E4cc46f6C",
+      "value": "1000000000000000000000000",
+      "data": "0x59a87bc100000000000000000000000000000000000000000000d3c21bcecceda10000000000000000000000000000000000000000000641cd3accd25c90d03011a791f2000000000000000000000000000000000000000000000000000000000000dead"
+    },
+    "block": {
+      "number": 65565167,
+      "hash": "0xd190d03bcea4d93337b003cf78c525b94da24fec870949a7da2b91b5606e5be8",
+      "time": "2026-09-17T18:00:49Z"
+    },
+    "failure_code": "SIMULATION_REVERTED",
+    "failure_detail": "simulation reverted: err: insufficient funds for gas * price + value: address 0x000000000000000000000000000000000000dEaD have 1843396929989188209 want 1000000000000000000000000 (supplied gas 50000000)",
+    "duplicate": false
+  },
+  "duplicate_replay": {
+    "operation_id": "c06-curve-buy",
+    "step_id": "a4e59ccc5ee0b547044d57b5a9df45346e6cd628ebac4b3d8627a43925cff3de",
+    "status": "success",
+    "route": {
+      "protocol": "pons-v2-curve",
+      "token": "0xe278bb96d14482f161148aeed8ba3fa482fc78d9",
+      "curve": "0xdfd1d026c1f6c32c499832769853c61e4cc46f6c",
+      "quote_token": "0x0000000000000000000000000000000000000000",
+      "native_quote": true
+    },
+    "parameters": {
+      "direction": "buy",
+      "amount_in": "1000000000000",
+      "minimum_out": "357843887053925772507",
+      "quoted_out": "376677775846237655271",
+      "slippage_bps": 500,
+      "recipient": "0x727D2eC9C2517F02508dcE569F795012BF5974d0"
+    },
+    "unsigned_call": {
+      "from": "0x727D2eC9C2517F02508dcE569F795012BF5974d0",
+      "to": "0xDfd1D026c1f6C32c499832769853C61E4cc46f6C",
+      "value": "1000000000000",
+      "data": "0x59a87bc1000000000000000000000000000000000000000000000000000000e8d4a510000000000000000000000000000000000000000000000000136614df565e3fecdb000000000000000000000000727d2ec9c2517f02508dce569f795012bf5974d0"
+    },
+    "block": {
+      "number": 65565167,
+      "hash": "0xd190d03bcea4d93337b003cf78c525b94da24fec870949a7da2b91b5606e5be8",
+      "time": "0001-01-01T00:00:00Z"
+    },
+    "return_data": "0x0000000000000000000000000000000000000000000000146b7449686335d0e7",
+    "duplicate": true
+  },
+  "restart_recovery": [
+    {
+      "operation_id": "c06-restart-recovery",
+      "step_id": "5e4c0a28bb0321eed5b3199678616d94dd22e5426fb6a8711b6581a85af4ced4",
+      "status": "success",
+      "route": {
+        "protocol": "pons-v2-curve",
+        "token": "0xe278bb96d14482f161148aeed8ba3fa482fc78d9",
+        "curve": "0xdfd1d026c1f6c32c499832769853c61e4cc46f6c",
+        "quote_token": "0x0000000000000000000000000000000000000000",
+        "native_quote": true
+      },
+      "parameters": {
+        "direction": "buy",
+        "amount_in": "1000000000000",
+        "minimum_out": "357843887053925772507",
+        "quoted_out": "376677775846237655271",
+        "slippage_bps": 500,
+        "recipient": "0x727D2eC9C2517F02508dcE569F795012BF5974d0"
+      },
+      "unsigned_call": {
+        "from": "0x727D2eC9C2517F02508dcE569F795012BF5974d0",
+        "to": "0xDfd1D026c1f6C32c499832769853C61E4cc46f6C",
+        "value": "1000000000000",
+        "data": "0x59a87bc1000000000000000000000000000000000000000000000000000000e8d4a510000000000000000000000000000000000000000000000000136614df565e3fecdb000000000000000000000000727d2ec9c2517f02508dce569f795012bf5974d0"
+      },
+      "block": {
+        "number": 65565167,
+        "hash": "0xd190d03bcea4d93337b003cf78c525b94da24fec870949a7da2b91b5606e5be8",
+        "time": "2026-09-17T18:00:49Z"
+      },
+      "return_data": "0x0000000000000000000000000000000000000000000000146b7449686335d0e7",
+      "duplicate": true
+    }
+  ],
+  "durable_counts": {
+    "operations": 4,
+    "execution_steps": 4,
+    "dry_run_results": 4,
+    "transaction_attempts": 0
+  },
+  "safety_assertions": {
+    "broadcast_called": false,
+    "eth_call_only": true,
+    "eth_sendRawTransaction_called": false,
+    "nonce_allocated": false,
+    "signed_transaction_created": false,
+    "transaction_attempts_zero": true
+  }
+}
