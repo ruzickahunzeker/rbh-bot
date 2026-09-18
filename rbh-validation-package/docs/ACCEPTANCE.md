@@ -29,7 +29,7 @@ BLOCKED 是输入/环境受阻；NOT_RUN 是没有执行。真实集成通过需
 |---|---|---|
 | fixtures | 被声明支持的路径与独立期望全部通过 | 未执行 |
 | 崩溃恢复 | 接单/签名/广播各边界无重复经济订单 | 仅模型 |
-| nonce 并发 | 至少 10,000 请求，错误绑定为 0 | 未执行 |
+| admission 并发 | 至少 10,000 请求；accepted + deduped + queued + rejected = total | 未执行 |
 | 故障 | RPC timeout、真实 reorg、disk full、旧备份后链上补账 | 未执行 |
 | feed soak | 连续 72 小时，无未解释 gap/永久积压 | 未执行 |
 | canary | 用户明确批准预算、gas、次数与停止条件 | 未授权 |
@@ -39,5 +39,9 @@ BLOCKED 是输入/环境受阻；NOT_RUN 是没有执行。真实集成通过需
 含 quote/simulation 至广播开始=150/400/800ms。需在指定硬件、存储、RPC、负载和预热条件下
 测量后再冻结，不得为达标去掉 simulation 或先发送后落库。
 阻断、过期、排队与超时事件必须统计，不能只挑成功样本。
+
+10,000 admission concurrency 还必须证明 duplicate economic executions、nonce collisions、
+reservation overcommit 与 unexplained accepted requests 全部为 0；它不要求同时广播 10,000
+笔交易。
 
 **release_ready=false。SDK_COMPATIBILITY 的 C01–C08 未解除前不批准实盘。**

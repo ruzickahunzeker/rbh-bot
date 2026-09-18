@@ -20,15 +20,19 @@ var (
 )
 
 type fakeBackend struct {
-	block       BlockRef
-	route       CurveRoute
-	quoteOut    *big.Int
-	minimumOut  *big.Int
-	balance     *big.Int
-	resolveErr  error
-	simulateErr error
-	verifyErr   error
-	simulations int
+	block         BlockRef
+	route         CurveRoute
+	quoteOut      *big.Int
+	minimumOut    *big.Int
+	balance       *big.Int
+	resolveErr    error
+	simulateErr   error
+	verifyErr     error
+	simulations   int
+	pendingNonce  uint64
+	nativeBalance *big.Int
+	fee           FeeParameters
+	chainID       *big.Int
 }
 
 func newFakeBackend() *fakeBackend {
@@ -36,10 +40,16 @@ func newFakeBackend() *fakeBackend {
 		block:    BlockRef{Number: 100, Hash: common.HexToHash("0xabc"), Time: time.Unix(100, 0)},
 		route:    CurveRoute{Protocol: "pons-v2-curve", Token: testToken, Curve: testCurve, NativeQuote: true},
 		quoteOut: big.NewInt(10_000), minimumOut: big.NewInt(9_500), balance: big.NewInt(40_000),
+		pendingNonce: 7, nativeBalance: new(big.Int).Exp(big.NewInt(10), big.NewInt(20), nil),
+		fee:     FeeParameters{GasLimit: 100_000, GasTipCap: big.NewInt(1), GasFeeCap: big.NewInt(10)},
+		chainID: big.NewInt(int64(ChainID)),
 	}
 }
 
 func (f *fakeBackend) Snapshot(context.Context) (BlockRef, error) { return f.block, nil }
+func (f *fakeBackend) ExecutionChainID(context.Context) (*big.Int, error) {
+	return cloneInt(f.chainID), nil
+}
 func (f *fakeBackend) ResolveCurve(context.Context, common.Address, BlockRef) (CurveRoute, error) {
 	return f.route, f.resolveErr
 }
@@ -57,6 +67,15 @@ func (f *fakeBackend) Simulate(context.Context, common.Address, common.Address, 
 	return []byte{1, 2, 3}, f.simulateErr
 }
 func (f *fakeBackend) VerifySnapshot(context.Context, BlockRef) error { return f.verifyErr }
+func (f *fakeBackend) PendingNonce(context.Context, common.Address) (uint64, error) {
+	return f.pendingNonce, nil
+}
+func (f *fakeBackend) NativeBalance(context.Context, common.Address, BlockRef) (*big.Int, error) {
+	return cloneInt(f.nativeBalance), nil
+}
+func (f *fakeBackend) FeeParameters(context.Context, common.Address, UnsignedCall, BlockRef) (FeeParameters, error) {
+	return FeeParameters{GasLimit: f.fee.GasLimit, GasTipCap: cloneInt(f.fee.GasTipCap), GasFeeCap: cloneInt(f.fee.GasFeeCap)}, nil
+}
 
 func TestCurveBuyDryRunUsesPinnedSDKAndIsIdempotent(t *testing.T) {
 	store, closeDB := openTradeStore(t)

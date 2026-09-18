@@ -19,18 +19,21 @@ const (
 )
 
 type Config struct {
-	Service            Service
-	DataDir            string
-	SocketDir          string
-	Database           string
-	Socket             string
-	LogLevel           string
-	ChainID            uint64
-	LiveEnabled        bool
-	InternalAuthSecret string
-	RPCURL             string
-	DryRunWalletID     string
-	DryRunFromAddress  string
+	Service               Service
+	DataDir               string
+	SocketDir             string
+	Database              string
+	Socket                string
+	LogLevel              string
+	ChainID               uint64
+	LiveEnabled           bool
+	InternalAuthSecret    string
+	RPCURL                string
+	DryRunWalletID        string
+	DryRunFromAddress     string
+	ExecutionPrivateKey   string
+	ArtifactEncryptionKey string
+	ArtifactKeyVersion    string
 }
 
 func Load(service Service) (Config, error) {
@@ -51,10 +54,13 @@ func Load(service Service) (Config, error) {
 		Socket:   filepath.Join(socketDir, string(service)+".sock"),
 		LogLevel: strings.ToUpper(env("RBH_LOG_LEVEL", "INFO")),
 		ChainID:  chainID, LiveEnabled: live,
-		InternalAuthSecret: os.Getenv("RBH_INTERNAL_AUTH_SECRET"),
-		RPCURL:             os.Getenv("ROBINHOOD_RPC_URL"),
-		DryRunWalletID:     os.Getenv("RBH_DRY_RUN_WALLET_ID"),
-		DryRunFromAddress:  os.Getenv("RBH_DRY_RUN_FROM_ADDRESS"),
+		InternalAuthSecret:    os.Getenv("RBH_INTERNAL_AUTH_SECRET"),
+		RPCURL:                os.Getenv("ROBINHOOD_RPC_URL"),
+		DryRunWalletID:        os.Getenv("RBH_DRY_RUN_WALLET_ID"),
+		DryRunFromAddress:     os.Getenv("RBH_DRY_RUN_FROM_ADDRESS"),
+		ExecutionPrivateKey:   os.Getenv("RBH_EXECUTION_PRIVATE_KEY"),
+		ArtifactEncryptionKey: os.Getenv("RBH_ARTIFACT_ENCRYPTION_KEY"),
+		ArtifactKeyVersion:    env("RBH_ARTIFACT_KEY_VERSION", "v1"),
 	}, nil
 }
 

@@ -34,8 +34,9 @@ trade_service 在事务内聚合并预占同钱包所有策略的资金和 gas�
 ```
 
 计划绑定 route_version + state_version + block_hash + epoch 和时间相关 fee 参数。
-制品落库失败不能发送。真实 raw tx 需要受控加密存储，记录 key_version、nonce、
-AAD、创建时间；日志不记录 raw tx、私钥、master key 或认证头。
+制品落库失败不能发送。真实 raw tx 必须受控加密存储，记录 `key_version`、nonce、
+AAD、创建时间；私钥永不持久化，日志和 evidence 不记录 raw tx、私钥、master key 或认证头。
+nonce、attempt、密文、tx hash 与完整执行字段必须在同一明确事务边界内 durable commit。
 
 本包 artifact 只是 MODEL_ONLY 假字节，SHA256 是测试标识，不是 Ethereum tx hash；
 **参考模型不包含加密实现，也不产生任何有效链上交易。**
@@ -45,7 +46,7 @@ AAD、创建时间；日志不记录 raw tx、私钥、master key 或认证头�
 | 情况 | 动作 |
 |---|---|
 | prepared，未形成持久签名制品 | 不广播；先核查制品与外部 nonce 消耗再恢复 |
-| signed，发送前崩溃 | 先对账；满足策略、新鲜度约束后可重播原 raw tx |
+| signed，发送前崩溃 | 加载、解密并验证既有制品；策略或新鲜度可以阻止重播，但不得 rebuild/resign |
 | RPC timeout / 响应丢失 | broadcast_unknown，冻结该钱包新增执行 |
 | RPC 返回 hash | 仅记录提交结果，继续查 Receipt |
 | 单次返回 null | 不是失败、未提交或永久 dropped 证明 |
@@ -57,6 +58,10 @@ AAD、创建时间；日志不记录 raw tx、私钥、master key 或认证头�
 dropped/replaced 不由简单超时认定。自动加速、取消和 replacement 不开放；
 只允许受控同制品重播或人工处置。单钱包一个 allocator，首个 live 验证每钱包最多一个
 未解决执行步骤。本包模型的 nonce 仅覆盖 SQLite 有符号整数范围，不是完整生产 nonce 类型。
+
+PR-006 只能加载并验证 PR-005 已持久化的制品。ambiguous recovery 只能查询、对账，或在
+策略允许时重播 exact same raw bytes；不得重新构建交易、重新签名、重新计算 fee 或重新分配
+nonce。replacement signing 属于未来独立安全设计，不在当前范围内。
 
 ## Pons deadline 特例
 
