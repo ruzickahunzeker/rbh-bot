@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "scope": "PR-005_PRE_BROADCAST_ONLY",
+  "chain_id": 4663,
+  "protocol": "pons-v2-curve",
+  "c08_status": "PENDING_PR006_JOINT_EVIDENCE",
+  "evidence": {
+    "curve_buy_encrypted_signed_artifact": "PASS",
+    "curve_sell_encrypted_signed_artifact": "PASS",
+    "artifact_key_version_recorded": "PASS",
+    "raw_transaction_integrity_and_sender_recovery": "PASS",
+    "wrong_chain_wrong_signer_corruption_unknown_key": "FAIL_CLOSED",
+    "duplicate_operation_attempts": 1,
+    "duplicate_operation_nonces": 1,
+    "same_wallet_unresolved_steps": 1,
+    "pending_nonce_drift": "WALLET_LANE_FROZEN",
+    "crash_before_signed_commit_broadcastable_artifacts": 0,
+    "crash_after_signed_commit_exact_artifact_recovered": true,
+    "private_key_leakage": 0,
+    "broadcast_calls": 0
+  },
+  "test_cases": [
+    "TestExecutionKernelBuySellEncryptedArtifacts",
+    "TestExecutionKernelConcurrentDuplicateAdmissionUsesOneNonce",
+    "TestExecutionKernelOneUnresolvedStepAndNonceCollisionPrevention",
+    "TestExecutionKernelPendingNonceDriftFreezesLane",
+    "TestExecutionKernelIntegrityFailuresFailClosed",
+    "TestExecutionKernelWrongRPCChainFailsBeforeReservation",
+    "TestExecutionKernelEncryptionFailureCreatesNoSignedArtifact",
+    "TestVerifyRawArtifactRejectsWrongChainAndSigner",
+    "TestExecutionKernelRealProcessCrashWindows"
+  ],
+  "prohibitions": {
+    "eth_sendRawTransaction": true,
+    "broadcast": true,
+    "receipt_tracking": true,
+    "position_mutation": true,
+    "transaction_rebuild_or_resign_recovery": true
+  },
+  "notes": [
+    "This file records deterministic PR-005 test evidence and is not live-chain submission evidence.",
+    "PR-005 PASS does not enable broadcast. C08 remains open until PR-006 exact-artifact submission and canonical recovery evidence exists.",
+    "No private key or decrypted raw transaction is included in this evidence."
+  ]
+}

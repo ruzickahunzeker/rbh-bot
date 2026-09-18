@@ -62,3 +62,58 @@ Required:
 
 C02-PONS-V4, C03-PONS-V4 and Long are not admission dependencies for PR-004 and remain deferred.
 No lower-slice PASS implies approval for a higher-risk slice.
+
+`C06 PASS` proves deterministic Pons v2 Curve dry-run only. It is not execution admission and does
+not authorize nonce allocation, signing or broadcast.
+
+## PR-005 Execution Kernel / Pre-broadcast admission
+
+PR-005 starts from the existing economic operation identity and reruns execution admission. It
+must verify strategy/version binding, wallet lane, balance and reservation, route/state freshness,
+fee policy, pending nonce state, chain ID and execution wallet.
+
+Required:
+
+- At most one unresolved execution step per wallet.
+- Durable balance/gas reservation and nonce reservation with RPC reconciliation.
+- Deterministic transaction-attempt identity and final gas/fee parameters.
+- Pons v2 Curve Buy/Sell signer abstraction and artifact integrity verification.
+- Encrypted raw signed transaction persistence with `key_version`; private keys never persist.
+- Atomic durable agreement between nonce, attempt, raw transaction and transaction hash.
+- Duplicate, concurrent admission, restart and real process crash-window evidence.
+- Zero reachable broadcast calls.
+
+PR-005 stops after the encrypted signed artifact is durably committed. `PR-005 PASS` does not
+enable broadcast. Submission, receipt tracking, positions, Pons v4, Long and live execution are
+out of scope.
+
+## PR-006 Submission / Recovery admission
+
+PR-006 may start only from a PR-005 durable signed artifact. It loads, decrypts and verifies the
+existing artifact, broadcasts the exact same raw bytes, persists submission state, reconciles
+unknown outcomes and applies only canonical receipt effects.
+
+PR-006 owns no nonce allocation, transaction rebuild, normal signing, fee recalculation or
+replacement signing. Stale policy may block replay but may not create another artifact. Canonical
+reorg handling must roll back position effects and must not double-apply them if the receipt later
+becomes canonical again. `PR-006 PASS` does not enable unrestricted live execution.
+
+## C08 Execution Safety admission
+
+C08 requires the joint evidence of PR-005 pre-broadcast safety and PR-006 submission/canonical
+recovery. Its 10,000-request test is admission concurrency, not simultaneous broadcast:
+
+```text
+accepted + deduped + queued + rejected = total requests
+duplicate economic executions = 0
+nonce collisions = 0
+reservation overcommit = 0
+unexplained accepted requests = 0
+```
+
+Evidence must cover every nonce/sign/commit/submission crash window, ambiguous broadcast wallet
+freeze and exact-artifact replay, canonical success/revert outcomes, reorg rollback and replay
+without duplicate position effects.
+
+`C08 PASS` means eligible for a controlled Pons Curve live canary only. Live remains disabled by
+default and requires a separate explicit authorization.

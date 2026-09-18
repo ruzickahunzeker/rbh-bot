@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 
 	parser "github.com/0xfnzero/rbh-parser-sdk/rbhparser"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	botcore "github.com/ruzickahunzeker/rbh-bot/internal/bot"
 	"github.com/ruzickahunzeker/rbh-bot/internal/config"
 	feedcore "github.com/ruzickahunzeker/rbh-bot/internal/feed"
@@ -112,8 +114,8 @@ func Run(service config.Service) error {
 	}
 	var tradeBackend *tradecore.RPCBackend
 	if service == config.TradeService {
-		if cfg.RPCURL == "" || cfg.DryRunWalletID == "" || !common.IsHexAddress(cfg.DryRunFromAddress) || common.HexToAddress(cfg.DryRunFromAddress) == (common.Address{}) {
-			return errors.New("trade dry-run requires ROBINHOOD_RPC_URL, RBH_DRY_RUN_WALLET_ID and a nonzero RBH_DRY_RUN_FROM_ADDRESS")
+		if cfg.RPCURL == "" || cfg.DryRunWalletID == "" || !common.IsHexAddress(cfg.DryRunFromAddress) || common.HexToAddress(cfg.DryRunFromAddress) == (common.Address{}) || cfg.ExecutionPrivateKey == "" || cfg.ArtifactEncryptionKey == "" || cfg.ArtifactKeyVersion == "" {
+			return errors.New("trade execution kernel configuration is incomplete")
 		}
 		store, err := tradecore.NewStore(database)
 		if err != nil {
@@ -135,6 +137,27 @@ func Run(service config.Service) error {
 			return fmt.Errorf("recover trade dry-runs: %w", err)
 		}
 		server.Handle("POST /internal/trade/dry-run", authenticator.Middleware(tradecore.NewDryRunHTTPHandler(engine)))
+		privateKey, err := crypto.HexToECDSA(cfg.ExecutionPrivateKey)
+		if err != nil {
+			return errors.New("invalid execution signer configuration")
+		}
+		signer, err := tradecore.NewLocalSigner(privateKey)
+		if err != nil || signer.Address() != common.HexToAddress(cfg.DryRunFromAddress) {
+			return errors.New("execution signer does not match configured wallet")
+		}
+		encryptionKey, err := hex.DecodeString(cfg.ArtifactEncryptionKey)
+		if err != nil {
+			return errors.New("invalid artifact encryption configuration")
+		}
+		artifactCipher, err := tradecore.NewAESGCMCipher(cfg.ArtifactKeyVersion, encryptionKey)
+		if err != nil {
+			return errors.New("invalid artifact encryption configuration")
+		}
+		kernel, err := tradecore.NewExecutionKernel(store, tradeBackend, signer, artifactCipher)
+		if err != nil {
+			return err
+		}
+		server.Handle("POST /internal/trade/prepare-execution", authenticator.Middleware(tradecore.NewPrepareExecutionHandler(kernel)))
 		ready.Set("pons_curve_dry_run_configured", true)
 	}
 

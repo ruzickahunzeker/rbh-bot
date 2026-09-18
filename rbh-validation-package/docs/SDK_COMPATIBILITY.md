@@ -1,5 +1,5 @@
 # 04｜SDK 兼容性报告
-**结论：NOT READY FOR LIVE。C01 离线 SDK 兼容性已通过；主网链路仍未完成验证。**
+**结论：NOT READY FOR LIVE。C01 离线 SDK 兼容性、C02/C03 Pons Curve 与 C06 Pons Curve dry-run 已通过；C08 尚未关闭。**
 
 ## 版本基线
 
@@ -26,8 +26,8 @@
 | 组合 SDK smoke | PASS：依赖解析及 Parser/Feed、Pons ABI、Long fail-closed、共享符号测试 | spike/sdk_smoke_test.go、evidence/resolved-spike-go.mod |
 | RPC eth_chainId 只读检查 | 以实际报告为准；本次未取得有效响应 | evidence/rpc-report.json |
 | safe/finalized/pending 语义 | 未验证 | 不把返回值或 SDK 配置当语义证据 |
-| 真实历史 fixtures | 未采集 | historical/manifest 的 transactions 为空 |
-| Pons 真实 SDK → eth_call dry-run | 未完成 | 参考模型不是替代品 |
+| Pons Curve 真实历史 fixtures | PASS | 独立 launch/buy/sell golden、真实 reverted Factory tx 与 ReceiptGate 证据 |
+| Pons 真实 SDK → eth_call dry-run | C06 PASS | route→quote→unsigned build→Curve Buy/Sell simulation 与 fail-closed 证据 |
 | 主网 canary / soak / 延迟 | 未执行 | 未使用资金或签名 |
 
 固定工具链验证于 2026-09-16 使用 `golang:1.26.6-bookworm` 执行；
@@ -35,7 +35,7 @@
 `go mod download`、`go mod verify`、`go build ./...`、`go test ./...`、
 `go test -race ./...` 与 `go vet ./...`，再运行组合 smoke。
 上游 skip 不计作在线通过，C01 通过也不解除 C02–C08。
-本包没有完成真实 Pons dry-run 纵向闭环，也没有部署三个生产服务。
+Pons Curve dry-run 纵向闭环已经完成；签名、提交、canonical receipt 对账与实盘仍未完成。
 
 ## 源码核查发现
 
@@ -56,13 +56,13 @@
 | 编号 | 缺口 | 所需证据 |
 |---|---|---|
 | C01 | **PASS_OFFLINE_ONLY** | 固定源 build/test/race/vet、组合 smoke、解析 go.mod/go.sum 已留证；不含链上验证 |
-| C02 | 链身份/合约/代理升级路径未验证 | chainId、地址、代码 hash、实现/升级依据、区块绑定 |
-| C03 | 历史样本缺失 | 原始 tx/Receipt/块、独立期望值、交易前状态 |
+| C02-PONS-CURVE | **PASS** | Factory/Curve emitter identity、runtime hash 与 fail-closed allowlist 已留证 |
+| C03-PONS-CURVE | **PASS** | 独立 launch/buy/sell golden、真实失败交易及 hard gate 已留证 |
 | C04 | replay/finality/pending 语义未知 | 可复现实验和异常案例 |
 | C05 | Pons deadline 残余风险未闭合 | 明确能力及实盘准入政策 |
-| C06 | 真实 Pons dry-run 未完成 | route→quote→build→simulation→virtual order 证据 |
+| C06-PONS-CURVE | **PASS** | Pons v2 Curve Buy/Sell SDK build、`eth_call`、revert、幂等与恢复证据 |
 | C07 | Long 支持组合未实证 | Hook/Router/fee/时间/PoolKey 正反向样本 |
-| C08 | 真实执行安全与恢复未实现 | 签名持久化、IPC auth、nonce、reorg、备份恢复测试 |
+| C08 | 真实执行安全与恢复未实现 | PR-005 pre-broadcast kernel + PR-006 exact-artifact submission/canonical recovery 联合证据 |
 
 这些是验收条件，不是排期；本包不为 LP 增加任务或里程碑。
 
