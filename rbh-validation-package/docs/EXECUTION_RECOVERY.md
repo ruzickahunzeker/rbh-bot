@@ -1,13 +1,13 @@
 # 02｜操作、nonce 与提交不确定性
-**状态：工程契约 + 离线参考模型。未实现真实钱包、签名器或交易广播。**
+**状态：PR-005 钱包、签名器及加密 signed artifact 已实现；PR-006 submission/canonical recovery 实现中；unrestricted live 禁用。**
 
 ## 操作层次
 
 Operation（经济目的与幂等边界）→ ExecutionStep（有依赖的 approval/swap 步骤）
 → TransactionAttempt（某签名制品的一次发送尝试）。
 
-重播同一 raw tx 不等于重复创建经济订单；same-nonce replacement 是另一签名版本，
-仍属于原 step/replacement_group。新 nonce 买入不得伪装成“原单重试”。
+重播同一 raw tx 不等于重复创建经济订单。same-nonce replacement 是未来模型概念，
+PR-006 中不可达且不获授权；新 nonce 买入不得伪装成“原单重试”。
 LP 只保留 liquidity.* 名字空间、多资产预算和 PositionRef，不实现 LP 工作流。
 
 生产幂等唯一键为 chain_id + execution_wallet_id + idempotency_key。

@@ -5,9 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 var (
@@ -21,6 +24,37 @@ type FeeParameters struct {
 	GasLimit  uint64
 	GasTipCap *big.Int
 	GasFeeCap *big.Int
+}
+
+func (b *RPCBackend) SendRawTransaction(ctx context.Context, raw []byte) (string, error) {
+	if b == nil || b.eth == nil || len(raw) == 0 {
+		return "", ErrInvalidRequest
+	}
+	var hash common.Hash
+	if err := b.eth.Client().CallContext(ctx, &hash, "eth_sendRawTransaction", hexutil.Encode(raw)); err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "already known") {
+			var tx types.Transaction
+			if tx.UnmarshalBinary(raw) != nil {
+				return "", ErrArtifactIntegrity
+			}
+			return tx.Hash().Hex(), nil
+		}
+		return "", classifyBroadcastError(err)
+	}
+	return hash.Hex(), nil
+}
+
+func classifyBroadcastError(err error) error {
+	if err == nil {
+		return nil
+	}
+	message := strings.ToLower(err.Error())
+	for _, deterministic := range []string{"insufficient funds", "intrinsic gas", "invalid sender", "invalid transaction", "nonce too low", "chain id"} {
+		if strings.Contains(message, deterministic) {
+			return fmt.Errorf("%w: %v", ErrBroadcastRejected, err)
+		}
+	}
+	return fmt.Errorf("%w: %v", ErrBroadcastAmbiguous, err)
 }
 
 type ExecutionBackend interface {
