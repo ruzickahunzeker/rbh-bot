@@ -1,8 +1,9 @@
 # 验收与证据分级
 
 PASS_REFERENCE_MODEL 只代表本地模型；SOURCE_REVIEWED 是源码核查；
-BLOCKED 是输入/环境受阻；NOT_RUN 是没有执行。真实集成通过需要独立 PASS_INTEGRATION，
-本次没有这一等级。
+BLOCKED 是输入/环境受阻；NOT_RUN 是没有执行。C08 hardening 另有
+production-code-path、真实子进程 crash 和 controlled JSON-RPC integration 证据；这些不是
+mainnet、live 或真实资金 evidence。
 
 ## 已执行参考测试
 
@@ -28,20 +29,25 @@ BLOCKED 是输入/环境受阻；NOT_RUN 是没有执行。真实集成通过需
 | 项目 | 候选要求 | 本次 |
 |---|---|---|
 | fixtures | 被声明支持的路径与独立期望全部通过 | 未执行 |
-| 崩溃恢复 | 接单/签名/广播各边界无重复经济订单 | 仅模型 |
-| admission 并发 | 至少 10,000 请求；accepted + deduped + queued + rejected = total | 未执行 |
+| 崩溃恢复 | 接单/签名/广播各边界无重复经济订单 | 8 个真实子进程窗口逐阶段恢复通过；controlled RPC 非主网 |
+| admission 并发 | 至少 10,000 请求；accepted + deduped + queued + rejected = total | 三种 execution-kernel 负载通过，进入 reservation/nonce lane |
 | 故障 | RPC timeout、真实 reorg、disk full、旧备份后链上补账 | 未执行 |
 | feed soak | 连续 72 小时，无未解释 gap/永久积压 | 未执行 |
 | canary | 用户明确批准预算、gas、次数与停止条件 | 未授权 |
-| 安全 | IPC auth、认证重放、密钥轮换、日志脱敏、kill | 生产实现未完成 |
+| 安全 | IPC auth、认证重放、密钥轮换、日志脱敏、kill | C08 执行路径已 harden；完整生产运营准入仍未完成 |
 
 前次讨论的性能候选值不是实测：应用接收到持久接单 p50/p95/p99=10/30/80ms，
 含 quote/simulation 至广播开始=150/400/800ms。需在指定硬件、存储、RPC、负载和预热条件下
 测量后再冻结，不得为达标去掉 simulation 或先发送后落库。
 阻断、过期、排队与超时事件必须统计，不能只挑成功样本。
 
-10,000 admission concurrency 还必须证明 duplicate economic executions、nonce collisions、
-reservation overcommit 与 unexplained accepted requests 全部为 0；它不要求同时广播 10,000
-笔交易。
+10,000 admission concurrency 已用 same-identity/same-wallet、different-identities/same-wallet、
+multi-wallet mixed 三种真实 execution-kernel admission 负载验证；每种都进入 wallet lane、
+reservation 与 nonce 持久路径，并证明 duplicate economic executions、nonce collisions、
+reservation overcommit 与 unexplained accepted requests 全部为 0。它不同时广播 10,000 笔交易。
+
+controlled JSON-RPC harness 通过真实 HTTP transport 调用 `RPCBackend.SendRawTransaction()`，覆盖
+normal、already-known、hash mismatch、deterministic rejection 与 accept-then-disconnect recovery。
+该 harness 是隔离、无资金测试，不是 mainnet/live evidence。
 
 **release_ready=false。SDK_COMPATIBILITY 的 C01–C08 未解除前不批准实盘。**

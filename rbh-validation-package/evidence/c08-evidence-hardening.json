@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "c08_status": "READY_FOR_SECOND_JOINT_REVIEW",
+  "implementation_commit_sha": "9806c9ef2883f51a4ff480f4dc300136cd046428",
+  "base_main_sha": "50fbc61f5413e6bf877d41d95a8ad87df6a354fb",
+  "harness_type": "stateful_loopback_http_json_rpc",
+  "mainnet_or_live_evidence": false,
+  "live_enabled": false,
+  "workloads": {
+    "same_identity_same_wallet": {"requests":10000,"accepted":1,"deduped":9999,"queued":0,"rejected":0,"attempts":1,"reserved_nonces":1,"active_reservations":1,"unresolved_steps":1},
+    "different_identities_same_wallet": {"requests":10000,"accepted":1,"deduped":0,"queued":0,"rejected":9999,"attempts":1,"reserved_nonces":1,"active_reservations":1,"unresolved_steps":1},
+    "multi_wallet_mixed": {"requests":10000,"wallets":10,"accepted":10,"deduped":10,"queued":0,"rejected":9980,"attempts":10,"reserved_nonces":10,"active_reservations":10,"max_unresolved_steps_per_wallet":1}
+  },
+  "workload_assertions": {"duplicate_economic_executions":0,"nonce_collisions":0,"reservation_overcommit":0,"unexplained_accepted_requests":0},
+  "controlled_rpc_scenarios": {
+    "normal_acceptance":"PASS",
+    "already_known_same_hash":"PASS",
+    "returned_hash_mismatch":"FAIL_CLOSED",
+    "deterministic_rejection_distinct_from_ambiguous":"PASS",
+    "accept_then_disconnect":"BROADCAST_UNKNOWN",
+    "restart_query_by_hash":"PASS",
+    "exact_byte_replay":"PASS",
+    "receipt_and_canonical_reconciliation":"PASS"
+  },
+  "exact_artifact_identity": {"raw_tx_hash_before_equals_after_restart":true,"raw_tx_hash_before_equals_replay":true,"plaintext_raw_tx_in_evidence":false},
+  "crash_windows": {
+    "before_send":{"restart":"broadcast_unknown","lane":"frozen","reservation":"frozen","attempts":1,"artifact_hash_unchanged":true},
+    "during_send":{"restart":"broadcast_unknown","lane":"frozen","reservation":"frozen","attempts":1,"artifact_hash_unchanged":true},
+    "after_send_before_outcome_commit":{"restart":"broadcast_unknown","lane":"frozen","reservation":"frozen","attempts":1,"artifact_hash_unchanged":true},
+    "submission_committed_before_receipt":{"submission":"submitted","receipt_count":0,"reservation":"signed","attempts":1},
+    "receipt_observed_before_canonical":{"restart_reconciliation":"PASS","active_effects":1,"apply_history":1},
+    "after_canonical_effect_commit":{"duplicate_reconciliation":"IDEMPOTENT","active_effects":1,"apply_history":1},
+    "before_reorg_rollback_commit":{"atomic_state":"PRE_OR_POST_ONLY","restart_rollback":"PASS","active_effects":0,"rollback_history":1},
+    "after_reorg_rollback_commit":{"active_effects_before_recanonical":0,"rollback_history":1,"active_effects_after_recanonical":1,"reapply_history":1}
+  },
+  "prohibited_path_call_counts": {"transaction_rebuild":0,"resign":0,"replacement":0,"fee_bump":0,"new_nonce_allocation_inside_pr006":0,"production_http_broadcast_wiring":0},
+  "historical_evidence_interpretation": "This evidence supersedes the C08-closing interpretation of first-round PR-006 concurrency claims without modifying historical evidence files.",
+  "admission_boundaries": {"c04":"NOT_CLOSED","c05":"NOT_CLOSED","live":"false","controlled_canary_authorized":false}
+}
