@@ -3,12 +3,15 @@ package trade
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"sync"
 	"testing"
+	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -79,19 +82,26 @@ func TestC08HardeningSameIdentitySameWallet10000(t *testing.T) {
 	const total = 10000
 	results := make(chan SignedArtifact, total)
 	errs := make(chan error, total)
+	jobs := make(chan struct{}, total)
 	var wg sync.WaitGroup
-	for range total {
+	for range 128 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			a, err := kernel.Prepare(context.Background(), req.Intent.ID, req.WalletID)
-			if err != nil {
-				errs <- err
-			} else {
-				results <- a
+			for range jobs {
+				a, err := kernel.Prepare(context.Background(), req.Intent.ID, req.WalletID)
+				if err != nil {
+					errs <- err
+				} else {
+					results <- a
+				}
 			}
 		}()
 	}
+	for range total {
+		jobs <- struct{}{}
+	}
+	close(jobs)
 	wg.Wait()
 	close(results)
 	close(errs)
@@ -125,7 +135,6 @@ func TestC08HardeningDifferentIdentitiesSameWallet10000(t *testing.T) {
 	backend := newFakeBackend()
 	signer, cipher := executionSecrets(t)
 	_ = store.RegisterDryRunWallet(context.Background(), "wallet-1", signer.Address())
-	dry, _ := NewEngine(store, backend)
 	const total = 10000
 	requests := make([]DryRunRequest, total)
 	for i := range total {
@@ -136,10 +145,8 @@ func TestC08HardeningDifferentIdentitiesSameWallet10000(t *testing.T) {
 		r.Intent.SourceEventID = id
 		r.Intent.SourceObservationID = id
 		requests[i] = r
-		if result, err := dry.DryRun(context.Background(), r); err != nil || result.Status != "success" {
-			t.Fatalf("seed %d err=%v", i, err)
-		}
 	}
+	seedDryRunCandidates(t, store, requests)
 	kernel, _ := NewExecutionKernel(store, backend, signer, cipher)
 	counts := runKernelWorkload(t, kernel, requests)
 	if counts.total() != total || counts.accepted != 1 || counts.rejected != 9999 {
@@ -156,7 +163,7 @@ func TestC08HardeningMultiWalletMixed10000(t *testing.T) {
 	requests := make([]DryRunRequest, 0, 10000)
 	kernels := map[string]*ExecutionKernel{}
 	backend := newFakeBackend()
-	dry, _ := NewEngine(store, backend)
+	uniqueRequests := make([]DryRunRequest, 0, wallets*uniquePerWallet)
 	for w := 0; w < wallets; w++ {
 		key, _ := crypto.GenerateKey()
 		signer, _ := NewLocalSigner(key)
@@ -175,12 +182,11 @@ func TestC08HardeningMultiWalletMixed10000(t *testing.T) {
 			r.Intent.IdempotencyKey = id
 			r.Intent.SourceEventID = id
 			r.Intent.SourceObservationID = id
-			if result, err := dry.DryRun(context.Background(), r); err != nil || result.Status != "success" {
-				t.Fatalf("seed %s err=%v", id, err)
-			}
+			uniqueRequests = append(uniqueRequests, r)
 			requests = append(requests, r, r)
 		}
 	}
+	seedDryRunCandidates(t, store, uniqueRequests)
 	counts := runMultiKernelWorkload(t, kernels, requests)
 	if counts.total() != len(requests) || counts.accepted != wallets || counts.deduped != wallets || counts.rejected != len(requests)-2*wallets {
 		t.Fatalf("counts=%+v", counts)
@@ -195,25 +201,31 @@ func runKernelWorkload(t *testing.T, kernel *ExecutionKernel, requests []DryRunR
 func runMultiKernelWorkload(t *testing.T, kernels map[string]*ExecutionKernel, requests []DryRunRequest) workloadCounts {
 	t.Helper()
 	out := make(chan string, len(requests))
+	jobs := make(chan DryRunRequest, len(requests))
 	var wg sync.WaitGroup
-	for _, r := range requests {
-		r := r
+	for range 128 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			a, err := kernels[r.WalletID].Prepare(context.Background(), r.Intent.ID, r.WalletID)
-			switch {
-			case err == nil && !a.Duplicate:
-				out <- "accepted"
-			case err == nil && a.Duplicate:
-				out <- "deduped"
-			case errors.Is(err, ErrWalletLaneBusy):
-				out <- "rejected"
-			default:
-				out <- "unexpected:" + fmt.Sprint(err)
+			for r := range jobs {
+				a, err := kernels[r.WalletID].Prepare(context.Background(), r.Intent.ID, r.WalletID)
+				switch {
+				case err == nil && !a.Duplicate:
+					out <- "accepted"
+				case err == nil && a.Duplicate:
+					out <- "deduped"
+				case errors.Is(err, ErrWalletLaneBusy):
+					out <- "rejected"
+				default:
+					out <- "unexpected:" + fmt.Sprint(err)
+				}
 			}
 		}()
 	}
+	for _, r := range requests {
+		jobs <- r
+	}
+	close(jobs)
 	wg.Wait()
 	close(out)
 	var c workloadCounts
@@ -230,4 +242,41 @@ func runMultiKernelWorkload(t *testing.T, kernels map[string]*ExecutionKernel, r
 		}
 	}
 	return c
+}
+
+func seedDryRunCandidates(t *testing.T, store *Store, requests []DryRunRequest) {
+	t.Helper()
+	tx, err := store.db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	stamp := time.Unix(100, 0).UTC().Format(time.RFC3339Nano)
+	routeJSON, _ := json.Marshal(CurveRoute{Protocol: "pons-v2-curve", Token: testToken, Curve: testCurve, NativeQuote: true})
+	seen := map[string]bool{}
+	for _, request := range requests {
+		operation := operationID(request)
+		if seen[operation] {
+			continue
+		}
+		seen[operation] = true
+		fingerprint, err := request.Fingerprint()
+		if err != nil {
+			t.Fatal(err)
+		}
+		payload, _ := json.Marshal(request)
+		step := stepID(operation)
+		if _, err = tx.Exec(`INSERT INTO operations(id,chain_id,wallet_id,idempotency_key,request_fingerprint,kind,status,created_at,request_json,updated_at) VALUES(?,4663,?,?,?,'swap','dry_run_succeeded',?,?,?)`, operation, request.WalletID, request.Intent.IdempotencyKey, fingerprint, stamp, string(payload), stamp); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = tx.Exec(`INSERT INTO execution_steps(id,operation_id,step_index,kind,status,route_json,created_at,updated_at) VALUES(?,?,0,'pons_curve_dry_run','succeeded',?,?,?)`, step, operation, string(routeJSON), stamp, stamp); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = tx.Exec(`INSERT INTO dry_run_results(operation_id,step_id,status,block_number,block_hash,return_data,created_at) VALUES(?,?,'success',100,?,'0x01',?)`, operation, step, common.HexToHash("0xabc").Hex(), stamp); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err = tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
 }

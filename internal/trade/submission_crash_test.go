@@ -64,6 +64,28 @@ func assertCrashStateAndRecover(t *testing.T, store *Store, stage string) {
 	if before.attempts != 1 || before.artifacts != 1 || before.hash == "" {
 		t.Fatalf("base state=%+v", before)
 	}
+	switch stage {
+	case "before_send", "during_send", "after_send_before_outcome_commit":
+		if before.submission != "submitting" || before.receipts != 0 || before.effects != 0 || before.lane != "signed" || before.reservation != "signed" {
+			t.Fatalf("pre-recovery inflight=%+v", before)
+		}
+	case "submission_committed_before_receipt":
+		if before.submission != "submitted" || before.receipts != 0 || before.effects != 0 || before.reservation != "signed" {
+			t.Fatalf("pre-recovery submitted=%+v", before)
+		}
+	case "receipt_observed_before_canonical":
+		if before.receipt != "observed" || before.receipts != 1 || before.active != 0 || before.reservation != "signed" {
+			t.Fatalf("pre-recovery receipt=%+v", before)
+		}
+	case "after_canonical_effect_commit", "before_reorg_rollback_commit":
+		if before.receipt != "canonical_success" || before.active != 1 || before.apply != 1 || before.lane != "idle" || before.reservation != "settled" || before.nonceConsumed != 1 || before.gasConsumed != 1 {
+			t.Fatalf("pre-recovery canonical=%+v", before)
+		}
+	case "after_reorg_rollback_commit":
+		if before.receipt != "orphaned" || before.active != 0 || before.rollback != 1 || before.lane != "frozen" {
+			t.Fatalf("pre-recovery rollback=%+v", before)
+		}
+	}
 	key, _ := crypto.HexToECDSA("4f3edf983ac63ad25b2d3a6f0b6d4d6d4f2f5f645f3c5b4c8a07a5f7b6c9d001")
 	signer, _ := NewLocalSigner(key)
 	cipher, _ := NewAESGCMCipher("test-v1", bytes.Repeat([]byte{7}, 32))
