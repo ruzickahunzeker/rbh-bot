@@ -1,5 +1,5 @@
 # 03｜最终性、Gap、Reorg 与恢复
-**状态：设计契约。目标 RPC 的 finality、pending 和服务端 replay 语义尚未实测。**
+**状态：C04 evidence READY_FOR_REVIEW。目标 RPC tags 与 Sequencer replay/retention 已实测；链级 finality 与 pending 的业务语义仍不作超出证据的声明。**
 
 ## 三层状态
 
@@ -11,7 +11,8 @@
 
 执行结果 success/revert/unknown、inclusion absent/included/orphaned、
 finality 级别分别记录。N 个确认只叫 confirmed_by_policy，不能直接命名为链级 finalized。
-safe/finalized 方法返回值不等于其语义验证通过；映射需要目标节点及链的独立证据。
+safe/finalized 多时点观测证明 tag 可用、按 `finalized <= safe <= latest` 周期推进且 sampled
+hash 与 canonical number query 一致；这些观测仍不把确认数策略命名为链级 finalized。
 无法验证时保存 unknown。
 
 源 intent 不创造真实仓位。Bot 成功且 canonical 的 Receipt 创造可回滚成交仓位，
@@ -31,7 +32,9 @@ SDK 的 OnSequence 先于业务 handler，过旧 backlog 不交给实时交易 h
 同 sequence 不同消息/区块 hash 作为替换线索；不是直接创建第二笔经济订单。
 有限缓存的 reorg window 不能作为最终性证明。
 
-服务端历史保留窗口、续传 inclusive/exclusive 语义、重连是否补齐必须单独验证。
+目标 Sequencer 的已观测 resume boundary 是 inclusive；重连会重投请求的边界 sequence。
+服务端对超出当前 retention 的已知旧 cursor 曾 silent jump 到 live head，因此客户端必须以
+sequence continuity 检测 gap 并持久化 degraded，不能把成功握手解释为连续恢复。
 窗口失效则记录不可恢复区间、重建状态，回到合格 live head 后仅处理新信号。
 
 ## Reorg 协议
@@ -57,4 +60,5 @@ Feed degraded 默认暂停；仅当策略明确允许且 Receipt 通道独立健
 分别报告 feed_ready、registry_ready、quote_ready、wallet_ready、execution_ready、
 source_mode_ready。连接恢复不等于可以交易。
 时间依赖费率要绑定经验证的执行区块时间条件，不以本机时钟代替链上条件。
-本包 RPC 脚本不执行 simulation，也不自动判断 finality，真实 Pons dry-run 仍为阻塞项。
+本包 RPC 脚本不执行 simulation，也不把 tag 名称自动解释为链级语义。C04 evidence 进入
+独立 review 前，live 与 release_ready 继续为 false。

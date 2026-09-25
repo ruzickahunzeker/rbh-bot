@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "scope": "C04_REPLAY_FINALITY_PENDING_SEMANTICS",
+  "base_main_sha": "b566ba92dac4ae15620dda7dba13ecb18af373af",
+  "target_chain_id": 4663,
+  "endpoint_classes": [
+    "public_robinhood_mainnet_rpc",
+    "public_robinhood_mainnet_sequencer"
+  ],
+  "rpc_observation": {
+    "window_start_utc": "2026-09-25T08:53:31.033413Z",
+    "window_end_utc": "2026-09-25T08:55:51.105733Z",
+    "samples": 24,
+    "tag_reads": 96,
+    "canonical_hash_cross_checks": 96,
+    "canonical_hash_mismatches": 0,
+    "ordering_finalized_lte_safe_lte_latest": "PASS_ALL_SAMPLES",
+    "latest": {"first": 72099100, "last": 72100493, "distinct": 24},
+    "safe": {"first": 72091872, "last": 72095785, "distinct": 2},
+    "finalized": {"first": 72088187, "last": 72091872, "distinct": 2},
+    "pending": {"first": 72099111, "last": 72100503, "distinct": 24},
+    "pending_minus_latest_min_blocks": 4,
+    "pending_minus_latest_max_blocks": 15,
+    "safe_finalized_classification": "SUPPORTED_AND_OBSERVED_PERIODIC_ADVANCE",
+    "chain_level_finality_semantics": "NOT_CLAIMED_BEYOND_OBSERVATION",
+    "pending_semantics": "DISTINCT_VIEW_OBSERVED_BUSINESS_SEMANTICS_NOT_PROVEN",
+    "confirmation_policy_name": "confirmed_by_policy"
+  },
+  "sequencer_observation": {
+    "websocket_upgrade": 101,
+    "compression": "permessage-deflate; server_no_context_takeover; client_no_context_takeover",
+    "observed_boundary_sequence": 72104311,
+    "resume_requested_sequence": 72104311,
+    "first_sequence_on_three_reconnects": [72104311, 72104311, 72104311],
+    "resume_semantics": "INCLUSIVE",
+    "duplicate_boundary_delivery": "OBSERVED",
+    "duplicate_economic_effect": 0
+  },
+  "retention_observation": {
+    "known_previously_observed_sequence": 72104311,
+    "first_sequence_returned_later": 72381409,
+    "gap_size": 277098,
+    "server_behavior": "SILENT_LIVE_HEAD_JUMP_OBSERVED",
+    "production_runner_result": "ERR_SEQUENCE_GAP",
+    "durable_degraded": true,
+    "ready": false,
+    "silent_continuation": false
+  },
+  "recovery_assertions": {
+    "gap_persists_degraded_until_explicit_recovery": "PASS",
+    "connection_live_does_not_clear_degraded": "PASS",
+    "verification_failure_persists_degraded": "PASS",
+    "reorg_emits_deterministic_retraction": "PASS",
+    "replayed_reorg_duplicate_compensations": 0,
+    "allow_gaps": false,
+    "allow_reorgs": false
+  },
+  "durable_checkpoint_crash_windows": {
+    "message_received_before_commit": "REPLAYED_ON_RESTART",
+    "after_atomic_observation_commit": "IDEMPOTENT_REPLAY",
+    "after_checkpoint_commit": "IDEMPOTENT_REPLAY",
+    "lost_economic_events": 0,
+    "duplicate_economic_effects": 0,
+    "observation_outbox_checkpoint_atomic": true
+  },
+  "c04_status": "READY_FOR_REVIEW",
+  "c05_status": "NOT_CLOSED",
+  "c08_status": "PASS",
+  "live_enabled": false,
+  "release_ready": false,
+  "signed_or_broadcast": false
+}
