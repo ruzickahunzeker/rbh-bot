@@ -159,4 +159,35 @@ func TestSequencerStatusTracksConnectionStateWithoutClearingSafetyDegrade(t *tes
 	if status.State != sequencer.ConnectionDisconnected || status.Cause == "" {
 		t.Fatalf("unexpected status: %#v", status)
 	}
+	if err := config.OnGap(context.Background(), sequencer.SequenceGap{Expected: 10, Received: 12}); err != nil {
+		t.Fatal(err)
+	}
+	config.OnStatus(context.Background(), sequencer.ConnectionStatus{State: sequencer.ConnectionLive})
+	if runner.Ready(context.Background()) {
+		t.Fatal("live socket cleared durable degraded state")
+	}
+}
+
+func TestSequencerVerificationFailurePersistsDegradedReadiness(t *testing.T) {
+	store, database := openFeedStore(t)
+	defer database.Close()
+	runner, err := NewSequencerRunner(parser.New(), store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config, err := runner.Config(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = config.OnVerificationFailure(context.Background(), sequencer.VerificationFailure{SequenceNumber: 77, Cause: sequencer.ErrInvalidSignature}); err != nil {
+		t.Fatal(err)
+	}
+	config.OnStatus(context.Background(), sequencer.ConnectionStatus{State: sequencer.ConnectionLive})
+	progress, err := store.Progress(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !progress.Degraded || progress.DegradedReason == "" || runner.Ready(context.Background()) {
+		t.Fatalf("verification failure not durable: progress=%+v ready=%v", progress, runner.Ready(context.Background()))
+	}
 }
