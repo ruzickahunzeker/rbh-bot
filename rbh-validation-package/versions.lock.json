@@ -6,6 +6,10 @@
     "parser": {
       "url": "https://github.com/0xfnzero/rbh-parser-sdk.git",
       "commit": "72cf9cee394bbd2566fca1d03202b05981eb51b4",
+      "repository_local_snapshot": "third_party/rbh-parser-sdk",
+      "local_patch_commit": "30e4a1414664f7e8f501675368891f48b1a6fd35",
+      "local_patch_tree": "bf4e9868b91c015e2adff79ef0e36f1ae2c9a2d5",
+      "local_patch_scope": "sequencer RFC 7692 compression negotiation and handshake test",
       "go_mod_blob": "4240c54cf70e27acd27edf2680039720e15fa69d",
       "go_sum_blob": "de0154eea285ae0ed91b9fe96ae183ed4460460e",
       "go_directive": "1.25.0",

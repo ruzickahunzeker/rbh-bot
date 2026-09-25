@@ -5,7 +5,7 @@
 
 | 项目 | 锁定 |
 |---|---|
-| Parser | 72cf9cee394bbd2566fca1d03202b05981eb51b4 |
+| Parser | upstream base `72cf9cee394bbd2566fca1d03202b05981eb51b4` + repository-local patch `30e4a1414664f7e8f501675368891f48b1a6fd35` |
 | Trade | a894cf496b862144ea00910e73afe553073a858b |
 | Parser go.mod | Go 1.25.0；toolchain go1.26.6 |
 | Trade go.mod | Go 1.26.0；toolchain go1.26.6 |
@@ -37,6 +37,11 @@
 上游 skip 不计作在线通过，C01 通过也不解除 C02–C08。
 Pons Curve execution safety 的签名、exact-artifact submission、controlled JSON-RPC recovery
 与 canonical/reorg reconciliation 已完成 C08 验收；这些不是 mainnet/live evidence，且不授权实盘。
+
+C04 transport compatibility slice 将 patched Parser SDK 快照固定在
+`third_party/rbh-parser-sdk`，通过 module `replace` 保证 CI 可复现。compression handshake
+本地测试与 production `SequencerRunner` 公共 Feed 只读连接均通过；这只关闭接入缺陷，
+不关闭 replay/finality/pending 语义 gate。
 
 ## 源码核查发现
 

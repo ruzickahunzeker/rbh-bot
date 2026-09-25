@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "scope": "C04_SEQUENCER_COMPRESSION_COMPAT_IMPLEMENTATION",
+  "base_main_sha": "8de4774f254c270ee75d6205e603857643863835",
+  "upstream": "github.com/0xfnzero/rbh-parser-sdk",
+  "upstream_base_sha": "72cf9cee394bbd2566fca1d03202b05981eb51b4",
+  "repository_local_patch_sha": "30e4a1414664f7e8f501675368891f48b1a6fd35",
+  "repository_local_patch_tree": "bf4e9868b91c015e2adff79ef0e36f1ae2c9a2d5",
+  "snapshot_path": "third_party/rbh-parser-sdk",
+  "module_replace": "github.com/0xfnzero/rbh-parser-sdk => ./third_party/rbh-parser-sdk",
+  "implementation": {
+    "enable_rfc7692_permessage_deflate": true,
+    "sdk_api_or_sequence_logic_changed": false,
+    "client_reimplemented_in_rbh_bot": false
+  },
+  "evidence": {
+    "local_server_requires_compression": "PASS",
+    "sdk_offers_permessage_deflate": "PASS",
+    "sdk_test": "PASS",
+    "sdk_race": "PASS",
+    "sdk_vet": "PASS",
+    "public_feed_verified_sdk_transaction": "PASS",
+    "production_sequencer_runner_connection_live": "PASS"
+  },
+  "boundaries": {
+    "c04_implementation_gap": "FIXED",
+    "c04_status": "NOT_CLOSED",
+    "c05_status": "NOT_CLOSED",
+    "c08_status": "PASS",
+    "live_enabled": false,
+    "release_ready": false,
+    "signed_or_broadcast": false
+  }
+}
