@@ -13,8 +13,11 @@ import (
 )
 
 type Store struct {
-	db *sql.DB
+	db           *sql.DB
+	recoveryHook func(string)
 }
+
+func (s *Store) SetRecoveryHookForTest(h func(string)) { s.recoveryHook = h }
 
 type Admission struct {
 	OperationID string

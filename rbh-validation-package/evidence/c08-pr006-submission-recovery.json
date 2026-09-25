@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "scope": "PR-006_SUBMISSION_RECOVERY_AND_C08_JOINT_EVIDENCE",
+  "chain_id": 4663,
+  "protocol": "pons-v2-curve",
+  "c08_status": "READY_FOR_JOINT_REVIEW",
+  "c04_status": "NOT_CLOSED_BY_PR006",
+  "live_enabled": false,
+  "evidence": {
+    "immutable_encrypted_artifact": "PASS",
+    "exact_raw_bytes_submission_and_replay": "PASS",
+    "rpc_hash_identity": "PASS",
+    "duplicate_submission_second_economic_action": 0,
+    "broadcast_unknown_retains_nonce_and_reservation": "PASS",
+    "canonical_success_exactly_once": "PASS",
+    "canonical_revert_success_effects": 0,
+    "reorg_rollback": "PASS",
+    "recanonical_active_effects": 1,
+    "real_process_crash_windows": 8,
+    "admission_requests": 10000,
+    "accepted": 1,
+    "deduped": 9999,
+    "queued": 0,
+    "rejected": 0,
+    "duplicate_economic_executions": 0,
+    "nonce_collisions": 0,
+    "reservation_overcommit": 0,
+    "unexplained_accepted_requests": 0
+  },
+  "prohibited_path_call_counts": {
+    "transaction_rebuild": 0,
+    "resign": 0,
+    "replacement": 0,
+    "fee_recalculation_for_replacement": 0,
+    "new_nonce_allocation_inside_pr006": 0,
+    "private_key_leakage": 0,
+    "plaintext_raw_transaction_log_or_evidence_leakage": 0
+  },
+  "notes": [
+    "Submission lifecycle, receipt observations, and position effects are separate from the immutable PR-005 signed artifact.",
+    "The 10,000-request result is admission concurrency, not simultaneous broadcast.",
+    "C08 evidence does not enable live execution; it only supports later controlled-canary eligibility review."
+  ]
+}
