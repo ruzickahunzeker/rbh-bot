@@ -62,7 +62,7 @@ Pons Curve dry-run 纵向闭环已经完成；签名、提交、canonical receip
 | C05 | Pons deadline 残余风险未闭合 | 明确能力及实盘准入政策 |
 | C06-PONS-CURVE | **PASS** | Pons v2 Curve Buy/Sell SDK build、`eth_call`、revert、幂等与恢复证据 |
 | C07 | Long 支持组合未实证 | Hook/Router/fee/时间/PoolKey 正反向样本 |
-| C08 | 真实执行安全与恢复未实现 | PR-005 pre-broadcast kernel + PR-006 exact-artifact submission/canonical recovery 联合证据 |
+| C08 | **READY_FOR_SECOND_JOINT_REVIEW** | PR-005/006 implementation landed；execution-path 10k、真实 crash recovery 与 controlled JSON-RPC evidence 已 harden |
 
 这些是验收条件，不是排期；本包不为 LP 增加任务或里程碑。
 
