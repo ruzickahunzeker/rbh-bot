@@ -27,15 +27,17 @@ type envelope struct {
 }
 
 type observation struct {
-	CapturedAtUTC     string  `json:"captured_at_utc"`
-	EndpointClass     string  `json:"endpoint_class"`
-	Requested         *uint64 `json:"requested_sequence,omitempty"`
-	First             *uint64 `json:"first_sequence,omitempty"`
-	Last              *uint64 `json:"last_sequence,omitempty"`
-	Classification    string  `json:"classification"`
-	HTTPStatus        int     `json:"http_status,omitempty"`
-	ErrorClass        string  `json:"error_class,omitempty"`
-	SignedOrBroadcast bool    `json:"signed_or_broadcast"`
+	CapturedAtUTC      string  `json:"captured_at_utc"`
+	EndpointClass      string  `json:"endpoint_class"`
+	Requested          *uint64 `json:"requested_sequence,omitempty"`
+	First              *uint64 `json:"first_sequence,omitempty"`
+	Last               *uint64 `json:"last_sequence,omitempty"`
+	Classification     string  `json:"classification"`
+	HTTPStatus         int     `json:"http_status,omitempty"`
+	WebSocketExtension string  `json:"websocket_extension,omitempty"`
+	CompressionOffered bool    `json:"compression_offered"`
+	ErrorClass         string  `json:"error_class,omitempty"`
+	SignedOrBroadcast  bool    `json:"signed_or_broadcast"`
 }
 
 func main() {
@@ -55,11 +57,13 @@ func main() {
 		requestedPtr = &value
 		headers.Set(requestHeader, fmt.Sprintf("%d", value))
 	}
-	result := observation{CapturedAtUTC: time.Now().UTC().Format(time.RFC3339Nano), EndpointClass: "public_robinhood_mainnet_sequencer", Requested: requestedPtr, Classification: "SEMANTICS_NOT_PROVEN", SignedOrBroadcast: false}
-	connection, response, err := websocket.DefaultDialer.DialContext(ctx, mainnetFeed, headers)
+	result := observation{CapturedAtUTC: time.Now().UTC().Format(time.RFC3339Nano), EndpointClass: "public_robinhood_mainnet_sequencer", Requested: requestedPtr, Classification: "SEMANTICS_NOT_PROVEN", CompressionOffered: true, SignedOrBroadcast: false}
+	dialer := websocket.Dialer{EnableCompression: true, Proxy: http.ProxyFromEnvironment, HandshakeTimeout: *timeout}
+	connection, response, err := dialer.DialContext(ctx, mainnetFeed, headers)
 	if err != nil {
 		if response != nil {
 			result.HTTPStatus = response.StatusCode
+			result.WebSocketExtension = response.Header.Get("Sec-WebSocket-Extensions")
 		}
 		result.Classification = "TRANSPORT_ERROR"
 		result.ErrorClass = fmt.Sprintf("%T", err)
@@ -67,6 +71,10 @@ func main() {
 		return
 	}
 	defer connection.Close()
+	if response != nil {
+		result.HTTPStatus = response.StatusCode
+		result.WebSocketExtension = response.Header.Get("Sec-WebSocket-Extensions")
+	}
 	_ = connection.SetReadDeadline(time.Now().Add(*timeout))
 	_, payload, err := connection.ReadMessage()
 	if err != nil {
