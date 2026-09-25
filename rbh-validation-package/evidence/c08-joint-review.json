@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "b852e6db72ba7c2689c61389ff2d17d21c87aee3",
+  "inputs": [
+    "evidence/c08-pr005-execution-kernel.json",
+    "evidence/c08-pr006-submission-recovery.json",
+    "evidence/c08-evidence-hardening.json"
+  ],
+  "c08_status": "PASS",
+  "c04_status": "NOT_CLOSED",
+  "c05_status": "NOT_CLOSED",
+  "live_enabled": false,
+  "release_ready": false,
+  "controlled_canary_authorized": false,
+  "final_assertions": {
+    "ten_thousand_execution_path_workloads": "PASS",
+    "nonce_collisions": 0,
+    "reservation_overcommit": 0,
+    "duplicate_economic_executions": 0,
+    "accept_then_disconnect_recovery": "PASS",
+    "exact_artifact_identity": "PASS",
+    "real_process_crash_windows": 8,
+    "canonical_apply_rollback_reapply": "PASS",
+    "transaction_rebuild": 0,
+    "resign": 0,
+    "replacement": 0,
+    "fee_bump": 0,
+    "new_nonce_allocation_inside_pr006": 0,
+    "production_broadcast_wiring": 0
+  },
+  "boundaries": {
+    "controlled_json_rpc_is_mainnet_or_live_evidence": false,
+    "contains_raw_transaction": false,
+    "contains_secret": false,
+    "c08_pass_enables_unrestricted_live": false
+  }
+}

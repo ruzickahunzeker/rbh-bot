@@ -1,5 +1,5 @@
 # 02｜操作、nonce 与提交不确定性
-**状态：PR-005 钱包、签名器及加密 signed artifact 已实现；PR-006 submission/canonical recovery 实现中；unrestricted live 禁用。**
+**状态：PR-005 pre-broadcast execution kernel 已实现；PR-006 submission/canonical recovery 已实现并 landed；C08 execution safety joint review 已通过；unrestricted live 仍禁用。**
 
 ## 操作层次
 

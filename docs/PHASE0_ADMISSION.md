@@ -100,6 +100,8 @@ becomes canonical again. `PR-006 PASS` does not enable unrestricted live executi
 
 ## C08 Execution Safety admission
 
+C08 status: **PASS**.
+
 C08 requires the joint evidence of PR-005 pre-broadcast safety and PR-006 submission/canonical
 recovery. Its 10,000-request test is admission concurrency, not simultaneous broadcast:
 
@@ -115,5 +117,7 @@ Evidence must cover every nonce/sign/commit/submission crash window, ambiguous b
 freeze and exact-artifact replay, canonical success/revert outcomes, reorg rollback and replay
 without duplicate position effects.
 
-`C08 PASS` means eligible for a controlled Pons Curve live canary only. Live remains disabled by
-default and requires a separate explicit authorization.
+`C08 PASS` closes the execution-safety gate and means eligible for a controlled Pons Curve live
+canary review only; it does not enable unrestricted live execution. Live remains disabled by
+default and requires a separate explicit authorization. C04 and C05 remain independent
+live-admission blockers.
