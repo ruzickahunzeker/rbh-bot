@@ -50,4 +50,4 @@ controlled JSON-RPC harness 通过真实 HTTP transport 调用 `RPCBackend.SendR
 normal、already-known、hash mismatch、deterministic rejection 与 accept-then-disconnect recovery。
 该 harness 是隔离、无资金测试，不是 mainnet/live evidence。
 
-**release_ready=false。SDK_COMPATIBILITY 的 C01–C08 未解除前不批准实盘。**
+**release_ready=false，live=false。remaining admission gates must be closed before live authorization；controlled integration 不等于 mainnet/live evidence。**

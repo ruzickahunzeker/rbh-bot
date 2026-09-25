@@ -1,5 +1,5 @@
 # 04｜SDK 兼容性报告
-**结论：NOT READY FOR LIVE。C01 离线 SDK 兼容性、C02/C03 Pons Curve 与 C06 Pons Curve dry-run 已通过；C08 尚未关闭。**
+**结论：NOT READY FOR LIVE。C01 离线 SDK 兼容性、C02/C03 Pons Curve、C06 Pons Curve dry-run 与 C08 execution safety 已通过；C04/C05 仍未关闭，live=false。**
 
 ## 版本基线
 
@@ -35,7 +35,8 @@
 `go mod download`、`go mod verify`、`go build ./...`、`go test ./...`、
 `go test -race ./...` 与 `go vet ./...`，再运行组合 smoke。
 上游 skip 不计作在线通过，C01 通过也不解除 C02–C08。
-Pons Curve dry-run 纵向闭环已经完成；签名、提交、canonical receipt 对账与实盘仍未完成。
+Pons Curve execution safety 的签名、exact-artifact submission、controlled JSON-RPC recovery
+与 canonical/reorg reconciliation 已完成 C08 验收；这些不是 mainnet/live evidence，且不授权实盘。
 
 ## 源码核查发现
 
@@ -62,7 +63,7 @@ Pons Curve dry-run 纵向闭环已经完成；签名、提交、canonical receip
 | C05 | Pons deadline 残余风险未闭合 | 明确能力及实盘准入政策 |
 | C06-PONS-CURVE | **PASS** | Pons v2 Curve Buy/Sell SDK build、`eth_call`、revert、幂等与恢复证据 |
 | C07 | Long 支持组合未实证 | Hook/Router/fee/时间/PoolKey 正反向样本 |
-| C08 | **READY_FOR_SECOND_JOINT_REVIEW** | PR-005/006 implementation landed；execution-path 10k、真实 crash recovery 与 controlled JSON-RPC evidence 已 harden |
+| C08 | **PASS** | PR-005 pre-broadcast、PR-006 submission/recovery 与 C08 evidence-hardening 联合证据通过 review |
 
 这些是验收条件，不是排期；本包不为 LP 增加任务或里程碑。
 
