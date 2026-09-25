@@ -3,11 +3,13 @@ package trade
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ruzickahunzeker/rbh-bot/internal/storage"
 )
@@ -28,16 +30,115 @@ func TestSubmissionRecoveryRealProcessCrashWindows(t *testing.T) {
 			}
 			defer db.Close()
 			store, _ := NewStore(db)
-			var attempts int
-			if err = store.db.QueryRow(`SELECT COUNT(*) FROM transaction_attempts`).Scan(&attempts); err != nil || attempts != 1 {
-				t.Fatalf("attempts=%d err=%v", attempts, err)
-			}
-			var artifacts int
-			_ = store.db.QueryRow(`SELECT COUNT(*) FROM transaction_attempts WHERE encrypted_raw_tx IS NOT NULL`).Scan(&artifacts)
-			if artifacts != 1 {
-				t.Fatalf("artifacts=%d", artifacts)
-			}
+			assertCrashStateAndRecover(t, store, stage)
 		})
+	}
+}
+
+type crashState struct {
+	attempts, artifacts, submissions, receipts, effects, active, apply, rollback, reapply, nonceConsumed, gasConsumed int
+	submission, receipt, step, lane, reservation, hash                                                                string
+}
+
+func readCrashState(t *testing.T, s *Store) crashState {
+	t.Helper()
+	var v crashState
+	scalar := []struct {
+		q   string
+		dst any
+	}{
+		{`SELECT COUNT(*) FROM transaction_attempts`, &v.attempts}, {`SELECT COUNT(*) FROM transaction_attempts WHERE encrypted_raw_tx IS NOT NULL`, &v.artifacts}, {`SELECT COUNT(*) FROM transaction_submissions`, &v.submissions}, {`SELECT COUNT(*) FROM receipt_observations`, &v.receipts}, {`SELECT COUNT(*) FROM position_effects`, &v.effects}, {`SELECT COUNT(*) FROM position_effects WHERE state='active'`, &v.active}, {`SELECT COUNT(*) FROM position_effect_history WHERE transition='apply'`, &v.apply}, {`SELECT COUNT(*) FROM position_effect_history WHERE transition='rollback'`, &v.rollback}, {`SELECT COUNT(*) FROM position_effect_history WHERE transition='reapply'`, &v.reapply}, {`SELECT raw_tx_hash FROM transaction_attempts LIMIT 1`, &v.hash}, {`SELECT status FROM execution_steps WHERE kind='pons_curve_execution'`, &v.step}, {`SELECT state FROM execution_wallet_lanes WHERE wallet_id='wallet-1'`, &v.lane}, {`SELECT status FROM execution_reservations LIMIT 1`, &v.reservation}, {`SELECT nonce_consumed FROM execution_reservations LIMIT 1`, &v.nonceConsumed}, {`SELECT gas_consumed FROM execution_reservations LIMIT 1`, &v.gasConsumed}}
+	for _, x := range scalar {
+		if err := s.db.QueryRow(x.q).Scan(x.dst); err != nil {
+			t.Fatalf("query %s: %v", x.q, err)
+		}
+	}
+	_ = s.db.QueryRow(`SELECT COALESCE((SELECT state FROM transaction_submissions ORDER BY sequence DESC LIMIT 1),'')`).Scan(&v.submission)
+	_ = s.db.QueryRow(`SELECT COALESCE((SELECT canonical_state FROM receipt_observations ORDER BY observed_at DESC LIMIT 1),'')`).Scan(&v.receipt)
+	return v
+}
+
+func assertCrashStateAndRecover(t *testing.T, store *Store, stage string) {
+	t.Helper()
+	before := readCrashState(t, store)
+	if before.attempts != 1 || before.artifacts != 1 || before.hash == "" {
+		t.Fatalf("base state=%+v", before)
+	}
+	key, _ := crypto.HexToECDSA("4f3edf983ac63ad25b2d3a6f0b6d4d6d4f2f5f645f3c5b4c8a07a5f7b6c9d001")
+	signer, _ := NewLocalSigner(key)
+	cipher, _ := NewAESGCMCipher("test-v1", bytes.Repeat([]byte{7}, 32))
+	kernel, _ := NewExecutionKernel(store, newFakeBackend(), signer, cipher)
+	artifact, found, err := store.LoadEncryptedArtifact(context.Background(), "intent-buy")
+	if err != nil || !found {
+		t.Fatalf("artifact found=%v err=%v", found, err)
+	}
+	raw, _ := cipher.Decrypt(artifact.KeyVersion, artifact.Ciphertext, artifact.EncryptionNonce, artifactAAD(artifact.Operation, artifact.StepID, artifact.AttemptID))
+	defer clear(raw)
+	if common.BytesToHash(crypto.Keccak256(raw)).Hex() != before.hash {
+		t.Fatal("artifact digest changed after restart")
+	}
+	switch stage {
+	case "before_send", "during_send", "after_send_before_outcome_commit":
+		b := &fakeBroadcaster{hash: artifact.TxHash}
+		svc, _ := NewSubmissionService(store, kernel, b)
+		if _, err = svc.Submit(context.Background(), artifact.Operation); !errors.Is(err, ErrBroadcastAmbiguous) || b.calls != 0 {
+			t.Fatalf("unsafe restart send calls=%d err=%v", b.calls, err)
+		}
+	case "submission_committed_before_receipt":
+		b := &fakeBroadcaster{hash: artifact.TxHash}
+		svc, _ := NewSubmissionService(store, kernel, b)
+		if _, err = svc.Submit(context.Background(), artifact.Operation); err != nil || b.calls != 0 {
+			t.Fatalf("duplicate send calls=%d err=%v", b.calls, err)
+		}
+	case "receipt_observed_before_canonical":
+		r := ReceiptObservation{ID: deterministicID(artifact.AttemptID, "0xabc"), AttemptID: artifact.AttemptID, TxHash: artifact.TxHash, BlockNumber: 10, BlockHash: "0xabc", Status: 1}
+		effect := &PositionEffect{Asset: testToken.Hex(), Delta: "100"}
+		if err = store.Canonicalize(context.Background(), artifact.SignedArtifact, r, effect, fixedTime()); err != nil {
+			t.Fatal(err)
+		}
+	case "after_canonical_effect_commit":
+		r := ReceiptObservation{ID: deterministicID(artifact.AttemptID, "0xabc"), AttemptID: artifact.AttemptID, TxHash: artifact.TxHash, BlockNumber: 10, BlockHash: "0xabc", Status: 1}
+		effect := &PositionEffect{Asset: testToken.Hex(), Delta: "100"}
+		if err = store.Canonicalize(context.Background(), artifact.SignedArtifact, r, effect, fixedTime()); err != nil {
+			t.Fatal(err)
+		}
+	case "before_reorg_rollback_commit":
+		r := ReceiptObservation{ID: deterministicID(artifact.AttemptID, "0xabc"), AttemptID: artifact.AttemptID, TxHash: artifact.TxHash, BlockNumber: 10, BlockHash: "0xabc", Status: 1}
+		if err = store.Orphan(context.Background(), artifact.SignedArtifact, r, fixedTime()); err != nil {
+			t.Fatal(err)
+		}
+	case "after_reorg_rollback_commit":
+		r := ReceiptObservation{ID: deterministicID(artifact.AttemptID, "0xabc"), AttemptID: artifact.AttemptID, TxHash: artifact.TxHash, BlockNumber: 10, BlockHash: "0xabc", Status: 1}
+		effect := &PositionEffect{Asset: testToken.Hex(), Delta: "100"}
+		if err = store.Canonicalize(context.Background(), artifact.SignedArtifact, r, effect, fixedTime()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	after := readCrashState(t, store)
+	if after.attempts != 1 || after.artifacts != 1 || after.hash != before.hash {
+		t.Fatalf("identity changed before=%+v after=%+v", before, after)
+	}
+	switch stage {
+	case "before_send", "during_send", "after_send_before_outcome_commit":
+		if after.submission != "broadcast_unknown" || after.lane != "frozen" || after.reservation != "frozen" || after.nonceConsumed != 0 || after.gasConsumed != 0 {
+			t.Fatalf("unknown state=%+v", after)
+		}
+	case "submission_committed_before_receipt":
+		if after.submission != "submitted" || after.receipts != 0 || after.reservation != "signed" {
+			t.Fatalf("submitted state=%+v", after)
+		}
+	case "receipt_observed_before_canonical", "after_canonical_effect_commit":
+		if after.active != 1 || after.apply != 1 || after.lane != "idle" || after.reservation != "settled" || after.nonceConsumed != 1 || after.gasConsumed != 1 {
+			t.Fatalf("canonical state=%+v", after)
+		}
+	case "before_reorg_rollback_commit":
+		if after.active != 0 || after.rollback != 1 || after.lane != "frozen" {
+			t.Fatalf("rollback state=%+v", after)
+		}
+	case "after_reorg_rollback_commit":
+		if after.active != 1 || after.rollback != 1 || after.reapply != 1 {
+			t.Fatalf("reapply state=%+v", after)
+		}
 	}
 }
 
