@@ -45,7 +45,7 @@ func TestConsumerReadsCommittedFeedOutboxIntoBotDatabase(t *testing.T) {
 
 	botStore, closeBot := testStore(t)
 	defer closeBot()
-	seedStrategy(t, botStore, StrategyConfig{CopyBuys: true, FixedBuyAmount: "100", MaxBuyAmount: "200"})
+	seedStrategy(t, botStore, StrategyConfig{CopyBuys: true, FixedBuyAmount: "100", MaxBuyAmount: "200", ApplicationTTLSeconds: 60})
 	consumer, err := NewConsumer(botStore, feedStore, 100)
 	if err != nil {
 		t.Fatal(err)
@@ -70,7 +70,7 @@ func (s memorySource) ReadOutboxAfter(_ context.Context, after int64, limit int)
 func TestConsumerRestartResumesFromDurableOffset(t *testing.T) {
 	store, closeDB := testStore(t)
 	defer closeDB()
-	seedStrategy(t, store, StrategyConfig{CopyBuys: true, CopySells: true, FixedBuyAmount: "100", MaxBuyAmount: "200", SellBPS: 2500})
+	seedStrategy(t, store, StrategyConfig{CopyBuys: true, CopySells: true, FixedBuyAmount: "100", MaxBuyAmount: "200", SellBPS: 2500, ApplicationTTLSeconds: 60})
 	source := memorySource{items: []feed.OutboxItem{
 		intentItem(t, 1, "obs-1", "buy", false),
 		intentItem(t, 2, "obs-2", "sell", false),

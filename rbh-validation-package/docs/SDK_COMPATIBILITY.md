@@ -65,7 +65,7 @@ replay/finality/pending evidence 已通过独立 joint review。该结论不构�
 | C02-PONS-CURVE | **PASS** | Factory/Curve emitter identity、runtime hash 与 fail-closed allowlist 已留证 |
 | C03-PONS-CURVE | **PASS** | 独立 launch/buy/sell golden、真实失败交易及 hard gate 已留证 |
 | C04 | **PASS** | compression compatibility、24 点 RPC tags/canonical 对照、inclusive resume、duplicate boundary、retention gap fail-closed、reorg/verification/checkpoint recovery joint review |
-| C05 | Pons deadline 残余风险未闭合 | 明确能力及实盘准入政策 |
+| C05 | **READY_FOR_REVIEW** | `APPLICATION_TTL_ONLY` durable absolute expiry、dry-run/sign/submit/replay gates；`contract_deadline=false` |
 | C06-PONS-CURVE | **PASS** | Pons v2 Curve Buy/Sell SDK build、`eth_call`、revert、幂等与恢复证据 |
 | C07 | Long 支持组合未实证 | Hook/Router/fee/时间/PoolKey 正反向样本 |
 | C08 | **PASS** | PR-005 pre-broadcast、PR-006 submission/recovery 与 C08 evidence-hardening 联合证据通过 review |

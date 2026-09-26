@@ -49,7 +49,7 @@ func (s *Store) BeginSubmission(ctx context.Context, a SignedArtifact, allowFroz
 }
 
 func (s *Store) FinishSubmission(ctx context.Context, a SignedArtifact, sub SubmissionRecord, state, rpcHash, class, detail string, now time.Time) error {
-	if state != "submitted" && state != "broadcast_unknown" && state != "manual_resolution" {
+	if state != "submitted" && state != "broadcast_unknown" && state != "manual_resolution" && state != "expired_prebroadcast" {
 		return ErrInvalidRequest
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -65,6 +65,12 @@ func (s *Store) FinishSubmission(ctx context.Context, a SignedArtifact, sub Subm
 	n, _ := r.RowsAffected()
 	if n != 1 {
 		return ErrArtifactIntegrity
+	}
+	if state == "expired_prebroadcast" {
+		// A replay attempt can expire after its durable pre-send row is created.
+		// The prior ambiguous submission remains authoritative, so the wallet and
+		// reservation stay frozen and no artifact state is released.
+		return tx.Commit()
 	}
 	if state == "broadcast_unknown" || state == "manual_resolution" {
 		_, err = tx.ExecContext(ctx, `UPDATE execution_wallet_lanes SET state='frozen',freeze_reason=?,updated_at=? WHERE wallet_id=? AND operation_id=?`, state, stamp, a.WalletID, a.Operation)

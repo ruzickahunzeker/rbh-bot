@@ -25,6 +25,8 @@ var (
 	ErrStaleState          = errors.New("stale or changed chain state")
 	ErrSimulationReverted  = errors.New("simulation reverted")
 	ErrTradeStore          = errors.New("trade store unavailable")
+	ErrTTLExpired          = errors.New("application TTL expired")
+	ErrTTLUnverifiable     = errors.New("application TTL cannot be verified")
 )
 
 type DryRunRequest struct {
@@ -57,6 +59,34 @@ func (r DryRunRequest) Validate() error {
 	}
 	if r.Intent.Kind == "copy_sell" && amount.Cmp(big.NewInt(10_000)) > 0 {
 		return ErrInvalidRequest
+	}
+	if r.Intent.DeadlineCapability != bot.DeadlineCapabilityApplicationTTL || r.Intent.Policy.ApplicationTTLSeconds == 0 {
+		return ErrTTLUnverifiable
+	}
+	if _, err := parseCanonicalExpiry(r.Intent.ExpiresAt); err != nil {
+		return err
+	}
+	return nil
+}
+
+func parseCanonicalExpiry(value string) (time.Time, error) {
+	parsed, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil || parsed.Location() != time.UTC || parsed.Format(time.RFC3339Nano) != value {
+		return time.Time{}, ErrTTLUnverifiable
+	}
+	return parsed, nil
+}
+
+func (r DryRunRequest) CheckTTL(now time.Time) error {
+	if now.IsZero() {
+		return ErrTTLUnverifiable
+	}
+	expires, err := parseCanonicalExpiry(r.Intent.ExpiresAt)
+	if err != nil {
+		return err
+	}
+	if !now.UTC().Before(expires) {
+		return ErrTTLExpired
 	}
 	return nil
 }

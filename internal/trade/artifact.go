@@ -102,20 +102,24 @@ func (c *AESGCMCipher) Decrypt(version string, ciphertext, nonce, aad []byte) ([
 }
 
 type SignedArtifact struct {
-	AttemptID  string `json:"attempt_id"`
-	Operation  string `json:"operation_id"`
-	StepID     string `json:"step_id"`
-	WalletID   string `json:"wallet_id"`
-	KeyVersion string `json:"key_version"`
-	Nonce      uint64 `json:"nonce"`
-	TxHash     string `json:"tx_hash"`
-	From       string `json:"from"`
-	To         string `json:"to"`
-	Value      string `json:"value"`
-	Data       string `json:"data"`
-	GasLimit   uint64 `json:"gas_limit"`
-	GasTipCap  string `json:"gas_tip_cap"`
-	GasFeeCap  string `json:"gas_fee_cap"`
-	Duplicate  bool   `json:"duplicate"`
-	Recovered  bool   `json:"recovered"`
+	AttemptID        string `json:"attempt_id"`
+	Operation        string `json:"operation_id"`
+	StepID           string `json:"step_id"`
+	WalletID         string `json:"wallet_id"`
+	KeyVersion       string `json:"key_version"`
+	Nonce            uint64 `json:"nonce"`
+	TxHash           string `json:"tx_hash"`
+	From             string `json:"from"`
+	To               string `json:"to"`
+	Value            string `json:"value"`
+	Data             string `json:"data"`
+	GasLimit         uint64 `json:"gas_limit"`
+	GasTipCap        string `json:"gas_tip_cap"`
+	GasFeeCap        string `json:"gas_fee_cap"`
+	PolicyVersion    uint64 `json:"policy_version"`
+	QuoteBlockNumber uint64 `json:"quote_block_number"`
+	QuoteBlockHash   string `json:"quote_block_hash"`
+	ExpiresAt        string `json:"expires_at"`
+	Duplicate        bool   `json:"duplicate"`
+	Recovered        bool   `json:"recovered"`
 }

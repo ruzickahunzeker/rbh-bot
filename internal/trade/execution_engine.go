@@ -55,6 +55,10 @@ func (k *ExecutionKernel) Prepare(ctx context.Context, operation, walletID strin
 	if err != nil {
 		return SignedArtifact{}, err
 	}
+	if err := request.CheckTTL(k.now().UTC()); err != nil {
+		_ = k.store.ExpireUnreserved(ctx, operation, k.now().UTC())
+		return SignedArtifact{}, err
+	}
 	if wallet != k.signer.Address() || request.Intent.ID != operation || request.Intent.PolicyVersion == 0 {
 		return SignedArtifact{}, ErrWrongSigner
 	}
@@ -121,6 +125,10 @@ func (k *ExecutionKernel) Prepare(ctx context.Context, operation, walletID strin
 		_ = k.store.FreezeExecution(ctx, walletID, operation, "pending_nonce_changed_before_sign", k.now().UTC())
 		return SignedArtifact{}, ErrNonceConflict
 	}
+	if err := request.CheckTTL(k.now().UTC()); err != nil {
+		_ = k.store.ExpirePreBroadcast(ctx, SignedArtifact{AttemptID: reservation.AttemptID, Operation: operation, StepID: reservation.StepID, WalletID: walletID}, nil, k.now().UTC())
+		return SignedArtifact{}, err
+	}
 	chainID := new(big.Int).SetUint64(ChainID)
 	tx := types.NewTx(&types.DynamicFeeTx{ChainID: chainID, Nonce: reservation.Nonce, GasTipCap: fee.GasTipCap, GasFeeCap: fee.GasFeeCap, Gas: fee.GasLimit, To: &call.To, Value: call.Value, Data: append([]byte(nil), call.Data...)})
 	signed, err := k.signer.SignTransaction(ctx, tx, chainID)
@@ -132,7 +140,7 @@ func (k *ExecutionKernel) Prepare(ctx context.Context, operation, walletID strin
 	if err != nil {
 		return SignedArtifact{}, err
 	}
-	artifact := SignedArtifact{AttemptID: reservation.AttemptID, Operation: operation, StepID: reservation.StepID, WalletID: walletID, KeyVersion: k.cipher.KeyVersion(), Nonce: nonce, TxHash: signed.Hash().Hex(), From: wallet.Hex(), To: call.To.Hex(), Value: call.Value.String(), Data: unsigned.Data, GasLimit: fee.GasLimit, GasTipCap: fee.GasTipCap.String(), GasFeeCap: fee.GasFeeCap.String()}
+	artifact := SignedArtifact{AttemptID: reservation.AttemptID, Operation: operation, StepID: reservation.StepID, WalletID: walletID, KeyVersion: k.cipher.KeyVersion(), Nonce: nonce, TxHash: signed.Hash().Hex(), From: wallet.Hex(), To: call.To.Hex(), Value: call.Value.String(), Data: unsigned.Data, GasLimit: fee.GasLimit, GasTipCap: fee.GasTipCap.String(), GasFeeCap: fee.GasFeeCap.String(), PolicyVersion: request.Intent.PolicyVersion, QuoteBlockNumber: dryRun.Block.Number, QuoteBlockHash: dryRun.Block.Hash.Hex(), ExpiresAt: request.Intent.ExpiresAt}
 	if err := verifyRawArtifact(raw, artifact); err != nil {
 		_ = k.store.FreezeExecution(ctx, walletID, operation, "artifact_integrity_failed", k.now().UTC())
 		return SignedArtifact{}, err
@@ -197,6 +205,12 @@ func (k *ExecutionKernel) verifyEncrypted(stored encryptedArtifact) (SignedArtif
 }
 
 func verifyRawArtifact(raw []byte, artifact SignedArtifact) error {
+	if artifact.PolicyVersion == 0 || artifact.QuoteBlockNumber == 0 || common.HexToHash(artifact.QuoteBlockHash) == (common.Hash{}) {
+		return ErrArtifactIntegrity
+	}
+	if _, err := parseCanonicalExpiry(artifact.ExpiresAt); err != nil {
+		return ErrArtifactIntegrity
+	}
 	var tx types.Transaction
 	if len(raw) == 0 || tx.UnmarshalBinary(raw) != nil || tx.Hash().Hex() != artifact.TxHash || tx.ChainId().Cmp(new(big.Int).SetUint64(ChainID)) != 0 || tx.Nonce() != artifact.Nonce || tx.To() == nil || tx.To().Hex() != common.HexToAddress(artifact.To).Hex() || tx.Value().String() != artifact.Value || "0x"+hex.EncodeToString(tx.Data()) != artifact.Data || tx.Gas() != artifact.GasLimit || tx.GasTipCap().String() != artifact.GasTipCap || tx.GasFeeCap().String() != artifact.GasFeeCap {
 		return ErrArtifactIntegrity
