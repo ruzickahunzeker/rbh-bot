@@ -75,7 +75,8 @@ C05 implementation 固定 `deadline_capability=APPLICATION_TTL_ONLY`、
 signing 前、submission state 前、`SendRawTransaction` 前以及 unknown replay 前均 fail closed。
 明确未发送的 expiry 使用 `expired_prebroadcast`；ambiguous submission expiry 保留冻结的
 nonce/reservation 并仅允许 query/reconcile。已传播交易在 expiry 后继续 canonical/reorg
-对账。实现证据当前为 READY_FOR_REVIEW，不构成 live 授权。
+对账。实现与 evidence hardening 已通过独立 review，C05 状态为 PASS；该结论不构成
+contract deadline、live 或 release-ready 授权。
 Pons live 前必须明确处理此残余风险，不假设存在未经验证的 wrapper。
 
 ## 授权、对账和停止
