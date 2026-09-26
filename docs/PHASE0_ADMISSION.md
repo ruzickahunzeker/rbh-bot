@@ -119,8 +119,8 @@ without duplicate position effects.
 
 `C08 PASS` closes the execution-safety gate and means eligible for a controlled Pons Curve live
 canary review only; it does not enable unrestricted live execution. Live remains disabled by
-default and requires a separate explicit authorization. C04 and C05 remain independent
-live-admission blockers.
+default and requires a separate explicit authorization. C04 and C05 were independent
+live-admission gates and are recorded separately below.
 
 ## C04 Replay / Finality / Pending admission
 
@@ -136,12 +136,12 @@ RPC `safe`, `finalized`, and `pending` results remain bounded observations: samp
 checks and periodic advancement passed, but tag names are not treated as stronger chain-level or
 business semantics than the evidence demonstrates.
 
-`C04 PASS` closes only the replay/finality/pending recovery gate. C05 remains an independent
-live-admission blocker; live and release readiness remain disabled.
+`C04 PASS` closes only the replay/finality/pending recovery gate. It does not itself close C05 or
+authorize live; live and release readiness remain disabled.
 
 ## C05 Pons application TTL admission
 
-C05 implementation status: **READY_FOR_REVIEW**.
+C05 status: **PASS**.
 
 ```text
 deadline_capability = APPLICATION_TTL_ONLY
@@ -164,5 +164,10 @@ frozen and query/reconcile-only. Already submitted or propagated transactions co
 canonical and reorg reconciliation after expiry. TTL never triggers rebuild, resign, replacement,
 fee bump or a new nonce, and cannot cancel a propagated transaction.
 
-`C05 READY_FOR_REVIEW` does not authorize live execution. PASS requires independent review and a
-separate docs/evidence closeout.
+The independent review at `main@a02aa6ea4375849102f7a8e108a476aefb7b326f` concluded PASS after
+the evidence-hardening tests directly proved zero signer/send calls on expired paths, canonical
+recovery for expired submitted and ambiguous transactions, immutable artifact/nonce identity,
+and exactly-once position apply/rollback/reapply.
+
+`C05 PASS` closes only the Pons application-TTL admission gate. It does not provide a contract
+deadline, enable live execution, or change release readiness.

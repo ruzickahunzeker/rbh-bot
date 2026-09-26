@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "a02aa6ea4375849102f7a8e108a476aefb7b326f",
+  "inputs": [
+    "evidence/c05-pons-application-ttl.json"
+  ],
+  "review_conclusion": "PASS",
+  "deadline_capability": "APPLICATION_TTL_ONLY",
+  "contract_deadline": false,
+  "final_assertions": {
+    "absolute_expires_at_immutable": "PASS",
+    "duplicate_retry_restart_extension": 0,
+    "dry_run_pre_post_ttl_gates": "PASS",
+    "execution_admission_and_pre_sign_gates": "PASS",
+    "expired_signer_calls": 0,
+    "expired_first_broadcast_calls": 0,
+    "expired_unknown_replay_calls": 0,
+    "expired_unknown_query_reconcile": "PASS",
+    "expired_submitted_canonical_recovery": "PASS",
+    "expired_submitted_reorg_rollback_reapply": "PASS",
+    "artifact_identity_unchanged": "PASS",
+    "nonce_identity_unchanged": "PASS",
+    "position_effect_exactly_once": "PASS",
+    "rebuild": 0,
+    "resign": 0,
+    "replacement": 0,
+    "fee_bump": 0,
+    "new_nonce": 0
+  },
+  "c04_status": "PASS",
+  "c05_status": "PASS",
+  "c08_status": "PASS",
+  "live_enabled": false,
+  "release_ready": false
+}

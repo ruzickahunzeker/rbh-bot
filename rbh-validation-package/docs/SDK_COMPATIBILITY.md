@@ -1,5 +1,5 @@
 # 04｜SDK 兼容性报告
-**结论：NOT READY FOR LIVE。C01 离线 SDK 兼容性、C02/C03 Pons Curve、C04 replay/finality/pending、C06 Pons Curve dry-run 与 C08 execution safety 已通过；C05 仍未关闭，live=false。**
+**结论：NOT READY FOR LIVE。C01 离线 SDK 兼容性、C02/C03 Pons Curve、C04 replay/finality/pending、C05 application TTL、C06 Pons Curve dry-run 与 C08 execution safety 已通过；live=false，release_ready=false。**
 
 ## 版本基线
 
@@ -65,7 +65,7 @@ replay/finality/pending evidence 已通过独立 joint review。该结论不构�
 | C02-PONS-CURVE | **PASS** | Factory/Curve emitter identity、runtime hash 与 fail-closed allowlist 已留证 |
 | C03-PONS-CURVE | **PASS** | 独立 launch/buy/sell golden、真实失败交易及 hard gate 已留证 |
 | C04 | **PASS** | compression compatibility、24 点 RPC tags/canonical 对照、inclusive resume、duplicate boundary、retention gap fail-closed、reorg/verification/checkpoint recovery joint review |
-| C05 | **READY_FOR_REVIEW** | `APPLICATION_TTL_ONLY` durable absolute expiry、dry-run/sign/submit/replay gates；`contract_deadline=false` |
+| C05 | **PASS** | `APPLICATION_TTL_ONLY` durable absolute expiry、dry-run/sign/submit/replay gates、expired canonical/reorg recovery joint review；`contract_deadline=false` |
 | C06-PONS-CURVE | **PASS** | Pons v2 Curve Buy/Sell SDK build、`eth_call`、revert、幂等与恢复证据 |
 | C07 | Long 支持组合未实证 | Hook/Router/fee/时间/PoolKey 正反向样本 |
 | C08 | **PASS** | PR-005 pre-broadcast、PR-006 submission/recovery 与 C08 evidence-hardening 联合证据通过 review |
