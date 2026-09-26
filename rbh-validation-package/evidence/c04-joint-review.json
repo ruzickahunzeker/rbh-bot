@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "9e62b4e6cdf3312da413bb12d74335cfa44b96b7",
+  "inputs": [
+    "evidence/c04-sequencer-compression-compat.json",
+    "evidence/c04-replay-finality-pending.json"
+  ],
+  "review_conclusion": "PASS",
+  "assertions": {
+    "rpc_tags_not_overinterpreted": "PASS",
+    "sequencer_resume_semantics": "INCLUSIVE",
+    "duplicate_boundary_economic_effects": 0,
+    "expired_retention_cursor": "ERR_SEQUENCE_GAP_DURABLE_DEGRADED",
+    "connection_live_clears_degraded": false,
+    "gap_fail_closed": "PASS",
+    "reorg_fail_closed_and_idempotent": "PASS",
+    "real_process_crash_restart_windows": "PASS",
+    "lost_economic_events": 0,
+    "duplicate_economic_effects": 0,
+    "signed_or_broadcast": false
+  },
+  "review_notes": [
+    "Observation, outbox, and checkpoint share one SQLite transaction; the two post-commit crash labels intentionally converge on the same durable state because no persistent intermediate state exists.",
+    "safe/finalized/pending classifications remain observational and do not claim stronger chain-level or business semantics."
+  ],
+  "c04_status": "PASS",
+  "c05_status": "NOT_CLOSED",
+  "c08_status": "PASS",
+  "live_enabled": false,
+  "release_ready": false
+}

@@ -1,5 +1,5 @@
 # 04｜SDK 兼容性报告
-**结论：NOT READY FOR LIVE。C01 离线 SDK 兼容性、C02/C03 Pons Curve、C06 Pons Curve dry-run 与 C08 execution safety 已通过；C04/C05 仍未关闭，live=false。**
+**结论：NOT READY FOR LIVE。C01 离线 SDK 兼容性、C02/C03 Pons Curve、C04 replay/finality/pending、C06 Pons Curve dry-run 与 C08 execution safety 已通过；C05 仍未关闭，live=false。**
 
 ## 版本基线
 
@@ -25,7 +25,7 @@
 | SDK build/test/race/vet | PASS_OFFLINE_ONLY：792 pass、0 fail、10 upstream skip | evidence/sdk-report.json |
 | 组合 SDK smoke | PASS：依赖解析及 Parser/Feed、Pons ABI、Long fail-closed、共享符号测试 | spike/sdk_smoke_test.go、evidence/resolved-spike-go.mod |
 | RPC eth_chainId 只读检查 | 以实际报告为准；本次未取得有效响应 | evidence/rpc-report.json |
-| safe/finalized/pending 语义 | 未验证 | 不把返回值或 SDK 配置当语义证据 |
+| safe/finalized/pending 观测与恢复 | C04 PASS | 24 点 tags/canonical 对照、inclusive resume、retention gap 与 crash recovery；不作超出证据的链级语义声明 |
 | Pons Curve 真实历史 fixtures | PASS | 独立 launch/buy/sell golden、真实 reverted Factory tx 与 ReceiptGate 证据 |
 | Pons 真实 SDK → eth_call dry-run | C06 PASS | route→quote→unsigned build→Curve Buy/Sell simulation 与 fail-closed 证据 |
 | 主网 canary / soak / 延迟 | 未执行 | 未使用资金或签名 |
@@ -40,8 +40,8 @@ Pons Curve execution safety 的签名、exact-artifact submission、controlled J
 
 C04 transport compatibility slice 将 patched Parser SDK 快照固定在
 `third_party/rbh-parser-sdk`，通过 module `replace` 保证 CI 可复现。compression handshake
-本地测试与 production `SequencerRunner` 公共 Feed 只读连接均通过；这只关闭接入缺陷，
-不关闭 replay/finality/pending 语义 gate。
+本地测试与 production `SequencerRunner` 公共 Feed 只读连接均通过；接入缺陷修复与后续
+replay/finality/pending evidence 已通过独立 joint review。该结论不构成 mainnet live 授权。
 
 ## 源码核查发现
 
@@ -64,7 +64,7 @@ C04 transport compatibility slice 将 patched Parser SDK 快照固定在
 | C01 | **PASS_OFFLINE_ONLY** | 固定源 build/test/race/vet、组合 smoke、解析 go.mod/go.sum 已留证；不含链上验证 |
 | C02-PONS-CURVE | **PASS** | Factory/Curve emitter identity、runtime hash 与 fail-closed allowlist 已留证 |
 | C03-PONS-CURVE | **PASS** | 独立 launch/buy/sell golden、真实失败交易及 hard gate 已留证 |
-| C04 | **READY_FOR_REVIEW** | 24 点 RPC tags/canonical 对照、inclusive resume、duplicate boundary、retention gap fail-closed、reorg/verification/checkpoint recovery evidence |
+| C04 | **PASS** | compression compatibility、24 点 RPC tags/canonical 对照、inclusive resume、duplicate boundary、retention gap fail-closed、reorg/verification/checkpoint recovery joint review |
 | C05 | Pons deadline 残余风险未闭合 | 明确能力及实盘准入政策 |
 | C06-PONS-CURVE | **PASS** | Pons v2 Curve Buy/Sell SDK build、`eth_call`、revert、幂等与恢复证据 |
 | C07 | Long 支持组合未实证 | Hook/Router/fee/时间/PoolKey 正反向样本 |
