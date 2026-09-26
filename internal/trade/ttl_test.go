@@ -4,9 +4,28 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"math/big"
 	"testing"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
+
+type countingSigner struct {
+	inner TransactionSigner
+	calls int
+}
+
+func (s *countingSigner) Address() common.Address { return s.inner.Address() }
+func (s *countingSigner) SignTransaction(ctx context.Context, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error) {
+	s.calls++
+	return s.inner.SignTransaction(ctx, tx, chainID)
+}
+
+// Keep the compile-time signature explicit so this test helper cannot silently
+// drift away from the production signer abstraction.
+var _ TransactionSigner = (*countingSigner)(nil)
 
 func requestExpiringAt(value time.Time) DryRunRequest {
 	r := buyRequest()
@@ -102,7 +121,8 @@ func TestExecutionExpiryAfterReservationPreventsSigningAndReleasesKnownUnsent(t 
 	store, closeDB := openTradeStore(t)
 	defer closeDB()
 	backend := newFakeBackend()
-	signer, cipher := executionSecrets(t)
+	localSigner, cipher := executionSecrets(t)
+	signer := &countingSigner{inner: localSigner}
 	if err := store.RegisterDryRunWallet(context.Background(), "wallet-1", signer.Address()); err != nil {
 		t.Fatal(err)
 	}
@@ -131,6 +151,9 @@ func TestExecutionExpiryAfterReservationPreventsSigningAndReleasesKnownUnsent(t 
 	if status != "expired_prebroadcast" || txHash.Valid {
 		t.Fatalf("status=%s txHash=%v", status, txHash)
 	}
+	if signer.calls != 0 {
+		t.Fatalf("expired pre-sign signer calls=%d", signer.calls)
+	}
 	var lane, reservation string
 	_ = store.db.QueryRow(`SELECT state FROM execution_wallet_lanes WHERE wallet_id='wallet-1'`).Scan(&lane)
 	_ = store.db.QueryRow(`SELECT status FROM execution_reservations WHERE operation_id=?`, request.Intent.ID).Scan(&reservation)
@@ -143,7 +166,8 @@ func TestExpiredExecutionAdmissionCreatesNoNonceOrSignature(t *testing.T) {
 	store, closeDB := openTradeStore(t)
 	defer closeDB()
 	backend := newFakeBackend()
-	signer, cipher := executionSecrets(t)
+	localSigner, cipher := executionSecrets(t)
+	signer := &countingSigner{inner: localSigner}
 	if err := store.RegisterDryRunWallet(context.Background(), "wallet-1", signer.Address()); err != nil {
 		t.Fatal(err)
 	}
@@ -168,6 +192,9 @@ func TestExpiredExecutionAdmissionCreatesNoNonceOrSignature(t *testing.T) {
 	_ = store.db.QueryRow(`SELECT status FROM operations WHERE id=?`, request.Intent.ID).Scan(&status)
 	if attempts != 0 || status != "expired_prebroadcast" {
 		t.Fatalf("attempts=%d status=%s", attempts, status)
+	}
+	if signer.calls != 0 {
+		t.Fatalf("expired admission signer calls=%d", signer.calls)
 	}
 }
 
@@ -239,5 +266,127 @@ func TestSubmittedDuplicateRemainsReconcilableAfterExpiry(t *testing.T) {
 	second, err := svc.Submit(context.Background(), artifact.Operation)
 	if err != nil || second.ID != first.ID || b.calls != 1 {
 		t.Fatalf("second=%+v calls=%d err=%v", second, b.calls, err)
+	}
+}
+
+func TestExpiredSubmittedCanonicalReorgRecoveryExactlyOnce(t *testing.T) {
+	store, kernel, artifact, closeDB := seededSignedArtifact(t)
+	defer closeDB()
+	rawBefore := artifactRaw(t, store, kernel, artifact)
+	expires, _ := parseCanonicalExpiry(artifact.ExpiresAt)
+	broadcaster := &fakeBroadcaster{hash: artifact.TxHash}
+	submission, _ := NewSubmissionService(store, kernel, broadcaster)
+	submission.now = func() time.Time { return expires.Add(-time.Second) }
+	if _, err := submission.Submit(context.Background(), artifact.Operation); err != nil {
+		t.Fatal(err)
+	}
+	// Establish that wall time is now expired without asking submission to
+	// resend. Recovery must remain available after this point.
+	submission.now = func() time.Time { return expires }
+	if current, err := submission.Submit(context.Background(), artifact.Operation); err != nil || current.State != "submitted" {
+		t.Fatalf("expired submitted lookup=%+v err=%v", current, err)
+	}
+	counter := &countingSigner{inner: kernel.signer}
+	kernel.signer = counter
+	header := &types.Header{Number: big.NewInt(100), Extra: []byte("ttl-canonical")}
+	backend := &fakeReceiptBackend{
+		receipt:   &types.Receipt{TxHash: common.HexToHash(artifact.TxHash), BlockNumber: big.NewInt(100), BlockHash: header.Hash(), Status: types.ReceiptStatusSuccessful},
+		canonical: header,
+		latest:    &types.Header{Number: big.NewInt(101)},
+	}
+	recovery, _ := NewRecoveryService(store, kernel, backend, fakeEffectResolver{}, CanonicalPolicy{})
+	if err := recovery.Reconcile(context.Background(), artifact.Operation); err != nil {
+		t.Fatalf("expired canonical apply: %v", err)
+	}
+	observation := loadReceiptObservationForTTL(t, store, artifact.AttemptID)
+	backend.canonical = &types.Header{Number: big.NewInt(100), Extra: []byte("ttl-orphan")}
+	if err := recovery.CheckReorg(context.Background(), artifact.Operation, observation); err != nil {
+		t.Fatalf("expired reorg rollback: %v", err)
+	}
+	backend.canonical = header
+	if err := recovery.Reconcile(context.Background(), artifact.Operation); err != nil {
+		t.Fatalf("expired recanonical apply: %v", err)
+	}
+	assertTTLRecoveryEvidence(t, store, kernel, artifact, rawBefore, broadcaster.calls, counter.calls)
+}
+
+func TestExpiredBroadcastUnknownRejectsReplayButAllowsCanonicalRecovery(t *testing.T) {
+	store, kernel, artifact, closeDB := seededSignedArtifact(t)
+	defer closeDB()
+	rawBefore := artifactRaw(t, store, kernel, artifact)
+	expires, _ := parseCanonicalExpiry(artifact.ExpiresAt)
+	broadcaster := &fakeBroadcaster{err: ErrBroadcastAmbiguous}
+	submission, _ := NewSubmissionService(store, kernel, broadcaster)
+	submission.now = func() time.Time { return expires.Add(-time.Second) }
+	if _, err := submission.Submit(context.Background(), artifact.Operation); !errors.Is(err, ErrBroadcastAmbiguous) {
+		t.Fatalf("ambiguous submit err=%v", err)
+	}
+	var lane, reservation string
+	_ = store.db.QueryRow(`SELECT state FROM execution_wallet_lanes WHERE wallet_id=?`, artifact.WalletID).Scan(&lane)
+	_ = store.db.QueryRow(`SELECT status FROM execution_reservations WHERE operation_id=?`, artifact.Operation).Scan(&reservation)
+	if lane != "frozen" || reservation != "frozen" {
+		t.Fatalf("pre-recovery lane=%s reservation=%s", lane, reservation)
+	}
+	submission.now = func() time.Time { return expires }
+	if _, err := submission.ReplayUnknown(context.Background(), artifact.Operation, true); !errors.Is(err, ErrTTLExpired) {
+		t.Fatalf("expired replay err=%v", err)
+	}
+	if broadcaster.calls != 1 {
+		t.Fatalf("expired unknown replay added calls=%d", broadcaster.calls)
+	}
+	counter := &countingSigner{inner: kernel.signer}
+	kernel.signer = counter
+	header := &types.Header{Number: big.NewInt(110), Extra: []byte("ttl-unknown-canonical")}
+	backend := &fakeReceiptBackend{
+		receipt:   &types.Receipt{TxHash: common.HexToHash(artifact.TxHash), BlockNumber: big.NewInt(110), BlockHash: header.Hash(), Status: types.ReceiptStatusSuccessful},
+		canonical: header,
+		latest:    &types.Header{Number: big.NewInt(111)},
+	}
+	recovery, _ := NewRecoveryService(store, kernel, backend, fakeEffectResolver{}, CanonicalPolicy{})
+	if err := recovery.Reconcile(context.Background(), artifact.Operation); err != nil {
+		t.Fatalf("expired unknown canonical recovery: %v", err)
+	}
+	if counter.calls != 0 || broadcaster.calls != 1 {
+		t.Fatalf("recovery signer=%d broadcaster=%d", counter.calls, broadcaster.calls)
+	}
+	if rawAfter := artifactRaw(t, store, kernel, artifact); string(rawAfter) != string(rawBefore) {
+		t.Fatal("expired unknown recovery changed artifact")
+	}
+	var active int
+	_ = store.db.QueryRow(`SELECT COUNT(*) FROM position_effects WHERE attempt_id=? AND state='active'`, artifact.AttemptID).Scan(&active)
+	if active != 1 {
+		t.Fatalf("active effects=%d", active)
+	}
+}
+
+func loadReceiptObservationForTTL(t *testing.T, store *Store, attemptID string) ReceiptObservation {
+	t.Helper()
+	var value ReceiptObservation
+	if err := store.db.QueryRow(`SELECT id,attempt_id,tx_hash,block_number,block_hash,receipt_status,canonical_state,reconciliation_version FROM receipt_observations WHERE attempt_id=?`, attemptID).Scan(&value.ID, &value.AttemptID, &value.TxHash, &value.BlockNumber, &value.BlockHash, &value.Status, &value.CanonicalState, &value.Version); err != nil {
+		t.Fatal(err)
+	}
+	return value
+}
+
+func assertTTLRecoveryEvidence(t *testing.T, store *Store, kernel *ExecutionKernel, artifact SignedArtifact, rawBefore []byte, broadcastCalls, signerCalls int) {
+	t.Helper()
+	if broadcastCalls != 1 || signerCalls != 0 {
+		t.Fatalf("total broadcaster=%d recovery signer=%d", broadcastCalls, signerCalls)
+	}
+	if rawAfter := artifactRaw(t, store, kernel, artifact); string(rawAfter) != string(rawBefore) {
+		t.Fatal("recovery changed durable artifact")
+	}
+	var active, attempts int
+	_ = store.db.QueryRow(`SELECT COUNT(*) FROM position_effects WHERE attempt_id=? AND state='active'`, artifact.AttemptID).Scan(&active)
+	_ = store.db.QueryRow(`SELECT COUNT(*) FROM transaction_attempts WHERE id=? AND nonce=?`, artifact.AttemptID, artifact.Nonce).Scan(&attempts)
+	if active != 1 || attempts != 1 {
+		t.Fatalf("active=%d attempts_with_original_nonce=%d", active, attempts)
+	}
+	for _, transition := range []string{"apply", "rollback", "reapply"} {
+		var count int
+		_ = store.db.QueryRow(`SELECT COUNT(*) FROM position_effect_history WHERE transition=?`, transition).Scan(&count)
+		if count != 1 {
+			t.Fatalf("transition %s count=%d", transition, count)
+		}
 	}
 }
