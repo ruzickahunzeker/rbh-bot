@@ -70,8 +70,30 @@ func (s *SubmissionService) submit(ctx context.Context, operation string, replay
 	} else if replayUnknown && (!ok || latest.State != "broadcast_unknown") {
 		return SubmissionRecord{}, ErrInvalidRequest
 	}
+	if err = s.store.CheckOperationTTL(ctx, operation, s.now().UTC()); err != nil {
+		// An ambiguous submission remains frozen and query/reconcile-only after
+		// expiry. A provably never-submitted artifact may be safely terminated.
+		if !replayUnknown {
+			if _, ok, latestErr := s.store.LatestSubmission(ctx, stored.AttemptID); latestErr == nil && !ok {
+				_ = s.store.ExpirePreBroadcast(ctx, stored.SignedArtifact, nil, s.now().UTC())
+			}
+		}
+		return SubmissionRecord{}, err
+	}
 	sub, err := s.store.BeginSubmission(ctx, stored.SignedArtifact, replayUnknown, s.now())
 	if err != nil {
+		return SubmissionRecord{}, err
+	}
+	if err = s.store.CheckOperationTTL(ctx, operation, s.now().UTC()); err != nil {
+		if replayUnknown {
+			// This sequence was created only for the attempted replay. It is known
+			// unsent, but the earlier ambiguous reservation remains frozen.
+			_ = s.store.FinishSubmission(ctx, stored.SignedArtifact, sub, "expired_prebroadcast", "", "ttl_expired_pre_send", err.Error(), s.now())
+			return SubmissionRecord{}, err
+		}
+		if expireErr := s.store.ExpirePreBroadcast(ctx, stored.SignedArtifact, &sub, s.now().UTC()); expireErr != nil {
+			return SubmissionRecord{}, expireErr
+		}
 		return SubmissionRecord{}, err
 	}
 	if s.hook != nil {

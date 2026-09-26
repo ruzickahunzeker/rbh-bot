@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "scope": "C05_PONS_APPLICATION_TTL",
+  "base_main_sha": "6929cb0e564aac856476acd8352ff4bd6876ed8b",
+  "deadline_capability": "APPLICATION_TTL_ONLY",
+  "contract_deadline": false,
+  "assertions": {
+    "absolute_expires_at_created_once": "PASS",
+    "restart_extends_ttl": false,
+    "duplicate_mints_new_ttl": false,
+    "different_expiry_idempotency_conflict": "PASS",
+    "validity_rule": "now < expires_at",
+    "dry_run_pre_rpc_gate": "PASS",
+    "dry_run_post_rpc_gate": "PASS",
+    "execution_admission_gate": "PASS",
+    "pre_sign_gate": "PASS",
+    "pre_submission_state_gate": "PASS",
+    "immediate_pre_send_gate": "PASS",
+    "unknown_replay_gate": "PASS",
+    "expired_prebroadcast_state": "PASS",
+    "expired_prebroadcast_send_calls": 0,
+    "expired_unknown_replay_send_calls": 0,
+    "expired_unknown_retains_frozen_lane_and_reservation": "PASS",
+    "submitted_reconciliation_after_expiry": "PASS",
+    "rebuild": 0,
+    "resign": 0,
+    "replacement": 0,
+    "fee_bump": 0,
+    "new_nonce_on_expiry": 0
+  },
+  "durable_binding": [
+    "operation_id",
+    "execution_step_id",
+    "transaction_attempt_id",
+    "policy_version",
+    "quote_block_number",
+    "quote_block_hash",
+    "expires_at"
+  ],
+  "boundaries": {
+    "c04_status": "PASS",
+    "c05_status": "READY_FOR_REVIEW",
+    "c08_status": "PASS",
+    "live_enabled": false,
+    "release_ready": false
+  }
+}

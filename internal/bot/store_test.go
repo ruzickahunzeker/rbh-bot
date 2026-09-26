@@ -21,7 +21,7 @@ var (
 func TestProcessFeedEventPersistsIntentProgressAndDedupe(t *testing.T) {
 	store, closeDB := testStore(t)
 	defer closeDB()
-	seedStrategy(t, store, StrategyConfig{CopyBuys: true, FixedBuyAmount: "100", MaxBuyAmount: "200"})
+	seedStrategy(t, store, StrategyConfig{CopyBuys: true, FixedBuyAmount: "100", MaxBuyAmount: "200", ApplicationTTLSeconds: 60})
 	item := intentItem(t, 1, "obs-1", "buy", false)
 
 	result, err := store.ProcessFeedEvent(context.Background(), item, time.Unix(100, 0))
@@ -40,7 +40,7 @@ func TestProcessFeedEventPersistsIntentProgressAndDedupe(t *testing.T) {
 	if err := json.Unmarshal([]byte(storedPayload), &stored); err != nil {
 		t.Fatal(err)
 	}
-	if stored.PolicyVersion != 1 || stored.Policy.FixedBuyAmount != "100" || stored.WatchedWalletID != "wallet-1" || stored.ID != stored.IdempotencyKey {
+	if stored.PolicyVersion != 1 || stored.Policy.FixedBuyAmount != "100" || stored.WatchedWalletID != "wallet-1" || stored.ID != stored.IdempotencyKey || stored.DeadlineCapability != DeadlineCapabilityApplicationTTL || stored.ExpiresAt != "1970-01-01T00:02:40Z" {
 		t.Fatalf("incomplete deterministic intent: %#v", stored)
 	}
 
@@ -52,12 +52,16 @@ func TestProcessFeedEventPersistsIntentProgressAndDedupe(t *testing.T) {
 		t.Fatalf("unexpected replay: %#v", replay)
 	}
 	assertCounts(t, store, 1, 1, 1)
+	var replayedExpiry string
+	if err := store.db.QueryRow(`SELECT expires_at FROM operation_intents`).Scan(&replayedExpiry); err != nil || replayedExpiry != stored.ExpiresAt {
+		t.Fatalf("duplicate minted expiry=%q want=%q err=%v", replayedExpiry, stored.ExpiresAt, err)
+	}
 }
 
 func TestPolicyBlocksUnconfirmedWhenRequired(t *testing.T) {
 	store, closeDB := testStore(t)
 	defer closeDB()
-	seedStrategy(t, store, StrategyConfig{CopyBuys: true, RequireConfirmed: true, FixedBuyAmount: "100", MaxBuyAmount: "200"})
+	seedStrategy(t, store, StrategyConfig{CopyBuys: true, RequireConfirmed: true, FixedBuyAmount: "100", MaxBuyAmount: "200", ApplicationTTLSeconds: 60})
 	result, err := store.ProcessFeedEvent(context.Background(), intentItem(t, 1, "obs-1", "buy", false), time.Now())
 	if err != nil {
 		t.Fatal(err)
@@ -71,7 +75,7 @@ func TestPolicyBlocksUnconfirmedWhenRequired(t *testing.T) {
 func TestRetractionIsDurableAndIdempotent(t *testing.T) {
 	store, closeDB := testStore(t)
 	defer closeDB()
-	seedStrategy(t, store, StrategyConfig{CopyBuys: true, FixedBuyAmount: "100", MaxBuyAmount: "200"})
+	seedStrategy(t, store, StrategyConfig{CopyBuys: true, FixedBuyAmount: "100", MaxBuyAmount: "200", ApplicationTTLSeconds: 60})
 	if _, err := store.ProcessFeedEvent(context.Background(), intentItem(t, 1, "obs-original", "buy", false), time.Now()); err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +99,7 @@ func TestRetractionIsDurableAndIdempotent(t *testing.T) {
 func TestGapAndCommitFailureFailClosed(t *testing.T) {
 	store, closeDB := testStore(t)
 	defer closeDB()
-	seedStrategy(t, store, StrategyConfig{CopyBuys: true, FixedBuyAmount: "100", MaxBuyAmount: "200"})
+	seedStrategy(t, store, StrategyConfig{CopyBuys: true, FixedBuyAmount: "100", MaxBuyAmount: "200", ApplicationTTLSeconds: 60})
 	if _, err := store.ProcessFeedEvent(context.Background(), intentItem(t, 2, "obs-gap", "buy", false), time.Now()); !errors.Is(err, ErrFeedGap) {
 		t.Fatalf("got %v, want gap", err)
 	}
@@ -120,9 +124,11 @@ func TestGapAndCommitFailureFailClosed(t *testing.T) {
 
 func TestStrategyValidationRejectsUnsafeAmounts(t *testing.T) {
 	for _, config := range []StrategyConfig{
-		{CopyBuys: true, FixedBuyAmount: "0", MaxBuyAmount: "1"},
-		{CopyBuys: true, FixedBuyAmount: "2", MaxBuyAmount: "1"},
-		{CopySells: true, SellBPS: 10_001},
+		{CopyBuys: true, FixedBuyAmount: "0", MaxBuyAmount: "1", ApplicationTTLSeconds: 60},
+		{CopyBuys: true, FixedBuyAmount: "2", MaxBuyAmount: "1", ApplicationTTLSeconds: 60},
+		{CopySells: true, SellBPS: 10_001, ApplicationTTLSeconds: 60},
+		{CopyBuys: true, FixedBuyAmount: "1", MaxBuyAmount: "1"},
+		{CopyBuys: true, FixedBuyAmount: "1", MaxBuyAmount: "1", ApplicationTTLSeconds: MaxApplicationTTLSeconds + 1},
 		{},
 	} {
 		if err := config.Validate(); !errors.Is(err, ErrInvalidStrategy) {
@@ -134,8 +140,8 @@ func TestStrategyValidationRejectsUnsafeAmounts(t *testing.T) {
 func TestStrategyVersionIsMonotonicAndSameVersionImmutable(t *testing.T) {
 	store, closeDB := testStore(t)
 	defer closeDB()
-	seedStrategy(t, store, StrategyConfig{CopyBuys: true, FixedBuyAmount: "100", MaxBuyAmount: "200"})
-	changed := Strategy{ID: "strategy-1", WatchedWalletID: "wallet-1", Version: 1, Enabled: true, Config: StrategyConfig{CopyBuys: true, FixedBuyAmount: "101", MaxBuyAmount: "200"}}
+	seedStrategy(t, store, StrategyConfig{CopyBuys: true, FixedBuyAmount: "100", MaxBuyAmount: "200", ApplicationTTLSeconds: 60})
+	changed := Strategy{ID: "strategy-1", WatchedWalletID: "wallet-1", Version: 1, Enabled: true, Config: StrategyConfig{CopyBuys: true, FixedBuyAmount: "101", MaxBuyAmount: "200", ApplicationTTLSeconds: 60}}
 	if err := store.UpsertStrategy(context.Background(), changed); !errors.Is(err, ErrStrategyConflict) {
 		t.Fatalf("same-version mutation err=%v", err)
 	}

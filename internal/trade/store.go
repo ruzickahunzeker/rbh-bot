@@ -66,6 +66,9 @@ func (s *Store) Admit(ctx context.Context, request DryRunRequest, now time.Time)
 	if err != nil {
 		return Admission{}, err
 	}
+	if err := request.CheckTTL(now); err != nil {
+		return Admission{}, err
+	}
 	encoded, err := json.Marshal(request)
 	if err != nil {
 		return Admission{}, err
@@ -119,8 +122,8 @@ WHERE chain_id=4663 AND wallet_id=? AND idempotency_key=?`, request.WalletID, re
 	}
 	stamp := now.UTC().Format(time.RFC3339Nano)
 	if _, err := tx.ExecContext(ctx, `
-INSERT INTO operations(id, chain_id, wallet_id, idempotency_key, request_fingerprint, kind, status, created_at, request_json, updated_at)
-VALUES(?, 4663, ?, ?, ?, 'swap', 'admitted', ?, ?, ?)`, operation, request.WalletID, request.Intent.IdempotencyKey, fingerprint, stamp, string(encoded), stamp); err != nil {
+INSERT INTO operations(id, chain_id, wallet_id, idempotency_key, request_fingerprint, kind, status, created_at, request_json, updated_at, policy_version, deadline_capability, expires_at)
+VALUES(?, 4663, ?, ?, ?, 'swap', 'admitted', ?, ?, ?, ?, ?, ?)`, operation, request.WalletID, request.Intent.IdempotencyKey, fingerprint, stamp, string(encoded), stamp, request.Intent.PolicyVersion, request.Intent.DeadlineCapability, request.Intent.ExpiresAt); err != nil {
 		if isUniqueConstraint(err) {
 			return Admission{}, ErrIdempotencyConflict
 		}
@@ -138,7 +141,7 @@ VALUES(?, ?, 0, 'pons_curve_dry_run', 'created', ?, ?)`, step, operation, stamp,
 	return Admission{OperationID: operation, StepID: step, Wallet: common.HexToAddress(walletAddress)}, nil
 }
 
-func (s *Store) MarkRunning(ctx context.Context, operation, step string, route CurveRoute, parameters ExecutionParameters, call UnsignedCall, now time.Time) error {
+func (s *Store) MarkRunning(ctx context.Context, operation, step string, route CurveRoute, parameters ExecutionParameters, call UnsignedCall, block BlockRef, policyVersion uint64, expiresAt string, now time.Time) error {
 	if s == nil || s.db == nil || ctx == nil {
 		return ErrTradeStore
 	}
@@ -151,7 +154,7 @@ func (s *Store) MarkRunning(ctx context.Context, operation, step string, route C
 	}
 	defer tx.Rollback()
 	stamp := now.UTC().Format(time.RFC3339Nano)
-	if _, err := tx.ExecContext(ctx, `UPDATE execution_steps SET status='simulating', route_json=?, parameters_json=?, unsigned_call_json=?, updated_at=? WHERE id=? AND operation_id=?`, string(routeJSON), string(parametersJSON), string(callJSON), stamp, step, operation); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE execution_steps SET status='simulating', route_json=?, parameters_json=?, unsigned_call_json=?, policy_version=?, quote_block_number=?, quote_block_hash=?, expires_at=?, updated_at=? WHERE id=? AND operation_id=?`, string(routeJSON), string(parametersJSON), string(callJSON), policyVersion, block.Number, block.Hash.Hex(), expiresAt, stamp, step, operation); err != nil {
 		return fmt.Errorf("persist unsigned dry-run step: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE operations SET status='executing', updated_at=? WHERE id=?`, stamp, operation); err != nil {
@@ -166,6 +169,30 @@ func (s *Store) Complete(ctx context.Context, result DryRunResult, now time.Time
 
 func (s *Store) FailClosed(ctx context.Context, result DryRunResult, now time.Time) error {
 	return s.finish(ctx, result, "dry_run_failed", "failed", now)
+}
+
+func (s *Store) ExpireUnreserved(ctx context.Context, operation string, now time.Time) error {
+	if s == nil || s.db == nil || ctx == nil || operation == "" || now.IsZero() {
+		return ErrTradeStore
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var attempts int
+	if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM transaction_attempts a JOIN execution_steps s ON s.id=a.step_id WHERE s.operation_id=?`, operation).Scan(&attempts); err != nil || attempts != 0 {
+		return ErrArtifactIntegrity
+	}
+	stamp := now.UTC().Format(time.RFC3339Nano)
+	result, err := tx.ExecContext(ctx, `UPDATE operations SET status='expired_prebroadcast',failure_code='TTL_EXPIRED',updated_at=? WHERE id=? AND status='dry_run_succeeded'`, stamp, operation)
+	if err != nil {
+		return err
+	}
+	if changed, _ := result.RowsAffected(); changed != 1 {
+		return ErrInvalidRequest
+	}
+	return tx.Commit()
 }
 
 func (s *Store) finish(ctx context.Context, result DryRunResult, operationStatus, stepStatus string, now time.Time) error {

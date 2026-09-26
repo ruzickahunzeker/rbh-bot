@@ -138,3 +138,31 @@ business semantics than the evidence demonstrates.
 
 `C04 PASS` closes only the replay/finality/pending recovery gate. C05 remains an independent
 live-admission blocker; live and release readiness remain disabled.
+
+## C05 Pons application TTL admission
+
+C05 implementation status: **READY_FOR_REVIEW**.
+
+```text
+deadline_capability = APPLICATION_TTL_ONLY
+contract_deadline = false
+```
+
+Pons Curve calldata has no relied-upon contract deadline. C05 therefore creates one durable UTC
+absolute `expires_at` when Bot policy first admits an intent and carries that immutable value
+through dry-run, execution, signed-artifact metadata, first submission and unknown replay.
+Duplicate delivery, retry and restart cannot mint or extend an expiry window.
+
+TTL is checked at dry-run admission and after simulation, at execution admission and immediately
+before signing, before submission state creation and immediately before `SendRawTransaction`, and
+before exact-artifact unknown replay. Missing, malformed, non-canonical or expired values fail
+closed; validity is strictly `now < expires_at`.
+
+A transaction known never to have been sent may enter durable `expired_prebroadcast` and release
+its lane/reservation under the execution state machine. An expired `broadcast_unknown` remains
+frozen and query/reconcile-only. Already submitted or propagated transactions continue receipt,
+canonical and reorg reconciliation after expiry. TTL never triggers rebuild, resign, replacement,
+fee bump or a new nonce, and cannot cancel a propagated transaction.
+
+`C05 READY_FOR_REVIEW` does not authorize live execution. PASS requires independent review and a
+separate docs/evidence closeout.

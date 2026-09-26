@@ -33,6 +33,7 @@ type fakeBackend struct {
 	nativeBalance *big.Int
 	fee           FeeParameters
 	chainID       *big.Int
+	simulateHook  func()
 }
 
 func newFakeBackend() *fakeBackend {
@@ -64,6 +65,9 @@ func (f *fakeBackend) TokenBalance(context.Context, common.Address, common.Addre
 }
 func (f *fakeBackend) Simulate(context.Context, common.Address, common.Address, *big.Int, []byte, BlockRef) ([]byte, error) {
 	f.simulations++
+	if f.simulateHook != nil {
+		f.simulateHook()
+	}
 	return []byte{1, 2, 3}, f.simulateErr
 }
 func (f *fakeBackend) VerifySnapshot(context.Context, BlockRef) error { return f.verifyErr }
@@ -233,7 +237,9 @@ func request(id, kind, mode, amount string) DryRunRequest {
 	return DryRunRequest{WalletID: "wallet-1", Intent: bot.OperationIntent{
 		ID: id, IdempotencyKey: id, StrategyID: "strategy-1", WatchedWalletID: "watched-1",
 		SourceEventID: "event-1", SourceObservationID: "observation-1", SourceTxHash: common.HexToHash("0x1234").Hex(),
-		Kind: kind, Token: testToken.Hex(), AmountMode: mode, AmountValue: amount, PolicyVersion: 1, Status: "created",
+		Kind: kind, Token: testToken.Hex(), AmountMode: mode, AmountValue: amount, PolicyVersion: 1,
+		Policy: bot.StrategyConfig{ApplicationTTLSeconds: 60}, DeadlineCapability: bot.DeadlineCapabilityApplicationTTL,
+		ExpiresAt: "2100-01-01T00:00:00Z", Status: "created",
 	}}
 }
 

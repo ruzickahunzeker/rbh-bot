@@ -266,7 +266,7 @@ func seedDryRunCandidates(t *testing.T, store *Store, requests []DryRunRequest) 
 		}
 		payload, _ := json.Marshal(request)
 		step := stepID(operation)
-		if _, err = tx.Exec(`INSERT INTO operations(id,chain_id,wallet_id,idempotency_key,request_fingerprint,kind,status,created_at,request_json,updated_at) VALUES(?,4663,?,?,?,'swap','dry_run_succeeded',?,?,?)`, operation, request.WalletID, request.Intent.IdempotencyKey, fingerprint, stamp, string(payload), stamp); err != nil {
+		if _, err = tx.Exec(`INSERT INTO operations(id,chain_id,wallet_id,idempotency_key,request_fingerprint,kind,status,created_at,request_json,updated_at,policy_version,deadline_capability,expires_at) VALUES(?,4663,?,?,?,'swap','dry_run_succeeded',?,?,?,?,?,?)`, operation, request.WalletID, request.Intent.IdempotencyKey, fingerprint, stamp, string(payload), stamp, request.Intent.PolicyVersion, request.Intent.DeadlineCapability, request.Intent.ExpiresAt); err != nil {
 			t.Fatal(err)
 		}
 		if _, err = tx.Exec(`INSERT INTO execution_steps(id,operation_id,step_index,kind,status,route_json,created_at,updated_at) VALUES(?,?,0,'pons_curve_dry_run','succeeded',?,?,?)`, step, operation, string(routeJSON), stamp, stamp); err != nil {

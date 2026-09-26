@@ -46,6 +46,14 @@ func (e *Engine) DryRun(ctx context.Context, request DryRunRequest) (DryRunResul
 		}
 		return result, nil
 	}
+	if err := request.CheckTTL(e.now().UTC()); err != nil {
+		result.FailureCode = failureCode(err)
+		result.FailureDetail = err.Error()
+		if persistErr := e.store.FailClosed(ctx, result, e.now().UTC()); persistErr != nil {
+			return DryRunResult{}, fmt.Errorf("dry-run expiry %v; persist: %w", err, persistErr)
+		}
+		return result, nil
+	}
 	result.Status = "success"
 	if err := e.store.Complete(ctx, result, e.now().UTC()); err != nil {
 		return DryRunResult{}, err
@@ -54,6 +62,9 @@ func (e *Engine) DryRun(ctx context.Context, request DryRunRequest) (DryRunResul
 }
 
 func (e *Engine) execute(ctx context.Context, request DryRunRequest, admission Admission, result *DryRunResult) error {
+	if err := request.CheckTTL(e.now().UTC()); err != nil {
+		return err
+	}
 	block, err := e.backend.Snapshot(ctx)
 	if err != nil || block.Number == 0 || block.Hash == (common.Hash{}) {
 		return fmt.Errorf("%w: snapshot: %v", ErrStaleState, err)
@@ -110,7 +121,7 @@ func (e *Engine) execute(ctx context.Context, request DryRunRequest, admission A
 	unsigned := UnsignedCall{From: admission.Wallet.Hex(), To: call.To.Hex(), Value: call.Value.String(), Data: "0x" + hex.EncodeToString(call.Data)}
 	result.Parameters = parameters
 	result.UnsignedCall = unsigned
-	if err := e.store.MarkRunning(ctx, admission.OperationID, admission.StepID, route, parameters, unsigned, e.now().UTC()); err != nil {
+	if err := e.store.MarkRunning(ctx, admission.OperationID, admission.StepID, route, parameters, unsigned, block, request.Intent.PolicyVersion, request.Intent.ExpiresAt, e.now().UTC()); err != nil {
 		return err
 	}
 	returnData, err := e.backend.Simulate(ctx, admission.Wallet, call.To, call.Value, call.Data, block)
@@ -119,6 +130,9 @@ func (e *Engine) execute(ctx context.Context, request DryRunRequest, admission A
 	}
 	if err := e.backend.VerifySnapshot(ctx, block); err != nil {
 		return fmt.Errorf("%w: %v", ErrStaleState, err)
+	}
+	if err := request.CheckTTL(e.now().UTC()); err != nil {
+		return err
 	}
 	result.ReturnData = "0x" + hex.EncodeToString(returnData)
 	return nil
@@ -131,6 +145,14 @@ func (e *Engine) Recover(ctx context.Context) ([]DryRunResult, error) {
 	}
 	results := make([]DryRunResult, 0, len(requests))
 	for _, request := range requests {
+		if ttlErr := request.CheckTTL(e.now().UTC()); ttlErr != nil {
+			result := DryRunResult{OperationID: operationID(request), StepID: stepID(operationID(request)), Status: "fail_closed", FailureCode: failureCode(ttlErr), FailureDetail: ttlErr.Error()}
+			if err := e.store.FailClosed(ctx, result, e.now().UTC()); err != nil {
+				return results, err
+			}
+			results = append(results, result)
+			continue
+		}
 		result, err := e.DryRun(ctx, request)
 		if err != nil {
 			return results, err
@@ -150,6 +172,10 @@ func failureCode(err error) string {
 		return "SIMULATION_REVERTED"
 	case errors.Is(err, ErrInvalidRequest):
 		return "INVALID_PARAMETERS"
+	case errors.Is(err, ErrTTLExpired):
+		return "TTL_EXPIRED"
+	case errors.Is(err, ErrTTLUnverifiable):
+		return "TTL_UNVERIFIABLE"
 	default:
 		return "DRY_RUN_FAILED"
 	}

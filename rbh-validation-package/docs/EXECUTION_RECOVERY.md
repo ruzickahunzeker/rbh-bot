@@ -68,6 +68,14 @@ nonce。replacement signing 属于未来独立安全设计，不在当前范围�
 所读 PackBuy/PackSell 编码输入额、最小输出和 recipient，没有 deadline 参数。[S04]
 应用 quote TTL 只能阻止过期的新签名/重播，不能令已传播交易自动过期。
 adapter 应区分 contract_deadline、application_ttl_only、unknown。
+
+C05 implementation 固定 `deadline_capability=APPLICATION_TTL_ONLY`、
+`contract_deadline=false`。Bot 首次 policy admission 只生成一次 durable absolute
+`expires_at`；duplicate、retry 与 restart 不得重算。Dry-run RPC 前后、execution admission、
+signing 前、submission state 前、`SendRawTransaction` 前以及 unknown replay 前均 fail closed。
+明确未发送的 expiry 使用 `expired_prebroadcast`；ambiguous submission expiry 保留冻结的
+nonce/reservation 并仅允许 query/reconcile。已传播交易在 expiry 后继续 canonical/reorg
+对账。实现证据当前为 READY_FOR_REVIEW，不构成 live 授权。
 Pons live 前必须明确处理此残余风险，不假设存在未经验证的 wrapper。
 
 ## 授权、对账和停止

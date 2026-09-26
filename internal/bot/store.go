@@ -237,7 +237,7 @@ ORDER BY s.id`, event.Sender)
 	}
 	created := 0
 	for _, strategy := range strategies {
-		intent, eligible := applyPolicy(strategy, item, event)
+		intent, eligible := applyPolicy(strategy, item, event, receivedAt)
 		if !eligible {
 			continue
 		}
@@ -246,10 +246,10 @@ ORDER BY s.id`, event.Sender)
 			return 0, "", err
 		}
 		result, err := tx.ExecContext(ctx, `
-INSERT INTO operation_intents(id, idempotency_key, strategy_id, source_event_id, source_observation_id, source_tx_hash, kind, token, amount_mode, amount_value, policy_version, status, payload_json, created_at)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'created', ?, ?)
+INSERT INTO operation_intents(id, idempotency_key, strategy_id, source_event_id, source_observation_id, source_tx_hash, kind, token, amount_mode, amount_value, policy_version, deadline_capability, expires_at, status, payload_json, created_at)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'created', ?, ?)
 ON CONFLICT(id) DO NOTHING`, intent.ID, intent.IdempotencyKey, intent.StrategyID, intent.SourceEventID, intent.SourceObservationID,
-			intent.SourceTxHash, intent.Kind, intent.Token, intent.AmountMode, intent.AmountValue, intent.PolicyVersion, string(encoded), receivedAt.UTC().Format(time.RFC3339Nano))
+			intent.SourceTxHash, intent.Kind, intent.Token, intent.AmountMode, intent.AmountValue, intent.PolicyVersion, intent.DeadlineCapability, intent.ExpiresAt, string(encoded), receivedAt.UTC().Format(time.RFC3339Nano))
 		if err != nil {
 			return 0, "", fmt.Errorf("insert operation intent: %w", err)
 		}
@@ -268,7 +268,7 @@ ON CONFLICT(id) DO NOTHING`, intent.ID, intent.IdempotencyKey, intent.StrategyID
 	return 0, "policy_blocked", nil
 }
 
-func applyPolicy(strategy Strategy, item feed.OutboxItem, event eventEnvelope) (OperationIntent, bool) {
+func applyPolicy(strategy Strategy, item feed.OutboxItem, event eventEnvelope, now time.Time) (OperationIntent, bool) {
 	if strategy.Config.RequireConfirmed && !event.Confirmed {
 		return OperationIntent{}, false
 	}
@@ -291,11 +291,15 @@ func applyPolicy(strategy Strategy, item feed.OutboxItem, event eventEnvelope) (
 		return OperationIntent{}, false
 	}
 	id := deterministicIntentID(strategy, item.ObservationID, kind)
+	expiresAt, ok := canonicalExpiry(now, strategy.Config.ApplicationTTLSeconds)
+	if !ok {
+		return OperationIntent{}, false
+	}
 	return OperationIntent{
 		ID: id, IdempotencyKey: id, StrategyID: strategy.ID, WatchedWalletID: strategy.WatchedWalletID, SourceEventID: item.ObservationID,
 		SourceObservationID: item.ObservationID, SourceTxHash: item.TransactionHash.Hex(), Kind: kind,
 		Token: common.HexToAddress(token).Hex(), AmountMode: mode, AmountValue: amount,
-		PolicyVersion: strategy.Version, Policy: strategy.Config, Status: "created",
+		PolicyVersion: strategy.Version, Policy: strategy.Config, DeadlineCapability: DeadlineCapabilityApplicationTTL, ExpiresAt: expiresAt, Status: "created",
 	}, true
 }
 

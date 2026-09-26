@@ -7,8 +7,14 @@ import (
 	"errors"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+)
+
+const (
+	DeadlineCapabilityApplicationTTL = "APPLICATION_TTL_ONLY"
+	MaxApplicationTTLSeconds         = uint64(86_400)
 )
 
 var (
@@ -34,15 +40,19 @@ func (w WatchedWallet) Validate() error {
 }
 
 type StrategyConfig struct {
-	CopyBuys         bool   `json:"copy_buys"`
-	CopySells        bool   `json:"copy_sells"`
-	RequireConfirmed bool   `json:"require_confirmed"`
-	FixedBuyAmount   string `json:"fixed_buy_amount,omitempty"`
-	MaxBuyAmount     string `json:"max_buy_amount,omitempty"`
-	SellBPS          uint16 `json:"sell_bps,omitempty"`
+	CopyBuys              bool   `json:"copy_buys"`
+	CopySells             bool   `json:"copy_sells"`
+	RequireConfirmed      bool   `json:"require_confirmed"`
+	FixedBuyAmount        string `json:"fixed_buy_amount,omitempty"`
+	MaxBuyAmount          string `json:"max_buy_amount,omitempty"`
+	SellBPS               uint16 `json:"sell_bps,omitempty"`
+	ApplicationTTLSeconds uint64 `json:"application_ttl_seconds"`
 }
 
 func (c StrategyConfig) Validate() error {
+	if c.ApplicationTTLSeconds == 0 || c.ApplicationTTLSeconds > MaxApplicationTTLSeconds {
+		return ErrInvalidStrategy
+	}
 	if !c.CopyBuys && !c.CopySells {
 		return ErrInvalidStrategy
 	}
@@ -88,7 +98,16 @@ type OperationIntent struct {
 	AmountValue         string         `json:"amount_value"`
 	PolicyVersion       uint64         `json:"policy_version"`
 	Policy              StrategyConfig `json:"policy"`
+	DeadlineCapability  string         `json:"deadline_capability"`
+	ExpiresAt           string         `json:"expires_at"`
 	Status              string         `json:"status"`
+}
+
+func canonicalExpiry(now time.Time, ttlSeconds uint64) (string, bool) {
+	if now.IsZero() || ttlSeconds == 0 || ttlSeconds > MaxApplicationTTLSeconds {
+		return "", false
+	}
+	return now.UTC().Add(time.Duration(ttlSeconds) * time.Second).Format(time.RFC3339Nano), true
 }
 
 func deterministicIntentID(strategy Strategy, observationID, kind string) string {

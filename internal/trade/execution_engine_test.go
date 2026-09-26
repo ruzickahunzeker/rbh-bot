@@ -264,7 +264,7 @@ func TestVerifyRawArtifactRejectsWrongChainAndSigner(t *testing.T) {
 			t.Fatal(signErr)
 		}
 		raw, _ := signed.MarshalBinary()
-		return raw, SignedArtifact{Nonce: 7, TxHash: signed.Hash().Hex(), From: crypto.PubkeyToAddress(key.PublicKey).Hex(), To: to.Hex(), Value: "1", Data: "0x01", GasLimit: 100000, GasTipCap: "1", GasFeeCap: "10"}
+		return raw, SignedArtifact{Nonce: 7, TxHash: signed.Hash().Hex(), From: crypto.PubkeyToAddress(key.PublicKey).Hex(), To: to.Hex(), Value: "1", Data: "0x01", GasLimit: 100000, GasTipCap: "1", GasFeeCap: "10", PolicyVersion: 1, QuoteBlockNumber: 1, QuoteBlockHash: common.HexToHash("0x1234").Hex(), ExpiresAt: "2100-01-01T00:00:00Z"}
 	}
 	wrongChainRaw, wrongChainArtifact := build(1)
 	if err := verifyRawArtifact(wrongChainRaw, wrongChainArtifact); !errors.Is(err, ErrArtifactIntegrity) {
