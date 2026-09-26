@@ -171,3 +171,22 @@ and exactly-once position apply/rollback/reapply.
 
 `C05 PASS` closes only the Pons application-TTL admission gate. It does not provide a contract
 deadline, enable live execution, or change release readiness.
+
+## C07 controlled canary admission
+
+C07 implementation status: **READY_FOR_REVIEW**. This is an admission-layer result only;
+controlled canary authorization, production broadcast and unrestricted live remain disabled.
+
+The durable control plane permits only `DISABLED` and `CONTROLLED_CANARY`; the schema cannot
+represent unrestricted live. Admission requires durable PASS attestations for C04, C05 and C08,
+an active immutable policy version, Pons v2 Curve protocol/contract/runtime/token and execution
+wallet allowlists, an unexpired application TTL, and all durable risk limits. Missing state or an
+emergency-stop read failure fails closed.
+
+Admission decision, usage accounting, risk reservation and audit event commit in one transaction.
+The controlled harness proves default-off and emergency-stop behavior, durable gate enforcement,
+allowlist rejection, duplicate idempotency and conservation across 10,000 concurrent requests.
+The C07 Slice does not call a signer, `SubmissionService`, `SendRawTransaction` or mainnet.
+
+`C07 READY_FOR_REVIEW` does not enable live, change release readiness or authorize a mainnet
+canary. Independent review and a separate closeout are required before C07 may become PASS.
