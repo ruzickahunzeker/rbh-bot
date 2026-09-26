@@ -121,3 +121,20 @@ without duplicate position effects.
 canary review only; it does not enable unrestricted live execution. Live remains disabled by
 default and requires a separate explicit authorization. C04 and C05 remain independent
 live-admission blockers.
+
+## C04 Replay / Finality / Pending admission
+
+C04 status: **PASS**.
+
+The independent joint review at `main@9e62b4e6cdf3312da413bb12d74335cfa44b96b7`
+accepted the combined compression-compatibility and replay/finality/pending evidence. The review
+confirmed an inclusive Sequencer resume boundary, idempotent duplicate-boundary delivery,
+retention-gap fail-closed behavior, durable degraded readiness across reconnects, deterministic
+reorg compensation, and crash/restart recovery without lost or duplicate economic effects.
+
+RPC `safe`, `finalized`, and `pending` results remain bounded observations: sampled canonical hash
+checks and periodic advancement passed, but tag names are not treated as stronger chain-level or
+business semantics than the evidence demonstrates.
+
+`C04 PASS` closes only the replay/finality/pending recovery gate. C05 remains an independent
+live-admission blocker; live and release readiness remain disabled.

@@ -1,5 +1,5 @@
 # 03｜最终性、Gap、Reorg 与恢复
-**状态：C04 evidence READY_FOR_REVIEW。目标 RPC tags 与 Sequencer replay/retention 已实测；链级 finality 与 pending 的业务语义仍不作超出证据的声明。**
+**状态：C04 PASS。目标 RPC tags 与 Sequencer replay/retention evidence 已通过独立 joint review；链级 finality 与 pending 的业务语义仍不作超出证据的声明。C05 未关闭，live=false。**
 
 ## 三层状态
 
@@ -60,5 +60,5 @@ Feed degraded 默认暂停；仅当策略明确允许且 Receipt 通道独立健
 分别报告 feed_ready、registry_ready、quote_ready、wallet_ready、execution_ready、
 source_mode_ready。连接恢复不等于可以交易。
 时间依赖费率要绑定经验证的执行区块时间条件，不以本机时钟代替链上条件。
-本包 RPC 脚本不执行 simulation，也不把 tag 名称自动解释为链级语义。C04 evidence 进入
-独立 review 前，live 与 release_ready 继续为 false。
+本包 RPC 脚本不执行 simulation，也不把 tag 名称自动解释为链级语义。C04 joint review
+通过不关闭 C05，也不授权 live；live 与 release_ready 继续为 false。
