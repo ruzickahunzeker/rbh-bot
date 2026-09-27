@@ -13,8 +13,9 @@ The only schema modes are `DISABLED` and `CONTROLLED_CANARY`. Emergency stop has
 An absent or unreadable control row is a rejection. The implementation contains no signer,
 submission-service, broadcast or mainnet dependency.
 
-Implementation completion is `READY_FOR_REVIEW`, not PASS. Live and release readiness remain
-false, and a separate independent review and closeout are required.
+The independent review at `main@d3ba97030517c23bb420168ef8501499e015e479` concluded PASS after
+hardening PR #17 landed. C07 is therefore closed as an admission-layer gate. Live and release
+readiness remain false.
 
 ## Evidence hardening
 
@@ -29,4 +30,7 @@ Every request attempt, including dedupe, is durable and feeds the admission metr
 rejections, one active reservation and exact request conservation. Fault tests after usage,
 reservation and decision writes and immediately before commit prove all-or-nothing rollback.
 
-Hardening restores only `READY_FOR_REVIEW`; it does not close C07 or authorize live execution.
+Hardening first restored `READY_FOR_REVIEW`. The subsequent independent review concluded PASS;
+this closeout records that result without authorizing canary execution or live execution. Signer,
+`SubmissionService`, `SendRawTransaction`, production broadcast and mainnet paths remain zero and
+unwired.

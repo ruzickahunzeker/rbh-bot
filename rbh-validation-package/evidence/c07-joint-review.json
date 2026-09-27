@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "reviewed_main_sha": "d3ba97030517c23bb420168ef8501499e015e479",
+  "inputs": [
+    "evidence/c07-controlled-canary-admission.json",
+    "evidence/c07-controlled-canary-hardening.json",
+    "PR #17"
+  ],
+  "review_conclusion": "PASS",
+  "c04_status": "PASS",
+  "c05_status": "PASS",
+  "c07_status": "PASS",
+  "c08_status": "PASS",
+  "controlled_canary_admission": "PASS",
+  "hardening_pr_17_landed": true,
+  "prohibited_path_calls": {
+    "signer": 0,
+    "submission_service": 0,
+    "send_raw_transaction": 0,
+    "production_broadcast": 0,
+    "mainnet": 0
+  },
+  "production_paths_wired": false,
+  "canary_execution_authorized": false,
+  "live_enabled": false,
+  "release_ready": false
+}
