@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "2d6adf2d00ba067cf4c451b78644f7b728d10fd9",
+  "scope": "W1_AUTHORIZATION_TRANSITION_AUDIT_RESIDUAL_ONLY",
+  "status": "W1_READY_FOR_REVIEW",
+  "assertions": {
+    "migration_008_modified": false,
+    "migration_009_modified": false,
+    "direct_sql_pending_to_armed_audit_count": 1,
+    "direct_sql_audit_failure_rolls_back_transition": "PASS",
+    "store_api_pending_to_armed_audit_count": 1,
+    "armed_to_revoked_new_audit_count": 1,
+    "armed_to_expired_new_audit_count": 1,
+    "armed_to_exhausted_new_audit_count": 1,
+    "invalid_transition_rejected": "PASS",
+    "invalid_transition_new_audit_count": 0,
+    "duplicate_store_transition_audit": 0
+  },
+  "prohibited_path_calls": {
+    "signer": 0,
+    "submission_service": 0,
+    "send_raw_transaction": 0,
+    "production_broadcast": 0,
+    "mainnet": 0
+  },
+  "gate_status": {
+    "controlled_canary_wiring": "W1_READY_FOR_REVIEW",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}

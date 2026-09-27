@@ -45,3 +45,9 @@ Distinct-operation concurrency tests independently exhaust `max_operations` and
 `max_total_input`. They prove zero reservation overcommit, exact equality between aggregate usage
 and durable operation-usage rows, no reset after restart, no duplicate budget consumption and
 zero unexplained accepts. This hardening returns W1 only to `W1_READY_FOR_REVIEW`.
+
+Migration 010 closes the residual direct-SQL transition gap. Every legal authorization state
+change now causes the schema to insert exactly one `AUTHORIZATION_STATE_CHANGED` audit in the
+same SQLite statement and transaction. An audit insertion failure rolls back the state change;
+invalid transitions produce no audit. The Store API relies on this schema invariant and no longer
+inserts a second transition audit.

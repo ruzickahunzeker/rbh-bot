@@ -113,13 +113,6 @@ func (s *Store) TransitionRuntimeAuthorization(ctx context.Context, id, from, to
 	if n, _ := result.RowsAffected(); n != 1 {
 		return ErrCanaryRuntimeRejected
 	}
-	var epoch uint64
-	if err = tx.QueryRowContext(ctx, `SELECT epoch FROM canary_runtime_authorizations WHERE id=?`, id).Scan(&epoch); err != nil {
-		return err
-	}
-	if err = insertRuntimeAudit(ctx, tx, "AUTHORIZATION_STATE_CHANGED", "", "", id, epoch, to, stamp); err != nil {
-		return err
-	}
 	return tx.Commit()
 }
 
