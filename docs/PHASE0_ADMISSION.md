@@ -200,3 +200,14 @@ fault windows are recorded in `evidence/c07-controlled-canary-hardening.json`. S
 `main@d3ba97030517c23bb420168ef8501499e015e479` subsequently concluded PASS after PR #17 landed;
 the prohibited signer, submission, raw-send, production-broadcast and mainnet paths remained
 zero and unwired.
+
+## Controlled canary wiring W1
+
+W1 status: **W1_READY_FOR_REVIEW**. Migration 008 and its store model add only the durable
+authorization, monotonic epoch, immutable deployment binding, gate snapshot, purpose-bound
+one-shot send permit, worker lease, authorization-cap usage, audit and alert-outbox overlay.
+
+W1 continues to use the existing `Operation -> ExecutionStep -> TransactionAttempt` identity and
+does not connect a signer, `SubmissionService`, `SendRawTransaction`, production broadcaster or
+mainnet. No controlled-canary authorization is seeded or granted. Production broadcast remains
+`NOT_CONNECTED`; live and release readiness remain false.

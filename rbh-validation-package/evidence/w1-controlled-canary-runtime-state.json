@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "f586361a1a21a350e406cbd3d31bdce6d49ab0c2",
+  "scope": "W1_RUNTIME_STATE_AND_AUTHORIZATION_MODEL_ONLY",
+  "status": "W1_READY_FOR_REVIEW",
+  "assertions": {
+    "existing_execution_state_machine_reused": "PASS",
+    "authorization_epoch_monotonic": "PASS",
+    "deployment_identity_immutable": "PASS",
+    "deployment_identity_drift_fail_closed": "PASS",
+    "authorization_caps_durable_and_atomic": "PASS",
+    "duplicate_operation_budget_idempotent": "PASS",
+    "gate_snapshots_immutable": "PASS",
+    "first_broadcast_permit_one_shot": "PASS",
+    "first_broadcast_permit_not_replayable": "PASS",
+    "unknown_replay_requires_query_evidence": "PASS",
+    "worker_lease_monotonic": "PASS",
+    "audit_and_alert_outbox_atomic": "PASS",
+    "unrestricted_live_schema_state": false,
+    "authorization_seeded_or_granted": false
+  },
+  "prohibited_path_calls": {
+    "signer": 0,
+    "submission_service": 0,
+    "send_raw_transaction": 0,
+    "production_broadcast": 0,
+    "mainnet": 0
+  },
+  "gate_status": {
+    "c04": "PASS",
+    "c05": "PASS",
+    "c07": "PASS",
+    "c08": "PASS",
+    "controlled_canary_wiring": "W1_READY_FOR_REVIEW",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}
