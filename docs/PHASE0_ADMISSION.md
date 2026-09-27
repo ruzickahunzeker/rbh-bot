@@ -174,7 +174,7 @@ deadline, enable live execution, or change release readiness.
 
 ## C07 controlled canary admission
 
-C07 implementation status: **READY_FOR_REVIEW**. This is an admission-layer result only;
+C07 admission status: **PASS**. This is an admission-layer result only;
 controlled canary authorization, production broadcast and unrestricted live remain disabled.
 
 The durable control plane permits only `DISABLED` and `CONTROLLED_CANARY`; the schema cannot
@@ -188,12 +188,15 @@ The controlled harness proves default-off and emergency-stop behavior, durable g
 allowlist rejection, duplicate idempotency and conservation across 10,000 concurrent requests.
 The C07 Slice does not call a signer, `SubmissionService`, `SendRawTransaction` or mainnet.
 
-`C07 READY_FOR_REVIEW` does not enable live, change release readiness or authorize a mainnet
-canary. Independent review and a separate closeout are required before C07 may become PASS.
+`C07 PASS` does not enable live, change release readiness or authorize a mainnet canary. It closes
+only the controlled-canary admission-layer review.
 
 C07 evidence hardening binds every admission to immutable gate evidence, policy, allowlists and a
 hashed durable operation source. Emergency stop is the first gate; derived gas cost and retained
 balance are checked in consistent units; one active wallet reservation is enforced by schema; and
 dedupe attempts are durable audit/metrics inputs. The 10,000-request mixed workload and atomic
 fault windows are recorded in `evidence/c07-controlled-canary-hardening.json`. Status remains
-`READY_FOR_REVIEW`, not PASS.
+`READY_FOR_REVIEW`. The independent review at
+`main@d3ba97030517c23bb420168ef8501499e015e479` subsequently concluded PASS after PR #17 landed;
+the prohibited signer, submission, raw-send, production-broadcast and mainnet paths remained
+zero and unwired.
