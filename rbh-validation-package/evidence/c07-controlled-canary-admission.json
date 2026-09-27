@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "86c50aa64ab9016a3d4e05026503faaa66fa3247",
+  "scope": "CONTROLLED_CANARY_ADMISSION_ONLY",
+  "status": "READY_FOR_REVIEW",
+  "protocol": "PONS_V2_CURVE",
+  "control_plane": {
+    "allowed_modes": ["DISABLED", "CONTROLLED_CANARY"],
+    "unrestricted_live_schema_state": false,
+    "durable_gate_attestations": ["C04", "C05", "C08"],
+    "emergency_stop_fail_closed": true
+  },
+  "atomic_commit": [
+    "admission_decision",
+    "risk_reservation",
+    "window_usage",
+    "audit_event"
+  ],
+  "allowlists": ["execution_wallet", "protocol", "contract_runtime_hash", "token"],
+  "risk_controls": [
+    "operation_amount",
+    "wallet_exposure",
+    "token_exposure",
+    "global_exposure",
+    "window_rate",
+    "gas_limit",
+    "gas_budget",
+    "fee_cap",
+    "tip_cap",
+    "slippage_bps",
+    "sell_bps",
+    "minimum_native_balance"
+  ],
+  "controlled_harness": {
+    "concurrent_admission_requests": 10000,
+    "request_conservation": "PASS",
+    "duplicate_reservation": 0,
+    "reservation_overcommit": 0,
+    "unexplained_accepted_requests": 0,
+    "durable_gate_missing_fail_closed": "PASS",
+    "emergency_stop_fail_closed": "PASS",
+    "allowlist_rejections_audited": "PASS",
+    "policy_version_mismatch_fail_closed": "PASS",
+    "restart_retains_decision_and_reservation": "PASS",
+    "metrics_match_durable_state": "PASS",
+    "schema_rejects_unrestricted_live": "PASS"
+  },
+  "prohibited_path_calls": {
+    "signer": 0,
+    "submission_service": 0,
+    "send_raw_transaction": 0,
+    "mainnet": 0
+  },
+  "gate_status": {
+    "c04": "PASS",
+    "c05": "PASS",
+    "c08": "PASS",
+    "controlled_canary_admission": "READY_FOR_REVIEW",
+    "live": false,
+    "release_ready": false
+  }
+}
