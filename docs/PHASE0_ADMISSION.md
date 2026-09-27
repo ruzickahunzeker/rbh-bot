@@ -211,3 +211,7 @@ W1 continues to use the existing `Operation -> ExecutionStep -> TransactionAttem
 does not connect a signer, `SubmissionService`, `SendRawTransaction`, production broadcaster or
 mainnet. No controlled-canary authorization is seeded or granted. Production broadcast remains
 `NOT_CONNECTED`; live and release readiness remain false.
+
+W1 evidence hardening adds append-only audit enforcement in migration 009 and concurrent durable
+budget tests for both operation-count and total-input caps. It closes only the independent-review
+evidence blockers and does not advance W1 beyond `W1_READY_FOR_REVIEW`.

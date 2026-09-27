@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "12dde8224f4aa02b350567a9b677eeecf45ecdc5",
+  "scope": "W1_RUNTIME_EVIDENCE_HARDENING_ONLY",
+  "status": "W1_READY_FOR_REVIEW",
+  "blockers_closed": {
+    "runtime_audit_update_rejected": "PASS",
+    "runtime_audit_delete_rejected": "PASS",
+    "authorization_transition_and_audit_atomic": "PASS",
+    "distinct_operation_concurrency_max_operations": "PASS",
+    "distinct_operation_concurrency_max_total_input": "PASS",
+    "reservation_overcommit": 0,
+    "aggregate_usage_matches_durable_operation_rows": "PASS",
+    "restart_preserves_usage": "PASS",
+    "duplicate_consumes_additional_budget": 0,
+    "unexplained_accepts": 0
+  },
+  "migration_008_modified": false,
+  "prohibited_path_calls": {
+    "signer": 0,
+    "submission_service": 0,
+    "send_raw_transaction": 0,
+    "production_broadcast": 0,
+    "mainnet": 0
+  },
+  "gate_status": {
+    "controlled_canary_wiring": "W1_READY_FOR_REVIEW",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}
