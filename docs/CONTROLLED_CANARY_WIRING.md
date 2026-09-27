@@ -34,3 +34,14 @@ controlled_canary_authorization = NOT_GRANTED
 live = false
 release_ready = false
 ```
+
+## W1 evidence hardening
+
+Migration 009 makes `canary_runtime_audit` append-only by rejecting direct `UPDATE` and `DELETE`.
+The authorization state transition and its audit insert remain in one transaction; a forced audit
+insert failure rolls back the state transition.
+
+Distinct-operation concurrency tests independently exhaust `max_operations` and
+`max_total_input`. They prove zero reservation overcommit, exact equality between aggregate usage
+and durable operation-usage rows, no reset after restart, no duplicate budget consumption and
+zero unexplained accepts. This hardening returns W1 only to `W1_READY_FOR_REVIEW`.
