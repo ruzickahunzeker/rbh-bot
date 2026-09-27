@@ -15,3 +15,18 @@ submission-service, broadcast or mainnet dependency.
 
 Implementation completion is `READY_FOR_REVIEW`, not PASS. Live and release readiness remain
 false, and a separate independent review and closeout are required.
+
+## Evidence hardening
+
+The independent review blockers are addressed by an additive hardening migration and tests:
+emergency stop is evaluated first; C04/C05/C08 attestations are bound to the landed evidence
+hashes; policy, allowlist and durable operation-source records are immutable; request values must
+match a hashed durable source; gas cost is derived from gas limit and fee cap; and a schema-level
+unique index enforces one active reservation per wallet.
+
+Every request attempt, including dedupe, is durable and feeds the admission metrics. A mixed
+10,000-request workload proves one accepted operation, 4,999 dedupes, 5,000 wallet-lane
+rejections, one active reservation and exact request conservation. Fault tests after usage,
+reservation and decision writes and immediately before commit prove all-or-nothing rollback.
+
+Hardening restores only `READY_FOR_REVIEW`; it does not close C07 or authorize live execution.

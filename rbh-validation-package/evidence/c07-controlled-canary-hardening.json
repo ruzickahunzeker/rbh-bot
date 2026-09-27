@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "0a3f4dd9516b8579ca1c3b9672136a761148ef70",
+  "scope": "C07_CONTROLLED_CANARY_ADMISSION_HARDENING_ONLY",
+  "status": "READY_FOR_REVIEW",
+  "assertions": {
+    "emergency_stop_highest_priority": "PASS",
+    "control_read_failure_fail_closed": "PASS",
+    "required_gate_evidence_hashes_bound": "PASS",
+    "policy_and_allowlist_versions_immutable": "PASS",
+    "durable_operation_source_hash_verified": "PASS",
+    "request_source_mismatch_fail_closed": "PASS",
+    "single_active_reservation_per_wallet": "PASS",
+    "gas_cost_derived_from_gas_limit_and_fee_cap": "PASS",
+    "minimum_balance_includes_gas_and_buy_input": "PASS",
+    "decision_reservation_usage_audit_atomic": "PASS",
+    "dedupe_attempts_durably_audited": "PASS",
+    "metrics_match_durable_attempts": "PASS",
+    "restart_does_not_mint_reservation_or_usage": "PASS",
+    "fault_windows_rollback_all_rows": "PASS"
+  },
+  "concurrency": {
+    "total_requests": 10000,
+    "duplicate_identity_requests": 5000,
+    "distinct_same_wallet_requests": 5000,
+    "accepted": 1,
+    "deduped": 4999,
+    "rejected_wallet_lane_busy": 5000,
+    "queued": 0,
+    "request_conservation": "PASS",
+    "active_reservations": 1,
+    "reservation_overcommit": 0,
+    "unexplained_decisions": 0
+  },
+  "race_harness": {
+    "equivalent_mixed_requests": 1000,
+    "reason_for_scaled_count": "Go race instrumentation plus durable SQLite attempt writes must remain within the repository test timeout",
+    "logic_skipped": false
+  },
+  "fault_windows": [
+    "after_usage",
+    "after_reservation",
+    "after_decision",
+    "before_commit"
+  ],
+  "prohibited_path_calls": {
+    "signer": 0,
+    "submission_service": 0,
+    "send_raw_transaction": 0,
+    "production_broadcast": 0,
+    "mainnet": 0
+  },
+  "gate_status": {
+    "c04": "PASS",
+    "c05": "PASS",
+    "c08": "PASS",
+    "controlled_canary_admission": "READY_FOR_REVIEW",
+    "live": false,
+    "release_ready": false
+  }
+}

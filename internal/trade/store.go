@@ -15,6 +15,7 @@ import (
 type Store struct {
 	db           *sql.DB
 	recoveryHook func(string)
+	canaryHook   func(string) error
 }
 
 func (s *Store) SetRecoveryHookForTest(h func(string)) { s.recoveryHook = h }
