@@ -215,3 +215,8 @@ mainnet. No controlled-canary authorization is seeded or granted. Production bro
 W1 evidence hardening adds append-only audit enforcement in migration 009 and concurrent durable
 budget tests for both operation-count and total-input caps. It closes only the independent-review
 evidence blockers and does not advance W1 beyond `W1_READY_FOR_REVIEW`.
+
+Migration 010 additionally makes authorization transition auditing a schema invariant, including
+for direct SQL writers. Legal transitions and their single durable audit are atomic; audit failure
+rolls back the transition, and the Store API does not duplicate the trigger-generated audit. W1
+remains `W1_READY_FOR_REVIEW`, not PASS.
