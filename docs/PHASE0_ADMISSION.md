@@ -190,3 +190,10 @@ The C07 Slice does not call a signer, `SubmissionService`, `SendRawTransaction` 
 
 `C07 READY_FOR_REVIEW` does not enable live, change release readiness or authorize a mainnet
 canary. Independent review and a separate closeout are required before C07 may become PASS.
+
+C07 evidence hardening binds every admission to immutable gate evidence, policy, allowlists and a
+hashed durable operation source. Emergency stop is the first gate; derived gas cost and retained
+balance are checked in consistent units; one active wallet reservation is enforced by schema; and
+dedupe attempts are durable audit/metrics inputs. The 10,000-request mixed workload and atomic
+fault windows are recorded in `evidence/c07-controlled-canary-hardening.json`. Status remains
+`READY_FOR_REVIEW`, not PASS.
