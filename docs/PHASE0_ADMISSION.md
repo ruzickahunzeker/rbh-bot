@@ -203,9 +203,10 @@ zero and unwired.
 
 ## Controlled canary wiring W1
 
-W1 status: **W1_READY_FOR_REVIEW**. Migration 008 and its store model add only the durable
-authorization, monotonic epoch, immutable deployment binding, gate snapshot, purpose-bound
-one-shot send permit, worker lease, authorization-cap usage, audit and alert-outbox overlay.
+W1 status: **PASS** (`controlled_canary_wiring = W1_PASS`). Migration 008 and its store model add
+only the durable authorization, monotonic epoch, immutable deployment binding, gate snapshot,
+purpose-bound one-shot send permit, worker lease, authorization-cap usage, audit and alert-outbox
+overlay.
 
 W1 continues to use the existing `Operation -> ExecutionStep -> TransactionAttempt` identity and
 does not connect a signer, `SubmissionService`, `SendRawTransaction`, production broadcaster or
@@ -218,5 +219,8 @@ evidence blockers and does not advance W1 beyond `W1_READY_FOR_REVIEW`.
 
 Migration 010 additionally makes authorization transition auditing a schema invariant, including
 for direct SQL writers. Legal transitions and their single durable audit are atomic; audit failure
-rolls back the transition, and the Store API does not duplicate the trigger-generated audit. W1
-remains `W1_READY_FOR_REVIEW`, not PASS.
+rolls back the transition, and the Store API does not duplicate the trigger-generated audit.
+
+The independent review at `main@df3f80a17d655ffb91d2433a1c96bcde17e252e1` concluded PASS after
+PR #19, #20 and #21 landed. W1 PASS does not connect production broadcast, grant a controlled
+canary authorization, enable live or change release readiness.
