@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "4ae277e38ceb4b37985c8eeee40b71c2f7907c06",
+  "scope": "W2_CONTROLLED_ORCHESTRATOR_AND_MULTI_STAGE_GATES_ONLY",
+  "status": "W2_READY_FOR_REVIEW",
+  "assertions": {
+    "execution_admission_gate": "PASS",
+    "pre_sign_gate": "PASS",
+    "first_broadcast_gate": "PASS",
+    "immediate_pre_send_gate": "PASS",
+    "unknown_replay_gate": "PASS",
+    "immediate_pre_send_rereads_emergency_and_authorization": "PASS",
+    "authorization_epoch_and_deployment_drift_fail_closed": "PASS",
+    "chain_wallet_policy_binding": "PASS",
+    "immutable_gate_snapshots": "PASS",
+    "snapshot_and_permit_atomic": "PASS",
+    "snapshot_and_permit_consumption_atomic": "PASS",
+    "first_broadcast_permit_one_shot": "PASS",
+    "first_broadcast_permit_not_replayable": "PASS",
+    "unknown_replay_query_first": "PASS",
+    "unknown_replay_exact_artifact": "PASS",
+    "known_unsent_not_broadcast_unknown": "PASS",
+    "propagated_transaction_reconciliation_available": "PASS",
+    "admission_and_recovery_readiness_separated": "PASS",
+    "authorization_expiry_fail_closed": "PASS"
+  },
+  "controlled_harness": {
+    "network": "LOCAL_ONLY",
+    "raw_transaction_returned": false,
+    "production_authorization_granted": false
+  },
+  "prohibited_path_calls": {
+    "signer": 0,
+    "submission_service": 0,
+    "send_raw_transaction": 0,
+    "production_broadcast": 0,
+    "mainnet": 0,
+    "rebuild": 0,
+    "resign": 0,
+    "replacement": 0,
+    "fee_bump": 0,
+    "new_nonce": 0
+  },
+  "gate_status": {
+    "w1": "PASS",
+    "controlled_canary_wiring": "W2_READY_FOR_REVIEW",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}

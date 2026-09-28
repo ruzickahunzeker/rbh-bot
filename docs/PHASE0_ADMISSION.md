@@ -224,3 +224,18 @@ rolls back the transition, and the Store API does not duplicate the trigger-gene
 The independent review at `main@df3f80a17d655ffb91d2433a1c96bcde17e252e1` concluded PASS after
 PR #19, #20 and #21 landed. W1 PASS does not connect production broadcast, grant a controlled
 canary authorization, enable live or change release readiness.
+
+## Controlled canary wiring W2
+
+W2 status: **W2_READY_FOR_REVIEW**. The controlled orchestrator implements five independently
+persisted gates: execution admission, pre-sign, first broadcast, immediate pre-send and unknown
+replay. Authorization epoch/deployment/chain/wallet/policy, emergency stop, TTL, exact artifact
+identity and controlled contract runtime identity fail closed.
+
+First-broadcast and unknown-replay permits are purpose-bound and one-shot. Unknown replay requires
+prior controlled tx/receipt/nonce query evidence and the original exact artifact identity.
+Readiness separates new canary admission from recovery query/reconciliation availability.
+
+W2 contains no production broadcaster, signer or `SubmissionService` wiring and cannot call
+`SendRawTransaction` or mainnet. No controlled canary authorization is granted. W2 remains
+`READY_FOR_REVIEW`, not PASS; live and release readiness remain false.

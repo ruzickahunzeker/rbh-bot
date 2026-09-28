@@ -64,3 +64,34 @@ audit invariant. The direct-SQL transition residual is closed.
 W1 PASS records only the durable runtime state and authorization model. The production
 broadcaster remains disconnected, controlled-canary authorization remains ungranted, and live
 and release readiness remain false.
+
+## W2 controlled orchestrator and multi-stage gates
+
+W2 adds a controlled-only orchestrator over the existing operation, execution step, transaction
+attempt, authorization and permit records. It evaluates execution admission, pre-sign,
+first-broadcast, immediate-pre-send and unknown-replay gates. It has no signer,
+`SubmissionService`, broadcaster or RPC dependency and returns no raw transaction bytes.
+
+Every gate revalidates emergency stop, authorization epoch and expiry, immutable deployment
+identity, chain, wallet, policy, C07 admission binding and application TTL. Artifact stages also
+require a controlled exact-artifact verifier and a controlled contract runtime-identity reader.
+Immediate pre-send rereads all mutable controls before atomically consuming its one-shot permit.
+
+Unknown replay is available only from `broadcast_unknown`. It first performs controlled
+transaction, receipt and nonce queries. A propagated/consumed result remains query/reconciliation
+only; only an unresolved reserved nonce can receive a new `UNKNOWN_REPLAY` permit bound to the
+original artifact identity. `FIRST_BROADCAST` permits cannot be reused for replay.
+
+Gate snapshots and permit issue/consumption commit atomically. A known-unsent gate rejection does
+not create `broadcast_unknown`. Emergency stop, authorization revocation/expiry, deployment drift
+and TTL failure stop new admission/sign/send/replay while recovery query and canonical/reorg
+reconciliation remain available.
+
+```ini
+W1 = PASS
+controlled_canary_wiring = W2_READY_FOR_REVIEW
+production_broadcast = NOT_CONNECTED
+controlled_canary_authorization = NOT_GRANTED
+live = false
+release_ready = false
+```
