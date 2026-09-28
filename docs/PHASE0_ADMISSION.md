@@ -239,3 +239,9 @@ Readiness separates new canary admission from recovery query/reconciliation avai
 W2 contains no production broadcaster, signer or `SubmissionService` wiring and cannot call
 `SendRawTransaction` or mainnet. No controlled canary authorization is granted. W2 remains
 `READY_FOR_REVIEW`, not PASS; live and release readiness remain false.
+
+Post-merge W2 hardening binds runtime verification to immutable admission source identity,
+requires a still-active C07 reservation, and performs the final mutable-control recheck in the
+same transaction that consumes the send permit. Recovery readiness is limited to
+`policy_unblocked`; W2 does not assert PR-006 recovery health. The result remains
+`W2_READY_FOR_REVIEW` pending a fresh independent review.

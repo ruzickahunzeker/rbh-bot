@@ -45,8 +45,9 @@ type UnknownReplayQuerier interface {
 }
 type CanaryGateDecision struct{ Stage, Decision, ReasonCode, PermitID string }
 type CanaryRuntimeReadiness struct {
-	CanaryAdmissionReady, RecoveryQueryAvailable, ReconciliationAvailable bool
-	ReasonCode                                                            string
+	CanaryAdmissionReady                                        bool
+	RecoveryQueryPolicyUnblocked, ReconciliationPolicyUnblocked bool
+	ReasonCode                                                  string
 }
 
 // ControlledCanaryOrchestrator evaluates gates and manages durable permits.
@@ -75,10 +76,10 @@ func (o *ControlledCanaryOrchestrator) PreSign(c context.Context, r CanaryGateRe
 	return o.finish(c, r, a, v, GatePreSign, CanaryArtifactIdentity{}, x)
 }
 
-func (o *ControlledCanaryOrchestrator) FirstBroadcast(c context.Context, r CanaryGateRequest, x CanaryArtifactIdentity, address, codeHash string) (CanaryGateDecision, error) {
+func (o *ControlledCanaryOrchestrator) FirstBroadcast(c context.Context, r CanaryGateRequest, x CanaryArtifactIdentity) (CanaryGateDecision, error) {
 	a, v, reason := o.evaluate(c, r, GateFirstBroadcast)
 	if reason == "" {
-		if e := o.verifyArtifactAndRuntime(c, r, x, address, codeHash); e != nil {
+		if e := o.verifyArtifactAndRuntime(c, r, x); e != nil {
 			reason = reasonForCanaryError(e)
 		}
 	}
@@ -109,7 +110,7 @@ func (o *ControlledCanaryOrchestrator) FirstBroadcast(c context.Context, r Canar
 	return CanaryGateDecision{Stage: GateFirstBroadcast, Decision: "PASS", ReasonCode: "CANARY_GATE_PASS", PermitID: id}, nil
 }
 
-func (o *ControlledCanaryOrchestrator) UnknownReplay(c context.Context, r CanaryGateRequest, x CanaryArtifactIdentity, address, codeHash string) (CanaryGateDecision, error) {
+func (o *ControlledCanaryOrchestrator) UnknownReplay(c context.Context, r CanaryGateRequest, x CanaryArtifactIdentity) (CanaryGateDecision, error) {
 	// Emergency stop has priority over query work.
 	_, _, _, stop := o.readControl(c)
 	if stop != "" {
@@ -142,7 +143,7 @@ func (o *ControlledCanaryOrchestrator) UnknownReplay(c context.Context, r Canary
 	}
 	a, v, reason := o.evaluate(c, r, GateUnknownReplay)
 	if reason == "" {
-		if e = o.verifyArtifactAndRuntime(c, r, x, address, codeHash); e != nil {
+		if e = o.verifyArtifactAndRuntime(c, r, x); e != nil {
 			reason = reasonForCanaryError(e)
 		}
 	}
@@ -163,13 +164,13 @@ func (o *ControlledCanaryOrchestrator) UnknownReplay(c context.Context, r Canary
 
 // ImmediatePreSend consumes a one-shot permit after re-reading mutable controls.
 // It returns no raw bytes and cannot send.
-func (o *ControlledCanaryOrchestrator) ImmediatePreSend(c context.Context, r CanaryGateRequest, permit, purpose string, x CanaryArtifactIdentity, address, codeHash string) (CanaryGateDecision, error) {
+func (o *ControlledCanaryOrchestrator) ImmediatePreSend(c context.Context, r CanaryGateRequest, permit, purpose string, x CanaryArtifactIdentity) (CanaryGateDecision, error) {
 	a, v, reason := o.evaluate(c, r, GateImmediatePreSend)
 	if reason == "" && purpose != PermitFirstBroadcast && purpose != PermitUnknownReplay {
 		reason = "INVALID_PERMIT_PURPOSE"
 	}
 	if reason == "" {
-		if e := o.verifyArtifactAndRuntime(c, r, x, address, codeHash); e != nil {
+		if e := o.verifyArtifactAndRuntime(c, r, x); e != nil {
 			reason = reasonForCanaryError(e)
 		}
 	}
@@ -187,14 +188,19 @@ func (o *ControlledCanaryOrchestrator) ImmediatePreSend(c context.Context, r Can
 	if e != nil {
 		return CanaryGateDecision{Stage: GateImmediatePreSend, Decision: "REJECT", ReasonCode: "SNAPSHOT_BUILD_FAILED"}, e
 	}
-	if e = o.store.ConsumeCanaryPermitAfterGate(c, snapshot, permit, purpose, x.ArtifactHash, o.now().UTC()); e != nil {
+	if reason, e = o.store.ConsumeCanaryPermitAfterGate(c, snapshot, r, permit, purpose, x.ArtifactHash, o.now().UTC()); e != nil {
+		if reason != "" {
+			return CanaryGateDecision{Stage: GateImmediatePreSend, Decision: "REJECT", ReasonCode: reason}, ErrCanaryGateRejected
+		}
 		return CanaryGateDecision{Stage: GateImmediatePreSend, Decision: "REJECT", ReasonCode: "PERMIT_CONSUME_FAILED"}, e
 	}
 	return CanaryGateDecision{Stage: GateImmediatePreSend, Decision: "PASS", ReasonCode: "CANARY_GATE_PASS", PermitID: permit}, nil
 }
 
 func (o *ControlledCanaryOrchestrator) Readiness(c context.Context, r CanaryGateRequest) CanaryRuntimeReadiness {
-	v := CanaryRuntimeReadiness{RecoveryQueryAvailable: true, ReconciliationAvailable: true}
+	// These fields deliberately describe policy only. Recovery service health is
+	// owned and reported by the existing PR-006 recovery path.
+	v := CanaryRuntimeReadiness{RecoveryQueryPolicyUnblocked: true, ReconciliationPolicyUnblocked: true}
 	_, _, _, z := o.readControl(c)
 	if z == "" {
 		_, z = o.readAuthorization(c, r)
@@ -297,10 +303,10 @@ func (o *ControlledCanaryOrchestrator) readAuthorization(c context.Context, r Ca
 	return a, ""
 }
 func (o *ControlledCanaryOrchestrator) operationReason(c context.Context, r CanaryGateRequest, stage string) string {
-	var wallet, decision string
+	var wallet, decision, reservationID, reservationOperation, reservationWallet, reservationState, reservationSource, sourceHash string
 	var policy uint64
-	e := o.store.db.QueryRowContext(c, `SELECT wallet_id,policy_version,decision FROM canary_admission_decisions WHERE operation_id=? ORDER BY created_at LIMIT 1`, r.OperationID).Scan(&wallet, &policy, &decision)
-	if e != nil || decision != "ADMITTED" || wallet != r.WalletID || policy != r.PolicyVersion {
+	e := o.store.db.QueryRowContext(c, `SELECT d.wallet_id,d.policy_version,d.decision,d.reservation_id,r.operation_id,r.wallet_id,r.state,COALESCE(r.source_hash,''),s.source_hash FROM canary_admission_decisions d JOIN canary_risk_reservations r ON r.id=d.reservation_id JOIN canary_admission_sources s ON s.operation_id=d.operation_id WHERE d.operation_id=? ORDER BY d.created_at LIMIT 1`, r.OperationID).Scan(&wallet, &policy, &decision, &reservationID, &reservationOperation, &reservationWallet, &reservationState, &reservationSource, &sourceHash)
+	if e != nil || decision != "ADMITTED" || reservationID == "" || wallet != r.WalletID || policy != r.PolicyVersion || reservationOperation != r.OperationID || reservationWallet != r.WalletID || (reservationState != "reserved" && reservationState != "frozen") || !strings.EqualFold(reservationSource, sourceHash) {
 		return "C07_ADMISSION_BINDING_INVALID"
 	}
 	if stage != GateExecutionAdmission {
@@ -311,12 +317,16 @@ func (o *ControlledCanaryOrchestrator) operationReason(c context.Context, r Cana
 	}
 	return ""
 }
-func (o *ControlledCanaryOrchestrator) verifyArtifactAndRuntime(c context.Context, r CanaryGateRequest, x CanaryArtifactIdentity, address, codeHash string) error {
+func (o *ControlledCanaryOrchestrator) verifyArtifactAndRuntime(c context.Context, r CanaryGateRequest, x CanaryArtifactIdentity) error {
 	if x.OperationID != r.OperationID || x.AttemptID == "" || x.AttemptID != r.AttemptID || len(x.ArtifactHash) != 64 || len(x.TxHash) != 66 {
 		return ErrCanaryArtifactMismatch
 	}
 	if e := o.artifact.VerifyControlledArtifact(c, x); e != nil {
 		return ErrCanaryArtifactMismatch
+	}
+	var address, codeHash string
+	if e := o.store.db.QueryRowContext(c, `SELECT contract_address,runtime_code_hash FROM canary_admission_sources WHERE operation_id=? AND wallet_id=? AND policy_version=?`, r.OperationID, r.WalletID, r.PolicyVersion).Scan(&address, &codeHash); e != nil {
+		return ErrStaleState
 	}
 	if e := o.runtime.VerifyControlledRuntime(c, address, codeHash); e != nil {
 		return ErrStaleState

@@ -95,3 +95,19 @@ controlled_canary_authorization = NOT_GRANTED
 live = false
 release_ready = false
 ```
+
+### W2 post-merge hardening
+
+The post-merge independent review found four residual safety gaps. This hardening closes them
+without entering W3:
+
+- runtime address and code hash come only from immutable `canary_admission_sources`;
+- each stage binds `ADMITTED` to the matching C07 reservation and accepts only `reserved` or
+  `frozen`; `committed` and `released` fail closed;
+- immediate pre-send repeats stop, authorization, deployment, policy, TTL and reservation checks
+  in the same transaction that consumes the permit;
+- readiness reports only that canary policy leaves recovery query/reconciliation unblocked. It
+  does not attest that the PR-006 recovery service or dependencies are healthy.
+
+The original W2 evidence remains historical. The hardening evidence supersedes its recovery
+availability wording. Status remains `W2_READY_FOR_REVIEW` pending fresh independent review.
