@@ -28,7 +28,8 @@ Worker leases, append-only runtime audit and an atomic alert outbox are present 
 No runtime authorization is seeded or granted by the migration.
 
 ```ini
-controlled_canary_wiring = W1_READY_FOR_REVIEW
+W1 = PASS
+controlled_canary_wiring = W1_PASS
 production_broadcast = NOT_CONNECTED
 controlled_canary_authorization = NOT_GRANTED
 live = false
@@ -51,3 +52,15 @@ change now causes the schema to insert exactly one `AUTHORIZATION_STATE_CHANGED`
 same SQLite statement and transaction. An audit insertion failure rolls back the state change;
 invalid transitions produce no audit. The Store API relies on this schema invariant and no longer
 inserts a second transition audit.
+
+## W1 independent review closeout
+
+The independent review at `main@df3f80a17d655ffb91d2433a1c96bcde17e252e1` concluded PASS.
+PR #19, #20 and #21 are landed. The review verified the migration 008 runtime authorization,
+deployment binding, gate snapshot, one-shot permit, lease, budget and audit/outbox invariants;
+the migration 009 append-only audit invariant; and the migration 010 schema-enforced transition
+audit invariant. The direct-SQL transition residual is closed.
+
+W1 PASS records only the durable runtime state and authorization model. The production
+broadcaster remains disconnected, controlled-canary authorization remains ungranted, and live
+and release readiness remain false.

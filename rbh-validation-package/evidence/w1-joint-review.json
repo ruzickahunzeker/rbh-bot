@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "reviewed_main_sha": "df3f80a17d655ffb91d2433a1c96bcde17e252e1",
+  "inputs": [
+    "evidence/w1-controlled-canary-runtime-state.json",
+    "evidence/w1-controlled-canary-runtime-hardening.json",
+    "evidence/w1-authorization-transition-audit.json",
+    "PR #19",
+    "PR #20",
+    "PR #21"
+  ],
+  "review_conclusion": "PASS",
+  "w1_status": "PASS",
+  "controlled_canary_wiring": "W1_PASS",
+  "landed_pull_requests": [19, 20, 21],
+  "verified_invariants": {
+    "migration_008_runtime_authorization_overlay": "PASS",
+    "migration_009_append_only_runtime_audit": "PASS",
+    "migration_010_schema_transition_audit": "PASS",
+    "direct_sql_transition_residual_closed": true,
+    "transition_audit_failure_rolls_back_state": "PASS",
+    "store_api_transition_audit_exactly_once": "PASS"
+  },
+  "gate_status": {
+    "c04": "PASS",
+    "c05": "PASS",
+    "c07": "PASS",
+    "c08": "PASS"
+  },
+  "production_broadcast": "NOT_CONNECTED",
+  "controlled_canary_authorization": "NOT_GRANTED",
+  "live_enabled": false,
+  "release_ready": false
+}
