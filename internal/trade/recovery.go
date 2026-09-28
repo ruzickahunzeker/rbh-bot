@@ -10,7 +10,10 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-var ErrNotCanonical = errors.New("receipt is not canonical")
+var (
+	ErrNotCanonical   = errors.New("receipt is not canonical")
+	ErrReceiptPending = errors.New("receipt is not available")
+)
 
 type ReceiptBackend interface {
 	TransactionReceipt(context.Context, common.Hash) (*types.Receipt, error)
@@ -42,6 +45,13 @@ func NewRecoveryService(store *Store, kernel *ExecutionKernel, b ReceiptBackend,
 }
 
 func (s *RecoveryService) Reconcile(ctx context.Context, operation string) error {
+	return s.ReconcileWithFence(ctx, operation, nil)
+}
+
+// ReconcileWithFence preserves the existing recovery state machine while
+// allowing a controlled worker to prove lease ownership immediately before
+// durable receipt observation and canonical mutation.
+func (s *RecoveryService) ReconcileWithFence(ctx context.Context, operation string, fence func(context.Context) error) error {
 	stored, found, err := s.store.LoadEncryptedArtifact(ctx, operation)
 	if err != nil || !found {
 		return ErrArtifactIntegrity
@@ -55,15 +65,26 @@ func (s *RecoveryService) Reconcile(ctx context.Context, operation string) error
 		return err
 	}
 	receipt, err := s.backend.TransactionReceipt(ctx, common.HexToHash(stored.TxHash))
-	if err != nil || receipt == nil {
+	if err != nil {
 		return err
+	}
+	if receipt == nil {
+		return ErrReceiptPending
 	}
 	if receipt.BlockNumber == nil {
 		return ErrNotCanonical
 	}
+	if fence != nil {
+		if err = fence(ctx); err != nil {
+			return err
+		}
+	}
 	observation, err := s.store.ObserveReceipt(ctx, stored.SignedArtifact, ReceiptObservation{TxHash: stored.TxHash, BlockNumber: receipt.BlockNumber.Uint64(), BlockHash: receipt.BlockHash.Hex(), Status: receipt.Status}, s.now())
 	if err != nil {
 		return err
+	}
+	if s.store.recoveryHook != nil {
+		s.store.recoveryHook("after_receipt_observation")
 	}
 	canonical, err := s.backend.HeaderByNumber(ctx, receipt.BlockNumber)
 	if err != nil {
@@ -75,6 +96,11 @@ func (s *RecoveryService) Reconcile(ctx context.Context, operation string) error
 	}
 	if !s.policy.Confirm(latest.Number.Uint64(), receipt.BlockNumber.Uint64(), receipt.BlockHash, canonical.Hash()) {
 		return ErrNotCanonical
+	}
+	if fence != nil {
+		if err = fence(ctx); err != nil {
+			return err
+		}
 	}
 	var effect *PositionEffect
 	if receipt.Status == types.ReceiptStatusSuccessful {
@@ -88,6 +114,10 @@ func (s *RecoveryService) Reconcile(ctx context.Context, operation string) error
 }
 
 func (s *RecoveryService) CheckReorg(ctx context.Context, operation string, observation ReceiptObservation) error {
+	return s.CheckReorgWithFence(ctx, operation, observation, nil)
+}
+
+func (s *RecoveryService) CheckReorgWithFence(ctx context.Context, operation string, observation ReceiptObservation, fence func(context.Context) error) error {
 	stored, found, err := s.store.LoadEncryptedArtifact(ctx, operation)
 	if err != nil || !found {
 		return ErrArtifactIntegrity
@@ -98,6 +128,11 @@ func (s *RecoveryService) CheckReorg(ctx context.Context, operation string, obse
 	}
 	if header.Hash().Hex() == observation.BlockHash {
 		return nil
+	}
+	if fence != nil {
+		if err = fence(ctx); err != nil {
+			return err
+		}
 	}
 	return s.store.Orphan(ctx, stored.SignedArtifact, observation, s.now())
 }

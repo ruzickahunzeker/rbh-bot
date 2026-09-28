@@ -249,3 +249,16 @@ The independent review of `main@eb8b5d79af8a03b4bcdefdb4962edf585f6cc236` conclu
 PR #23 and PR #24 landed. GitHub CI #119 passed the full suite, including `go test -race ./...`.
 This formal closeout changes only W2 admission status; it does not authorize W3, broadcast,
 mainnet, controlled-canary execution, live or release readiness.
+
+## Controlled canary wiring W3
+
+W3 status: **W3_READY_FOR_REVIEW**. The controlled recovery worker discovers durable submitted
+and ambiguous work, enforces the existing `RECOVERY` lease, persists immutable query evidence,
+and reuses PR-006 canonical/reorg reconciliation. It does not define a second transaction state
+machine.
+
+W3 is a controlled/local harness lifecycle only. It is not connected to production startup and
+cannot submit, replay, sign, allocate nonce, consume send permits or call `SendRawTransaction`.
+Production broadcast remains disconnected, controlled-canary authorization remains ungranted,
+and live and release readiness remain false. W3 requires independent review and must not be
+interpreted as PASS.

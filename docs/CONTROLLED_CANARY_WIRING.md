@@ -125,3 +125,35 @@ does not attest recovery-service health. GitHub CI #119 passed the complete suit
 W2 PASS does not connect a signer, `SubmissionService`, `SendRawTransaction`, production
 broadcaster or mainnet. Production broadcast remains disconnected, controlled-canary
 authorization remains ungranted, and live and release readiness remain false.
+
+## W3 controlled recovery worker and lifecycle
+
+W3 adds a controlled recovery coordination layer over the existing operation, execution step,
+attempt, submission, receipt and position-effect state machine. It discovers `submitted` and
+`broadcast_unknown` work from SQLite, uses the existing `RECOVERY` lease with monotonic fencing,
+and invokes only fenced PR-006 receipt/canonical/reorg recovery.
+
+For `broadcast_unknown`, the worker performs controlled query-only classification and persists
+immutable evidence plus runtime audit/alert records. Propagation evidence may enter canonical
+reconciliation; ambiguity or unsafe nonce evidence keeps the wallet lane and reservation frozen.
+The worker never creates or consumes a send permit and has no signer, submission service or raw
+broadcaster dependency.
+
+Emergency stop, authorization revocation/expiry and application TTL do not suppress recovery of
+an already propagated or ambiguous transaction. Lease loss, RPC failure and contradictory or
+unverifiable evidence fail closed. Each mutation boundary is fenced, while the underlying
+canonical apply, rollback and reapply ledger remains exactly-once and restart-safe.
+
+W3 is not wired into `cmd/trade-service` or production startup. Its lifecycle is controlled/local
+only and drains an in-progress durable scan before shutdown; restart rediscovers work from the
+database.
+
+```ini
+W1 = PASS
+W2 = PASS
+controlled_canary_wiring = W3_READY_FOR_REVIEW
+production_broadcast = NOT_CONNECTED
+controlled_canary_authorization = NOT_GRANTED
+live = false
+release_ready = false
+```

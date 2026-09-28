@@ -284,10 +284,10 @@ func (s *Store) RecordRuntimeAlert(ctx context.Context, event, operation, attemp
 	defer tx.Rollback()
 	stamp := now.UTC().Format(time.RFC3339Nano)
 	auditID := deterministicID("canary-runtime", event, operation, attempt, authorization, reason, stamp)
-	if _, err = tx.ExecContext(ctx, `INSERT INTO canary_runtime_audit(id,event_type,operation_id,attempt_id,authorization_id,authorization_epoch,reason_code,details_json,created_at) VALUES(?,?,?,?,?,?,?,'{}',?)`, auditID, event, nullText(operation), nullText(attempt), nullText(authorization), nullInt(epoch), reason, stamp); err != nil {
+	if _, err = tx.ExecContext(ctx, `INSERT INTO canary_runtime_audit(id,event_type,operation_id,attempt_id,authorization_id,authorization_epoch,reason_code,details_json,created_at) VALUES(?,?,?,?,?,?,?,'{}',?) ON CONFLICT(id) DO NOTHING`, auditID, event, nullText(operation), nullText(attempt), nullText(authorization), nullInt(epoch), reason, stamp); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO canary_alert_outbox(id,audit_id,severity,state,created_at) VALUES(?, ?, ?, 'PENDING', ?)`, deterministicID("canary-alert", auditID), auditID, severity, stamp); err != nil {
+	if _, err = tx.ExecContext(ctx, `INSERT INTO canary_alert_outbox(id,audit_id,severity,state,created_at) VALUES(?, ?, ?, 'PENDING', ?) ON CONFLICT(id) DO NOTHING`, deterministicID("canary-alert", auditID), auditID, severity, stamp); err != nil {
 		return err
 	}
 	return tx.Commit()
