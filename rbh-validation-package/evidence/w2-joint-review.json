@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "reviewed_main_sha": "eb8b5d79af8a03b4bcdefdb4962edf585f6cc236",
+  "review_conclusion": "PASS",
+  "w2_status": "PASS",
+  "controlled_canary_wiring": "W2_PASS",
+  "landed_pull_requests": [23, 24],
+  "ci": {
+    "run": 119,
+    "status": "SUCCESS",
+    "full_go_test_race": "PASS"
+  },
+  "assertions": {
+    "runtime_identity_source": "IMMUTABLE_CANARY_ADMISSION_SOURCE_ONLY",
+    "c07_active_reservation_binding": "PASS",
+    "immediate_pre_send_final_recheck_and_permit_consume": "SAME_TRANSACTION",
+    "recovery_readiness_semantics": "POLICY_UNBLOCKED_ONLY",
+    "recovery_service_health_claimed": false
+  },
+  "prohibited_path_calls": {
+    "signer": 0,
+    "submission_service": 0,
+    "send_raw_transaction": 0,
+    "production_broadcast": 0,
+    "mainnet": 0
+  },
+  "gate_status": {
+    "w1": "PASS",
+    "c04": "PASS",
+    "c05": "PASS",
+    "c07": "PASS",
+    "c08": "PASS",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}

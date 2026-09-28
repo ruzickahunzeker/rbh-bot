@@ -89,7 +89,8 @@ reconciliation remain available.
 
 ```ini
 W1 = PASS
-controlled_canary_wiring = W2_READY_FOR_REVIEW
+W2 = PASS
+controlled_canary_wiring = W2_PASS
 production_broadcast = NOT_CONNECTED
 controlled_canary_authorization = NOT_GRANTED
 live = false
@@ -110,4 +111,17 @@ without entering W3:
   does not attest that the PR-006 recovery service or dependencies are healthy.
 
 The original W2 evidence remains historical. The hardening evidence supersedes its recovery
-availability wording. Status remains `W2_READY_FOR_REVIEW` pending fresh independent review.
+availability wording.
+
+### W2 independent review closeout
+
+The independent review of `main@eb8b5d79af8a03b4bcdefdb4962edf585f6cc236` concluded PASS after
+PR #23 and PR #24 landed. It verified that runtime identity comes only from immutable admission
+source data, the C07 active reservation binding is enforced, and the immediate-pre-send final
+recheck is atomic with permit consumption. Recovery readiness means only `policy_unblocked` and
+does not attest recovery-service health. GitHub CI #119 passed the complete suite, including
+`go test -race ./...`.
+
+W2 PASS does not connect a signer, `SubmissionService`, `SendRawTransaction`, production
+broadcaster or mainnet. Production broadcast remains disconnected, controlled-canary
+authorization remains ungranted, and live and release readiness remain false.
