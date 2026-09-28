@@ -28,6 +28,7 @@ type controlledRuntimeReader struct {
 	address, hash string
 	calls         int
 	err           error
+	after         func()
 }
 
 func (f *controlledRuntimeReader) VerifyControlledRuntime(_ context.Context, a, h string) error {
@@ -37,6 +38,9 @@ func (f *controlledRuntimeReader) VerifyControlledRuntime(_ context.Context, a, 
 	}
 	if a != f.address || h != f.hash {
 		return ErrStaleState
+	}
+	if f.after != nil {
+		f.after()
 	}
 	return nil
 }
@@ -126,15 +130,15 @@ func TestControlledCanaryAllFiveGatesAndPermitSeparation(t *testing.T) {
 	if d, e := f.orchestrator.PreSign(context.Background(), f.request); e != nil || d.Decision != "PASS" {
 		t.Fatalf("pre-sign %+v %v", d, e)
 	}
-	first, e := f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact, f.address, f.codeHash)
+	first, e := f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact)
 	if e != nil || first.PermitID == "" {
 		t.Fatalf("first %+v %v", first, e)
 	}
-	pre, e := f.orchestrator.ImmediatePreSend(context.Background(), f.request, first.PermitID, PermitFirstBroadcast, f.artifact, f.address, f.codeHash)
+	pre, e := f.orchestrator.ImmediatePreSend(context.Background(), f.request, first.PermitID, PermitFirstBroadcast, f.artifact)
 	if e != nil || pre.Decision != "PASS" {
 		t.Fatalf("pre-send %+v %v", pre, e)
 	}
-	if _, e = f.orchestrator.ImmediatePreSend(context.Background(), f.request, first.PermitID, PermitFirstBroadcast, f.artifact, f.address, f.codeHash); e == nil {
+	if _, e = f.orchestrator.ImmediatePreSend(context.Background(), f.request, first.PermitID, PermitFirstBroadcast, f.artifact); e == nil {
 		t.Fatal("one-shot permit reused")
 	}
 	var snapshots int
@@ -147,14 +151,14 @@ func TestImmediatePreSendRereadsEmergencyAndAuthorization(t *testing.T) {
 	t.Run("emergency", func(t *testing.T) {
 		f := newOrchestratorFixture(t)
 		f.executionAndAttempt(t)
-		first, e := f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact, f.address, f.codeHash)
+		first, e := f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact)
 		if e != nil {
 			t.Fatal(e)
 		}
 		if _, e = f.store.db.Exec(`UPDATE canary_control_state SET emergency_stopped=1,updated_at=? WHERE singleton=1`, f.now.Add(time.Second).Format(time.RFC3339Nano)); e != nil {
 			t.Fatal(e)
 		}
-		d, e := f.orchestrator.ImmediatePreSend(context.Background(), f.request, first.PermitID, PermitFirstBroadcast, f.artifact, "wrong", "wrong")
+		d, e := f.orchestrator.ImmediatePreSend(context.Background(), f.request, first.PermitID, PermitFirstBroadcast, f.artifact)
 		if !errors.Is(e, ErrCanaryGateRejected) || d.ReasonCode != "EMERGENCY_STOPPED" {
 			t.Fatalf("%+v %v", d, e)
 		}
@@ -167,14 +171,14 @@ func TestImmediatePreSendRereadsEmergencyAndAuthorization(t *testing.T) {
 	t.Run("revoke", func(t *testing.T) {
 		f := newOrchestratorFixture(t)
 		f.executionAndAttempt(t)
-		first, e := f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact, f.address, f.codeHash)
+		first, e := f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact)
 		if e != nil {
 			t.Fatal(e)
 		}
 		if e = f.store.TransitionRuntimeAuthorization(context.Background(), f.auth.ID, "ARMED", "REVOKED", f.now.Add(time.Second)); e != nil {
 			t.Fatal(e)
 		}
-		d, e := f.orchestrator.ImmediatePreSend(context.Background(), f.request, first.PermitID, PermitFirstBroadcast, f.artifact, f.address, f.codeHash)
+		d, e := f.orchestrator.ImmediatePreSend(context.Background(), f.request, first.PermitID, PermitFirstBroadcast, f.artifact)
 		if !errors.Is(e, ErrCanaryGateRejected) || d.ReasonCode != "AUTHORIZATION_NOT_ARMED" {
 			t.Fatalf("%+v %v", d, e)
 		}
@@ -192,7 +196,7 @@ func TestEmergencyStopHighestPriorityAndReadinessSplit(t *testing.T) {
 		t.Fatalf("%+v %v", d, e)
 	}
 	ready := f.orchestrator.Readiness(context.Background(), f.request)
-	if ready.CanaryAdmissionReady || !ready.RecoveryQueryAvailable || !ready.ReconciliationAvailable {
+	if ready.CanaryAdmissionReady || !ready.RecoveryQueryPolicyUnblocked || !ready.ReconciliationPolicyUnblocked {
 		t.Fatalf("%+v", ready)
 	}
 }
@@ -201,7 +205,7 @@ func TestUnknownReplayRequiresQueryAndExactArtifact(t *testing.T) {
 	f := newOrchestratorFixture(t)
 	f.executionAndAttempt(t)
 	f.broadcastUnknown(t)
-	replay, e := f.orchestrator.UnknownReplay(context.Background(), f.request, f.artifact, f.address, f.codeHash)
+	replay, e := f.orchestrator.UnknownReplay(context.Background(), f.request, f.artifact)
 	if e != nil || replay.PermitID == "" || f.query.calls != 1 {
 		t.Fatalf("replay %+v calls=%d err=%v", replay, f.query.calls, e)
 	}
@@ -216,7 +220,7 @@ func TestUnknownReplayQueryFindingPropagationIsReconciliationOnly(t *testing.T) 
 	f.executionAndAttempt(t)
 	f.broadcastUnknown(t)
 	f.query.evidence.TxFound = true
-	d, e := f.orchestrator.UnknownReplay(context.Background(), f.request, f.artifact, f.address, f.codeHash)
+	d, e := f.orchestrator.UnknownReplay(context.Background(), f.request, f.artifact)
 	if !errors.Is(e, ErrCanaryQueryOnly) || d.ReasonCode != "QUERY_REQUIRES_RECONCILIATION" {
 		t.Fatalf("%+v %v", d, e)
 	}
@@ -226,7 +230,7 @@ func TestUnknownReplayQueryFindingPropagationIsReconciliationOnly(t *testing.T) 
 		t.Fatalf("permits=%d", permits)
 	}
 	ready := f.orchestrator.Readiness(context.Background(), f.request)
-	if !ready.RecoveryQueryAvailable || !ready.ReconciliationAvailable {
+	if !ready.RecoveryQueryPolicyUnblocked || !ready.ReconciliationPolicyUnblocked {
 		t.Fatalf("%+v", ready)
 	}
 }
@@ -252,7 +256,7 @@ func TestGateBindingDriftAndKnownUnsentFailClosed(t *testing.T) {
 	f := newOrchestratorFixture(t)
 	f.executionAndAttempt(t)
 	f.runtime.err = ErrStaleState
-	d, e := f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact, f.address, f.codeHash)
+	d, e := f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact)
 	if !errors.Is(e, ErrCanaryGateRejected) || d.ReasonCode != "RUNTIME_IDENTITY_UNVERIFIABLE" {
 		t.Fatalf("%+v %v", d, e)
 	}
@@ -263,11 +267,75 @@ func TestGateBindingDriftAndKnownUnsentFailClosed(t *testing.T) {
 	}
 }
 
+func TestRuntimeIdentityComesFromImmutableAdmissionSource(t *testing.T) {
+	f := newOrchestratorFixture(t)
+	f.executionAndAttempt(t)
+	if _, err := f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact); err != nil {
+		t.Fatal(err)
+	}
+	if f.runtime.calls != 1 || f.runtime.address != f.address || f.runtime.hash != f.codeHash {
+		t.Fatalf("runtime calls=%d address=%s hash=%s", f.runtime.calls, f.runtime.address, f.runtime.hash)
+	}
+}
+
+func TestReleasedOrCommittedC07ReservationCannotAdvance(t *testing.T) {
+	for _, state := range []string{"released", "committed"} {
+		t.Run(state, func(t *testing.T) {
+			f := newOrchestratorFixture(t)
+			if _, err := f.store.db.Exec(`UPDATE canary_risk_reservations SET state=? WHERE operation_id=?`, state, f.request.OperationID); err != nil {
+				t.Fatal(err)
+			}
+			d, err := f.orchestrator.ExecutionAdmission(context.Background(), f.request)
+			if !errors.Is(err, ErrCanaryGateRejected) || d.ReasonCode != "C07_ADMISSION_BINDING_INVALID" {
+				t.Fatalf("%+v %v", d, err)
+			}
+		})
+	}
+}
+
+func TestImmediatePreSendFinalTransactionRecheck(t *testing.T) {
+	tests := []struct {
+		name, reason string
+		mutate       func(orchestratorFixture) error
+	}{
+		{"emergency-stop", "EMERGENCY_STOPPED", func(f orchestratorFixture) error {
+			_, err := f.store.db.Exec(`UPDATE canary_control_state SET emergency_stopped=1,updated_at=? WHERE singleton=1`, f.now.Add(time.Second).Format(time.RFC3339Nano))
+			return err
+		}},
+		{"authorization-revoke", "AUTHORIZATION_NOT_ARMED", func(f orchestratorFixture) error {
+			return f.store.TransitionRuntimeAuthorization(context.Background(), f.auth.ID, "ARMED", "REVOKED", f.now.Add(time.Second))
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := newOrchestratorFixture(t)
+			f.executionAndAttempt(t)
+			permit, err := f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact)
+			if err != nil {
+				t.Fatal(err)
+			}
+			f.runtime.after = func() {
+				if err := tt.mutate(f); err != nil {
+					t.Fatal(err)
+				}
+			}
+			d, err := f.orchestrator.ImmediatePreSend(context.Background(), f.request, permit.PermitID, PermitFirstBroadcast, f.artifact)
+			if !errors.Is(err, ErrCanaryGateRejected) || d.ReasonCode != tt.reason {
+				t.Fatalf("%+v %v", d, err)
+			}
+			var state string
+			if err = f.store.db.QueryRow(`SELECT state FROM canary_send_permits WHERE id=?`, permit.PermitID).Scan(&state); err != nil || state != "ISSUED" {
+				t.Fatalf("state=%s err=%v", state, err)
+			}
+		})
+	}
+}
+
 func TestNoGateFailureCreatesExecutionSideEffects(t *testing.T) {
 	f := newOrchestratorFixture(t)
 	f.executionAndAttempt(t)
 	f.request.AuthorizationEpoch++
-	_, _ = f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact, f.address, f.codeHash)
+	_, _ = f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact)
 	var permits, submissions int
 	f.store.db.QueryRow(`SELECT COUNT(*) FROM canary_send_permits`).Scan(&permits)
 	f.store.db.QueryRow(`SELECT COUNT(*) FROM transaction_submissions`).Scan(&submissions)
@@ -282,7 +350,7 @@ func TestGateSnapshotAndPermitAreAtomic(t *testing.T) {
 	if _, err := f.store.db.Exec(`CREATE TRIGGER test_reject_permit BEFORE INSERT ON canary_send_permits BEGIN SELECT RAISE(ABORT,'forced permit failure'); END`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact, f.address, f.codeHash); err == nil {
+	if _, err := f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact); err == nil {
 		t.Fatal("permit failure accepted")
 	}
 	var snapshots, permits int
@@ -296,14 +364,14 @@ func TestGateSnapshotAndPermitAreAtomic(t *testing.T) {
 func TestImmediateSnapshotFailureDoesNotConsumePermit(t *testing.T) {
 	f := newOrchestratorFixture(t)
 	f.executionAndAttempt(t)
-	first, err := f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact, f.address, f.codeHash)
+	first, err := f.orchestrator.FirstBroadcast(context.Background(), f.request, f.artifact)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err = f.store.db.Exec(`CREATE TRIGGER test_reject_presend_snapshot BEFORE INSERT ON canary_runtime_gate_snapshots WHEN NEW.stage='IMMEDIATE_PRE_SEND' BEGIN SELECT RAISE(ABORT,'forced snapshot failure'); END`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = f.orchestrator.ImmediatePreSend(context.Background(), f.request, first.PermitID, PermitFirstBroadcast, f.artifact, f.address, f.codeHash); err == nil {
+	if _, err = f.orchestrator.ImmediatePreSend(context.Background(), f.request, first.PermitID, PermitFirstBroadcast, f.artifact); err == nil {
 		t.Fatal("snapshot failure accepted")
 	}
 	var state string
@@ -320,7 +388,7 @@ func TestAuthorizationExpiryFailsClosedWhileRecoveryRemainsAvailable(t *testing.
 		t.Fatalf("%+v %v", d, err)
 	}
 	ready := f.orchestrator.Readiness(context.Background(), f.request)
-	if ready.CanaryAdmissionReady || !ready.RecoveryQueryAvailable || !ready.ReconciliationAvailable {
+	if ready.CanaryAdmissionReady || !ready.RecoveryQueryPolicyUnblocked || !ready.ReconciliationPolicyUnblocked {
 		t.Fatalf("%+v", ready)
 	}
 }

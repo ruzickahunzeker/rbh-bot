@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "9d449799daeb651562d25d13bc881517b3460c65",
+  "scope": "W2_POST_MERGE_HARDENING_ONLY",
+  "status": "W2_READY_FOR_REVIEW",
+  "review_state": "BLOCKED_PENDING_FRESH_REVIEW",
+  "closed_blockers": {
+    "runtime_identity_source": "IMMUTABLE_CANARY_ADMISSION_SOURCE_ONLY",
+    "c07_reservation_binding": "RESERVED_OR_FROZEN_ONLY",
+    "immediate_pre_send_recheck": "ATOMIC_WITH_PERMIT_CONSUMPTION",
+    "recovery_readiness_claim": "POLICY_UNBLOCKED_ONLY_NOT_HEALTH"
+  },
+  "assertions": {
+    "caller_supplied_runtime_identity_fields": 0,
+    "released_reservation_gate_passes": 0,
+    "committed_reservation_gate_passes": 0,
+    "emergency_stop_race_permit_consumptions": 0,
+    "authorization_revoke_race_permit_consumptions": 0,
+    "recovery_health_attested_by_w2": false,
+    "recovery_query_policy_unblocked": true,
+    "reconciliation_policy_unblocked": true
+  },
+  "prohibited_path_calls": {
+    "signer": 0,
+    "submission_service": 0,
+    "send_raw_transaction": 0,
+    "production_broadcast": 0,
+    "mainnet": 0,
+    "rebuild": 0,
+    "resign": 0,
+    "replacement": 0,
+    "fee_bump": 0,
+    "new_nonce": 0
+  },
+  "gate_status": {
+    "w1": "PASS",
+    "controlled_canary_wiring": "W2_READY_FOR_REVIEW",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}
