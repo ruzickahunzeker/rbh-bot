@@ -227,7 +227,7 @@ canary authorization, enable live or change release readiness.
 
 ## Controlled canary wiring W2
 
-W2 status: **W2_READY_FOR_REVIEW**. The controlled orchestrator implements five independently
+W2 status: **PASS** (`controlled_canary_wiring = W2_PASS`). The controlled orchestrator implements five independently
 persisted gates: execution admission, pre-sign, first broadcast, immediate pre-send and unknown
 replay. Authorization epoch/deployment/chain/wallet/policy, emergency stop, TTL, exact artifact
 identity and controlled contract runtime identity fail closed.
@@ -237,11 +237,15 @@ prior controlled tx/receipt/nonce query evidence and the original exact artifact
 Readiness separates new canary admission from recovery query/reconciliation availability.
 
 W2 contains no production broadcaster, signer or `SubmissionService` wiring and cannot call
-`SendRawTransaction` or mainnet. No controlled canary authorization is granted. W2 remains
-`READY_FOR_REVIEW`, not PASS; live and release readiness remain false.
+`SendRawTransaction` or mainnet. No controlled canary authorization is granted; live and release
+readiness remain false.
 
 Post-merge W2 hardening binds runtime verification to immutable admission source identity,
 requires a still-active C07 reservation, and performs the final mutable-control recheck in the
 same transaction that consumes the send permit. Recovery readiness is limited to
-`policy_unblocked`; W2 does not assert PR-006 recovery health. The result remains
-`W2_READY_FOR_REVIEW` pending a fresh independent review.
+`policy_unblocked`; W2 does not assert PR-006 recovery health.
+
+The independent review of `main@eb8b5d79af8a03b4bcdefdb4962edf585f6cc236` concluded PASS after
+PR #23 and PR #24 landed. GitHub CI #119 passed the full suite, including `go test -race ./...`.
+This formal closeout changes only W2 admission status; it does not authorize W3, broadcast,
+mainnet, controlled-canary execution, live or release readiness.
