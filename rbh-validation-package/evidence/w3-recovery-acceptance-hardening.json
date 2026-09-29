@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "2e040b2a0d94f57ef03f3e8887dc623ddc063665",
+  "scope": "W3_TESTS_AND_EVIDENCE_ONLY",
+  "status": "W3_READY_FOR_REVIEW",
+  "review_state": "BLOCKED_PENDING_FRESH_REVIEW",
+  "acceptance_evidence": {
+    "fence_pass_then_takeover_commit_window": {
+      "test": "TestRecoveryLeaseFenceCommitWindowSerializesTakeover",
+      "takeover_before_old_commit": 0,
+      "old_mutation_commit_before_takeover": "PASS",
+      "old_mutation_after_takeover": 0
+    },
+    "emergency_stop_broadcast_unknown": {
+      "test": "TestEmergencyStopBroadcastUnknownRemainsQueryOnlyAndFrozen",
+      "query_calls": 1,
+      "wallet_lane": "frozen",
+      "reservation": "frozen",
+      "submission": "broadcast_unknown",
+      "new_attempts": 0,
+      "new_submissions": 0,
+      "send_permit_consumptions": 0,
+      "nonce_changes": 0
+    }
+  },
+  "prohibited_path_calls": {
+    "signer": 0,
+    "submission_service_submit": 0,
+    "submission_service_replay_unknown": 0,
+    "send_raw_transaction": 0,
+    "production_broadcast": 0,
+    "mainnet": 0,
+    "new_nonce": 0
+  },
+  "gate_status": {
+    "w1": "PASS",
+    "w2": "PASS",
+    "controlled_canary_wiring": "W3_READY_FOR_REVIEW",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}

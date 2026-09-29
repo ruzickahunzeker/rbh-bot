@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"strconv"
 	"testing"
 	"time"
 
@@ -207,6 +208,74 @@ func TestControlledRecoveryEmergencyStopDoesNotBlockExistingRecovery(t *testing.
 	store.db.QueryRow(`SELECT COUNT(*) FROM position_effects WHERE attempt_id=? AND state='active'`, artifact.AttemptID).Scan(&effects)
 	if effects != 1 {
 		t.Fatalf("effects=%d", effects)
+	}
+}
+
+func TestRecoveryLeaseFenceCommitWindowSerializesTakeover(t *testing.T) {
+	store, _, _, artifact, _, closeDB := recoveryWorkerFixture(t, "submitted", nil)
+	defer closeDB()
+	now := fixedTime()
+	tx, err := store.db.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	oldFence := &RecoveryLeaseFence{Environment: "test", HolderID: "worker-1", Epoch: 1, clock: func() time.Time { return now }}
+	if err = assertRecoveryLeaseTx(context.Background(), tx, oldFence); err != nil {
+		t.Fatal(err)
+	}
+	takeoverDone := make(chan error, 1)
+	go func() {
+		takeoverDone <- store.AcquireCanaryWorkerLease(context.Background(), "RECOVERY", "test", "worker-2", 2, now.Add(3*time.Minute), now.Add(2*time.Minute))
+	}()
+	select {
+	case err = <-takeoverDone:
+		t.Fatalf("takeover crossed active fenced transaction: %v", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+	receiptID := deterministicID(artifact.AttemptID, "commit-window")
+	stamp := now.Format(time.RFC3339Nano)
+	if _, err = tx.Exec(`INSERT INTO receipt_observations(id,attempt_id,chain_id,tx_hash,block_number,block_hash,receipt_status,canonical_state,reconciliation_version,observed_at,updated_at) VALUES(?,?,4663,?,100,?,1,'observed',1,?,?)`, receiptID, artifact.AttemptID, artifact.TxHash, "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", stamp, stamp); err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if err = <-takeoverDone; err != nil {
+		t.Fatal(err)
+	}
+	var receipts int
+	store.db.QueryRow(`SELECT COUNT(*) FROM receipt_observations WHERE id=?`, receiptID).Scan(&receipts)
+	if receipts != 1 {
+		t.Fatalf("committed receipts=%d", receipts)
+	}
+	staleTx, err := store.db.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer staleTx.Rollback()
+	if err = assertRecoveryLeaseTx(context.Background(), staleTx, oldFence); !errors.Is(err, ErrCanaryRecoveryLeaseLost) {
+		t.Fatalf("old owner mutation fence err=%v", err)
+	}
+}
+
+func TestEmergencyStopBroadcastUnknownRemainsQueryOnlyAndFrozen(t *testing.T) {
+	store, worker, _, artifact, query, closeDB := recoveryWorkerFixture(t, "broadcast_unknown", nil)
+	defer closeDB()
+	seedCanary(t, store, 1)
+	if err := worker.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	var lane, reservation, submission, nonce string
+	var attempts, submissions, consumedPermits int
+	store.db.QueryRow(`SELECT state,reserved_nonce FROM execution_wallet_lanes WHERE wallet_id=?`, artifact.WalletID).Scan(&lane, &nonce)
+	store.db.QueryRow(`SELECT status FROM execution_reservations WHERE operation_id=?`, artifact.Operation).Scan(&reservation)
+	store.db.QueryRow(`SELECT state FROM transaction_submissions WHERE attempt_id=? ORDER BY sequence DESC LIMIT 1`, artifact.AttemptID).Scan(&submission)
+	store.db.QueryRow(`SELECT COUNT(*) FROM transaction_attempts WHERE step_id=?`, artifact.StepID).Scan(&attempts)
+	store.db.QueryRow(`SELECT COUNT(*) FROM transaction_submissions WHERE attempt_id=?`, artifact.AttemptID).Scan(&submissions)
+	store.db.QueryRow(`SELECT COUNT(*) FROM canary_send_permits WHERE state='CONSUMED'`).Scan(&consumedPermits)
+	if query.calls != 1 || lane != "frozen" || reservation != "frozen" || submission != "broadcast_unknown" || attempts != 1 || submissions != 1 || consumedPermits != 0 || nonce != strconv.FormatUint(artifact.Nonce, 10) {
+		t.Fatalf("queries=%d lane=%s reservation=%s submission=%s attempts=%d submissions=%d permits=%d nonce=%s", query.calls, lane, reservation, submission, attempts, submissions, consumedPermits, nonce)
 	}
 }
 
