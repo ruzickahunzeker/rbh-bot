@@ -12,7 +12,7 @@ func TestOpenMigrateAndValidateEveryOwner(t *testing.T) {
 	wantMigrations := map[Owner]int{
 		FeedOwner:  4,
 		BotOwner:   3,
-		TradeOwner: 10,
+		TradeOwner: 11,
 	}
 	for _, owner := range []Owner{FeedOwner, BotOwner, TradeOwner} {
 		t.Run(string(owner), func(t *testing.T) {
