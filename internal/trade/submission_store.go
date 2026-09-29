@@ -22,6 +22,12 @@ type ReceiptObservation struct {
 
 type PositionEffect struct{ ID, AttemptID, ReceiptID, WalletID, Asset, Delta, State string }
 
+type RecoveryLeaseFence struct {
+	Environment, HolderID string
+	Epoch                 uint64
+	clock                 func() time.Time
+}
+
 func (s *Store) BeginSubmission(ctx context.Context, a SignedArtifact, allowFrozen bool, now time.Time) (SubmissionRecord, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -99,6 +105,10 @@ func (s *Store) LatestSubmission(ctx context.Context, attempt string) (Submissio
 }
 
 func (s *Store) ObserveReceipt(ctx context.Context, a SignedArtifact, r ReceiptObservation, now time.Time) (ReceiptObservation, error) {
+	return s.ObserveReceiptFenced(ctx, a, r, now, nil)
+}
+
+func (s *Store) ObserveReceiptFenced(ctx context.Context, a SignedArtifact, r ReceiptObservation, now time.Time, lease *RecoveryLeaseFence) (ReceiptObservation, error) {
 	if r.TxHash != a.TxHash || r.BlockHash == "" || r.BlockNumber == 0 || r.Status > 1 {
 		return ReceiptObservation{}, ErrArtifactIntegrity
 	}
@@ -107,22 +117,34 @@ func (s *Store) ObserveReceipt(ctx context.Context, a SignedArtifact, r ReceiptO
 	r.CanonicalState = "observed"
 	r.Version = 1
 	stamp := now.UTC().Format(time.RFC3339Nano)
-	_, err := s.db.ExecContext(ctx, `INSERT INTO receipt_observations(id,attempt_id,chain_id,tx_hash,block_number,block_hash,receipt_status,canonical_state,reconciliation_version,observed_at,updated_at) VALUES(?,?,4663,?,?,?,?, 'observed',1,?,?) ON CONFLICT(attempt_id,block_hash) DO NOTHING`, r.ID, a.AttemptID, a.TxHash, r.BlockNumber, r.BlockHash, r.Status, stamp, stamp)
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return ReceiptObservation{}, err
+	}
+	defer tx.Rollback()
+	if err = assertRecoveryLeaseTx(ctx, tx, lease); err != nil {
+		return ReceiptObservation{}, err
+	}
+	_, err = tx.ExecContext(ctx, `INSERT INTO receipt_observations(id,attempt_id,chain_id,tx_hash,block_number,block_hash,receipt_status,canonical_state,reconciliation_version,observed_at,updated_at) VALUES(?,?,4663,?,?,?,?, 'observed',1,?,?) ON CONFLICT(attempt_id,block_hash) DO NOTHING`, r.ID, a.AttemptID, a.TxHash, r.BlockNumber, r.BlockHash, r.Status, stamp, stamp)
 	if err != nil {
 		return ReceiptObservation{}, err
 	}
 	var txHash, blockHash string
 	var blockNumber, status uint64
-	if err = s.db.QueryRowContext(ctx, `SELECT tx_hash,block_number,block_hash,receipt_status FROM receipt_observations WHERE id=?`, r.ID).Scan(&txHash, &blockNumber, &blockHash, &status); err != nil {
+	if err = tx.QueryRowContext(ctx, `SELECT tx_hash,block_number,block_hash,receipt_status FROM receipt_observations WHERE id=?`, r.ID).Scan(&txHash, &blockNumber, &blockHash, &status); err != nil {
 		return ReceiptObservation{}, err
 	}
 	if txHash != r.TxHash || blockNumber != r.BlockNumber || blockHash != r.BlockHash || status != r.Status {
 		return ReceiptObservation{}, ErrArtifactIntegrity
 	}
-	return r, nil
+	return r, tx.Commit()
 }
 
 func (s *Store) Canonicalize(ctx context.Context, a SignedArtifact, r ReceiptObservation, effect *PositionEffect, now time.Time) error {
+	return s.CanonicalizeFenced(ctx, a, r, effect, now, nil)
+}
+
+func (s *Store) CanonicalizeFenced(ctx context.Context, a SignedArtifact, r ReceiptObservation, effect *PositionEffect, now time.Time, lease *RecoveryLeaseFence) error {
 	state := "canonical_revert"
 	if r.Status == 1 {
 		state = "canonical_success"
@@ -135,6 +157,9 @@ func (s *Store) Canonicalize(ctx context.Context, a SignedArtifact, r ReceiptObs
 		return err
 	}
 	defer tx.Rollback()
+	if err = assertRecoveryLeaseTx(ctx, tx, lease); err != nil {
+		return err
+	}
 	stamp := now.UTC().Format(time.RFC3339Nano)
 	res, err := tx.ExecContext(ctx, `UPDATE receipt_observations SET canonical_state=?,reconciliation_version=reconciliation_version+1,updated_at=? WHERE id=? AND attempt_id=? AND canonical_state IN ('observed','orphaned')`, state, stamp, r.ID, a.AttemptID)
 	if err != nil {
@@ -202,11 +227,18 @@ func (s *Store) Canonicalize(ctx context.Context, a SignedArtifact, r ReceiptObs
 }
 
 func (s *Store) Orphan(ctx context.Context, a SignedArtifact, r ReceiptObservation, now time.Time) error {
+	return s.OrphanFenced(ctx, a, r, now, nil)
+}
+
+func (s *Store) OrphanFenced(ctx context.Context, a SignedArtifact, r ReceiptObservation, now time.Time, lease *RecoveryLeaseFence) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
+	if err = assertRecoveryLeaseTx(ctx, tx, lease); err != nil {
+		return err
+	}
 	stamp := now.UTC().Format(time.RFC3339Nano)
 	_, err = tx.ExecContext(ctx, `UPDATE receipt_observations SET canonical_state='orphaned',reconciliation_version=reconciliation_version+1,updated_at=? WHERE id=? AND canonical_state IN ('observed','canonical_success','canonical_revert')`, stamp, r.ID)
 	if err != nil {
@@ -256,6 +288,31 @@ func (s *Store) Orphan(ctx context.Context, a SignedArtifact, r ReceiptObservati
 	}
 	if s.recoveryHook != nil {
 		s.recoveryHook("after_reorg_rollback_commit")
+	}
+	return nil
+}
+
+func assertRecoveryLeaseTx(ctx context.Context, tx *sql.Tx, lease *RecoveryLeaseFence) error {
+	if lease == nil {
+		return nil
+	}
+	if lease.Environment == "" || lease.HolderID == "" || lease.Epoch == 0 {
+		return ErrCanaryRecoveryLeaseLost
+	}
+	now := time.Now().UTC()
+	if lease.clock != nil {
+		now = lease.clock().UTC()
+	}
+	if now.IsZero() {
+		return ErrCanaryRecoveryLeaseLost
+	}
+	var expires string
+	if err := tx.QueryRowContext(ctx, `SELECT expires_at FROM canary_worker_leases WHERE role='RECOVERY' AND environment=? AND holder_id=? AND lease_epoch=?`, lease.Environment, lease.HolderID, lease.Epoch).Scan(&expires); err != nil {
+		return ErrCanaryRecoveryLeaseLost
+	}
+	expiry, err := time.Parse(time.RFC3339Nano, expires)
+	if err != nil || !now.Before(expiry) {
+		return ErrCanaryRecoveryLeaseLost
 	}
 	return nil
 }

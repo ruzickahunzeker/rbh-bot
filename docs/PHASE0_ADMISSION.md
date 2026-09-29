@@ -262,3 +262,8 @@ cannot submit, replay, sign, allocate nonce, consume send permits or call `SendR
 Production broadcast remains disconnected, controlled-canary authorization remains ungranted,
 and live and release readiness remain false. W3 requires independent review and must not be
 interpreted as PASS.
+
+Post-merge W3 hardening moves RECOVERY lease verification into the same transaction as every
+durable receipt/canonical/orphan mutation, records durable audit/alert evidence on lease loss,
+and adds independent proof that emergency stop does not suppress recovery of an existing
+submitted transaction. The result remains `W3_READY_FOR_REVIEW`, not PASS.

@@ -37,6 +37,10 @@ type ControlledRecoveryWorker struct {
 	beforeReconcileForTest         func(ControlledRecoveryItem)
 }
 
+func (w *ControlledRecoveryWorker) leaseFence() RecoveryLeaseFence {
+	return RecoveryLeaseFence{Environment: w.environment, HolderID: w.holder, Epoch: w.epoch, clock: w.now}
+}
+
 func NewControlledRecoveryWorker(store *Store, recovery *RecoveryService, querier ControlledRecoveryQuerier, environment, holder string, epoch uint64) (*ControlledRecoveryWorker, error) {
 	if store == nil || recovery == nil || querier == nil || environment == "" || holder == "" || epoch == 0 {
 		return nil, ErrInvalidRequest
@@ -77,7 +81,7 @@ func (w *ControlledRecoveryWorker) Run(ctx context.Context, interval time.Durati
 // signs, allocates a nonce, consumes a send permit, or releases ambiguity.
 func (w *ControlledRecoveryWorker) RunOnce(ctx context.Context) error {
 	if err := w.fence(ctx); err != nil {
-		return err
+		return w.alert(ctx, ControlledRecoveryItem{}, "RECOVERY_LEASE_LOST", "CRITICAL", err)
 	}
 	items, err := w.store.ListControlledRecoveryItems(ctx)
 	if err != nil {
@@ -85,6 +89,9 @@ func (w *ControlledRecoveryWorker) RunOnce(ctx context.Context) error {
 	}
 	for _, item := range items {
 		if err = w.process(ctx, item); err != nil {
+			if errors.Is(err, ErrCanaryRecoveryLeaseLost) {
+				return w.alert(ctx, item, "RECOVERY_LEASE_LOST", "CRITICAL", err)
+			}
 			return err
 		}
 	}
@@ -134,7 +141,7 @@ func (w *ControlledRecoveryWorker) process(ctx context.Context, item ControlledR
 	if w.beforeReconcileForTest != nil {
 		w.beforeReconcileForTest(item)
 	}
-	if err := w.recovery.ReconcileWithFence(ctx, item.OperationID, w.fence); err != nil {
+	if err := w.recovery.ReconcileWithLease(ctx, item.OperationID, w.leaseFence); err != nil {
 		if expectedReceipt && errors.Is(err, ErrReceiptPending) {
 			return w.alert(ctx, item, "RECOVERY_EVIDENCE_CONTRADICTORY", "CRITICAL", err)
 		}
@@ -147,7 +154,7 @@ func (w *ControlledRecoveryWorker) process(ctx context.Context, item ControlledR
 		return w.alert(ctx, item, "RECOVERY_OBSERVATION_SCAN_FAILED", "WARNING", err)
 	}
 	for _, observation := range observations {
-		if err = w.recovery.CheckReorgWithFence(ctx, item.OperationID, observation, w.fence); err != nil {
+		if err = w.recovery.CheckReorgWithLease(ctx, item.OperationID, observation, w.leaseFence); err != nil {
 			return w.alert(ctx, item, "RECOVERY_REORG_CHECK_FAILED", "CRITICAL", err)
 		}
 	}
