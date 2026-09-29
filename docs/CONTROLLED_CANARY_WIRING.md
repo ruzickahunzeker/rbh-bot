@@ -160,12 +160,23 @@ keeps the same recovery state machine and closes them without entering W4:
 - an independent emergency-stop harness proves that stop blocks new economic action but does not
   block receipt/canonical recovery for an existing submitted transaction.
 
-W3 remains `W3_READY_FOR_REVIEW` pending a fresh independent review.
+### W3 independent review closeout
+
+The independent review of `main@26b56c411f96ef2e24c5d785e2c34b66fbad28df` concluded PASS after
+PR #26, PR #27 and PR #28 landed. GitHub CI #132 passed. The review verified the recovery lease
+commit-window evidence and the emergency-stop plus `broadcast_unknown` query-only/frozen
+evidence. The worker remains unable to sign, submit, replay, allocate a nonce, consume a send
+permit, call `SendRawTransaction`, reach a production broadcaster or contact mainnet.
+
+W3 PASS records only the controlled recovery worker and lifecycle. It does not connect production
+startup or broadcast, grant controlled-canary authorization, enable live, change release
+readiness or begin W4.
 
 ```ini
 W1 = PASS
 W2 = PASS
-controlled_canary_wiring = W3_READY_FOR_REVIEW
+W3 = PASS
+controlled_canary_wiring = W3_PASS
 production_broadcast = NOT_CONNECTED
 controlled_canary_authorization = NOT_GRANTED
 live = false

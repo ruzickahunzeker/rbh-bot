@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "reviewed_main_sha": "26b56c411f96ef2e24c5d785e2c34b66fbad28df",
+  "review_conclusion": "PASS",
+  "w3_status": "PASS",
+  "controlled_canary_wiring": "W3_PASS",
+  "landed_pull_requests": [26, 27, 28],
+  "ci": {
+    "run": 132,
+    "status": "SUCCESS"
+  },
+  "assertions": {
+    "recovery_lease_commit_window": "PASS",
+    "emergency_stop_broadcast_unknown_query_only_frozen": "PASS",
+    "wallet_lane_remains_frozen": "PASS",
+    "reservation_remains_frozen": "PASS"
+  },
+  "prohibited_path_calls": {
+    "signer": 0,
+    "submission_service_submit": 0,
+    "submission_service_replay_unknown": 0,
+    "send_raw_transaction": 0,
+    "production_broadcast": 0,
+    "mainnet": 0,
+    "new_nonce": 0
+  },
+  "gate_status": {
+    "w1": "PASS",
+    "w2": "PASS",
+    "w3": "PASS",
+    "c04": "PASS",
+    "c05": "PASS",
+    "c07": "PASS",
+    "c08": "PASS",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}

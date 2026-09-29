@@ -252,7 +252,7 @@ mainnet, controlled-canary execution, live or release readiness.
 
 ## Controlled canary wiring W3
 
-W3 status: **W3_READY_FOR_REVIEW**. The controlled recovery worker discovers durable submitted
+W3 status: **PASS** (`controlled_canary_wiring = W3_PASS`). The controlled recovery worker discovers durable submitted
 and ambiguous work, enforces the existing `RECOVERY` lease, persists immutable query evidence,
 and reuses PR-006 canonical/reorg reconciliation. It does not define a second transaction state
 machine.
@@ -260,10 +260,17 @@ machine.
 W3 is a controlled/local harness lifecycle only. It is not connected to production startup and
 cannot submit, replay, sign, allocate nonce, consume send permits or call `SendRawTransaction`.
 Production broadcast remains disconnected, controlled-canary authorization remains ungranted,
-and live and release readiness remain false. W3 requires independent review and must not be
-interpreted as PASS.
+and live and release readiness remain false.
 
 Post-merge W3 hardening moves RECOVERY lease verification into the same transaction as every
 durable receipt/canonical/orphan mutation, records durable audit/alert evidence on lease loss,
 and adds independent proof that emergency stop does not suppress recovery of an existing
-submitted transaction. The result remains `W3_READY_FOR_REVIEW`, not PASS.
+submitted transaction.
+
+The independent review of `main@26b56c411f96ef2e24c5d785e2c34b66fbad28df` concluded PASS after
+PR #26, PR #27 and PR #28 landed. GitHub CI #132 passed. The final acceptance evidence verifies
+the lease fence/takeover commit window and proves that emergency stop leaves an ambiguous
+`broadcast_unknown` transaction queryable while its lane and reservation remain frozen and all
+sign/send/replay/nonce-allocation paths remain at zero. This formal closeout does not connect
+production startup or broadcast, grant canary authorization, enable live, alter release readiness
+or begin W4.
