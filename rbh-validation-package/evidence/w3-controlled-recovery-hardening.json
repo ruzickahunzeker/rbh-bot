@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "3dfd3a11921d07b89a4bc944825fc0fff73f3212",
+  "scope": "W3_POST_MERGE_HARDENING_ONLY",
+  "status": "W3_READY_FOR_REVIEW",
+  "review_state": "BLOCKED_PENDING_FRESH_REVIEW",
+  "closed_blockers": {
+    "receipt_observation_lease_fence": "SAME_SQLITE_TRANSACTION",
+    "canonical_apply_lease_fence": "SAME_SQLITE_TRANSACTION",
+    "orphan_rollback_lease_fence": "SAME_SQLITE_TRANSACTION",
+    "lease_loss_audit_alert": "DURABLE",
+    "emergency_stop_existing_recovery": "PASS"
+  },
+  "assertions": {
+    "stale_owner_receipt_observations": 0,
+    "stale_owner_position_effects": 0,
+    "lease_loss_audit_present": true,
+    "lease_loss_alert_present": true,
+    "emergency_stop_canonical_recovery": "PASS",
+    "emergency_stop_position_effect_exactly_once": "PASS"
+  },
+  "prohibited_path_calls": {
+    "submission_service_submit": 0,
+    "submission_service_replay_unknown": 0,
+    "send_raw_transaction": 0,
+    "signer": 0,
+    "production_broadcast": 0,
+    "mainnet": 0,
+    "new_nonce": 0
+  },
+  "gate_status": {
+    "w1": "PASS",
+    "w2": "PASS",
+    "controlled_canary_wiring": "W3_READY_FOR_REVIEW",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}

@@ -45,13 +45,16 @@ func NewRecoveryService(store *Store, kernel *ExecutionKernel, b ReceiptBackend,
 }
 
 func (s *RecoveryService) Reconcile(ctx context.Context, operation string) error {
-	return s.ReconcileWithFence(ctx, operation, nil)
+	return s.reconcile(ctx, operation, nil)
 }
 
-// ReconcileWithFence preserves the existing recovery state machine while
-// allowing a controlled worker to prove lease ownership immediately before
-// durable receipt observation and canonical mutation.
-func (s *RecoveryService) ReconcileWithFence(ctx context.Context, operation string, fence func(context.Context) error) error {
+// ReconcileWithLease preserves the existing recovery state machine while
+// fencing every durable mutation in that mutation's SQLite transaction.
+func (s *RecoveryService) ReconcileWithLease(ctx context.Context, operation string, lease func() RecoveryLeaseFence) error {
+	return s.reconcile(ctx, operation, lease)
+}
+
+func (s *RecoveryService) reconcile(ctx context.Context, operation string, lease func() RecoveryLeaseFence) error {
 	stored, found, err := s.store.LoadEncryptedArtifact(ctx, operation)
 	if err != nil || !found {
 		return ErrArtifactIntegrity
@@ -74,12 +77,12 @@ func (s *RecoveryService) ReconcileWithFence(ctx context.Context, operation stri
 	if receipt.BlockNumber == nil {
 		return ErrNotCanonical
 	}
-	if fence != nil {
-		if err = fence(ctx); err != nil {
-			return err
-		}
+	var leaseValue *RecoveryLeaseFence
+	if lease != nil {
+		v := lease()
+		leaseValue = &v
 	}
-	observation, err := s.store.ObserveReceipt(ctx, stored.SignedArtifact, ReceiptObservation{TxHash: stored.TxHash, BlockNumber: receipt.BlockNumber.Uint64(), BlockHash: receipt.BlockHash.Hex(), Status: receipt.Status}, s.now())
+	observation, err := s.store.ObserveReceiptFenced(ctx, stored.SignedArtifact, ReceiptObservation{TxHash: stored.TxHash, BlockNumber: receipt.BlockNumber.Uint64(), BlockHash: receipt.BlockHash.Hex(), Status: receipt.Status}, s.now(), leaseValue)
 	if err != nil {
 		return err
 	}
@@ -97,11 +100,6 @@ func (s *RecoveryService) ReconcileWithFence(ctx context.Context, operation stri
 	if !s.policy.Confirm(latest.Number.Uint64(), receipt.BlockNumber.Uint64(), receipt.BlockHash, canonical.Hash()) {
 		return ErrNotCanonical
 	}
-	if fence != nil {
-		if err = fence(ctx); err != nil {
-			return err
-		}
-	}
 	var effect *PositionEffect
 	if receipt.Status == types.ReceiptStatusSuccessful {
 		resolved, e := s.resolver.ResolvePositionEffect(ctx, stored.SignedArtifact, receipt)
@@ -110,14 +108,22 @@ func (s *RecoveryService) ReconcileWithFence(ctx context.Context, operation stri
 		}
 		effect = &resolved
 	}
-	return s.store.Canonicalize(ctx, stored.SignedArtifact, observation, effect, s.now())
+	if lease != nil {
+		v := lease()
+		leaseValue = &v
+	}
+	return s.store.CanonicalizeFenced(ctx, stored.SignedArtifact, observation, effect, s.now(), leaseValue)
 }
 
 func (s *RecoveryService) CheckReorg(ctx context.Context, operation string, observation ReceiptObservation) error {
-	return s.CheckReorgWithFence(ctx, operation, observation, nil)
+	return s.checkReorg(ctx, operation, observation, nil)
 }
 
-func (s *RecoveryService) CheckReorgWithFence(ctx context.Context, operation string, observation ReceiptObservation, fence func(context.Context) error) error {
+func (s *RecoveryService) CheckReorgWithLease(ctx context.Context, operation string, observation ReceiptObservation, lease func() RecoveryLeaseFence) error {
+	return s.checkReorg(ctx, operation, observation, lease)
+}
+
+func (s *RecoveryService) checkReorg(ctx context.Context, operation string, observation ReceiptObservation, lease func() RecoveryLeaseFence) error {
 	stored, found, err := s.store.LoadEncryptedArtifact(ctx, operation)
 	if err != nil || !found {
 		return ErrArtifactIntegrity
@@ -129,12 +135,12 @@ func (s *RecoveryService) CheckReorgWithFence(ctx context.Context, operation str
 	if header.Hash().Hex() == observation.BlockHash {
 		return nil
 	}
-	if fence != nil {
-		if err = fence(ctx); err != nil {
-			return err
-		}
+	var leaseValue *RecoveryLeaseFence
+	if lease != nil {
+		v := lease()
+		leaseValue = &v
 	}
-	return s.store.Orphan(ctx, stored.SignedArtifact, observation, s.now())
+	return s.store.OrphanFenced(ctx, stored.SignedArtifact, observation, s.now(), leaseValue)
 }
 
 func (b *RPCBackend) TransactionReceipt(ctx context.Context, hash common.Hash) (*types.Receipt, error) {

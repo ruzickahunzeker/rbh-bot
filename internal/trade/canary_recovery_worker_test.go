@@ -196,6 +196,20 @@ func TestControlledRecoveryIgnoresExpiredEconomicControlsForExistingSubmission(t
 	}
 }
 
+func TestControlledRecoveryEmergencyStopDoesNotBlockExistingRecovery(t *testing.T) {
+	store, worker, _, artifact, _, closeDB := recoveryWorkerFixture(t, "submitted", &types.Receipt{Status: 1})
+	defer closeDB()
+	seedCanary(t, store, 1)
+	if err := worker.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	var effects int
+	store.db.QueryRow(`SELECT COUNT(*) FROM position_effects WHERE attempt_id=? AND state='active'`, artifact.AttemptID).Scan(&effects)
+	if effects != 1 {
+		t.Fatalf("effects=%d", effects)
+	}
+}
+
 func TestControlledRecoveryLeaseFenceAndTakeover(t *testing.T) {
 	store, worker, _, _, query, closeDB := recoveryWorkerFixture(t, "broadcast_unknown", nil)
 	defer closeDB()
@@ -216,6 +230,11 @@ func TestControlledRecoveryLeaseFenceAndTakeover(t *testing.T) {
 	if err := worker.RunOnce(context.Background()); !errors.Is(err, ErrCanaryRecoveryLeaseLost) || query.calls != 0 {
 		t.Fatalf("stale worker err=%v calls=%d", err, query.calls)
 	}
+	var leaseAlerts int
+	store.db.QueryRow(`SELECT COUNT(*) FROM canary_runtime_audit WHERE reason_code='RECOVERY_LEASE_LOST'`).Scan(&leaseAlerts)
+	if leaseAlerts != 2 {
+		t.Fatalf("lease alerts=%d", leaseAlerts)
+	}
 }
 
 func TestControlledRecoveryLeaseLossBeforeCanonicalMutation(t *testing.T) {
@@ -232,6 +251,12 @@ func TestControlledRecoveryLeaseLossBeforeCanonicalMutation(t *testing.T) {
 	store.db.QueryRow(`SELECT COUNT(*) FROM position_effects WHERE attempt_id=?`, artifact.AttemptID).Scan(&effects)
 	if effects != 0 {
 		t.Fatalf("effects=%d", effects)
+	}
+	var observations, alerts int
+	store.db.QueryRow(`SELECT COUNT(*) FROM receipt_observations WHERE attempt_id=?`, artifact.AttemptID).Scan(&observations)
+	store.db.QueryRow(`SELECT COUNT(*) FROM canary_runtime_audit WHERE reason_code='RECOVERY_LEASE_LOST'`).Scan(&alerts)
+	if observations != 0 || alerts != 1 {
+		t.Fatalf("observations=%d alerts=%d", observations, alerts)
 	}
 }
 

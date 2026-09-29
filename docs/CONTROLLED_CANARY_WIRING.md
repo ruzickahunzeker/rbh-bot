@@ -148,6 +148,20 @@ W3 is not wired into `cmd/trade-service` or production startup. Its lifecycle is
 only and drains an in-progress durable scan before shutdown; restart rediscovers work from the
 database.
 
+### W3 post-merge hardening
+
+The first independent review identified three residual evidence/safety gaps. The hardening slice
+keeps the same recovery state machine and closes them without entering W4:
+
+- the RECOVERY lease is now verified inside the same SQLite transaction as receipt observation,
+  canonical apply and orphan rollback, removing the pre-mutation lease TOCTOU;
+- every observed lease-loss path emits durable `RECOVERY_LEASE_LOST` runtime audit and alert
+  evidence while leaving the durable recovery item untouched;
+- an independent emergency-stop harness proves that stop blocks new economic action but does not
+  block receipt/canonical recovery for an existing submitted transaction.
+
+W3 remains `W3_READY_FOR_REVIEW` pending a fresh independent review.
+
 ```ini
 W1 = PASS
 W2 = PASS
