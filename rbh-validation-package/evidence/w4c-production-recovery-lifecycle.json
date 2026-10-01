@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "5e45e8ca070e291b786a9d376d6ff623b3dae78a",
+  "scope": "W4_C_PRODUCTION_RECOVERY_LIFECYCLE",
+  "status": "W4-C_READY_FOR_REVIEW",
+  "review_state": "PENDING_INDEPENDENT_REVIEW",
+  "acceptance_evidence": {
+    "production_without_authorization": "TestW4CProductionRecoveryRunsWithoutAuthorizationOrSendReadiness",
+    "submitted_without_authorization_or_permit": "TestW4CSubmittedRecoveryDoesNotRequireAuthorizationOrQueryPermit",
+    "emergency_stop_recovery_unblocked": "TestW4CProductionRecoveryRunsWithoutAuthorizationOrSendReadiness",
+    "durable_sqlite_rediscovery": "TestW4CShutdownDrainsCurrentRecoveryAndRestartRediscovers",
+    "shutdown_drain": "TestW4CShutdownDrainsCurrentRecoveryAndRestartRediscovers",
+    "recovery_submission_lease_independence": "TestW4CRecoveryAndSubmissionLeasesAreIndependent",
+    "stale_owner_fenced_after_takeover": "TestW4CRecoveryLeaseTakeoverFencesStaleProductionOwner",
+    "rpc_failure_readiness_and_alert": "TestW4CRPCFailureDropsReadinessAndCreatesDurableAlert",
+    "startup_health_failure_readiness_and_alert": "TestW4CStartupHealthFailureIsNotReadyAndAudited",
+    "read_only_rpc_no_send": "TestW4CReadOnlyRecoveryRPCQueriesWithoutSendReachability",
+    "pons_v2_canonical_effect": "TestPonsCurveEffectResolverDerivesCanonicalBuyEffect",
+    "w3_lease_and_crash_invariants": "existing ControlledRecoveryWorker acceptance suite"
+  },
+  "readiness": {
+    "canary_admission_ready": false,
+    "submission_send_ready": false,
+    "recovery_ready": "DB_RPC_LEASE_HEALTH_DEPENDENT",
+    "recovery_depends_on_authorization": false,
+    "recovery_depends_on_emergency_stop_false": false
+  },
+  "dependency_proof": {
+    "worker": "ControlledRecoveryWorker",
+    "state_machine": "Operation->ExecutionStep->TransactionAttempt->transaction_submissions->receipt/canonical effects",
+    "discovery": "SQLITE_SUBMITTED_AND_BROADCAST_UNKNOWN",
+    "rpc": "ReadOnlyRecoveryRPC",
+    "signer_dependency": false,
+    "submission_service_dependency": false,
+    "raw_broadcaster_dependency": false,
+    "send_raw_transaction_method": false,
+    "send_permit_dependency": false,
+    "nonce_allocator_dependency": false
+  },
+  "prohibited_path_counts": {
+    "signer_calls": 0,
+    "submission_service_calls": 0,
+    "send_raw_transaction_calls": 0,
+    "mainnet_sends": 0,
+    "send_permit_issuance_or_consumption": 0,
+    "rebuild": 0,
+    "resign": 0,
+    "replacement": 0,
+    "fee_bump": 0,
+    "new_nonce": 0,
+    "w4_b_semantics_changes": 0
+  },
+  "gate_status": {
+    "w1": "PASS",
+    "w2": "PASS",
+    "w3": "PASS",
+    "w4_b": "PASS",
+    "controlled_canary_wiring": "W4-C_READY_FOR_REVIEW",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "w4_d": "NOT_ENTERED",
+    "w5": "NOT_ENTERED"
+  }
+}

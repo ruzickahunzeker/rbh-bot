@@ -341,7 +341,7 @@ func TestControlledRecoveryRestartAfterLeaseLossRediscoversDurableWork(t *testin
 	if err := store.AcquireCanaryWorkerLease(context.Background(), "RECOVERY", "test", "worker-2", 2, now.Add(3*time.Minute), now.Add(2*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
-	recovery, _ := NewRecoveryService(store, worker.recovery.kernel, backend, fakeEffectResolver{}, CanonicalPolicy{})
+	recovery, _ := NewRecoveryServiceWithCipher(store, worker.recovery.cipher, backend, fakeEffectResolver{}, CanonicalPolicy{})
 	restarted, _ := NewControlledRecoveryWorker(store, recovery, query, "test", "worker-2", 2)
 	restarted.now = func() time.Time { return now.Add(2 * time.Minute) }
 	if err := restarted.RunOnce(context.Background()); err != nil {

@@ -259,15 +259,67 @@ exact same raw bytes. It cannot rebuild, resign, replace, fee-bump or allocate a
 
 W4-B remains a controlled local harness and is not installed in production startup. W4-A remains
 disabled, production broadcast remains disconnected, and no runtime authorization is granted.
-The landed implementation remains pending a fresh independent review after this hardening slice.
+The revised ambiguity semantics passed fresh independent review and landed before W4-C began.
 
 ```ini
 W1 = PASS
 W2 = PASS
 W3 = PASS
-controlled_canary_wiring = W4-B_READY_FOR_REVIEW
+W4-B = PASS
 production_broadcast = NOT_CONNECTED
 controlled_canary_authorization = NOT_GRANTED
 live = false
 release_ready = false
+```
+
+## W4-C production recovery lifecycle
+
+W4-C connects the existing W3 `ControlledRecoveryWorker` to the production trade-service
+lifecycle without connecting submission or broadcast. Startup acquires only the durable
+`RECOVERY` lease with a monotonic epoch. The worker discovers the latest `submitted` and
+`broadcast_unknown` transaction submissions directly from SQLite; it has no in-memory work queue.
+Lease renewal, takeover fencing, durable evidence, audits and alerts continue to use the existing
+W1/W3 state and do not introduce a second recovery state machine.
+
+The production recovery dependency graph is deliberately read-only:
+
+```text
+ProductionComposition
+  -> ControlledRecoveryWorker
+     -> RecoveryService(Store, ArtifactCipher, ReceiptBackend, EffectResolver)
+     -> ProductionRecoveryQuerier(Store, ArtifactCipher, ReadOnlyRecoveryRPC)
+```
+
+`ReadOnlyRecoveryRPC` exposes transaction, receipt, nonce and header queries plus chain health. It
+does not implement `RawBroadcaster` or expose `SendRawTransaction`. Recovery does not hold a
+signer, `ExecutionKernel`, `SubmissionService`, send permit issuer/consumer, or nonce allocator.
+Successful Pons v2 Curve receipts derive their position effect from the canonical curve event
+bound to the durable route; missing, contradictory or unverifiable events fail closed.
+
+`recovery_ready` is independent from admission and send readiness. It requires database health,
+read-only RPC chain health and a valid `RECOVERY` lease. Emergency stop, absent/revoked/expired
+authorization, deployment drift and application TTL do not policy-block recovery of existing
+durable work. Admission and submission remain false. RPC/query failure or lease loss drops
+recovery readiness and emits durable audit/alert evidence.
+
+Shutdown stops new scans and drains the current fenced scan while continuing lease renewal. Work
+not completed before a fault remains in SQLite and is rediscovered after lease expiry/takeover.
+`broadcast_unknown` remains frozen and recovery never rebuilds, resigns, replaces, fee-bumps,
+allocates a nonce, consumes a send permit or automatically resends.
+
+```ini
+W1 = PASS
+W2 = PASS
+W3 = PASS
+W4-B = PASS
+controlled_canary_wiring = W4-C_READY_FOR_REVIEW
+production_broadcast = NOT_CONNECTED
+controlled_canary_authorization = NOT_GRANTED
+canary_admission_ready = false
+submission_send_ready = false
+recovery_ready = health-dependent
+live = false
+release_ready = false
+W4-D = NOT_ENTERED
+W5 = NOT_ENTERED
 ```
