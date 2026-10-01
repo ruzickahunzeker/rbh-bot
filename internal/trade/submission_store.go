@@ -28,6 +28,12 @@ type RecoveryLeaseFence struct {
 	clock                 func() time.Time
 }
 
+type SubmissionLeaseFence struct {
+	Environment, HolderID string
+	Epoch                 uint64
+	clock                 func() time.Time
+}
+
 func (s *Store) BeginSubmission(ctx context.Context, a SignedArtifact, allowFrozen bool, now time.Time) (SubmissionRecord, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -55,7 +61,7 @@ func (s *Store) BeginSubmission(ctx context.Context, a SignedArtifact, allowFroz
 }
 
 func (s *Store) FinishSubmission(ctx context.Context, a SignedArtifact, sub SubmissionRecord, state, rpcHash, class, detail string, now time.Time) error {
-	if state != "submitted" && state != "broadcast_unknown" && state != "manual_resolution" && state != "expired_prebroadcast" {
+	if state != "submitted" && state != "broadcast_unknown" && state != "manual_resolution" && state != "expired_prebroadcast" && state != "known_unsent" {
 		return ErrInvalidRequest
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -76,6 +82,27 @@ func (s *Store) FinishSubmission(ctx context.Context, a SignedArtifact, sub Subm
 		// A replay attempt can expire after its durable pre-send row is created.
 		// The prior ambiguous submission remains authoritative, so the wallet and
 		// reservation stay frozen and no artifact state is released.
+		return tx.Commit()
+	}
+	if state == "known_unsent" {
+		if _, err = tx.ExecContext(ctx, `UPDATE execution_wallet_lanes SET state='idle',operation_id=NULL,step_id=NULL,reserved_nonce=NULL,freeze_reason='known_unsent',updated_at=? WHERE wallet_id=? AND operation_id=?`, stamp, a.WalletID, a.Operation); err != nil {
+			return err
+		}
+		if _, err = tx.ExecContext(ctx, `UPDATE execution_reservations SET status='released',updated_at=? WHERE operation_id=?`, stamp, a.Operation); err != nil {
+			return err
+		}
+		if _, err = tx.ExecContext(ctx, `UPDATE canary_risk_reservations SET state='released',updated_at=? WHERE operation_id=? AND state='reserved'`, stamp, a.Operation); err != nil {
+			return err
+		}
+		if _, err = tx.ExecContext(ctx, `UPDATE transaction_attempts SET status='known_unsent',updated_at=? WHERE id=?`, stamp, a.AttemptID); err != nil {
+			return err
+		}
+		if _, err = tx.ExecContext(ctx, `UPDATE execution_steps SET status='known_unsent',updated_at=? WHERE id=?`, stamp, a.StepID); err != nil {
+			return err
+		}
+		if _, err = tx.ExecContext(ctx, `UPDATE operations SET status='known_unsent',failure_code=?,updated_at=? WHERE id=?`, class, stamp, a.Operation); err != nil {
+			return err
+		}
 		return tx.Commit()
 	}
 	if state == "broadcast_unknown" || state == "manual_resolution" {
@@ -313,6 +340,31 @@ func assertRecoveryLeaseTx(ctx context.Context, tx *sql.Tx, lease *RecoveryLease
 	expiry, err := time.Parse(time.RFC3339Nano, expires)
 	if err != nil || !now.Before(expiry) {
 		return ErrCanaryRecoveryLeaseLost
+	}
+	return nil
+}
+
+func assertSubmissionLeaseTx(ctx context.Context, tx *sql.Tx, lease SubmissionLeaseFence) error {
+	if lease.Environment == "" || lease.HolderID == "" || lease.Epoch == 0 {
+		return ErrCanarySubmissionLeaseLost
+	}
+	now := time.Now().UTC()
+	if lease.clock != nil {
+		now = lease.clock().UTC()
+	}
+	// Acquire SQLite's writer lock before checking the lease. A takeover cannot
+	// commit between this fence and the controlled send/outcome transaction.
+	_, err := tx.ExecContext(ctx, `UPDATE canary_worker_leases SET updated_at=? WHERE role='SUBMISSION' AND environment=? AND holder_id=? AND lease_epoch=?`, now.Format(time.RFC3339Nano), lease.Environment, lease.HolderID, lease.Epoch)
+	if err != nil {
+		return ErrCanarySubmissionLeaseLost
+	}
+	var expires string
+	if err := tx.QueryRowContext(ctx, `SELECT expires_at FROM canary_worker_leases WHERE role='SUBMISSION' AND environment=? AND holder_id=? AND lease_epoch=?`, lease.Environment, lease.HolderID, lease.Epoch).Scan(&expires); err != nil {
+		return ErrCanarySubmissionLeaseLost
+	}
+	expiry, err := time.Parse(time.RFC3339Nano, expires)
+	if err != nil || !now.Before(expiry) {
+		return ErrCanarySubmissionLeaseLost
 	}
 	return nil
 }

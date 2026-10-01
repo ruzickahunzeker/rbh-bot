@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "5ead67d457c47efd7ae123256b81d9b6b47572f4",
+  "scope": "W4_B_CONTROLLED_SUBMISSION_WORKER_AND_LEASE_FENCING",
+  "status": "W4-B_READY_FOR_REVIEW",
+  "assertions": {
+    "durable_issued_permit_discovery": "PASS",
+    "w2_gate_chain_required": "PASS",
+    "submission_lease_final_fence": "PASS",
+    "mutable_control_recheck": "PASS",
+    "permit_consumption_and_submitting_atomic": "PASS",
+    "send_outcome_commit_window_serialized": "PASS",
+    "first_broadcast_exactly_once": "PASS",
+    "duplicate_workers_single_send": "PASS",
+    "lease_takeover_serialized": "PASS",
+    "emergency_stop_serialized": "PASS",
+    "deterministic_rejection": "KNOWN_UNSENT",
+    "ambiguous_transport": "BROADCAST_UNKNOWN_FROZEN",
+    "restart_inflight": "BROADCAST_UNKNOWN_FROZEN",
+    "unknown_replay_exact_artifact": "PASS",
+    "unknown_replay_fresh_permit": "PASS"
+  },
+  "prohibited_path_counts": {
+    "production_startup_wiring": 0,
+    "production_broadcaster": 0,
+    "mainnet": 0,
+    "authorization_grant": 0,
+    "rebuild": 0,
+    "resign": 0,
+    "replacement": 0,
+    "fee_bump": 0,
+    "new_nonce": 0
+  },
+  "gate_status": {
+    "w1": "PASS",
+    "w2": "PASS",
+    "w3": "PASS",
+    "controlled_canary_wiring": "W4-B_READY_FOR_REVIEW",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}

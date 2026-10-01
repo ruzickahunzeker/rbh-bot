@@ -15,13 +15,17 @@ import (
 )
 
 type fakeBroadcaster struct {
-	hash  string
-	err   error
-	calls int
-	raws  [][]byte
+	hash   string
+	err    error
+	calls  int
+	raws   [][]byte
+	before func()
 }
 
 func (f *fakeBroadcaster) SendRawTransaction(_ context.Context, raw []byte) (string, error) {
+	if f.before != nil {
+		f.before()
+	}
 	f.calls++
 	f.raws = append(f.raws, append([]byte(nil), raw...))
 	return f.hash, f.err

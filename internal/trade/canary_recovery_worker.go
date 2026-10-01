@@ -180,7 +180,7 @@ func (w *ControlledRecoveryWorker) alert(ctx context.Context, item ControlledRec
 }
 
 func (s *Store) ValidateCanaryWorkerLease(ctx context.Context, role, environment, holder string, epoch uint64, now time.Time) error {
-	if s == nil || s.db == nil || ctx == nil || role != "RECOVERY" || environment == "" || holder == "" || epoch == 0 || now.IsZero() {
+	if s == nil || s.db == nil || ctx == nil || (role != "RECOVERY" && role != "SUBMISSION") || environment == "" || holder == "" || epoch == 0 || now.IsZero() {
 		return ErrCanaryRecoveryLeaseLost
 	}
 	var expires string
