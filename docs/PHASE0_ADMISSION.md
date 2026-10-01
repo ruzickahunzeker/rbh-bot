@@ -274,3 +274,15 @@ the lease fence/takeover commit window and proves that emergency stop leaves an 
 sign/send/replay/nonce-allocation paths remain at zero. This formal closeout does not connect
 production startup or broadcast, grant canary authorization, enable live, alter release readiness
 or begin W4.
+
+## Controlled canary wiring W4-A
+
+W4-A status: **W4-A_READY_FOR_REVIEW**. `trade-service` now constructs a disabled production
+composition boundary. Its mode defaults to and only accepts `DISABLED`; attempted enablement fails
+closed. Startup records durable disabled-state evidence and reports independent admission,
+submission-send, and recovery readiness, all false at this slice boundary.
+
+W4-A does not construct or connect an orchestrator, signer, `SubmissionService`, raw broadcaster,
+submission worker, recovery worker, send permit consumption, mainnet, or live execution. Production
+broadcast remains `NOT_CONNECTED`, controlled-canary authorization remains `NOT_GRANTED`, and live
+and release readiness remain false. W4-B, W4-C, W4-D and W5 have not started.

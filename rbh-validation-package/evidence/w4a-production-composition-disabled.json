@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "a4cb980488eeca0ceba5e5fcf54403474c1202dd",
+  "scope": "W4_A_PRODUCTION_COMPOSITION_AND_DISABLED_STARTUP",
+  "status": "W4-A_READY_FOR_REVIEW",
+  "assertions": {
+    "default_mode": "DISABLED",
+    "attempted_enablement": "FAIL_CLOSED",
+    "durable_disabled_startup_audit": "PASS",
+    "canary_admission_ready": false,
+    "submission_send_ready": false,
+    "recovery_ready": false,
+    "readiness_dimensions_independent": true,
+    "second_state_machine_created": false
+  },
+  "prohibited_path_calls": {
+    "orchestrator": 0,
+    "signer": 0,
+    "submission_service": 0,
+    "send_raw_transaction": 0,
+    "submission_worker": 0,
+    "recovery_worker": 0,
+    "send_permit_consumption": 0,
+    "production_broadcast": 0,
+    "mainnet": 0
+  },
+  "gate_status": {
+    "w1": "PASS",
+    "w2": "PASS",
+    "w3": "PASS",
+    "controlled_canary_wiring": "W4-A_READY_FOR_REVIEW",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}
