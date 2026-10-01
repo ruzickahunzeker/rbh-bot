@@ -306,6 +306,14 @@ restart and artifact failures are proven known-unsent, while post-intent restart
 audit/alert evidence and are excluded from subsequent scans. Commit-window barrier tests prove
 lease takeover and emergency stop cannot complete before the fenced send/outcome commit.
 
+The send-intent marker is an ambiguity boundary, not proof that broadcast occurred. After it is
+durable, a restart cannot distinguish a pre-RPC crash from an RPC call whose outcome was not
+durably committed, so both are conservatively `broadcast_unknown`. Lane and reservations remain
+frozen and automatic resend is forbidden. `known_unsent` is restricted to durable proof that the
+broadcaster was not invoked, or a durably recorded deterministic rejection with explicitly trusted
+non-propagation semantics. Any later replay remains query-first and requires a fresh purpose-bound
+permit plus the exact original artifact.
+
 The worker is not connected to production startup. Production broadcast remains `NOT_CONNECTED`,
 controlled-canary authorization remains `NOT_GRANTED`, and live and release readiness remain
 false. W4-C, W4-D and W5 have not started, and W4-B requires independent review.
