@@ -300,6 +300,12 @@ Migration 012 records deterministic rejections as `known_unsent`, distinct from
 frozen. Replay requires query evidence, a fresh `UNKNOWN_REPLAY` permit and the original exact raw
 artifact; rebuild, resign, replacement, fee bump and new nonce allocation remain unavailable.
 
+W4-B hardening adds migration 013 and an immutable durable send-intent boundary. Pre-intent
+restart and artifact failures are proven known-unsent, while post-intent restart remains
+`broadcast_unknown` and frozen. Expired issued permits transition once to `EXPIRED` with durable
+audit/alert evidence and are excluded from subsequent scans. Commit-window barrier tests prove
+lease takeover and emergency stop cannot complete before the fenced send/outcome commit.
+
 The worker is not connected to production startup. Production broadcast remains `NOT_CONNECTED`,
 controlled-canary authorization remains `NOT_GRANTED`, and live and release readiness remain
 false. W4-C, W4-D and W5 have not started, and W4-B requires independent review.

@@ -232,8 +232,16 @@ the send/outcome commit; it cannot commit inside that window.
 Migration 012 adds the explicit `known_unsent` submission state so a deterministic rejection is
 not represented as ambiguity or manual resolution. First-broadcast known-unsent releases the
 provably unsent lane/reservations. Unknown replay known-unsent preserves the earlier ambiguous
-lane/reservations as frozen. Ambiguous transport and restart with a durable `submitting` row become
-`broadcast_unknown` and remain frozen.
+lane/reservations as frozen. Migration 013 adds an immutable durable `send_intent_at` boundary.
+A restart before that boundary is provably unsent; a restart after it is conservatively
+`broadcast_unknown` and remains frozen. Existing in-flight rows are conservatively backfilled as
+post-intent because their historical phase cannot be proven.
+
+Expired `ISSUED` permits are atomically moved to terminal `EXPIRED`, with exactly-once durable
+audit and alert records, before the worker scans unexpired work. Repeated scans therefore cannot
+livelock on an expired permit or prevent valid work from being discovered. Barrier tests hold the
+broadcaster inside the final SQLite writer fence and prove that neither higher-epoch lease takeover
+nor emergency-stop mutation can commit before the send outcome commits.
 
 Unknown replay still requires W2 query evidence and a fresh `UNKNOWN_REPLAY` permit. The worker
 decrypts and verifies the original durable artifact, checks its SHA-256 identity, and sends the
@@ -241,6 +249,7 @@ exact same raw bytes. It cannot rebuild, resign, replace, fee-bump or allocate a
 
 W4-B remains a controlled local harness and is not installed in production startup. W4-A remains
 disabled, production broadcast remains disconnected, and no runtime authorization is granted.
+The landed implementation remains pending a fresh independent review after this hardening slice.
 
 ```ini
 W1 = PASS
