@@ -286,3 +286,20 @@ W4-A does not construct or connect an orchestrator, signer, `SubmissionService`,
 submission worker, recovery worker, send permit consumption, mainnet, or live execution. Production
 broadcast remains `NOT_CONNECTED`, controlled-canary authorization remains `NOT_GRANTED`, and live
 and release readiness remain false. W4-B, W4-C, W4-D and W5 have not started.
+
+## Controlled canary wiring W4-B
+
+W4-B status: **W4-B_READY_FOR_REVIEW**. A controlled/local submission worker now discovers
+durable purpose-bound permits and enforces the existing W2 gate chain, exact artifact identity and
+`SUBMISSION` lease. The final mutable-control and lease recheck is serialized with the controlled
+send/outcome window. Duplicate workers, restart and higher-epoch takeover do not create a second
+unauthorized send.
+
+Migration 012 records deterministic rejections as `known_unsent`, distinct from
+`broadcast_unknown` and `manual_resolution`. Ambiguous outcomes and replay ambiguity remain
+frozen. Replay requires query evidence, a fresh `UNKNOWN_REPLAY` permit and the original exact raw
+artifact; rebuild, resign, replacement, fee bump and new nonce allocation remain unavailable.
+
+The worker is not connected to production startup. Production broadcast remains `NOT_CONNECTED`,
+controlled-canary authorization remains `NOT_GRANTED`, and live and release readiness remain
+false. W4-C, W4-D and W5 have not started, and W4-B requires independent review.

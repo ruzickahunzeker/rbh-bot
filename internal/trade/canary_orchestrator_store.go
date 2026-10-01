@@ -53,6 +53,24 @@ func (s *Store) ConsumeCanaryPermitAfterGate(ctx context.Context, v RuntimeGateS
 		return "", err
 	}
 	defer tx.Rollback()
+	if reason, checkErr := validateImmediateControlsTx(ctx, tx, v, r, now); checkErr != nil {
+		return reason, checkErr
+	}
+	if err = insertGateSnapshotTx(ctx, tx, v); err != nil {
+		return "", err
+	}
+	result, err := tx.ExecContext(ctx, `UPDATE canary_send_permits SET state='CONSUMED',consumed_at=? WHERE id=? AND operation_id=? AND attempt_id=? AND authorization_id=? AND authorization_epoch=? AND purpose=? AND artifact_hash=? AND state='ISSUED' AND expires_at>?`, now.UTC().Format(time.RFC3339Nano), permitID, v.OperationID, v.AttemptID, v.AuthorizationID, v.AuthorizationEpoch, purpose, strings.ToLower(artifactHash), now.UTC().Format(time.RFC3339Nano))
+	if err != nil {
+		return "", err
+	}
+	if n, _ := result.RowsAffected(); n != 1 {
+		return "PERMIT_IDENTITY_MISMATCH", ErrCanaryRuntimeRejected
+	}
+	return "", tx.Commit()
+}
+
+func validateImmediateControlsTx(ctx context.Context, tx *sql.Tx, v RuntimeGateSnapshot, r CanaryGateRequest, now time.Time) (string, error) {
+	var err error
 	// This is the authoritative immediate-pre-send check. It deliberately runs
 	// in the same transaction that consumes the permit, closing the gap between
 	// the orchestrator's diagnostic precheck and the irreversible send boundary.
@@ -102,17 +120,7 @@ func (s *Store) ConsumeCanaryPermitAfterGate(ctx context.Context, v RuntimeGateS
 	if expires, parseErr := time.Parse(time.RFC3339Nano, operationExpiry); parseErr != nil || !now.UTC().Before(expires) {
 		return "TTL_INVALID_OR_EXPIRED", ErrCanaryRuntimeRejected
 	}
-	if err = insertGateSnapshotTx(ctx, tx, v); err != nil {
-		return "", err
-	}
-	result, err := tx.ExecContext(ctx, `UPDATE canary_send_permits SET state='CONSUMED',consumed_at=? WHERE id=? AND operation_id=? AND attempt_id=? AND authorization_id=? AND authorization_epoch=? AND purpose=? AND artifact_hash=? AND state='ISSUED' AND expires_at>?`, now.UTC().Format(time.RFC3339Nano), permitID, v.OperationID, v.AttemptID, v.AuthorizationID, v.AuthorizationEpoch, purpose, strings.ToLower(artifactHash), now.UTC().Format(time.RFC3339Nano))
-	if err != nil {
-		return "", err
-	}
-	if n, _ := result.RowsAffected(); n != 1 {
-		return "PERMIT_IDENTITY_MISMATCH", ErrCanaryRuntimeRejected
-	}
-	return "", tx.Commit()
+	return "", nil
 }
 
 func insertGateSnapshotTx(ctx context.Context, tx *sql.Tx, v RuntimeGateSnapshot) error {

@@ -213,3 +213,42 @@ recovery_ready = false
 live = false
 release_ready = false
 ```
+
+## W4-B controlled submission worker and lease fencing
+
+W4-B adds a controlled submission worker that discovers only durable `ISSUED` send permits. It
+requires durable PASS snapshots for execution admission, pre-sign and first broadcast, then runs
+the W2 immediate-pre-send artifact/runtime verification. The worker uses the existing operation,
+execution step, transaction attempt, submission and permit records; it does not define a second
+transaction state machine.
+
+The final control, authorization epoch, deployment, C07 reservation, TTL and permit checks are
+performed under the durable `SUBMISSION` lease. Permit consumption and creation of the
+`submitting` row commit atomically. The controlled broadcaster call and durable outcome are then
+serialized under a SQLite writer fence that revalidates the same mutable controls and lease. A
+lease takeover or emergency-stop update therefore orders entirely before the final check or after
+the send/outcome commit; it cannot commit inside that window.
+
+Migration 012 adds the explicit `known_unsent` submission state so a deterministic rejection is
+not represented as ambiguity or manual resolution. First-broadcast known-unsent releases the
+provably unsent lane/reservations. Unknown replay known-unsent preserves the earlier ambiguous
+lane/reservations as frozen. Ambiguous transport and restart with a durable `submitting` row become
+`broadcast_unknown` and remain frozen.
+
+Unknown replay still requires W2 query evidence and a fresh `UNKNOWN_REPLAY` permit. The worker
+decrypts and verifies the original durable artifact, checks its SHA-256 identity, and sends the
+exact same raw bytes. It cannot rebuild, resign, replace, fee-bump or allocate a nonce.
+
+W4-B remains a controlled local harness and is not installed in production startup. W4-A remains
+disabled, production broadcast remains disconnected, and no runtime authorization is granted.
+
+```ini
+W1 = PASS
+W2 = PASS
+W3 = PASS
+controlled_canary_wiring = W4-B_READY_FOR_REVIEW
+production_broadcast = NOT_CONNECTED
+controlled_canary_authorization = NOT_GRANTED
+live = false
+release_ready = false
+```

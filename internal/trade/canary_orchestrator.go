@@ -165,6 +165,20 @@ func (o *ControlledCanaryOrchestrator) UnknownReplay(c context.Context, r Canary
 // ImmediatePreSend consumes a one-shot permit after re-reading mutable controls.
 // It returns no raw bytes and cannot send.
 func (o *ControlledCanaryOrchestrator) ImmediatePreSend(c context.Context, r CanaryGateRequest, permit, purpose string, x CanaryArtifactIdentity) (CanaryGateDecision, error) {
+	snapshot, decision, err := o.immediatePreSendSnapshot(c, r, permit, purpose, x)
+	if err != nil {
+		return decision, err
+	}
+	if reason, e := o.store.ConsumeCanaryPermitAfterGate(c, snapshot, r, permit, purpose, x.ArtifactHash, o.now().UTC()); e != nil {
+		if reason != "" {
+			return CanaryGateDecision{Stage: GateImmediatePreSend, Decision: "REJECT", ReasonCode: reason}, ErrCanaryGateRejected
+		}
+		return CanaryGateDecision{Stage: GateImmediatePreSend, Decision: "REJECT", ReasonCode: "PERMIT_CONSUME_FAILED"}, e
+	}
+	return CanaryGateDecision{Stage: GateImmediatePreSend, Decision: "PASS", ReasonCode: "CANARY_GATE_PASS", PermitID: permit}, nil
+}
+
+func (o *ControlledCanaryOrchestrator) immediatePreSendSnapshot(c context.Context, r CanaryGateRequest, permit, purpose string, x CanaryArtifactIdentity) (RuntimeGateSnapshot, CanaryGateDecision, error) {
 	a, v, reason := o.evaluate(c, r, GateImmediatePreSend)
 	if reason == "" && purpose != PermitFirstBroadcast && purpose != PermitUnknownReplay {
 		reason = "INVALID_PERMIT_PURPOSE"
@@ -182,19 +196,24 @@ func (o *ControlledCanaryOrchestrator) ImmediatePreSend(c context.Context, r Can
 		}
 	}
 	if reason != "" {
-		return o.finish(c, r, a, v, GateImmediatePreSend, x, reason)
+		if reason == "PERMIT_IDENTITY_MISMATCH" {
+			decision := CanaryGateDecision{Stage: GateImmediatePreSend, Decision: "REJECT", ReasonCode: reason}
+			return RuntimeGateSnapshot{}, decision, ErrCanaryGateRejected
+		}
+		decision, err := o.finish(c, r, a, v, GateImmediatePreSend, x, reason)
+		return RuntimeGateSnapshot{}, decision, err
 	}
 	snapshot, e := o.snapshotValue(c, r, a, GateImmediatePreSend, x, v, "")
 	if e != nil {
-		return CanaryGateDecision{Stage: GateImmediatePreSend, Decision: "REJECT", ReasonCode: "SNAPSHOT_BUILD_FAILED"}, e
+		decision := CanaryGateDecision{Stage: GateImmediatePreSend, Decision: "REJECT", ReasonCode: "SNAPSHOT_BUILD_FAILED"}
+		return RuntimeGateSnapshot{}, decision, e
 	}
-	if reason, e = o.store.ConsumeCanaryPermitAfterGate(c, snapshot, r, permit, purpose, x.ArtifactHash, o.now().UTC()); e != nil {
-		if reason != "" {
-			return CanaryGateDecision{Stage: GateImmediatePreSend, Decision: "REJECT", ReasonCode: reason}, ErrCanaryGateRejected
-		}
-		return CanaryGateDecision{Stage: GateImmediatePreSend, Decision: "REJECT", ReasonCode: "PERMIT_CONSUME_FAILED"}, e
-	}
-	return CanaryGateDecision{Stage: GateImmediatePreSend, Decision: "PASS", ReasonCode: "CANARY_GATE_PASS", PermitID: permit}, nil
+	// A first broadcast and an explicitly authorized unknown replay are distinct
+	// immediate-pre-send decisions for the same attempt. Bind the snapshot ID to
+	// the one-shot permit so each decision remains immutable and auditable.
+	snapshot.ID = deterministicID("canary-gate", GateImmediatePreSend, r.OperationID, x.AttemptID, r.AuthorizationID, permit)
+	decision := CanaryGateDecision{Stage: GateImmediatePreSend, Decision: "PASS", ReasonCode: "CANARY_GATE_PASS", PermitID: permit}
+	return snapshot, decision, nil
 }
 
 func (o *ControlledCanaryOrchestrator) Readiness(c context.Context, r CanaryGateRequest) CanaryRuntimeReadiness {
