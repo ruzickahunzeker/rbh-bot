@@ -47,7 +47,10 @@ func (w *ControlledSubmissionWorker) RunOnce(ctx context.Context) error {
 	if err := w.store.RecoverControlledInflight(ctx, w.leaseFence(), w.now().UTC()); err != nil {
 		return fmt.Errorf("recover controlled inflight: %w", err)
 	}
-	work, err := w.store.ListControlledSubmissionWork(ctx)
+	if err := w.store.ExpireControlledSendPermits(ctx, w.now().UTC()); err != nil {
+		return fmt.Errorf("expire controlled permits: %w", err)
+	}
+	work, err := w.store.ListControlledSubmissionWork(ctx, w.now().UTC())
 	if err != nil {
 		return err
 	}
@@ -117,8 +120,8 @@ func (w *ControlledSubmissionWorker) Run(ctx context.Context, interval time.Dura
 	}
 }
 
-func (s *Store) ListControlledSubmissionWork(ctx context.Context) ([]ControlledSubmissionWork, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT p.id,p.purpose,p.operation_id,p.attempt_id,p.tx_hash,p.artifact_hash,p.authorization_id,p.authorization_epoch,a.policy_version,a.wallet_id,a.environment,a.build_sha,a.release_id,a.deployment_id FROM canary_send_permits p JOIN canary_runtime_authorizations a ON a.id=p.authorization_id AND a.epoch=p.authorization_epoch WHERE p.state='ISSUED' ORDER BY p.issued_at,p.id`)
+func (s *Store) ListControlledSubmissionWork(ctx context.Context, now time.Time) ([]ControlledSubmissionWork, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT p.id,p.purpose,p.operation_id,p.attempt_id,p.tx_hash,p.artifact_hash,p.authorization_id,p.authorization_epoch,a.policy_version,a.wallet_id,a.environment,a.build_sha,a.release_id,a.deployment_id FROM canary_send_permits p JOIN canary_runtime_authorizations a ON a.id=p.authorization_id AND a.epoch=p.authorization_epoch WHERE p.state='ISSUED' AND p.expires_at>? ORDER BY p.issued_at,p.id`, now.UTC().Format(time.RFC3339Nano))
 	if err != nil {
 		return nil, err
 	}
@@ -134,6 +137,52 @@ func (s *Store) ListControlledSubmissionWork(ctx context.Context) ([]ControlledS
 		values = append(values, v)
 	}
 	return values, rows.Err()
+}
+
+func (s *Store) ExpireControlledSendPermits(ctx context.Context, now time.Time) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	stamp := now.UTC().Format(time.RFC3339Nano)
+	rows, err := tx.QueryContext(ctx, `SELECT id,operation_id,attempt_id,authorization_id,authorization_epoch FROM canary_send_permits WHERE state='ISSUED' AND expires_at<=? ORDER BY id`, stamp)
+	if err != nil {
+		return err
+	}
+	type expiredPermit struct {
+		id, operation, attempt, authorization string
+		epoch                                 uint64
+	}
+	var expired []expiredPermit
+	for rows.Next() {
+		var p expiredPermit
+		if err = rows.Scan(&p.id, &p.operation, &p.attempt, &p.authorization, &p.epoch); err != nil {
+			rows.Close()
+			return err
+		}
+		expired = append(expired, p)
+	}
+	if err = rows.Close(); err != nil {
+		return err
+	}
+	for _, p := range expired {
+		result, updateErr := tx.ExecContext(ctx, `UPDATE canary_send_permits SET state='EXPIRED',consumed_at=? WHERE id=? AND state='ISSUED' AND expires_at<=?`, stamp, p.id, stamp)
+		if updateErr != nil {
+			return updateErr
+		}
+		if changed, _ := result.RowsAffected(); changed != 1 {
+			continue
+		}
+		if err = insertRuntimeAudit(ctx, tx, "CONTROLLED_SEND_PERMIT_EXPIRED", p.operation, p.attempt, p.authorization, p.epoch, "PERMIT_EXPIRED", stamp); err != nil {
+			return err
+		}
+		auditID := deterministicID("canary-runtime", "CONTROLLED_SEND_PERMIT_EXPIRED", p.operation, p.attempt, p.authorization, "PERMIT_EXPIRED", stamp)
+		if _, err = tx.ExecContext(ctx, `INSERT INTO canary_alert_outbox(id,audit_id,severity,state,created_at) VALUES(?,?,'WARNING','PENDING',?)`, deterministicID("canary-alert", auditID), auditID, stamp); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 func (s *Store) BeginControlledSubmissionAfterGate(ctx context.Context, v RuntimeGateSnapshot, r CanaryGateRequest, x CanaryArtifactIdentity, permitID, purpose string, lease SubmissionLeaseFence, now time.Time) (SubmissionRecord, string, error) {
@@ -199,20 +248,72 @@ func (s *Store) RecoverControlledInflight(ctx context.Context, lease SubmissionL
 		return err
 	}
 	stamp := now.UTC().Format(time.RFC3339Nano)
-	if _, err = tx.ExecContext(ctx, `UPDATE transaction_submissions AS sub SET state='broadcast_unknown',failure_class='restart_with_inflight_submission',failure_detail='send outcome was not durably recorded',updated_at=? WHERE sub.state='submitting' AND sub.created_at<? AND EXISTS(SELECT 1 FROM canary_send_permits p JOIN canary_runtime_authorizations a ON a.id=p.authorization_id AND a.epoch=p.authorization_epoch WHERE p.attempt_id=sub.attempt_id AND p.state='CONSUMED' AND a.environment=?)`, stamp, stamp, lease.Environment); err != nil {
+	if _, err = tx.ExecContext(ctx, `UPDATE transaction_submissions AS sub SET state='known_unsent',failure_class='restart_before_send_intent',failure_detail='broadcaster invocation was durably not started',updated_at=? WHERE sub.state='submitting' AND sub.send_intent_at IS NULL AND sub.created_at<? AND EXISTS(SELECT 1 FROM canary_send_permits p JOIN canary_runtime_authorizations a ON a.id=p.authorization_id AND a.epoch=p.authorization_epoch WHERE p.attempt_id=sub.attempt_id AND p.state='CONSUMED' AND a.environment=?)`, stamp, stamp, lease.Environment); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `UPDATE execution_wallet_lanes SET state='frozen',freeze_reason='broadcast_unknown',updated_at=? WHERE operation_id IN (SELECT s.operation_id FROM execution_steps s JOIN transaction_attempts a ON a.step_id=s.id JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_with_inflight_submission')`, stamp); err != nil {
+	if _, err = tx.ExecContext(ctx, `UPDATE transaction_submissions AS sub SET state='broadcast_unknown',failure_class='restart_after_send_intent',failure_detail='send outcome was not durably recorded',updated_at=? WHERE sub.state='submitting' AND sub.send_intent_at IS NOT NULL AND sub.created_at<? AND EXISTS(SELECT 1 FROM canary_send_permits p JOIN canary_runtime_authorizations a ON a.id=p.authorization_id AND a.epoch=p.authorization_epoch WHERE p.attempt_id=sub.attempt_id AND p.state='CONSUMED' AND a.environment=?)`, stamp, stamp, lease.Environment); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `UPDATE execution_reservations SET status='frozen',updated_at=? WHERE operation_id IN (SELECT s.operation_id FROM execution_steps s JOIN transaction_attempts a ON a.step_id=s.id JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_with_inflight_submission')`, stamp); err != nil {
+	// Sequence zero is the first-broadcast submission. A later unknown-replay
+	// submission must retain the pre-existing ambiguous freeze even when its own
+	// broadcaster invocation is proven not to have started.
+	firstKnownUnsent := `SELECT s.operation_id FROM execution_steps s JOIN transaction_attempts a ON a.step_id=s.id JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_before_send_intent' AND sub.sequence=0`
+	if _, err = tx.ExecContext(ctx, `UPDATE execution_wallet_lanes SET state='idle',operation_id=NULL,step_id=NULL,reserved_nonce=NULL,freeze_reason='known_unsent',updated_at=? WHERE operation_id IN (`+firstKnownUnsent+`)`, stamp); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `UPDATE canary_risk_reservations SET state='frozen',updated_at=? WHERE operation_id IN (SELECT s.operation_id FROM execution_steps s JOIN transaction_attempts a ON a.step_id=s.id JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_with_inflight_submission') AND state IN ('reserved','frozen')`, stamp); err != nil {
+	if _, err = tx.ExecContext(ctx, `UPDATE execution_reservations SET status='released',updated_at=? WHERE operation_id IN (`+firstKnownUnsent+`)`, stamp); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `UPDATE execution_steps SET status='broadcast_unknown',updated_at=? WHERE id IN (SELECT a.step_id FROM transaction_attempts a JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_with_inflight_submission')`, stamp); err != nil {
+	if _, err = tx.ExecContext(ctx, `UPDATE canary_risk_reservations SET state='released',updated_at=? WHERE operation_id IN (`+firstKnownUnsent+`) AND state='reserved'`, stamp); err != nil {
 		return err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE transaction_attempts SET status='known_unsent',updated_at=? WHERE id IN (SELECT sub.attempt_id FROM transaction_submissions sub WHERE sub.failure_class='restart_before_send_intent' AND sub.sequence=0)`, stamp); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE execution_steps SET status='known_unsent',updated_at=? WHERE operation_id IN (`+firstKnownUnsent+`)`, stamp); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE operations SET status='known_unsent',failure_code='restart_before_send_intent',updated_at=? WHERE id IN (`+firstKnownUnsent+`)`, stamp); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE execution_wallet_lanes SET state='frozen',freeze_reason='broadcast_unknown',updated_at=? WHERE operation_id IN (SELECT s.operation_id FROM execution_steps s JOIN transaction_attempts a ON a.step_id=s.id JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_after_send_intent')`, stamp); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE execution_reservations SET status='frozen',updated_at=? WHERE operation_id IN (SELECT s.operation_id FROM execution_steps s JOIN transaction_attempts a ON a.step_id=s.id JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_after_send_intent')`, stamp); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE canary_risk_reservations SET state='frozen',updated_at=? WHERE operation_id IN (SELECT s.operation_id FROM execution_steps s JOIN transaction_attempts a ON a.step_id=s.id JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_after_send_intent') AND state IN ('reserved','frozen')`, stamp); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE execution_steps SET status='broadcast_unknown',updated_at=? WHERE id IN (SELECT a.step_id FROM transaction_attempts a JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_after_send_intent')`, stamp); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func (s *Store) MarkControlledSendIntent(ctx context.Context, work ControlledSubmissionWork, snapshot RuntimeGateSnapshot, sub SubmissionRecord, lease SubmissionLeaseFence, now time.Time) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = assertSubmissionLeaseTx(ctx, tx, lease); err != nil {
+		return err
+	}
+	if _, err = validateImmediateControlsTx(ctx, tx, snapshot, work.Request, now); err != nil {
+		return err
+	}
+	var permitState string
+	if err = tx.QueryRowContext(ctx, `SELECT state FROM canary_send_permits WHERE id=? AND operation_id=? AND attempt_id=? AND purpose=? AND artifact_hash=? AND tx_hash=?`, work.PermitID, work.Artifact.OperationID, work.Artifact.AttemptID, work.Purpose, strings.ToLower(work.Artifact.ArtifactHash), strings.ToLower(work.Artifact.TxHash)).Scan(&permitState); err != nil || permitState != "CONSUMED" {
+		return ErrCanaryRuntimeRejected
+	}
+	stamp := now.UTC().Format(time.RFC3339Nano)
+	result, err := tx.ExecContext(ctx, `UPDATE transaction_submissions SET send_intent_at=? WHERE id=? AND attempt_id=? AND tx_hash=? AND state='submitting' AND send_intent_at IS NULL`, stamp, sub.ID, sub.AttemptID, sub.TxHash)
+	if err != nil {
+		return err
+	}
+	if changed, _ := result.RowsAffected(); changed != 1 {
+		return ErrBroadcastAmbiguous
 	}
 	return tx.Commit()
 }

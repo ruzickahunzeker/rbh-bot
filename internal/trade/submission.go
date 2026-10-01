@@ -42,6 +42,9 @@ func (s *SubmissionService) SendControlledPrepared(ctx context.Context, work Con
 	if hex.EncodeToString(digest[:]) != strings.ToLower(work.Artifact.ArtifactHash) || stored.AttemptID != work.Artifact.AttemptID || !strings.EqualFold(stored.TxHash, work.Artifact.TxHash) {
 		return ErrArtifactIntegrity
 	}
+	if err = s.store.MarkControlledSendIntent(ctx, work, snapshot, sub, lease, now); err != nil {
+		return err
+	}
 	tx, err := s.store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err

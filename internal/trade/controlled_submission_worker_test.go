@@ -195,9 +195,9 @@ func TestControlledSubmissionEmergencyStopBeforeFinalGatePreservesPermit(t *test
 	}
 }
 
-func TestControlledSubmissionRestartWithPreparedSendBecomesUnknown(t *testing.T) {
+func TestControlledSubmissionRestartBeforeSendIntentIsKnownUnsent(t *testing.T) {
 	f := newControlledSubmissionFixture(t, nil)
-	work, err := f.store.ListControlledSubmissionWork(context.Background())
+	work, err := f.store.ListControlledSubmissionWork(context.Background(), f.now)
 	if err != nil || len(work) != 1 {
 		t.Fatalf("work=%d err=%v", len(work), err)
 	}
@@ -213,27 +213,148 @@ func TestControlledSubmissionRestartWithPreparedSendBecomesUnknown(t *testing.T)
 		t.Fatal(err)
 	}
 	latest, _, _ := f.store.LatestSubmission(context.Background(), f.signed.AttemptID)
-	if latest.State != "broadcast_unknown" || f.broadcaster.calls != 0 {
+	var lane, executionReservation, riskReservation string
+	_ = f.store.db.QueryRow(`SELECT state FROM execution_wallet_lanes WHERE wallet_id=?`, f.signed.WalletID).Scan(&lane)
+	_ = f.store.db.QueryRow(`SELECT status FROM execution_reservations WHERE operation_id=?`, f.signed.Operation).Scan(&executionReservation)
+	_ = f.store.db.QueryRow(`SELECT state FROM canary_risk_reservations WHERE operation_id=?`, f.signed.Operation).Scan(&riskReservation)
+	if latest.State != "known_unsent" || lane != "idle" || executionReservation != "released" || riskReservation != "released" || f.broadcaster.calls != 0 {
+		t.Fatalf("state=%s lane=%s execution_reservation=%s risk_reservation=%s calls=%d", latest.State, lane, executionReservation, riskReservation, f.broadcaster.calls)
+	}
+}
+
+func TestControlledSubmissionRestartAfterSendIntentIsBroadcastUnknown(t *testing.T) {
+	f := newControlledSubmissionFixture(t, nil)
+	work, err := f.store.ListControlledSubmissionWork(context.Background(), f.now)
+	if err != nil || len(work) != 1 {
+		t.Fatalf("work=%d err=%v", len(work), err)
+	}
+	snapshot, _, err := f.orchestrator.immediatePreSendSnapshot(context.Background(), work[0].Request, work[0].PermitID, work[0].Purpose, work[0].Artifact)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sub, _, err := f.store.BeginControlledSubmissionAfterGate(context.Background(), snapshot, work[0].Request, work[0].Artifact, work[0].PermitID, work[0].Purpose, f.worker.leaseFence(), f.now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = f.store.MarkControlledSendIntent(context.Background(), work[0], snapshot, sub, f.worker.leaseFence(), f.now); err != nil {
+		t.Fatal(err)
+	}
+	f.worker.now = func() time.Time { return f.now.Add(time.Second) }
+	if err = f.worker.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	latest, _, _ := f.store.LatestSubmission(context.Background(), f.signed.AttemptID)
+	var lane, executionReservation, riskReservation string
+	_ = f.store.db.QueryRow(`SELECT state FROM execution_wallet_lanes WHERE wallet_id=?`, f.signed.WalletID).Scan(&lane)
+	_ = f.store.db.QueryRow(`SELECT status FROM execution_reservations WHERE operation_id=?`, f.signed.Operation).Scan(&executionReservation)
+	_ = f.store.db.QueryRow(`SELECT state FROM canary_risk_reservations WHERE operation_id=?`, f.signed.Operation).Scan(&riskReservation)
+	if latest.State != "broadcast_unknown" || lane != "frozen" || executionReservation != "frozen" || riskReservation != "frozen" || f.broadcaster.calls != 0 {
+		t.Fatalf("state=%s lane=%s execution_reservation=%s risk_reservation=%s calls=%d", latest.State, lane, executionReservation, riskReservation, f.broadcaster.calls)
+	}
+}
+
+func TestControlledSubmissionArtifactFailureBeforeSendIntentRecoversKnownUnsent(t *testing.T) {
+	f := newControlledSubmissionFixture(t, nil)
+	work, err := f.store.ListControlledSubmissionWork(context.Background(), f.now)
+	if err != nil || len(work) != 1 {
+		t.Fatalf("work=%d err=%v", len(work), err)
+	}
+	snapshot, _, err := f.orchestrator.immediatePreSendSnapshot(context.Background(), work[0].Request, work[0].PermitID, work[0].Purpose, work[0].Artifact)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sub, _, err := f.store.BeginControlledSubmissionAfterGate(context.Background(), snapshot, work[0].Request, work[0].Artifact, work[0].PermitID, work[0].Purpose, f.worker.leaseFence(), f.now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.store.db.Exec(`UPDATE transaction_attempts SET encrypted_raw_tx=? WHERE id=?`, []byte("corrupt"), f.signed.AttemptID); err != nil {
+		t.Fatal(err)
+	}
+	if err = f.service.SendControlledPrepared(context.Background(), work[0], snapshot, sub, f.worker.leaseFence(), f.now); err == nil {
+		t.Fatal("corrupt artifact unexpectedly passed")
+	}
+	var intent *string
+	if err = f.store.db.QueryRow(`SELECT send_intent_at FROM transaction_submissions WHERE id=?`, sub.ID).Scan(&intent); err != nil {
+		t.Fatal(err)
+	}
+	if intent != nil || f.broadcaster.calls != 0 {
+		t.Fatalf("send_intent=%v calls=%d", intent, f.broadcaster.calls)
+	}
+	f.worker.now = func() time.Time { return f.now.Add(time.Second) }
+	if err = f.worker.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	latest, _, _ := f.store.LatestSubmission(context.Background(), f.signed.AttemptID)
+	if latest.State != "known_unsent" || f.broadcaster.calls != 0 {
 		t.Fatalf("state=%s calls=%d", latest.State, f.broadcaster.calls)
+	}
+}
+
+func TestControlledSubmissionExpiredPermitIsTerminalAndDoesNotPoisonScan(t *testing.T) {
+	f := newControlledSubmissionFixture(t, nil)
+	var firstID, authorizationID, expiry string
+	var epoch uint64
+	if err := f.store.db.QueryRow(`SELECT id,authorization_id,authorization_epoch,expires_at FROM canary_send_permits WHERE purpose='FIRST_BROADCAST'`).Scan(&firstID, &authorizationID, &epoch, &expiry); err != nil {
+		t.Fatal(err)
+	}
+	expiresAt, err := time.Parse(time.RFC3339Nano, expiry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	validID := "permit-valid-replay"
+	validExpiry := expiresAt.Add(time.Minute).Format(time.RFC3339Nano)
+	if _, err = f.store.db.Exec(`INSERT INTO canary_send_permits(id,operation_id,attempt_id,authorization_id,authorization_epoch,purpose,artifact_hash,tx_hash,query_evidence_hash,queried_at,state,issued_at,expires_at) VALUES(?,?,?,?,?,'UNKNOWN_REPLAY',?,?,?,?,'ISSUED',?,?)`, validID, f.signed.Operation, f.signed.AttemptID, authorizationID, epoch, f.artifact.ArtifactHash, f.artifact.TxHash, "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", f.now.Format(time.RFC3339Nano), f.now.Format(time.RFC3339Nano), validExpiry); err != nil {
+		t.Fatal(err)
+	}
+	now := expiresAt.Add(time.Second)
+	for i := 0; i < 2; i++ {
+		if err = f.store.ExpireControlledSendPermits(context.Background(), now); err != nil {
+			t.Fatal(err)
+		}
+	}
+	work, err := f.store.ListControlledSubmissionWork(context.Background(), now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var state string
+	var audits, alerts int
+	_ = f.store.db.QueryRow(`SELECT state FROM canary_send_permits WHERE id=?`, firstID).Scan(&state)
+	_ = f.store.db.QueryRow(`SELECT COUNT(*) FROM canary_runtime_audit WHERE event_type='CONTROLLED_SEND_PERMIT_EXPIRED' AND operation_id=? AND attempt_id=?`, f.signed.Operation, f.signed.AttemptID).Scan(&audits)
+	_ = f.store.db.QueryRow(`SELECT COUNT(*) FROM canary_alert_outbox o JOIN canary_runtime_audit a ON a.id=o.audit_id WHERE a.event_type='CONTROLLED_SEND_PERMIT_EXPIRED' AND a.operation_id=? AND a.attempt_id=?`, f.signed.Operation, f.signed.AttemptID).Scan(&alerts)
+	if state != "EXPIRED" || len(work) != 1 || work[0].PermitID != validID || audits != 1 || alerts != 1 || f.broadcaster.calls != 0 {
+		t.Fatalf("state=%s work=%+v audits=%d alerts=%d calls=%d", state, work, audits, alerts, f.broadcaster.calls)
 	}
 }
 
 func TestControlledSubmissionSendSerializesLeaseTakeover(t *testing.T) {
 	started := make(chan struct{})
+	release := make(chan struct{})
+	takeoverAttempted := make(chan struct{})
 	takeover := make(chan error, 1)
 	b := &fakeBroadcaster{}
 	f := newControlledSubmissionFixture(t, b)
 	b.hash = f.signed.TxHash
 	b.before = func() {
 		close(started)
-		go func() {
-			takeover <- f.store.AcquireCanaryWorkerLease(context.Background(), "SUBMISSION", "controlled-test", "worker-2", 2, f.now.Add(3*time.Minute), f.now.Add(2*time.Minute))
-		}()
+		<-release
 	}
-	if err := f.worker.RunOnce(context.Background()); err != nil {
+	workerDone := make(chan error, 1)
+	go func() { workerDone <- f.worker.RunOnce(context.Background()) }()
+	<-started
+	go func() {
+		close(takeoverAttempted)
+		takeover <- f.store.AcquireCanaryWorkerLease(context.Background(), "SUBMISSION", "controlled-test", "worker-2", 2, f.now.Add(3*time.Minute), f.now.Add(2*time.Minute))
+	}()
+	<-takeoverAttempted
+	select {
+	case err := <-takeover:
+		t.Fatalf("lease takeover committed before send outcome: %v", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+	close(release)
+	if err := <-workerDone; err != nil {
 		t.Fatal(err)
 	}
-	<-started
 	if err := <-takeover; err != nil {
 		t.Fatal(err)
 	}
@@ -245,17 +366,33 @@ func TestControlledSubmissionSendSerializesLeaseTakeover(t *testing.T) {
 }
 
 func TestControlledSubmissionSendSerializesEmergencyStop(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
+	stopAttempted := make(chan struct{})
 	stopResult := make(chan error, 1)
 	b := &fakeBroadcaster{}
 	f := newControlledSubmissionFixture(t, b)
 	b.hash = f.signed.TxHash
 	b.before = func() {
-		go func() {
-			_, err := f.store.db.Exec(`UPDATE canary_control_state SET emergency_stopped=1,updated_at=? WHERE singleton=1`, f.now.Add(time.Second).Format(time.RFC3339Nano))
-			stopResult <- err
-		}()
+		close(started)
+		<-release
 	}
-	if err := f.worker.RunOnce(context.Background()); err != nil {
+	workerDone := make(chan error, 1)
+	go func() { workerDone <- f.worker.RunOnce(context.Background()) }()
+	<-started
+	go func() {
+		close(stopAttempted)
+		_, err := f.store.db.Exec(`UPDATE canary_control_state SET emergency_stopped=1,updated_at=? WHERE singleton=1`, f.now.Add(time.Second).Format(time.RFC3339Nano))
+		stopResult <- err
+	}()
+	<-stopAttempted
+	select {
+	case err := <-stopResult:
+		t.Fatalf("emergency stop committed before send outcome: %v", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+	close(release)
+	if err := <-workerDone; err != nil {
 		t.Fatal(err)
 	}
 	if err := <-stopResult; err != nil {
