@@ -10,6 +10,8 @@ import (
 
 const ChainID uint64 = 4663
 
+const CanaryProductionModeDisabled = "DISABLED"
+
 type Service string
 
 const (
@@ -34,6 +36,7 @@ type Config struct {
 	ExecutionPrivateKey   string
 	ArtifactEncryptionKey string
 	ArtifactKeyVersion    string
+	CanaryProductionMode  string
 }
 
 func Load(service Service) (Config, error) {
@@ -46,6 +49,10 @@ func Load(service Service) (Config, error) {
 	live, err := strconv.ParseBool(env("RBH_LIVE_ENABLED", "false"))
 	if err != nil {
 		return Config{}, fmt.Errorf("RBH_LIVE_ENABLED: %w", err)
+	}
+	canaryMode := env("RBH_CONTROLLED_CANARY_PRODUCTION_MODE", CanaryProductionModeDisabled)
+	if service == TradeService && canaryMode != CanaryProductionModeDisabled {
+		return Config{}, fmt.Errorf("RBH_CONTROLLED_CANARY_PRODUCTION_MODE must be %s in W4-A", CanaryProductionModeDisabled)
 	}
 	name := strings.TrimSuffix(string(service), "-service")
 	return Config{
@@ -61,6 +68,7 @@ func Load(service Service) (Config, error) {
 		ExecutionPrivateKey:   os.Getenv("RBH_EXECUTION_PRIVATE_KEY"),
 		ArtifactEncryptionKey: os.Getenv("RBH_ARTIFACT_ENCRYPTION_KEY"),
 		ArtifactKeyVersion:    env("RBH_ARTIFACT_KEY_VERSION", "v1"),
+		CanaryProductionMode:  canaryMode,
 	}, nil
 }
 

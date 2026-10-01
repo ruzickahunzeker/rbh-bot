@@ -66,6 +66,7 @@ func Run(service config.Service) error {
 	server := health.New(string(service), cfg.Socket, log, ready)
 	var runner *feedcore.SequencerRunner
 	var botConsumer *botcore.Consumer
+	var canaryProduction *tradecore.ProductionComposition
 	var authenticator *ipc.Authenticator
 	if service == config.FeedService || service == config.BotService || service == config.TradeService {
 		authenticator, err = ipc.NewAuthenticator([]byte(cfg.InternalAuthSecret), 30*time.Second)
@@ -121,6 +122,14 @@ func Run(service config.Service) error {
 		if err != nil {
 			return err
 		}
+		canaryProduction, err = tradecore.NewProductionComposition(store, cfg.CanaryProductionMode)
+		if err != nil {
+			return fmt.Errorf("configure controlled canary production lifecycle: %w", err)
+		}
+		if err = canaryProduction.Start(ctx); err != nil {
+			return fmt.Errorf("start controlled canary production lifecycle: %w", err)
+		}
+		server.SetMetricsWriter(canaryProduction.WriteMetrics)
 		if err := store.RegisterDryRunWallet(ctx, cfg.DryRunWalletID, common.HexToAddress(cfg.DryRunFromAddress)); err != nil {
 			return err
 		}

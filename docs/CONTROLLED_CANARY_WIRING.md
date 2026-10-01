@@ -182,3 +182,34 @@ controlled_canary_authorization = NOT_GRANTED
 live = false
 release_ready = false
 ```
+
+## W4-A production composition and disabled startup
+
+W4-A installs only the production lifecycle boundary in `trade-service`. The configuration value
+`RBH_CONTROLLED_CANARY_PRODUCTION_MODE` defaults to and only accepts `DISABLED`; missing config is
+therefore disabled and any attempted enablement fails closed. Startup writes a durable
+`PRODUCTION_WIRING_DISABLED` runtime audit and exposes three independent metrics:
+`canary_admission_ready`, `submission_send_ready`, and `recovery_ready`.
+
+All three dimensions are false in W4-A. Recovery is false because production recovery lifecycle
+wiring belongs to W4-C, not because recovery authorization is coupled to admission or submission.
+The base trade-service can still start safely in this disabled state.
+
+The W4-A composition has no orchestrator, signer, `SubmissionService`, `RawBroadcaster`, submission
+worker, recovery worker, permit-consumption or mainnet dependency. It cannot create an economic
+action. W4-B submission/send semantics, W4-C recovery lifecycle, and W4-D fault hardening remain
+out of scope.
+
+```ini
+W1 = PASS
+W2 = PASS
+W3 = PASS
+controlled_canary_wiring = W4-A_READY_FOR_REVIEW
+production_broadcast = NOT_CONNECTED
+controlled_canary_authorization = NOT_GRANTED
+canary_admission_ready = false
+submission_send_ready = false
+recovery_ready = false
+live = false
+release_ready = false
+```
