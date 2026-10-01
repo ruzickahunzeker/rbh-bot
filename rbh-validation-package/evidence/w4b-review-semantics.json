@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "237ab5d696d6b0cd3ba37517e7afe4edd657ee36",
+  "scope": "W4_B_REVIEW_SEMANTICS_ONLY",
+  "status": "W4-B_READY_FOR_REVIEW",
+  "review_state": "PENDING_FRESH_INDEPENDENT_REVIEW",
+  "definitions": {
+    "send_intent_at": "DURABLE_POINT_AFTER_WHICH_RESTART_CANNOT_PROVE_BROADCASTER_INVOCATION_DID_NOT_OCCUR",
+    "broadcast_unknown": "SYSTEM_CANNOT_DURABLY_PROVE_BROADCAST_DID_NOT_OCCUR",
+    "broadcast_unknown_is_probability_claim": false,
+    "post_marker_false_positive_ambiguity": "ACCEPTED_FAIL_CLOSED_BEHAVIOR"
+  },
+  "crash_matrix": {
+    "before_send_intent_commit": "KNOWN_UNSENT_ONLY_WHEN_BROADCASTER_INVOCATION_IS_DURABLY_EXCLUDED",
+    "after_send_intent_before_rpc": "BROADCAST_UNKNOWN_FROZEN",
+    "during_rpc": "BROADCAST_UNKNOWN_FROZEN",
+    "after_rpc_before_durable_outcome": "BROADCAST_UNKNOWN_FROZEN",
+    "trusted_deterministic_non_propagation_rejection": "KNOWN_UNSENT"
+  },
+  "evidence_mapping": {
+    "post_marker_pre_rpc_restart": {
+      "test": "TestControlledSubmissionRestartAfterSendIntentIsBroadcastUnknown",
+      "broadcaster_calls": 0,
+      "submission_state": "broadcast_unknown",
+      "wallet_lane": "frozen",
+      "execution_reservation": "frozen",
+      "risk_reservation": "frozen"
+    },
+    "post_rpc_pre_outcome_restart": {
+      "implementation": "SubmissionService.SendControlledPrepared",
+      "durable_marker_preexists": true,
+      "uncommitted_outcome_does_not_remove_marker": true,
+      "restart_classification": "broadcast_unknown"
+    },
+    "unknown_replay": {
+      "tests": [
+        "TestUnknownReplayRequiresQueryAndExactArtifact",
+        "TestControlledSubmissionUnknownReplayUsesExactArtifact"
+      ],
+      "query_first": true,
+      "fresh_unknown_replay_permit": true,
+      "exact_original_raw_artifact": true,
+      "automatic_resend": false
+    }
+  },
+  "prohibited_path_counts": {
+    "submission_implementation_changes": 0,
+    "schema_changes": 0,
+    "production_startup_wiring": 0,
+    "production_broadcaster": 0,
+    "mainnet": 0,
+    "authorization_grant": 0,
+    "automatic_resend": 0
+  },
+  "gate_status": {
+    "w1": "PASS",
+    "w2": "PASS",
+    "w3": "PASS",
+    "controlled_canary_wiring": "W4-B_READY_FOR_REVIEW",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "w4_c": "NOT_ENTERED"
+  }
+}

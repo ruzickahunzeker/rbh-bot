@@ -233,9 +233,19 @@ Migration 012 adds the explicit `known_unsent` submission state so a determinist
 not represented as ambiguity or manual resolution. First-broadcast known-unsent releases the
 provably unsent lane/reservations. Unknown replay known-unsent preserves the earlier ambiguous
 lane/reservations as frozen. Migration 013 adds an immutable durable `send_intent_at` boundary.
-A restart before that boundary is provably unsent; a restart after it is conservatively
-`broadcast_unknown` and remains frozen. Existing in-flight rows are conservatively backfilled as
-post-intent because their historical phase cannot be proven.
+`send_intent_at` does not assert that an RPC call occurred. It is the durable point after which a
+restart can no longer prove that broadcaster invocation did not occur. A restart before that
+boundary is provably unsent; every restart after it is conservatively `broadcast_unknown` and
+remains frozen, including a crash after the marker commit but before the RPC call. That deliberate
+false-positive ambiguity is safer than permitting a second economic action. Existing in-flight
+rows are conservatively backfilled as post-intent because their historical phase cannot be proven.
+
+Accordingly, `broadcast_unknown` means only that the system cannot durably prove broadcast did
+not occur; it does not mean broadcast probably occurred. `known_unsent` is permitted only when
+absence of broadcaster invocation remains durably provable across restart, or when a deterministic
+rejection with explicitly trusted non-propagation semantics was durably recorded. Post-marker
+recovery never automatically resends: it requires transaction/receipt/nonce query, a fresh
+`UNKNOWN_REPLAY` permit, and the exact original raw artifact.
 
 Expired `ISSUED` permits are atomically moved to terminal `EXPIRED`, with exactly-once durable
 audit and alert records, before the worker scans unexpired work. Repeated scans therefore cannot
