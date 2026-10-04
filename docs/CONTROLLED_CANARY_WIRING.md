@@ -259,15 +259,109 @@ exact same raw bytes. It cannot rebuild, resign, replace, fee-bump or allocate a
 
 W4-B remains a controlled local harness and is not installed in production startup. W4-A remains
 disabled, production broadcast remains disconnected, and no runtime authorization is granted.
-The landed implementation remains pending a fresh independent review after this hardening slice.
+The revised ambiguity semantics passed fresh independent review and landed before W4-C began.
 
 ```ini
 W1 = PASS
 W2 = PASS
 W3 = PASS
-controlled_canary_wiring = W4-B_READY_FOR_REVIEW
+W4-B = PASS
 production_broadcast = NOT_CONNECTED
 controlled_canary_authorization = NOT_GRANTED
 live = false
 release_ready = false
+```
+
+## W4-C production recovery lifecycle
+
+W4-C connects the existing W3 `ControlledRecoveryWorker` to the production trade-service
+lifecycle without connecting submission or broadcast. Startup acquires only the durable
+`RECOVERY` lease with a monotonic epoch. The worker discovers the latest `submitted` and
+`broadcast_unknown` transaction submissions directly from SQLite; it has no in-memory work queue.
+Lease renewal, takeover fencing, durable evidence, audits and alerts continue to use the existing
+W1/W3 state and do not introduce a second recovery state machine.
+
+The production recovery dependency graph is deliberately read-only:
+
+```text
+ProductionComposition
+  -> ControlledRecoveryWorker
+     -> RecoveryService(Store, ArtifactCipher, ReceiptBackend, EffectResolver)
+     -> ProductionRecoveryQuerier(Store, ArtifactCipher, ReadOnlyRecoveryRPC)
+```
+
+`ReadOnlyRecoveryRPC` exposes transaction, receipt, nonce and header queries plus chain health. It
+does not implement `RawBroadcaster` or expose `SendRawTransaction`. Recovery does not hold a
+signer, `ExecutionKernel`, `SubmissionService`, send permit issuer/consumer, or nonce allocator.
+Successful Pons v2 Curve receipts derive their position effect from the canonical curve event
+bound to the durable route; missing, contradictory or unverifiable events fail closed.
+
+`recovery_ready` is independent from admission and send readiness. It requires database health,
+read-only RPC chain health and a valid `RECOVERY` lease. Emergency stop, absent/revoked/expired
+authorization, deployment drift and application TTL do not policy-block recovery of existing
+durable work. Admission and submission remain false. RPC/query failure or lease loss drops
+recovery readiness and emits durable audit/alert evidence.
+
+Shutdown stops new scans and drains the current fenced scan while continuing lease renewal. Work
+not completed before a fault remains in SQLite and is rediscovered after lease expiry/takeover.
+`broadcast_unknown` remains frozen and recovery never rebuilds, resigns, replaces, fee-bumps,
+allocates a nonce, consumes a send permit or automatically resends.
+
+### W4-C review hardening
+
+The branch review found readiness could revive after terminal health failure, production RPC
+receipt identity was not checked before recovery, and the restart test reused the open Store.
+This hardening makes terminal failure and shutdown draining irreversible for a lifecycle and
+rejects a second `Run`. A stopped worker always leaves `recovery_ready=false`. Healthy shutdown
+continues its lease renewal while draining, without enabling admission or sending.
+
+The read-only RPC boundary and production querier validate transaction hashes, chain identity,
+receipt block/status fields and receipt-log identities before recording propagation or allowing
+canonical effects. Both reverted and successful wrong-transaction receipts fail closed, preserve
+the ambiguous frozen lane/reservation, and generate durable audit/alert evidence. The existing
+recovery state machine and W4-B send-intent semantics are unchanged.
+
+File-backed SQLite close/reopen tests rebuild the production composition, acquire a higher
+`RECOVERY` epoch, rediscover both durable submission states, and verify exactly-once canonical
+apply/reorg rollback/reapply with the exact original artifact and nonce. HTTP shutdown failure
+still waits for recovery; the app does not close DB/RPC handles on an arbitrary scan timeout.
+Each individual production RPC retains its ten-second timeout. A caller's timed-out `Wait` does
+not terminate or release durable recovery work. This is implementation evidence, pending fresh
+independent review; W4-D and W5 remain out of scope.
+
+### W4-C fractional-expiry lease residual
+
+Fresh review of hardening head `d18d63fcbbbd45be40415f1aac80697f3f31ad55`
+found the two W4-C lifecycle lease helpers ordered RFC3339Nano expiry strings as SQL
+text. Variable fractional precision is not chronological: this could reject a valid
+renewal/takeover or allow renewal after expiry. The helpers now parse and compare
+absolute times inside their SQLite transaction, then update only the exact prior
+expiry/holder/epoch row. Takeover cannot overflow SQLite's signed integer epoch.
+No migration, legacy lease API, recovery state machine or send semantics changed.
+
+Permanent tests cover whole-second and fractional expiries at minus one nanosecond,
+exact expiry and plus one nanosecond, malformed durable expiry, epoch overflow,
+and 48 renewal/takeover races over two independently opened SQLite handles. They
+check exactly one accepted contender and its durable owner/epoch/expiry, with stale
+renewal and the existing mutation fence rejected after takeover. A production
+lifecycle test crosses a fractional expiry during an in-flight recovery query and
+checks false readiness, durable lease-loss audit/alert and retained ambiguity freeze.
+These are controlled local tests, not mainnet or real-process crash evidence.
+The residual fix remains pending fresh independent review; it does not close W4-C.
+
+```ini
+W1 = PASS
+W2 = PASS
+W3 = PASS
+W4-B = PASS
+controlled_canary_wiring = W4-C_READY_FOR_REVIEW
+production_broadcast = NOT_CONNECTED
+controlled_canary_authorization = NOT_GRANTED
+canary_admission_ready = false
+submission_send_ready = false
+recovery_ready = health-dependent
+live = false
+release_ready = false
+W4-D = NOT_ENTERED
+W5 = NOT_ENTERED
 ```

@@ -289,7 +289,7 @@ and release readiness remain false. W4-B, W4-C, W4-D and W5 have not started.
 
 ## Controlled canary wiring W4-B
 
-W4-B status: **W4-B_READY_FOR_REVIEW**. A controlled/local submission worker now discovers
+W4-B status: **PASS**. A controlled/local submission worker now discovers
 durable purpose-bound permits and enforces the existing W2 gate chain, exact artifact identity and
 `SUBMISSION` lease. The final mutable-control and lease recheck is serialized with the controlled
 send/outcome window. Duplicate workers, restart and higher-epoch takeover do not create a second
@@ -316,4 +316,29 @@ permit plus the exact original artifact.
 
 The worker is not connected to production startup. Production broadcast remains `NOT_CONNECTED`,
 controlled-canary authorization remains `NOT_GRANTED`, and live and release readiness remain
-false. W4-C, W4-D and W5 have not started, and W4-B requires independent review.
+false. W4-B passed fresh independent review after its revised ambiguity semantics landed. W4-D
+and W5 have not started.
+
+## Controlled canary wiring W4-C
+
+W4-B passed independent review before this slice. W4-C status is
+**W4-C_READY_FOR_REVIEW**. The existing W3 recovery worker is now connected to the production
+trade-service lifecycle with durable SQLite discovery and the independent `RECOVERY` lease.
+Recovery readiness reflects DB, read-only RPC and lease health; admission and send readiness remain
+false. Existing submitted or ambiguous transactions remain recoverable despite emergency stop,
+authorization state, deployment drift or TTL expiry.
+
+Production recovery holds only artifact decryption, read-only transaction/receipt/nonce/header
+queries and the Pons v2 Curve receipt-effect resolver. It has no signer, `SubmissionService`,
+`RawBroadcaster`, `SendRawTransaction`, send-permit or nonce-allocation capability. Shutdown drains
+the current fenced scan and leaves unfinished work durable for restart discovery. RPC failure,
+contradictory evidence and lease loss fail closed with durable audit/alert evidence.
+
+Production broadcast remains `NOT_CONNECTED`, controlled-canary authorization remains
+`NOT_GRANTED`, and live and release readiness remain false. W4-C requires independent review;
+W4-D and W5 have not started.
+
+W4-C review hardening enforces terminal readiness, validates the actual production RPC
+transaction/receipt identity before reconciliation, and adds real SQLite close/reopen recovery
+evidence for both submitted and ambiguous work. HTTP shutdown failure still drains recovery before
+resource teardown. The slice remains **W4-C_READY_FOR_REVIEW**, pending fresh independent review.

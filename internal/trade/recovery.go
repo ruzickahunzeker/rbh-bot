@@ -30,7 +30,7 @@ func (p CanonicalPolicy) Confirm(latest, block uint64, observed, canonical commo
 
 type RecoveryService struct {
 	store    *Store
-	kernel   *ExecutionKernel
+	cipher   ArtifactCipher
 	backend  ReceiptBackend
 	resolver EffectResolver
 	policy   CanonicalPolicy
@@ -38,10 +38,20 @@ type RecoveryService struct {
 }
 
 func NewRecoveryService(store *Store, kernel *ExecutionKernel, b ReceiptBackend, r EffectResolver, p CanonicalPolicy) (*RecoveryService, error) {
-	if store == nil || kernel == nil || b == nil || r == nil {
+	if kernel == nil {
 		return nil, ErrInvalidRequest
 	}
-	return &RecoveryService{store: store, kernel: kernel, backend: b, resolver: r, policy: p, now: time.Now}, nil
+	return NewRecoveryServiceWithCipher(store, kernel.cipher, b, r, p)
+}
+
+// NewRecoveryServiceWithCipher is the production recovery constructor. It
+// deliberately accepts only artifact decryption and read-only receipt/header
+// capabilities; no signer or broadcaster is reachable from this graph.
+func NewRecoveryServiceWithCipher(store *Store, artifactCipher ArtifactCipher, b ReceiptBackend, r EffectResolver, p CanonicalPolicy) (*RecoveryService, error) {
+	if store == nil || artifactCipher == nil || b == nil || r == nil {
+		return nil, ErrInvalidRequest
+	}
+	return &RecoveryService{store: store, cipher: artifactCipher, backend: b, resolver: r, policy: p, now: time.Now}, nil
 }
 
 func (s *RecoveryService) Reconcile(ctx context.Context, operation string) error {
@@ -59,7 +69,7 @@ func (s *RecoveryService) reconcile(ctx context.Context, operation string, lease
 	if err != nil || !found {
 		return ErrArtifactIntegrity
 	}
-	raw, err := s.kernel.cipher.Decrypt(stored.KeyVersion, stored.Ciphertext, stored.EncryptionNonce, artifactAAD(stored.Operation, stored.StepID, stored.AttemptID))
+	raw, err := s.cipher.Decrypt(stored.KeyVersion, stored.Ciphertext, stored.EncryptionNonce, artifactAAD(stored.Operation, stored.StepID, stored.AttemptID))
 	if err != nil {
 		return err
 	}

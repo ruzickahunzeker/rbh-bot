@@ -273,6 +273,78 @@ func (s *Store) AcquireCanaryWorkerLease(ctx context.Context, role, environment,
 	return nil
 }
 
+// AcquireNextCanaryWorkerLease atomically allocates the next monotonic epoch
+// after any prior lease has expired. An active owner is never displaced.
+func (s *Store) AcquireNextCanaryWorkerLease(ctx context.Context, role, environment, holder string, ttl time.Duration, now time.Time) (uint64, error) {
+	if s == nil || s.db == nil || ctx == nil || (role != "SUBMISSION" && role != "RECOVERY") || environment == "" || holder == "" || ttl <= 0 || now.IsZero() {
+		return 0, ErrCanaryRuntimeRejected
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	var priorEpoch uint64
+	var priorExpiry, priorHolder string
+	err = tx.QueryRowContext(ctx, `SELECT lease_epoch,expires_at,holder_id FROM canary_worker_leases WHERE role=? AND environment=?`, role, environment).Scan(&priorEpoch, &priorExpiry, &priorHolder)
+	epoch := uint64(1)
+	if err == nil {
+		expiry, parseErr := time.Parse(time.RFC3339Nano, priorExpiry)
+		if parseErr != nil || now.UTC().Before(expiry) || priorEpoch >= 1<<63-1 {
+			return 0, ErrCanaryRuntimeRejected
+		}
+		epoch = priorEpoch + 1
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return 0, err
+	}
+	stamp := now.UTC().Format(time.RFC3339Nano)
+	expires := now.UTC().Add(ttl).Format(time.RFC3339Nano)
+	// RFC3339Nano has variable fractional precision and cannot be ordered as
+	// text. Expiry was checked above; the write compares the exact prior row.
+	result, err := tx.ExecContext(ctx, `INSERT INTO canary_worker_leases(role,environment,holder_id,lease_epoch,expires_at,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(role,environment) DO UPDATE SET holder_id=excluded.holder_id,lease_epoch=excluded.lease_epoch,expires_at=excluded.expires_at,updated_at=excluded.updated_at WHERE canary_worker_leases.lease_epoch=? AND canary_worker_leases.expires_at=? AND canary_worker_leases.holder_id=? AND excluded.lease_epoch>canary_worker_leases.lease_epoch`, role, environment, holder, epoch, expires, stamp, priorEpoch, priorExpiry, priorHolder)
+	if err != nil {
+		return 0, err
+	}
+	if changed, _ := result.RowsAffected(); changed != 1 {
+		return 0, ErrCanaryRuntimeRejected
+	}
+	if err = tx.Commit(); err != nil {
+		return 0, err
+	}
+	return epoch, nil
+}
+
+func (s *Store) RenewCanaryWorkerLease(ctx context.Context, role, environment, holder string, epoch uint64, ttl time.Duration, now time.Time) error {
+	if s == nil || s.db == nil || ctx == nil || (role != "SUBMISSION" && role != "RECOVERY") || environment == "" || holder == "" || epoch == 0 || ttl <= 0 || now.IsZero() {
+		return ErrCanaryRuntimeRejected
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var priorExpiry string
+	if err = tx.QueryRowContext(ctx, `SELECT expires_at FROM canary_worker_leases WHERE role=? AND environment=? AND holder_id=? AND lease_epoch=?`, role, environment, holder, epoch).Scan(&priorExpiry); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrCanaryRecoveryLeaseLost
+		}
+		return err
+	}
+	expiry, err := time.Parse(time.RFC3339Nano, priorExpiry)
+	if err != nil || !now.UTC().Before(expiry) {
+		return ErrCanaryRecoveryLeaseLost
+	}
+	stamp := now.UTC().Format(time.RFC3339Nano)
+	result, err := tx.ExecContext(ctx, `UPDATE canary_worker_leases SET expires_at=?,updated_at=? WHERE role=? AND environment=? AND holder_id=? AND lease_epoch=? AND expires_at=?`, now.UTC().Add(ttl).Format(time.RFC3339Nano), stamp, role, environment, holder, epoch, priorExpiry)
+	if err != nil {
+		return err
+	}
+	if changed, _ := result.RowsAffected(); changed != 1 {
+		return ErrCanaryRecoveryLeaseLost
+	}
+	return tx.Commit()
+}
+
 func (s *Store) RecordRuntimeAlert(ctx context.Context, event, operation, attempt, authorization string, epoch uint64, reason, severity string, now time.Time) error {
 	if s == nil || s.db == nil || ctx == nil || event == "" || reason == "" || now.IsZero() || (severity != "INFO" && severity != "WARNING" && severity != "CRITICAL") {
 		return ErrCanaryRuntimeRejected

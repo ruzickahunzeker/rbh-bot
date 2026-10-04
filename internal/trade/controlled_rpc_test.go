@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -278,4 +279,37 @@ func TestControlledRPCSubmissionScenarios(t *testing.T) {
 		}
 		assertAttemptCount(t, store, 1)
 	})
+}
+
+func TestW4CReadOnlyRecoveryRPCQueriesWithoutSendReachability(t *testing.T) {
+	store, kernel, artifact, closeDB := seededSignedArtifact(t)
+	defer closeDB()
+	h := newControlledRPC(t, "normal")
+	raw := artifactRaw(t, store, kernel, artifact)
+	h.mu.Lock()
+	h.accepted[artifact.TxHash] = append([]byte(nil), raw...)
+	h.mu.Unlock()
+	rpc, err := DialReadOnlyRecoveryRPC(context.Background(), h.server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rpc.Close()
+	if err = rpc.CheckRecoveryHealth(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	querier, err := NewProductionRecoveryQuerier(store, kernel.cipher, rpc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	querier.now = func() time.Time { return time.Date(2026, 10, 2, 0, 0, 0, 0, time.UTC) }
+	evidence, err := querier.QueryRecovery(context.Background(), ControlledRecoveryQuery{OperationID: artifact.Operation, AttemptID: artifact.AttemptID, TxHash: artifact.TxHash})
+	if err != nil || !evidence.TxFound || evidence.ReceiptFound || len(evidence.EvidenceHash) != 64 {
+		t.Fatalf("evidence=%+v err=%v", evidence, err)
+	}
+	h.mu.Lock()
+	sends := h.sends
+	h.mu.Unlock()
+	if sends != 0 {
+		t.Fatalf("recovery raw sends=%d", sends)
+	}
 }

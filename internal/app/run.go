@@ -45,7 +45,7 @@ func Run(service config.Service) error {
 		gates = append(gates, "bot_feed_consumer_configured")
 	}
 	if service == config.TradeService {
-		gates = append(gates, "pons_curve_dry_run_configured")
+		gates = append(gates, "pons_curve_dry_run_configured", "recovery_ready")
 	}
 	ready := health.NewReadiness(gates...)
 	ready.Set("config_valid", true)
@@ -122,14 +122,6 @@ func Run(service config.Service) error {
 		if err != nil {
 			return err
 		}
-		canaryProduction, err = tradecore.NewProductionComposition(store, cfg.CanaryProductionMode)
-		if err != nil {
-			return fmt.Errorf("configure controlled canary production lifecycle: %w", err)
-		}
-		if err = canaryProduction.Start(ctx); err != nil {
-			return fmt.Errorf("start controlled canary production lifecycle: %w", err)
-		}
-		server.SetMetricsWriter(canaryProduction.WriteMetrics)
 		if err := store.RegisterDryRunWallet(ctx, cfg.DryRunWalletID, common.HexToAddress(cfg.DryRunFromAddress)); err != nil {
 			return err
 		}
@@ -167,6 +159,37 @@ func Run(service config.Service) error {
 			return err
 		}
 		server.Handle("POST /internal/trade/prepare-execution", authenticator.Middleware(tradecore.NewPrepareExecutionHandler(kernel)))
+		recoveryRPC, err := tradecore.DialReadOnlyRecoveryRPC(ctx, cfg.RPCURL)
+		if err != nil {
+			return fmt.Errorf("configure read-only recovery RPC: %w", err)
+		}
+		defer recoveryRPC.Close()
+		effectResolver, err := tradecore.NewPonsCurveEffectResolver(store)
+		if err != nil {
+			return err
+		}
+		recoveryService, err := tradecore.NewRecoveryServiceWithCipher(store, artifactCipher, recoveryRPC, effectResolver, tradecore.CanonicalPolicy{})
+		if err != nil {
+			return err
+		}
+		recoveryQuerier, err := tradecore.NewProductionRecoveryQuerier(store, artifactCipher, recoveryRPC)
+		if err != nil {
+			return err
+		}
+		canaryProduction, err = tradecore.NewProductionComposition(store, cfg.CanaryProductionMode)
+		if err != nil {
+			return fmt.Errorf("configure controlled canary production lifecycle: %w", err)
+		}
+		hostname, _ := os.Hostname()
+		holder := fmt.Sprintf("%s:%d", hostname, os.Getpid())
+		if err = canaryProduction.ConfigureRecovery(recoveryService, recoveryQuerier, recoveryRPC, tradecore.ProductionRecoveryConfig{Environment: "production", HolderID: holder, LeaseTTL: 30 * time.Second, ScanInterval: time.Second}); err != nil {
+			return fmt.Errorf("configure production recovery lifecycle: %w", err)
+		}
+		if err = canaryProduction.Start(ctx); err != nil {
+			return fmt.Errorf("start production recovery lifecycle: %w", err)
+		}
+		server.SetMetricsWriter(canaryProduction.WriteMetrics)
+		ready.Set("recovery_ready", canaryProduction.Readiness().RecoveryReady)
 		ready.Set("pons_curve_dry_run_configured", true)
 	}
 
@@ -175,7 +198,7 @@ func Run(service config.Service) error {
 		return err
 	}
 	ready.Set("socket_bound", true)
-	errCh := make(chan error, 2)
+	errCh := make(chan error, 4)
 	go func() { errCh <- server.Serve(listener) }()
 	if runner != nil {
 		go func() { errCh <- runner.Run(ctx) }()
@@ -184,13 +207,19 @@ func Run(service config.Service) error {
 	if botConsumer != nil {
 		go func() { errCh <- botConsumer.Run(ctx, 100*time.Millisecond) }()
 	}
+	if canaryProduction != nil {
+		go func() { errCh <- canaryProduction.Run(ctx) }()
+		go monitorRecoveryReadiness(ctx, ready, canaryProduction)
+	}
 
 	select {
 	case err := <-errCh:
-		if ctx.Err() != nil {
-			return shutdownServer(server)
+		wasCanceled := ctx.Err() != nil
+		stop()
+		if wasCanceled {
+			return shutdownApplication(server, canaryProduction)
 		}
-		if shutdownErr := shutdownServer(server); shutdownErr != nil {
+		if shutdownErr := shutdownApplication(server, canaryProduction); shutdownErr != nil {
 			if err == nil {
 				return shutdownErr
 			}
@@ -201,7 +230,7 @@ func Run(service config.Service) error {
 		}
 		return err
 	case <-ctx.Done():
-		return shutdownServer(server)
+		return shutdownApplication(server, canaryProduction)
 	}
 }
 
@@ -240,6 +269,20 @@ func monitorFeedReadiness(ctx context.Context, ready *health.Readiness, runner *
 	}
 }
 
+func monitorRecoveryReadiness(ctx context.Context, ready *health.Readiness, lifecycle *tradecore.ProductionComposition) {
+	ticker := time.NewTicker(250 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		ready.Set("recovery_ready", lifecycle.Readiness().RecoveryReady)
+		select {
+		case <-ctx.Done():
+			ready.Set("recovery_ready", false)
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
 func shutdownServer(server *health.Server) error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -247,4 +290,23 @@ func shutdownServer(server *health.Server) error {
 		return fmt.Errorf("shutdown: %w", err)
 	}
 	return nil
+}
+
+func shutdownApplication(server *health.Server, recovery *tradecore.ProductionComposition) error {
+	shutdown := func() error { return shutdownServer(server) }
+	if recovery == nil {
+		return shutdown()
+	}
+	return shutdownAndDrain(shutdown, recovery.Wait)
+}
+
+// RPC calls have bounded deadlines, but a durable scan can span multiple calls
+// and items. Never close the DB/RPC handles while that scan is still draining,
+// including when HTTP shutdown itself fails.
+func shutdownAndDrain(shutdown func() error, wait func(context.Context) error) error {
+	shutdownErr := shutdown()
+	if err := wait(context.Background()); err != nil {
+		return errors.Join(shutdownErr, fmt.Errorf("drain production recovery: %w", err))
+	}
+	return shutdownErr
 }
