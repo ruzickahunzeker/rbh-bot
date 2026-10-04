@@ -2,6 +2,7 @@
   "schema_version": 1,
   "base_main_sha": "5e45e8ca070e291b786a9d376d6ff623b3dae78a",
   "implementation_parent_sha": "4c6f9d8d1138989d6c4a297cea5111ba912022ba",
+  "lease_residual_reviewed_head_sha": "d18d63fcbbbd45be40415f1aac80697f3f31ad55",
   "scope": "W4_C_PRODUCTION_RECOVERY_HARDENING",
   "status": "W4-C_READY_FOR_REVIEW",
   "review_state": "PENDING_FRESH_INDEPENDENT_REVIEW",
@@ -9,6 +10,7 @@
   "local_verification": {
     "go test ./... -timeout=20m": "PASS",
     "go test -race ./... -timeout=20m": "PASS",
+    "go test -race ./internal/trade -run '^TestW4C(Lease|Fractional)' -count=3 -timeout=2m": "PASS",
     "go vet ./...": "PASS",
     "staticcheck ./...": "PASS",
     "validation_package": "PASS",
@@ -32,6 +34,24 @@
     "shutdown_and_drain_errors_preserved": "TestShutdownAndDrainPreservesBothErrors",
     "read_only_rpc_send_calls_zero": "TestW4CReadOnlyRecoveryRPCQueriesWithoutSendReachability",
     "no_signer_submission_broadcaster_dependency": "TestW4AProductionCompositionHasNoEconomicDependencies"
+  },
+  "lease_residual_evidence": {
+    "prior_fresh_review_conclusion": "BLOCKED",
+    "cause": "RFC3339Nano variable fractional precision cannot be chronologically ordered as SQLite text",
+    "fix": "Go absolute-time comparison and exact prior-row conditional write inside the same SQLite transaction in the two W4-C lifecycle helpers",
+    "whole_second_fractional_and_nanosecond_expiry_boundaries": "TestW4CLeaseChronologicalNanosecondBoundaries",
+    "expired_renewal_rejected_without_row_mutation": "TestW4CLeaseChronologicalNanosecondBoundaries",
+    "expired_takeover_allocates_higher_epoch": "TestW4CLeaseChronologicalNanosecondBoundaries",
+    "malformed_expiry_and_epoch_overflow_fail_closed": "TestW4CLeaseMalformedExpiryAndEpochOverflowFailClosed",
+    "independent_sqlite_connections": 2,
+    "concurrent_contests_per_test_run": 48,
+    "exactly_one_accept_and_matching_durable_owner": "TestW4CLeaseConcurrentIndependentConnections",
+    "stale_owner_renewal_and_mutation_fence_rejected": "TestW4CLeaseConcurrentIndependentConnections",
+    "expired_lifecycle_readiness_false_with_durable_audit_alert_and_freeze": "TestW4CFractionalLeaseLossStopsReadinessWithAuditAlert",
+    "migration_changes": 0,
+    "legacy_lease_api_changes": 0,
+    "w4b_send_semantics_changes": 0,
+    "fresh_independent_review": "PENDING"
   },
   "evidence_limits": {
     "artifact_setup": "Local fixtures create an artifact before the recovery window; zero signing claims apply to recovery only.",

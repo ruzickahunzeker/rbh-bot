@@ -329,6 +329,26 @@ Each individual production RPC retains its ten-second timeout. A caller's timed-
 not terminate or release durable recovery work. This is implementation evidence, pending fresh
 independent review; W4-D and W5 remain out of scope.
 
+### W4-C fractional-expiry lease residual
+
+Fresh review of hardening head `d18d63fcbbbd45be40415f1aac80697f3f31ad55`
+found the two W4-C lifecycle lease helpers ordered RFC3339Nano expiry strings as SQL
+text. Variable fractional precision is not chronological: this could reject a valid
+renewal/takeover or allow renewal after expiry. The helpers now parse and compare
+absolute times inside their SQLite transaction, then update only the exact prior
+expiry/holder/epoch row. Takeover cannot overflow SQLite's signed integer epoch.
+No migration, legacy lease API, recovery state machine or send semantics changed.
+
+Permanent tests cover whole-second and fractional expiries at minus one nanosecond,
+exact expiry and plus one nanosecond, malformed durable expiry, epoch overflow,
+and 48 renewal/takeover races over two independently opened SQLite handles. They
+check exactly one accepted contender and its durable owner/epoch/expiry, with stale
+renewal and the existing mutation fence rejected after takeover. A production
+lifecycle test crosses a fractional expiry during an in-flight recovery query and
+checks false readiness, durable lease-loss audit/alert and retained ambiguity freeze.
+These are controlled local tests, not mainnet or real-process crash evidence.
+The residual fix remains pending fresh independent review; it does not close W4-C.
+
 ```ini
 W1 = PASS
 W2 = PASS
