@@ -293,16 +293,20 @@ func shutdownServer(server *health.Server) error {
 }
 
 func shutdownApplication(server *health.Server, recovery *tradecore.ProductionComposition) error {
-	if err := shutdownServer(server); err != nil {
-		return err
-	}
+	shutdown := func() error { return shutdownServer(server) }
 	if recovery == nil {
-		return nil
+		return shutdown()
 	}
-	waitCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	if err := recovery.Wait(waitCtx); err != nil {
-		return fmt.Errorf("drain production recovery: %w", err)
+	return shutdownAndDrain(shutdown, recovery.Wait)
+}
+
+// RPC calls have bounded deadlines, but a durable scan can span multiple calls
+// and items. Never close the DB/RPC handles while that scan is still draining,
+// including when HTTP shutdown itself fails.
+func shutdownAndDrain(shutdown func() error, wait func(context.Context) error) error {
+	shutdownErr := shutdown()
+	if err := wait(context.Background()); err != nil {
+		return errors.Join(shutdownErr, fmt.Errorf("drain production recovery: %w", err))
 	}
-	return nil
+	return shutdownErr
 }

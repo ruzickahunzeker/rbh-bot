@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "5e45e8ca070e291b786a9d376d6ff623b3dae78a",
+  "implementation_parent_sha": "4c6f9d8d1138989d6c4a297cea5111ba912022ba",
+  "scope": "W4_C_PRODUCTION_RECOVERY_HARDENING",
+  "status": "W4-C_READY_FOR_REVIEW",
+  "review_state": "PENDING_FRESH_INDEPENDENT_REVIEW",
+  "prior_review_conclusion": "BLOCKED",
+  "local_verification": {
+    "go test ./... -timeout=20m": "PASS",
+    "go test -race ./... -timeout=20m": "PASS",
+    "go vet ./...": "PASS",
+    "staticcheck ./...": "PASS",
+    "validation_package": "PASS",
+    "offline_verification": "PASS",
+    "gofmt_and_diff_check": "PASS"
+  },
+  "acceptance_evidence": {
+    "terminal_health_failure_keeps_readiness_false": "TestW4CTerminalHealthFailureCannotReviveReadiness",
+    "duplicate_run_rejected": "TestW4CTerminalHealthFailureCannotReviveReadiness",
+    "timed_out_wait_does_not_abort_scan": "TestW4CTerminalHealthFailureCannotReviveReadiness",
+    "wrong_success_and_revert_receipts_keep_freeze": "TestW4CContradictoryReceiptCannotResolveAmbiguity",
+    "zero_hash_and_bad_log_metadata_fail_closed": "TestW4CContradictoryReceiptCannotResolveAmbiguity",
+    "contradiction_produces_audit_and_alert": "TestW4CContradictoryReceiptCannotResolveAmbiguity",
+    "querier_exact_observation_identity": "TestW4CQuerierRejectsWrongObservationIdentity",
+    "malformed_receipt_fail_closed": "TestW4CReceiptValidationRejectsMalformedEvidence",
+    "submitted_and_unknown_file_database_reopen": "TestW4CProductionLifecycleSQLiteReopen",
+    "fresh_composition_higher_lease_epoch": "TestW4CProductionLifecycleSQLiteReopen",
+    "restart_exact_artifact_and_nonce_unchanged": "TestW4CProductionLifecycleSQLiteReopen",
+    "restart_canonical_reorg_recanonical_exactly_once": "TestW4CProductionLifecycleSQLiteReopen",
+    "http_shutdown_failure_still_drains": "TestShutdownFailureStillDrainsRecovery",
+    "shutdown_and_drain_errors_preserved": "TestShutdownAndDrainPreservesBothErrors",
+    "read_only_rpc_send_calls_zero": "TestW4CReadOnlyRecoveryRPCQueriesWithoutSendReachability",
+    "no_signer_submission_broadcaster_dependency": "TestW4AProductionCompositionHasNoEconomicDependencies"
+  },
+  "evidence_limits": {
+    "artifact_setup": "Local fixtures create an artifact before the recovery window; zero signing claims apply to recovery only.",
+    "rpc_environment": "Controlled loopback JSON-RPC only; no production or mainnet connection.",
+    "restart": "Real file-backed SQLite close/reopen with a fresh composition; not an OS process crash test.",
+    "recovery_state_machine": "Unchanged existing W3 and PR-006 state machine; identity validation is at the W4-C production boundary."
+  },
+  "gate_status": {
+    "w1": "PASS",
+    "w2": "PASS",
+    "w3": "PASS",
+    "w4_b": "PASS",
+    "controlled_canary_wiring": "W4-C_READY_FOR_REVIEW",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "canary_admission_ready": false,
+    "submission_send_ready": false,
+    "recovery_ready": "DB_RPC_LEASE_WORKER_HEALTH_DEPENDENT_AND_FALSE_DURING_DRAIN_OR_AFTER_EXIT",
+    "live": false,
+    "release_ready": false,
+    "w4_d": "NOT_ENTERED",
+    "w5": "NOT_ENTERED"
+  }
+}

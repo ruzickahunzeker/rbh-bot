@@ -337,3 +337,8 @@ contradictory evidence and lease loss fail closed with durable audit/alert evide
 Production broadcast remains `NOT_CONNECTED`, controlled-canary authorization remains
 `NOT_GRANTED`, and live and release readiness remain false. W4-C requires independent review;
 W4-D and W5 have not started.
+
+W4-C review hardening enforces terminal readiness, validates the actual production RPC
+transaction/receipt identity before reconciliation, and adds real SQLite close/reopen recovery
+evidence for both submitted and ambiguous work. HTTP shutdown failure still drains recovery before
+resource teardown. The slice remains **W4-C_READY_FOR_REVIEW**, pending fresh independent review.

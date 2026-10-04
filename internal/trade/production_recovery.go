@@ -54,7 +54,26 @@ func (r *ReadOnlyRecoveryRPC) TransactionReceipt(ctx context.Context, hash commo
 	if errors.Is(err, ethereum.NotFound) {
 		return nil, nil
 	}
+	if err == nil && receipt != nil {
+		if err = validateRecoveryReceipt(receipt, hash); err != nil {
+			return nil, err
+		}
+	}
 	return receipt, err
+}
+
+// Validate the provider observation before it can resolve an ambiguous lane.
+// Reverted receipts require the same identity proof as successful receipts.
+func validateRecoveryReceipt(receipt *types.Receipt, hash common.Hash) error {
+	if receipt == nil || hash == (common.Hash{}) || receipt.TxHash != hash || receipt.BlockHash == (common.Hash{}) || receipt.BlockNumber == nil || !receipt.BlockNumber.IsUint64() || receipt.BlockNumber.Sign() <= 0 || receipt.Status > types.ReceiptStatusSuccessful || len(receipt.PostState) != 0 {
+		return ErrArtifactIntegrity
+	}
+	for _, log := range receipt.Logs {
+		if log == nil || log.Removed || log.TxHash != hash || log.BlockHash != receipt.BlockHash || log.BlockNumber != receipt.BlockNumber.Uint64() || log.TxIndex != receipt.TransactionIndex {
+			return ErrArtifactIntegrity
+		}
+	}
+	return nil
 }
 
 func (r *ReadOnlyRecoveryRPC) HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error) {
@@ -63,7 +82,11 @@ func (r *ReadOnlyRecoveryRPC) HeaderByNumber(ctx context.Context, number *big.In
 	}
 	rpcCtx, cancel := recoveryRPCContext(ctx)
 	defer cancel()
-	return r.eth.HeaderByNumber(rpcCtx, number)
+	header, err := r.eth.HeaderByNumber(rpcCtx, number)
+	if err == nil && (header == nil || header.Number == nil || !header.Number.IsUint64() || (number != nil && header.Number.Cmp(number) != 0)) {
+		return nil, ErrArtifactIntegrity
+	}
+	return header, err
 }
 
 func (r *ReadOnlyRecoveryRPC) TransactionByHash(ctx context.Context, hash common.Hash) (*types.Transaction, bool, error) {
@@ -75,6 +98,9 @@ func (r *ReadOnlyRecoveryRPC) TransactionByHash(ctx context.Context, hash common
 	tx, pending, err := r.eth.TransactionByHash(rpcCtx, hash)
 	if errors.Is(err, ethereum.NotFound) {
 		return nil, false, nil
+	}
+	if err == nil && tx != nil && (tx.Hash() != hash || tx.ChainId().Cmp(new(big.Int).SetUint64(ChainID)) != 0) {
+		return nil, false, ErrArtifactIntegrity
 	}
 	return tx, pending, err
 }
@@ -142,9 +168,17 @@ func (q *ProductionRecoveryQuerier) QueryRecovery(ctx context.Context, query Con
 	if err != nil {
 		return ControlledRecoveryEvidence{}, err
 	}
+	if tx != nil && (tx.Hash() != hash || tx.ChainId().Cmp(new(big.Int).SetUint64(ChainID)) != 0) {
+		return ControlledRecoveryEvidence{}, ErrArtifactIntegrity
+	}
 	receipt, err := q.rpc.TransactionReceipt(ctx, hash)
 	if err != nil {
 		return ControlledRecoveryEvidence{}, err
+	}
+	if receipt != nil {
+		if err = validateRecoveryReceipt(receipt, hash); err != nil {
+			return ControlledRecoveryEvidence{}, err
+		}
 	}
 	txFound, receiptFound := tx != nil, receipt != nil
 	nonceState := "PROPAGATED"
@@ -185,7 +219,7 @@ func (r *PonsCurveEffectResolver) ResolvePositionEffect(ctx context.Context, art
 	if r == nil || ctx == nil || artifact.Operation == "" || receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
 		return PositionEffect{}, ErrArtifactIntegrity
 	}
-	if receipt.TxHash != (common.Hash{}) && !strings.EqualFold(receipt.TxHash.Hex(), artifact.TxHash) {
+	if receipt.TxHash == (common.Hash{}) || !strings.EqualFold(receipt.TxHash.Hex(), artifact.TxHash) {
 		return PositionEffect{}, ErrArtifactIntegrity
 	}
 	dryRun, found, err := r.store.Result(ctx, artifact.Operation)

@@ -307,6 +307,28 @@ not completed before a fault remains in SQLite and is rediscovered after lease e
 `broadcast_unknown` remains frozen and recovery never rebuilds, resigns, replaces, fee-bumps,
 allocates a nonce, consumes a send permit or automatically resends.
 
+### W4-C review hardening
+
+The branch review found readiness could revive after terminal health failure, production RPC
+receipt identity was not checked before recovery, and the restart test reused the open Store.
+This hardening makes terminal failure and shutdown draining irreversible for a lifecycle and
+rejects a second `Run`. A stopped worker always leaves `recovery_ready=false`. Healthy shutdown
+continues its lease renewal while draining, without enabling admission or sending.
+
+The read-only RPC boundary and production querier validate transaction hashes, chain identity,
+receipt block/status fields and receipt-log identities before recording propagation or allowing
+canonical effects. Both reverted and successful wrong-transaction receipts fail closed, preserve
+the ambiguous frozen lane/reservation, and generate durable audit/alert evidence. The existing
+recovery state machine and W4-B send-intent semantics are unchanged.
+
+File-backed SQLite close/reopen tests rebuild the production composition, acquire a higher
+`RECOVERY` epoch, rediscover both durable submission states, and verify exactly-once canonical
+apply/reorg rollback/reapply with the exact original artifact and nonce. HTTP shutdown failure
+still waits for recovery; the app does not close DB/RPC handles on an arbitrary scan timeout.
+Each individual production RPC retains its ten-second timeout. A caller's timed-out `Wait` does
+not terminate or release durable recovery work. This is implementation evidence, pending fresh
+independent review; W4-D and W5 remain out of scope.
+
 ```ini
 W1 = PASS
 W2 = PASS

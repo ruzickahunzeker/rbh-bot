@@ -330,7 +330,7 @@ func TestPonsCurveEffectResolverDerivesCanonicalBuyEffect(t *testing.T) {
 	addressTopic := func(address common.Address) common.Hash {
 		return common.BytesToHash(common.LeftPadBytes(address.Bytes(), 32))
 	}
-	receipt := &types.Receipt{Status: types.ReceiptStatusSuccessful, Logs: []*types.Log{{
+	receipt := &types.Receipt{TxHash: common.HexToHash(artifact.TxHash), Status: types.ReceiptStatusSuccessful, Logs: []*types.Log{{
 		Address: dryRun.Route.Curve,
 		Topics:  []common.Hash{parser.TopicPonsCurveBuy, addressTopic(common.HexToAddress(artifact.From)), addressTopic(common.HexToAddress(artifact.From))},
 		Data:    data,

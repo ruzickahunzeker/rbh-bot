@@ -50,6 +50,7 @@ type ProductionComposition struct {
 	recoveryReady  bool
 	recoveryReason string
 	started        bool
+	runStarted     bool
 	runDone        chan struct{}
 }
 
@@ -121,13 +122,20 @@ func (c *ProductionComposition) Run(ctx context.Context) error {
 	if c == nil || ctx == nil {
 		return ErrProductionCompositionRejected
 	}
-	c.mu.RLock()
+	c.mu.Lock()
 	worker, deps := c.worker, c.recovery
-	c.mu.RUnlock()
-	if worker == nil || deps == nil {
+	if worker == nil || deps == nil || c.runStarted {
+		c.mu.Unlock()
 		return ErrProductionCompositionRejected
 	}
-	defer close(c.runDone)
+	c.runStarted = true
+	c.mu.Unlock()
+	defer func() {
+		c.mu.Lock()
+		c.recoveryReady = false
+		c.mu.Unlock()
+		close(c.runDone)
+	}()
 	workerCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	done := make(chan error, 1)
@@ -143,13 +151,23 @@ func (c *ProductionComposition) Run(ctx context.Context) error {
 			if terminalErr != nil {
 				return terminalErr
 			}
-			c.setRecoveryReadiness(false, "RECOVERY_STOPPED")
+			reason := "RECOVERY_STOPPED"
+			if err != nil {
+				reason = "RECOVERY_WORKER_FAILED"
+			}
+			c.setRecoveryReadiness(false, reason)
 			return err
 		case <-ctxDone:
 			stopping = true
+			c.setRecoveryReadiness(false, "RECOVERY_DRAINING")
 			ctxDone = nil
 			cancel()
 		case <-renew.C:
+			// A terminal failure is irreversible for this lifecycle. Do not
+			// revive readiness while its already-started scan is draining.
+			if terminalErr != nil {
+				continue
+			}
 			healthCtx := context.WithoutCancel(ctx)
 			if err := c.checkRecoveryHealth(healthCtx, deps); err != nil {
 				c.setRecoveryReadiness(false, "RECOVERY_HEALTH_UNAVAILABLE")
