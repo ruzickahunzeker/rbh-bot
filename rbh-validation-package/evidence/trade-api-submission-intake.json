@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "base_main_sha": "7b278c4ffd48fe75c8f20d25185f0743222684b8",
+  "scope": "AUTHENTICATED_DISABLED_API_INTAKE_AND_REDACTED_QUERIES_ONLY",
+  "status": "READY_FOR_REVIEW",
+  "review_state": "PENDING_INDEPENDENT_REVIEW",
+  "capabilities": {
+    "transport": "EXISTING_HTTP_OVER_UNIX_SOCKET_WITH_HMAC",
+    "wallet_scope": "SERVER_CONFIGURED_DRY_RUN_WALLET_ID",
+    "operation_source": "EXISTING_DURABLE_PONS_V2_CURVE_SUCCESSFUL_DRY_RUN",
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "post_outcome": "HTTP_503_REJECTED_SUBMISSION_DISABLED",
+    "submission_queued": false,
+    "send_authorized": false,
+    "events_scope": "API_REJECTION_AUDIT_METADATA_ONLY",
+    "api_nonce_replay_cache": "EXISTING_PROCESS_LOCAL_IPC_CACHE",
+    "business_idempotency": "DURABLE_SQLITE_WALLET_SCOPED",
+    "alert_evidence": "ATOMIC_OUTBOX_INSERTION_NOT_EXTERNAL_DELIVERY"
+  },
+  "acceptance_tests": {
+    "disabled_rejection_atomic_dedupe_and_no_queue": "TestTradeAPIDisabledSubmissionDurableAtomicRejection",
+    "authentication_strict_json_wallet_and_query_binding": "TestTradeAPIValidationAndAuthenticationFailClosed",
+    "canonical_expiry_equality_and_immutable_identity": "TestTradeAPIExpiryAndIdentityConflict",
+    "direct_sql_source_and_state_checks_atomic_audit_outbox_failures": "TestTradeAPISchemaAtomicAuditFailureAndImmutability",
+    "concurrent_duplicates_and_file_backed_close_reopen": "TestTradeAPIConcurrentDuplicateAndSQLiteRestart",
+    "independent_sqlite_handles_contention_and_retry": "TestTradeAPIIndependentConnectionsConflictAndRetry",
+    "redacted_read_views_incremental_cursor_and_vacuum": "TestTradeAPIStatusAndIncrementalEventsAreRedactedAndReadOnly",
+    "expired_submitted_and_ambiguous_queries_preserve_artifact_nonce_and_freeze": "TestTradeAPIAmbiguousSubmittedAndExpiredQueryDoesNotSend",
+    "new_handler_dependency_and_prohibited_call_static_guard": "TestTradeAPIDependencyGraphHasNoEconomicCapabilities",
+    "actual_authenticated_unix_socket_transport": "TestTradeAPIUnixTransport"
+  },
+  "prohibited_path_evidence": {
+    "claim_scope": "NEW_API_HANDLER_AND_INTAKE_ONLY_NOT_EXISTING_PREPARE_EXECUTION",
+    "proof": "HANDLER_DEPENDENCY_AND_AST_CALL_GUARDS_PLUS_NO_ECONOMIC_TABLE_WRITES",
+    "new_signed_artifacts": 0,
+    "submission_rows_created_by_api": 0,
+    "runtime_authorization_grants": 0,
+    "send_permit_issuance_or_consumption": 0,
+    "nonce_allocation": 0,
+    "position_effects_created_by_api": 0,
+    "production_broadcaster_connection": false,
+    "mainnet_transactions": false,
+    "latent_send_queue": false
+  },
+  "limitations": [
+    "Only disabled intake for existing durable operations; no manual intent API or actual broadcast support.",
+    "GET status caps each collection at 100 and fails closed on overflow; events paginate API rejection audits only.",
+    "Shared internal HMAC authentication is not multi-tenant/user authorization; nonce cache is process-local.",
+    "Existing prepare-execution signing endpoint and independently healthy recovery lifecycle are unchanged.",
+    "This is implementation/test evidence, not independent review approval or W4-C closeout."
+  ],
+  "gate_status": {
+    "w1": "PASS",
+    "w2": "PASS",
+    "w3": "PASS",
+    "w4_b": "PASS",
+    "w4_c_independent_review": "PENDING",
+    "controlled_canary_wiring": "W4-C_READY_FOR_REVIEW",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "canary_admission_ready": false,
+    "submission_send_ready": false,
+    "recovery_ready": "UNCHANGED_DB_RPC_LEASE_HEALTH_DEPENDENT",
+    "live": false,
+    "release_ready": false,
+    "w4_d": "NOT_ENTERED",
+    "w5": "NOT_ENTERED"
+  }
+}

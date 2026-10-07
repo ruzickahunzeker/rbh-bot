@@ -125,6 +125,11 @@ func Run(service config.Service) error {
 		if err := store.RegisterDryRunWallet(ctx, cfg.DryRunWalletID, common.HexToAddress(cfg.DryRunFromAddress)); err != nil {
 			return err
 		}
+		tradeAPI, err := tradecore.NewDisabledTradeAPI(store, cfg.DryRunWalletID)
+		if err != nil {
+			return fmt.Errorf("configure disabled trade API: %w", err)
+		}
+		server.Handle("/internal/trade/operations/", ipc.RequestContext(authenticator.Middleware(tradeAPI)))
 		tradeBackend, err = tradecore.DialRPCBackend(ctx, cfg.RPCURL)
 		if err != nil {
 			return err
