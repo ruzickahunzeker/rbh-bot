@@ -15,6 +15,10 @@ import (
 // The single caller/wallet grant is deployment-owned and immutable for the
 // process lifetime. Multiple callers/TCP/TLS require a separate reviewed slice.
 func LoadFile(database *storage.Database, path string, internalCredential string) (*API, error) {
+	return LoadFileWithQueries(database, path, internalCredential, nil)
+}
+
+func LoadFileWithQueries(database *storage.Database, path string, internalCredential string, queries ReadQueries) (*API, error) {
 	configurationError := errors.New("invalid user HTTP API credential configuration")
 	info, err := os.Lstat(path)
 	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0o077 != 0 {
@@ -63,7 +67,7 @@ func LoadFile(database *storage.Database, path string, internalCredential string
 	if err != nil {
 		return nil, configurationError
 	}
-	h, err := New(s, Identity{PrincipalID: cfg.PrincipalID, WalletID: cfg.WalletID, WalletAddress: cfg.WalletAddress}, cfg.Token, p)
+	h, err := NewWithQueries(s, Identity{PrincipalID: cfg.PrincipalID, WalletID: cfg.WalletID, WalletAddress: cfg.WalletAddress}, cfg.Token, p, queries)
 	if err != nil {
 		return nil, configurationError
 	}

@@ -25,9 +25,14 @@ type API struct {
 	policy     Policy
 	now        func() time.Time
 	mux        *http.ServeMux
+	queries    ReadQueries
 }
 
 func New(store *Store, identity Identity, token string, policy Policy) (*API, error) {
+	return NewWithQueries(store, identity, token, policy, nil)
+}
+
+func NewWithQueries(store *Store, identity Identity, token string, policy Policy, queries ReadQueries) (*API, error) {
 	if store == nil || store.db == nil || !identity.valid() || len(token) < 32 || len(token) > 256 || policy.validate() != nil {
 		return nil, ErrInvalid
 	}
@@ -36,13 +41,16 @@ func New(store *Store, identity Identity, token string, policy Policy) (*API, er
 			return nil, ErrInvalid
 		}
 	}
-	h := &API{store: store, identity: identity, credential: sha256.Sum256([]byte(token)), policy: policy, now: time.Now, mux: http.NewServeMux()}
+	h := &API{store: store, identity: identity, credential: sha256.Sum256([]byte(token)), policy: policy, now: time.Now, mux: http.NewServeMux(), queries: queries}
 	h.mux.HandleFunc("POST /v1/trades", h.submit)
 	h.mux.HandleFunc("GET /v1/trades/by-idempotency-key", h.byKey)
 	h.mux.HandleFunc("GET /v1/trades/{request_id}", h.status)
 	h.mux.HandleFunc("GET /v1/trades/{request_id}/events", h.events)
 	h.mux.HandleFunc("GET /v1/capabilities", h.capabilities)
 	h.mux.HandleFunc("GET /v1/wallets", h.wallets)
+	h.mux.HandleFunc("GET /v1/tokens/{address}", h.token)
+	h.mux.HandleFunc("GET /v1/wallets/{wallet_id}/balances", h.balances)
+	h.mux.HandleFunc("GET /v1/fees", h.fees)
 	return h, nil
 }
 
@@ -252,18 +260,22 @@ func (h *API) capabilities(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, ErrInvalid)
 		return
 	}
+	queries, stage := "NOT_CONNECTED", "HTTP_A_READY_FOR_REVIEW"
+	if h.queries != nil {
+		queries, stage = "READ_ONLY_REFERENCE", "HTTP_B_READY_FOR_REVIEW"
+	}
 	writeJSON(w, 200, map[string]any{
 		"chains": []string{"robinhood"}, "chain_id": 4663,
 		"execution_protocol_allowlist": []string{"pons_v2_curve"},
-		"contract_stage":               "HTTP_A_READY_FOR_REVIEW", "request_handling": "REJECTION_ONLY",
+		"contract_stage":               stage, "request_handling": "REJECTION_ONLY",
 		"submission_enabled": false, "send_authorized": false, "live": false, "release_ready": false,
-		"protocol_resolution": "NOT_CONNECTED", "token_decimals_validation": "NOT_CONNECTED",
+		"protocol_resolution": queries, "token_decimals_validation": queries,
 		"fee_execution_binding": "NOT_CONNECTED", "copy_source_validation": "NOT_CONNECTED",
 		"api_policy": h.policy, "fee_model": "EIP1559", "fee_unit": "gwei",
 		"deadline_capability": "APPLICATION_TTL_ONLY", "contract_deadline": false,
 		"events_scope": "API_REJECTION_ONLY", "transport": "LOCAL_UDS",
 		"optional_user_limits_default": "UNSET",
-		"balance_token_fee_queries":    "NOT_IMPLEMENTED",
+		"balance_token_fee_queries":    queries,
 	})
 }
 

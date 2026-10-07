@@ -64,4 +64,14 @@ func TestUserTradeAPIStartupDefaultOffAndScopedRegistration(t *testing.T) {
 	if w.Code != 200 || !strings.Contains(w.Body.String(), `"submission_enabled":false`) || !strings.Contains(w.Body.String(), `"live":false`) {
 		t.Fatal("registration enabled sending")
 	}
+	queryRoutes := &testRoutes{handlers: map[string]http.Handler{}}
+	// A non-listening local endpoint proves construction does not make RPC calls.
+	if err = configureUserTradeAPI(queryRoutes, d, config.Config{TradeAPIConfigFile: path, InternalAuthSecret: "different-internal-secret", TradeAPIReadQueries: true, RPCURL: "http://127.0.0.1:1"}); err != nil {
+		t.Fatal("query startup requires RPC health/authorization")
+	}
+	w = httptest.NewRecorder()
+	queryRoutes.handlers["/v1/"].ServeHTTP(w, r)
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"balance_token_fee_queries":"READ_ONLY_REFERENCE"`) || !strings.Contains(w.Body.String(), `"submission_enabled":false`) {
+		t.Fatal("read-only startup enabled sending")
+	}
 }

@@ -200,3 +200,22 @@ func (s *Store) Wallet(ctx context.Context, identity Identity) (Wallet, error) {
 	}
 	return w, nil
 }
+
+// A single unresolved wallet lane makes all token inventory unavailable for
+// new execution. Counting both layers as blockers avoids double-subtracting
+// the same operation's C07 and execution reservations. No row is mutated.
+func (s *Store) readWalletState(ctx context.Context, identity Identity) (Wallet, bool, error) {
+	w := Wallet{ID: identity.WalletID, Chain: "robinhood"}
+	if s == nil || s.db == nil || ctx == nil || !identity.valid() {
+		return w, false, ErrInvalid
+	}
+	var blocked bool
+	err := s.db.QueryRowContext(ctx, `SELECT w.address,EXISTS(SELECT 1 FROM execution_wallet_lanes WHERE wallet_id=w.id AND state!='idle') OR EXISTS(SELECT 1 FROM execution_reservations WHERE wallet_id=w.id AND status IN ('reserved','signed','frozen')) OR EXISTS(SELECT 1 FROM canary_risk_reservations WHERE wallet_id=w.id AND state IN ('reserved','frozen')) OR EXISTS(SELECT 1 FROM execution_steps WHERE wallet_id=w.id AND status IN ('nonce_reserved','signing','signed','submitted','broadcast_unknown','reconciling','manual_resolution')) FROM dry_run_wallets w WHERE w.id=? AND w.chain_id=4663 AND w.enabled=1`, identity.WalletID).Scan(&w.Address, &blocked)
+	if errors.Is(err, sql.ErrNoRows) {
+		return w, false, ErrWallet
+	}
+	if err == nil && (!common.IsHexAddress(w.Address) || common.HexToAddress(w.Address) != common.HexToAddress(identity.WalletAddress)) {
+		return w, false, ErrWallet
+	}
+	return w, blocked, err
+}

@@ -3,6 +3,7 @@ package app
 import (
 	"net/http"
 
+	"github.com/ruzickahunzeker/rbh-bot/internal/chainquery"
 	"github.com/ruzickahunzeker/rbh-bot/internal/config"
 	"github.com/ruzickahunzeker/rbh-bot/internal/ipc"
 	"github.com/ruzickahunzeker/rbh-bot/internal/storage"
@@ -17,7 +18,15 @@ func configureUserTradeAPI(server routeRegistrar, database *storage.Database, cf
 	if cfg.TradeAPIConfigFile == "" {
 		return nil
 	}
-	userAPI, err := tradeapi.LoadFile(database, cfg.TradeAPIConfigFile, cfg.InternalAuthSecret)
+	var queries tradeapi.ReadQueries
+	if cfg.TradeAPIReadQueries {
+		client, err := chainquery.New(cfg.RPCURL)
+		if err != nil {
+			return err
+		}
+		queries = client
+	}
+	userAPI, err := tradeapi.LoadFileWithQueries(database, cfg.TradeAPIConfigFile, cfg.InternalAuthSecret, queries)
 	if err != nil {
 		return err
 	}

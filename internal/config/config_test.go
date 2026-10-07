@@ -32,3 +32,20 @@ func TestLoadRejectsWrongChain(t *testing.T) {
 		t.Fatal("expected wrong chain to be rejected")
 	}
 }
+
+func TestHTTPBReadQueriesDefaultOffAndMalformedRejected(t *testing.T) {
+	t.Setenv("RBH_TRADE_API_READ_QUERIES", "false")
+	cfg, err := Load(TradeService)
+	if err != nil || cfg.TradeAPIReadQueries {
+		t.Fatal("read queries enabled by default")
+	}
+	t.Setenv("RBH_TRADE_API_READ_QUERIES", "true")
+	cfg, err = Load(TradeService)
+	if err != nil || !cfg.TradeAPIReadQueries {
+		t.Fatal("read query setting unavailable")
+	}
+	t.Setenv("RBH_TRADE_API_READ_QUERIES", "not-a-bool")
+	if _, err = Load(TradeService); err == nil {
+		t.Fatal("invalid query setting accepted")
+	}
+}

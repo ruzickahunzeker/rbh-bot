@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
-  title: EVM Bot user HTTP trading contract — HTTP-A
-  version: 0.1.0
+  title: EVM Bot user HTTP trading contract — HTTP-A/B
+  version: 0.2.0
   description: >-
     Local Unix-domain HTTP contract, submission disabled. Valid POSTs create
     immutable rejection records only, not economic operations or a send queue.
@@ -108,12 +108,61 @@ paths:
           description: Caller-scoped wallet ID, chain and address
         default:
           $ref: '#/components/responses/Error'
+  /v1/tokens/{address}:
+    get:
+      summary: Read verified native-quote Pons v2 Curve token metadata, not authorization
+      parameters:
+        - $ref: '#/components/parameters/QueryChain'
+        - name: address
+          in: path
+          required: true
+          schema: {type: string, pattern: '^0x[a-fA-F0-9]{40}$'}
+      responses:
+        '200':
+          description: Block/hash bound metadata, route and runtime identities; send_authorized=false
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/wallets/{wallet_id}/balances:
+    get:
+      summary: Read caller-scoped balances and allowance-limited sellable reference
+      parameters:
+        - $ref: '#/components/parameters/QueryChain'
+        - name: wallet_id
+          in: path
+          required: true
+          schema: {type: string}
+        - name: token
+          in: query
+          schema: {type: string, pattern: '^0x[a-fA-F0-9]{40}$'}
+      responses:
+        '200':
+          description: >-
+            Native balance and optional token/allowance at one block/hash;
+            unresolved lane forces sellable/unreserved token reference to zero.
+            available_native=null, not an execution reservation or permission.
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/fees:
+    get:
+      summary: Exact Gwei reference, not total gas budget or fee execution binding
+      parameters:
+        - $ref: '#/components/parameters/QueryChain'
+      responses:
+        '200':
+          description: EIP1559 base/tip/max reference; priority suggestion is not block-pinned
+        default:
+          $ref: '#/components/responses/Error'
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
   parameters:
+    QueryChain:
+      name: chain
+      in: query
+      required: true
+      schema: {const: robinhood}
     IdempotencyKey:
       name: Idempotency-Key
       in: header

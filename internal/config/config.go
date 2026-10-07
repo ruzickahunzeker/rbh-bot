@@ -38,6 +38,7 @@ type Config struct {
 	ArtifactKeyVersion    string
 	CanaryProductionMode  string
 	TradeAPIConfigFile    string
+	TradeAPIReadQueries   bool
 }
 
 func Load(service Service) (Config, error) {
@@ -52,6 +53,10 @@ func Load(service Service) (Config, error) {
 		return Config{}, fmt.Errorf("RBH_LIVE_ENABLED: %w", err)
 	}
 	canaryMode := env("RBH_CONTROLLED_CANARY_PRODUCTION_MODE", CanaryProductionModeDisabled)
+	readQueries, err := strconv.ParseBool(env("RBH_TRADE_API_READ_QUERIES", "false"))
+	if err != nil {
+		return Config{}, fmt.Errorf("invalid RBH_TRADE_API_READ_QUERIES")
+	}
 	if service == TradeService && canaryMode != CanaryProductionModeDisabled {
 		return Config{}, fmt.Errorf("RBH_CONTROLLED_CANARY_PRODUCTION_MODE must be %s in W4-A", CanaryProductionModeDisabled)
 	}
@@ -71,6 +76,7 @@ func Load(service Service) (Config, error) {
 		ArtifactKeyVersion:    env("RBH_ARTIFACT_KEY_VERSION", "v1"),
 		CanaryProductionMode:  canaryMode,
 		TradeAPIConfigFile:    os.Getenv("RBH_TRADE_API_CONFIG_FILE"),
+		TradeAPIReadQueries:   readQueries,
 	}, nil
 }
 
