@@ -1,0 +1,240 @@
+openapi: 3.1.0
+info:
+  title: EVM Bot user HTTP trading contract — HTTP-A
+  version: 0.1.0
+  description: >-
+    Local Unix-domain HTTP contract, submission disabled. Valid POSTs create
+    immutable rejection records only, not economic operations or a send queue.
+    No client-facing dry-run step. Live execution is not implemented here.
+security:
+  - bearerAuth: []
+paths:
+  /v1/trades:
+    post:
+      summary: Submit user parameters; HTTP-A durably rejects sending
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradeRequest'
+      responses:
+        '503':
+          description: Durable SUBMISSION_DISABLED record, or API_UNAVAILABLE error
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RejectedRecord'
+                  - $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/trades/by-idempotency-key:
+    get:
+      summary: Retrieve original request after a lost response
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Original caller-scoped rejection, no new TTL or action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RejectedRecord'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/trades/{request_id}:
+    get:
+      summary: Query a rejection, not an execution operation
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      responses:
+        '200':
+          description: Immutable caller-scoped rejection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RejectedRecord'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/trades/{request_id}/events:
+    get:
+      summary: API rejection audit only, not recovery service events
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - name: after
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 9223372036854775807
+      responses:
+        '200':
+          description: API_REJECTION_ONLY events and durable next_cursor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scope:
+                    const: API_REJECTION_ONLY
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        cursor: {type: integer}
+                        type: {const: USER_HTTP_TRADE_REJECTED}
+                        reason_code: {const: SUBMISSION_DISABLED}
+                        created_at: {type: string, format: date-time}
+                  next_cursor: {type: integer}
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/capabilities:
+    get:
+      summary: Local API limits and explicitly unconnected execution capabilities
+      responses:
+        '200':
+          description: Not authorization or recovery health; live and send flags false
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/wallets:
+    get:
+      summary: Durable wallet identity in caller scope, no balances
+      responses:
+        '200':
+          description: Caller-scoped wallet ID, chain and address
+        default:
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '^[A-Za-z0-9._:-]+$'
+    RequestID:
+      name: request_id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^req_[a-f0-9]{64}$'
+  schemas:
+    Decimal:
+      type: string
+      maxLength: 256
+      pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+      description: No exponent/sign/rounding; positivity and asset precision also validated
+    TradeRequest:
+      type: object
+      additionalProperties: false
+      required: [chain, wallet_id, token, side, slippage_percent]
+      properties:
+        chain: {const: robinhood}
+        wallet_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9._:-]+$'
+        token:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+        side: {enum: [buy, sell]}
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Positive native quantity for buy, token quantity for sell; excludes gas
+        sell_percent:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Sell only; (0,100], at most 2 decimal places
+        slippage_percent:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: At most 2 decimal places; constrained by deployment API policy
+        fee:
+          $ref: '#/components/schemas/Fee'
+        ttl_seconds:
+          type: integer
+          minimum: 1
+          maximum: 86400
+          description: Further constrained by API policy; omitted default binds once
+        min_receive:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Optional positive user output floor, default UNSET; no execution binding yet
+      oneOf:
+        - required: [amount]
+          not: {required: [sell_percent]}
+        - required: [sell_percent]
+          properties:
+            side: {const: sell}
+          not: {required: [amount]}
+    Fee:
+      type: object
+      additionalProperties: false
+      properties:
+        max_gwei:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Positive EIP-1559 max per-gas price in Gwei, max 9 decimal places
+        tip_gwei:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Priority fee included in max_gwei; zero allowed, may not exceed max
+        max_total_native:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Optional positive user gas-budget ceiling, excludes trade input, default UNSET
+      anyOf:
+        - required: [max_gwei]
+        - required: [max_total_native]
+      dependentRequired:
+        tip_gwei: [max_gwei]
+    RejectedRecord:
+      type: object
+      properties:
+        request_id: {type: string}
+        operation_id: {type: 'null'}
+        status: {const: REJECTED}
+        reason_code: {const: SUBMISSION_DISABLED}
+        request:
+          $ref: '#/components/schemas/TradeRequest'
+        api_policy_version: {type: integer}
+        api_policy_hash: {type: string}
+        expires_at: {type: string, format: date-time}
+        created_at: {type: string, format: date-time}
+        deadline_capability: {const: APPLICATION_TTL_ONLY}
+        contract_deadline: {const: false}
+        send_authorized: {const: false}
+        submission_queued: {const: false}
+        duplicate: {type: boolean}
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: {type: string}
+            message: {type: string}
+            request_id: {type: string}
+  responses:
+    Error:
+      description: Redacted authentication, validation, conflict or unavailable error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

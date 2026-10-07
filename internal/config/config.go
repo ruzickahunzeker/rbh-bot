@@ -37,6 +37,7 @@ type Config struct {
 	ArtifactEncryptionKey string
 	ArtifactKeyVersion    string
 	CanaryProductionMode  string
+	TradeAPIConfigFile    string
 }
 
 func Load(service Service) (Config, error) {
@@ -69,6 +70,7 @@ func Load(service Service) (Config, error) {
 		ArtifactEncryptionKey: os.Getenv("RBH_ARTIFACT_ENCRYPTION_KEY"),
 		ArtifactKeyVersion:    env("RBH_ARTIFACT_KEY_VERSION", "v1"),
 		CanaryProductionMode:  canaryMode,
+		TradeAPIConfigFile:    os.Getenv("RBH_TRADE_API_CONFIG_FILE"),
 	}, nil
 }
 
