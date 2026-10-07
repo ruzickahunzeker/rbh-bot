@@ -16,6 +16,9 @@ type routeRegistrar interface{ Handle(string, http.Handler) }
 // listener, execution dependency, readiness flag or authorization grant.
 func configureUserTradeAPI(server routeRegistrar, database *storage.Database, cfg config.Config) error {
 	if cfg.TradeAPIConfigFile == "" {
+		if cfg.TradeAPIManualIntake {
+			return tradeapi.ErrInvalid
+		}
 		return nil
 	}
 	var queries tradeapi.ReadQueries
@@ -26,7 +29,7 @@ func configureUserTradeAPI(server routeRegistrar, database *storage.Database, cf
 		}
 		queries = client
 	}
-	userAPI, err := tradeapi.LoadFileWithQueries(database, cfg.TradeAPIConfigFile, cfg.InternalAuthSecret, queries)
+	userAPI, err := tradeapi.LoadFileWithOptions(database, cfg.TradeAPIConfigFile, cfg.InternalAuthSecret, queries, tradeapi.Options{ManualIntake: cfg.TradeAPIManualIntake})
 	if err != nil {
 		return err
 	}

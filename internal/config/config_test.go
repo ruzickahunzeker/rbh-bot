@@ -2,6 +2,28 @@ package config
 
 import "testing"
 
+func TestHTTPC1IntakeDefaultOffAndInvalidConfiguration(t *testing.T) {
+	t.Setenv("RBH_TRADE_API_MANUAL_INTAKE", "")
+	t.Setenv("RBH_TRADE_API_CONFIG_FILE", "")
+	cfg, err := Load(TradeService)
+	if err != nil || cfg.TradeAPIManualIntake {
+		t.Fatal("intake not default off")
+	}
+	t.Setenv("RBH_TRADE_API_MANUAL_INTAKE", "true")
+	if _, err = Load(TradeService); err == nil {
+		t.Fatal("intake without authentication config")
+	}
+	t.Setenv("RBH_TRADE_API_CONFIG_FILE", "/test-only/api.json")
+	cfg, err = Load(TradeService)
+	if err != nil || !cfg.TradeAPIManualIntake || cfg.LiveEnabled {
+		t.Fatal("intake enables live")
+	}
+	t.Setenv("RBH_TRADE_API_MANUAL_INTAKE", "invalid")
+	if _, err = Load(TradeService); err == nil {
+		t.Fatal("invalid intake flag accepted")
+	}
+}
+
 func TestLoadDefaultsFailClosed(t *testing.T) {
 	t.Setenv("RBH_DATA_DIR", t.TempDir())
 	t.Setenv("RBH_SOCKET_DIR", t.TempDir())

@@ -5,6 +5,9 @@ Parent: HTTP-A commit `b100b72e4a468cb85a96d2ebc2cfdf83866f9688`.
 Underlying main baseline: `7b278c4ffd48fe75c8f20d25185f0743222684b8`.
 Status ceiling: `HTTP_B_READY_FOR_REVIEW`, not independent PASS.
 
+Historical HTTP-B slice record. See HTTP_MANUAL_ORDER_PERSISTENCE.md for C1's
+opt-in record-only POST overlay. Query semantics remain read-only references.
+
 Per user instruction this slice stays local: no GitHub push, PR, merge or new
 remote repository. HTTP-A is inherited as a local dependency, not claimed to
 have landed main or passed independent review.

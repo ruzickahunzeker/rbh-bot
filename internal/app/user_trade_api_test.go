@@ -74,4 +74,29 @@ func TestUserTradeAPIStartupDefaultOffAndScopedRegistration(t *testing.T) {
 	if w.Code != 200 || !strings.Contains(w.Body.String(), `"balance_token_fee_queries":"READ_ONLY_REFERENCE"`) || !strings.Contains(w.Body.String(), `"submission_enabled":false`) {
 		t.Fatal("read-only startup enabled sending")
 	}
+	intakeRoutes := &testRoutes{handlers: map[string]http.Handler{}}
+	if err := configureUserTradeAPI(intakeRoutes, d, config.Config{TradeAPIManualIntake: true}); err == nil {
+		t.Fatal("intake without auth config")
+	}
+	if err := configureUserTradeAPI(intakeRoutes, d, config.Config{TradeAPIConfigFile: path, InternalAuthSecret: "different-internal-secret", TradeAPIManualIntake: true}); err != nil {
+		t.Fatal(err)
+	}
+	w = httptest.NewRecorder()
+	intakeRoutes.handlers["/v1/"].ServeHTTP(w, r)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"request_handling":"MANUAL_RECORD_ONLY"`) || !strings.Contains(w.Body.String(), `"submission_enabled":false`) {
+		t.Fatal("intake startup overstates execution")
+	}
+	post := httptest.NewRequest("POST", "/v1/trades", strings.NewReader(`{"chain":"robinhood","wallet_id":"wallet-01","token":"0x2000000000000000000000000000000000000002","side":"buy","amount":"0.01","slippage_percent":"3"}`))
+	post.Header.Set("Authorization", "Bearer "+credential)
+	post.Header.Set("Content-Type", "application/json")
+	post.Header.Set("Idempotency-Key", "production-local-intake")
+	w = httptest.NewRecorder()
+	intakeRoutes.handlers["/v1/"].ServeHTTP(w, post)
+	if w.Code != http.StatusAccepted || !strings.Contains(w.Body.String(), `"status":"RECORDED"`) || !strings.Contains(w.Body.String(), `"submission_queued":false`) {
+		t.Fatal(w.Body.String())
+	}
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM transaction_attempts`).Scan(&n); err != nil || n != 0 {
+		t.Fatal("intake startup created artifact")
+	}
 }

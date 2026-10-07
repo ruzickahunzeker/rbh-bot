@@ -19,20 +19,29 @@ import (
 // API owns one immutable caller/wallet scope. This initial slice is local UDS
 // only, not a public multi-tenant server. It cannot be configured to send.
 type API struct {
-	store      *Store
-	identity   Identity
-	credential [32]byte
-	policy     Policy
-	now        func() time.Time
-	mux        *http.ServeMux
-	queries    ReadQueries
+	store        *Store
+	identity     Identity
+	credential   [32]byte
+	policy       Policy
+	now          func() time.Time
+	mux          *http.ServeMux
+	queries      ReadQueries
+	manualIntake bool
 }
+
+// Options never enables execution. ManualIntake records validation-pending
+// operations only. It defaults off and cannot grant canary authorization.
+type Options struct{ ManualIntake bool }
 
 func New(store *Store, identity Identity, token string, policy Policy) (*API, error) {
 	return NewWithQueries(store, identity, token, policy, nil)
 }
 
 func NewWithQueries(store *Store, identity Identity, token string, policy Policy, queries ReadQueries) (*API, error) {
+	return NewWithOptions(store, identity, token, policy, queries, Options{})
+}
+
+func NewWithOptions(store *Store, identity Identity, token string, policy Policy, queries ReadQueries, options Options) (*API, error) {
 	if store == nil || store.db == nil || !identity.valid() || len(token) < 32 || len(token) > 256 || policy.validate() != nil {
 		return nil, ErrInvalid
 	}
@@ -41,7 +50,7 @@ func NewWithQueries(store *Store, identity Identity, token string, policy Policy
 			return nil, ErrInvalid
 		}
 	}
-	h := &API{store: store, identity: identity, credential: sha256.Sum256([]byte(token)), policy: policy, now: time.Now, mux: http.NewServeMux(), queries: queries}
+	h := &API{store: store, identity: identity, credential: sha256.Sum256([]byte(token)), policy: policy, now: time.Now, mux: http.NewServeMux(), queries: queries, manualIntake: options.ManualIntake}
 	h.mux.HandleFunc("POST /v1/trades", h.submit)
 	h.mux.HandleFunc("GET /v1/trades/by-idempotency-key", h.byKey)
 	h.mux.HandleFunc("GET /v1/trades/{request_id}", h.status)
@@ -192,13 +201,22 @@ func (h *API) submit(w http.ResponseWriter, r *http.Request) {
 		ipc.WriteError(w, 403, "WALLET_SCOPE_DENIED", "wallet outside caller scope", ipc.RequestID(r))
 		return
 	}
-	record, err := h.store.Reject(r.Context(), h.identity, idempotencyKey, request, h.policy, h.now)
+	var record Record
+	if h.manualIntake {
+		record, err = h.store.RecordManual(r.Context(), h.identity, idempotencyKey, request, h.policy, h.now)
+	} else {
+		record, err = h.store.Reject(r.Context(), h.identity, idempotencyKey, request, h.policy, h.now)
+	}
 	if err != nil {
 		writeError(w, r, err)
 		return
 	}
 	w.Header().Set("Location", "/v1/trades/"+record.RequestID)
-	writeJSON(w, 503, record)
+	status := http.StatusServiceUnavailable
+	if record.OperationID != nil {
+		status = http.StatusAccepted
+	}
+	writeJSON(w, status, record)
 }
 
 func (h *API) status(w http.ResponseWriter, r *http.Request) {
@@ -264,16 +282,20 @@ func (h *API) capabilities(w http.ResponseWriter, r *http.Request) {
 	if h.queries != nil {
 		queries, stage = "READ_ONLY_REFERENCE", "HTTP_B_READY_FOR_REVIEW"
 	}
+	handling, events := "REJECTION_ONLY", "API_REJECTION_ONLY"
+	if h.manualIntake {
+		stage, handling, events = "HTTP_C1_READY_FOR_REVIEW", "MANUAL_RECORD_ONLY", "MANUAL_ORDER_INTAKE_ONLY"
+	}
 	writeJSON(w, 200, map[string]any{
 		"chains": []string{"robinhood"}, "chain_id": 4663,
 		"execution_protocol_allowlist": []string{"pons_v2_curve"},
-		"contract_stage":               stage, "request_handling": "REJECTION_ONLY",
+		"contract_stage":               stage, "request_handling": handling,
 		"submission_enabled": false, "send_authorized": false, "live": false, "release_ready": false,
 		"protocol_resolution": queries, "token_decimals_validation": queries,
 		"fee_execution_binding": "NOT_CONNECTED", "copy_source_validation": "NOT_CONNECTED",
 		"api_policy": h.policy, "fee_model": "EIP1559", "fee_unit": "gwei",
 		"deadline_capability": "APPLICATION_TTL_ONLY", "contract_deadline": false,
-		"events_scope": "API_REJECTION_ONLY", "transport": "LOCAL_UDS",
+		"events_scope": events, "transport": "LOCAL_UDS",
 		"optional_user_limits_default": "UNSET",
 		"balance_token_fee_queries":    queries,
 	})

@@ -1,5 +1,5 @@
 // Package tradeapi is the user-facing HTTP contract. This slice is deliberately
-// rejection-only: it has no execution, signer, send RPC, permit or nonce dependency.
+// record/rejection-only: no execution, signer, send RPC, permit or nonce dependency.
 package tradeapi
 
 import (

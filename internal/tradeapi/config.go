@@ -19,6 +19,10 @@ func LoadFile(database *storage.Database, path string, internalCredential string
 }
 
 func LoadFileWithQueries(database *storage.Database, path string, internalCredential string, queries ReadQueries) (*API, error) {
+	return LoadFileWithOptions(database, path, internalCredential, queries, Options{})
+}
+
+func LoadFileWithOptions(database *storage.Database, path string, internalCredential string, queries ReadQueries, options Options) (*API, error) {
 	configurationError := errors.New("invalid user HTTP API credential configuration")
 	info, err := os.Lstat(path)
 	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0o077 != 0 {
@@ -67,7 +71,7 @@ func LoadFileWithQueries(database *storage.Database, path string, internalCreden
 	if err != nil {
 		return nil, configurationError
 	}
-	h, err := NewWithQueries(s, Identity{PrincipalID: cfg.PrincipalID, WalletID: cfg.WalletID, WalletAddress: cfg.WalletAddress}, cfg.Token, p, queries)
+	h, err := NewWithOptions(s, Identity{PrincipalID: cfg.PrincipalID, WalletID: cfg.WalletID, WalletAddress: cfg.WalletAddress}, cfg.Token, p, queries, options)
 	if err != nil {
 		return nil, configurationError
 	}

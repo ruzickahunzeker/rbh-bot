@@ -1,17 +1,18 @@
 openapi: 3.1.0
 info:
-  title: EVM Bot user HTTP trading contract — HTTP-A/B
-  version: 0.2.0
+  title: EVM Bot user HTTP trading contract — HTTP-A/B/C1
+  version: 0.3.0
   description: >-
-    Local Unix-domain HTTP contract, submission disabled. Valid POSTs create
-    immutable rejection records only, not economic operations or a send queue.
+    Local Unix-domain HTTP contract, execution/submission disabled. Valid new
+    POSTs create immutable rejection records by default, or explicit opt-in
+    MANUAL validation-pending operation identities. Neither is a send queue.
     No client-facing dry-run step. Live execution is not implemented here.
 security:
   - bearerAuth: []
 paths:
   /v1/trades:
     post:
-      summary: Submit user parameters; HTTP-A durably rejects sending
+      summary: Record user intent only; default rejection, optional MANUAL persistence
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -21,6 +22,12 @@ paths:
             schema:
               $ref: '#/components/schemas/TradeRequest'
       responses:
+        '202':
+          description: Durable MANUAL intent only, not execution admission or queued sending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordedOrder'
         '503':
           description: Durable SUBMISSION_DISABLED record, or API_UNAVAILABLE error
           content:
@@ -38,30 +45,30 @@ paths:
         - $ref: '#/components/parameters/IdempotencyKey'
       responses:
         '200':
-          description: Original caller-scoped rejection, no new TTL or action
+          description: Original caller-scoped intake/rejection, no new TTL or action
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RejectedRecord'
+                $ref: '#/components/schemas/TradeRecord'
         default:
           $ref: '#/components/responses/Error'
   /v1/trades/{request_id}:
     get:
-      summary: Query a rejection, not an execution operation
+      summary: Query immutable intake/rejection snapshot, not transaction outcome
       parameters:
         - $ref: '#/components/parameters/RequestID'
       responses:
         '200':
-          description: Immutable caller-scoped rejection
+          description: Immutable caller-scoped intake/rejection snapshot
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RejectedRecord'
+                $ref: '#/components/schemas/TradeRecord'
         default:
           $ref: '#/components/responses/Error'
   /v1/trades/{request_id}/events:
     get:
-      summary: API rejection audit only, not recovery service events
+      summary: Request-scoped intake/rejection audit only, not recovery service events
       parameters:
         - $ref: '#/components/parameters/RequestID'
         - name: after
@@ -72,22 +79,22 @@ paths:
             maximum: 9223372036854775807
       responses:
         '200':
-          description: API_REJECTION_ONLY events and durable next_cursor
+          description: Intake/rejection audit events and durable request-scoped next_cursor
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   scope:
-                    const: API_REJECTION_ONLY
+                    enum: [API_REJECTION_ONLY, MANUAL_ORDER_INTAKE_ONLY]
                   events:
                     type: array
                     items:
                       type: object
                       properties:
                         cursor: {type: integer}
-                        type: {const: USER_HTTP_TRADE_REJECTED}
-                        reason_code: {const: SUBMISSION_DISABLED}
+                        type: {enum: [USER_HTTP_TRADE_REJECTED, MANUAL_HTTP_ORDER_RECORDED]}
+                        reason_code: {enum: [SUBMISSION_DISABLED, VALIDATION_NOT_CONNECTED]}
                         created_at: {type: string, format: date-time}
                   next_cursor: {type: integer}
         default:
@@ -258,6 +265,29 @@ components:
         operation_id: {type: 'null'}
         status: {const: REJECTED}
         reason_code: {const: SUBMISSION_DISABLED}
+        request:
+          $ref: '#/components/schemas/TradeRequest'
+        api_policy_version: {type: integer}
+        api_policy_hash: {type: string}
+        expires_at: {type: string, format: date-time}
+        created_at: {type: string, format: date-time}
+        deadline_capability: {const: APPLICATION_TTL_ONLY}
+        contract_deadline: {const: false}
+        send_authorized: {const: false}
+        submission_queued: {const: false}
+        duplicate: {type: boolean}
+    TradeRecord:
+      oneOf:
+        - $ref: '#/components/schemas/RejectedRecord'
+        - $ref: '#/components/schemas/RecordedOrder'
+    RecordedOrder:
+      type: object
+      required: [request_id, operation_id, status, reason_code, request, expires_at, created_at, send_authorized, submission_queued]
+      properties:
+        request_id: {type: string}
+        operation_id: {type: string, pattern: '^manual_op_req_[a-f0-9]{64}$'}
+        status: {const: RECORDED}
+        reason_code: {const: VALIDATION_NOT_CONNECTED}
         request:
           $ref: '#/components/schemas/TradeRequest'
         api_policy_version: {type: integer}

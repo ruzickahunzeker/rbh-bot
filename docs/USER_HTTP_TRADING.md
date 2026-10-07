@@ -4,6 +4,9 @@ Historical HTTP-A slice record. The local HTTP-B extension is documented in
 HTTP_READ_ONLY_QUERIES.md; its optional read-only composition does not alter
 the rejection-only POST boundary below.
 
+Historical record only. HTTP-C1 adds opt-in MANUAL record-only intake, described
+in HTTP_MANUAL_ORDER_PERSISTENCE.md; it does not activate old rejected requests.
+
 Base: `main@7b278c4ffd48fe75c8f20d25185f0743222684b8`.
 Branch: `http-user-trade-contract`.
 Status ceiling: `HTTP_A_READY_FOR_REVIEW`; no independent approval or closeout.

@@ -35,7 +35,7 @@ func (i Identity) valid() bool {
 
 type Record struct {
 	RequestID          string  `json:"request_id"`
-	OperationID        *string `json:"operation_id"` // Always null: no economic work accepted.
+	OperationID        *string `json:"operation_id"` // C1 identity only, never authorization.
 	Status             string  `json:"status"`
 	Reason             string  `json:"reason_code"`
 	Request            Request `json:"request"`
@@ -92,6 +92,9 @@ func (s *Store) Reject(ctx context.Context, identity Identity, key string, reque
 	}
 	defer conn.ExecContext(context.Background(), "ROLLBACK")
 	prior, priorFingerprint, err := scanRecord(conn.QueryRowContext(ctx, selectRecord+`WHERE principal_id=? AND idempotency_key=?`, identity.PrincipalID, key))
+	if errors.Is(err, ErrNotFound) {
+		prior, priorFingerprint, err = scanManualRecord(conn.QueryRowContext(ctx, selectManualRecord+`WHERE m.principal_id=? AND m.idempotency_key=?`, identity.PrincipalID, key))
+	}
 	if err == nil {
 		if priorFingerprint != fingerprint {
 			return Record{}, ErrConflict
@@ -139,6 +142,9 @@ func (s *Store) Get(ctx context.Context, identity Identity, id string, byKey boo
 		field = "idempotency_key"
 	}
 	r, _, err := scanRecord(s.db.QueryRowContext(ctx, selectRecord+`WHERE principal_id=? AND wallet_id=? AND `+field+`=?`, identity.PrincipalID, identity.WalletID, id))
+	if errors.Is(err, ErrNotFound) {
+		r, _, err = scanManualRecord(s.db.QueryRowContext(ctx, selectManualRecord+`WHERE m.principal_id=? AND m.wallet_id=? AND m.`+field+`=?`, identity.PrincipalID, identity.WalletID, id))
+	}
 	return r, err
 }
 
@@ -160,11 +166,17 @@ func (s *Store) Events(ctx context.Context, identity Identity, id string, after 
 	if after > 1<<63-1 {
 		return result, ErrInvalid
 	}
-	if _, err := s.Get(ctx, identity, id, false); err != nil {
+	record, err := s.Get(ctx, identity, id, false)
+	if err != nil {
 		return result, err
 	}
 	var e Event
-	err := s.db.QueryRowContext(ctx, `SELECT r.sequence,a.event_type,a.reason_code,a.created_at FROM user_http_trade_requests r JOIN canary_runtime_audit a ON a.id='user-http-audit:'||r.id WHERE r.id=? AND r.principal_id=? AND r.wallet_id=? AND r.sequence>?`, id, identity.PrincipalID, identity.WalletID, after).Scan(&e.Cursor, &e.Type, &e.Reason, &e.CreatedAt)
+	query := `SELECT r.sequence,a.event_type,a.reason_code,a.created_at FROM user_http_trade_requests r JOIN canary_runtime_audit a ON a.id='user-http-audit:'||r.id WHERE r.id=? AND r.principal_id=? AND r.wallet_id=? AND r.sequence>?`
+	if record.OperationID != nil {
+		result.Scope = "MANUAL_ORDER_INTAKE_ONLY"
+		query = `SELECT r.sequence,a.event_type,a.reason_code,a.created_at FROM manual_http_order_sources r JOIN canary_runtime_audit a ON a.id='manual-http-audit:'||r.id WHERE r.id=? AND r.principal_id=? AND r.wallet_id=? AND r.sequence>?`
+	}
+	err = s.db.QueryRowContext(ctx, query, id, identity.PrincipalID, identity.WalletID, after).Scan(&e.Cursor, &e.Type, &e.Reason, &e.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return result, nil
 	}

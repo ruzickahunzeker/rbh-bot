@@ -39,6 +39,7 @@ type Config struct {
 	CanaryProductionMode  string
 	TradeAPIConfigFile    string
 	TradeAPIReadQueries   bool
+	TradeAPIManualIntake  bool
 }
 
 func Load(service Service) (Config, error) {
@@ -56,6 +57,13 @@ func Load(service Service) (Config, error) {
 	readQueries, err := strconv.ParseBool(env("RBH_TRADE_API_READ_QUERIES", "false"))
 	if err != nil {
 		return Config{}, fmt.Errorf("invalid RBH_TRADE_API_READ_QUERIES")
+	}
+	manualIntake, err := strconv.ParseBool(env("RBH_TRADE_API_MANUAL_INTAKE", "false"))
+	if err != nil {
+		return Config{}, fmt.Errorf("invalid RBH_TRADE_API_MANUAL_INTAKE")
+	}
+	if service == TradeService && manualIntake && os.Getenv("RBH_TRADE_API_CONFIG_FILE") == "" {
+		return Config{}, fmt.Errorf("manual intake requires RBH_TRADE_API_CONFIG_FILE")
 	}
 	if service == TradeService && canaryMode != CanaryProductionModeDisabled {
 		return Config{}, fmt.Errorf("RBH_CONTROLLED_CANARY_PRODUCTION_MODE must be %s in W4-A", CanaryProductionModeDisabled)
@@ -77,6 +85,7 @@ func Load(service Service) (Config, error) {
 		CanaryProductionMode:  canaryMode,
 		TradeAPIConfigFile:    os.Getenv("RBH_TRADE_API_CONFIG_FILE"),
 		TradeAPIReadQueries:   readQueries,
+		TradeAPIManualIntake:  manualIntake,
 	}, nil
 }
 
