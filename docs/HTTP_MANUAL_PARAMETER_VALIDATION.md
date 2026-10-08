@@ -1,9 +1,12 @@
 # HTTP-C2 — immutable MANUAL parameter validation
 
-Local branch: `http-manual-parameter-validation`.
+Implementation branch: `http-manual-parameter-validation`.
 Parent C1: `7a8443bb65ea0e4255d314e01fe8b4b9db871137`.
-Status ceiling: `HTTP_C2_READY_FOR_REVIEW`. Author validation is not independent
-review approval. No GitHub push, PR, merge or remote change is part of delivery.
+Reviewed implementation: `e31ff9f6eba752d9c1d26be3e96ff996855f012f`.
+Independent review: PASS; local formal closeout: COMPLETE.
+Closeout branch: `http-c2-validation-closeout`.
+No GitHub push, PR, merge or remote change is part of delivery; this does not
+claim that the implementation or closeout landed on remote main.
 
 ## User contract and safety boundary
 
@@ -148,17 +151,38 @@ an end-to-end real-chain or signing integration claim.
 
 Exact commands/results and test mapping are recorded in
 `rbh-validation-package/evidence/http-manual-parameter-validation.json`.
-Full ordinary Go regression plus affected-package race/build/vet/staticcheck
-and offline package verification are required before local handoff.
+That file remains unchanged as historical author evidence. Independent review
+and local closeout are recorded separately in
+`rbh-validation-package/evidence/http-c2-joint-review.json`.
+
+A separate reviewer agent, with no author conversation context, reviewed the
+fixed implementation SHA. It found no C2 blockers and independently ran:
+
+- `go test -race ./internal/tradeapi ./internal/chainquery ./internal/app ./internal/config ./internal/storage -count=1 -timeout=5m`: PASS.
+- `go build ./...`: PASS.
+- `go vet ./internal/tradeapi ./internal/chainquery ./internal/app ./internal/config ./internal/storage`: PASS.
+
+It verified the 16 test mappings, C2 evidence checksum and OpenAPI's 52 local
+references across 9 paths. Local socket tests initially met sandbox restrictions;
+the controlled-fixture permission rerun passed. No real-chain calls were made.
+The independent review did not rerun full-repository ordinary/race tests,
+staticcheck or the offline reference model; those remain author evidence, not
+independent measurements. PASS is scoped to C2 validation, not live execution.
 
 ```ini
-HTTP_C2 = READY_FOR_REVIEW
-independent_review = NOT_PERFORMED
+HTTP_C2 = PASS
+independent_review = PASS
+formal_closeout = COMPLETE_LOCAL_ONLY
 production_broadcast = NOT_CONNECTED
 controlled_canary_authorization = NOT_GRANTED
 live = false
 release_ready = false
 ```
 
-Stop at the review gate. HTTP-C3 execution/signing wiring requires a separate
-authorized slice; no autonomous PASS, send authorization or live enablement.
+The code's capabilities.contract_stage remains HTTP_C2_READY_FOR_REVIEW, its
+historical implementation-stage label; this docs/evidence-only closeout does
+not change runtime behavior. The separate review evidence records formal status.
+
+Next is HTTP-C3 scope freeze only. Execution/signing wiring requires a separate
+authorized slice; this closeout grants neither C3 implementation nor send/live
+authorization. Parent C1 and existing closed gates are not reclassified here.
