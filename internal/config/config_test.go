@@ -2,6 +2,38 @@ package config
 
 import "testing"
 
+func TestHTTPC2ValidationConfigurationFailClosed(t *testing.T) {
+	t.Setenv("RBH_TRADE_API_VALIDATE_ORDERS", "")
+	t.Setenv("RBH_TRADE_API_VALIDATION_POLICY_VERSION", "")
+	t.Setenv("RBH_TRADE_API_MANUAL_INTAKE", "")
+	t.Setenv("RBH_TRADE_API_CONFIG_FILE", "")
+	cfg, err := Load(TradeService)
+	if err != nil || cfg.TradeAPIValidateOrders || cfg.TradeAPIValidationPolicy != 0 {
+		t.Fatal("validation not default off", err)
+	}
+	t.Setenv("RBH_TRADE_API_VALIDATE_ORDERS", "true")
+	if _, err = Load(TradeService); err == nil {
+		t.Fatal("validation without scoped intake")
+	}
+	t.Setenv("RBH_TRADE_API_MANUAL_INTAKE", "true")
+	t.Setenv("RBH_TRADE_API_CONFIG_FILE", "/test-only/api.json")
+	for _, value := range []string{"0", "-1", "abc", "9223372036854775808"} {
+		t.Setenv("RBH_TRADE_API_VALIDATION_POLICY_VERSION", value)
+		if _, err = Load(TradeService); err == nil {
+			t.Fatal("invalid policy accepted", value)
+		}
+	}
+	t.Setenv("RBH_TRADE_API_VALIDATION_POLICY_VERSION", "1")
+	cfg, err = Load(TradeService)
+	if err != nil || !cfg.TradeAPIValidateOrders || cfg.LiveEnabled {
+		t.Fatal("validation configuration enabled live", err)
+	}
+	t.Setenv("RBH_TRADE_API_VALIDATE_ORDERS", "invalid")
+	if _, err = Load(TradeService); err == nil {
+		t.Fatal("malformed validation flag")
+	}
+}
+
 func TestHTTPC1IntakeDefaultOffAndInvalidConfiguration(t *testing.T) {
 	t.Setenv("RBH_TRADE_API_MANUAL_INTAKE", "")
 	t.Setenv("RBH_TRADE_API_CONFIG_FILE", "")

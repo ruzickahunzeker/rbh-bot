@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -98,5 +100,37 @@ func TestUserTradeAPIStartupDefaultOffAndScopedRegistration(t *testing.T) {
 	var n int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM transaction_attempts`).Scan(&n); err != nil || n != 0 {
 		t.Fatal("intake startup created artifact")
+	}
+	validationRoutes := &testRoutes{handlers: map[string]http.Handler{}}
+	cfg := config.Config{TradeAPIConfigFile: path, InternalAuthSecret: "different-internal-secret", TradeAPIValidateOrders: true, RPCURL: "http://127.0.0.1:1"}
+	if err := configureUserTradeAPI(validationRoutes, d, cfg); err == nil {
+		t.Fatal("validation without intake")
+	}
+	cfg.TradeAPIManualIntake = true
+	if err := configureUserTradeAPI(validationRoutes, d, cfg); err == nil {
+		t.Fatal("validation without policy version")
+	}
+	cfg.TradeAPIValidationPolicy = 1
+	if err := configureUserTradeAPI(validationRoutes, d, cfg); err == nil || len(validationRoutes.handlers) != 0 {
+		t.Fatal("validation without durable policy")
+	}
+	const policyJSON = `{"Version":1,"Protocol":"PONS_V2_CURVE","MaxOperation":"2000000000000000000","MaxWallet":"4000000000000000000","MaxToken":"4000000000000000000","MaxTotal":"8000000000000000000","MaxGas":"1000000","MaxFee":"3000000000","MaxTip":"1000000000","MinBalance":"1000000000000000","MaxSellBPS":10000,"MaxSlippageBPS":500,"MaxOperations":100,"WindowSeconds":3600,"MaxUnresolved":1}`
+	if _, err := db.Exec(`INSERT INTO canary_policies VALUES(1,'PONS_V2_CURVE','2000000000000000000',10000,'4000000000000000000','4000000000000000000','8000000000000000000',100,3600,1,'1000000','3000000000','1000000000',500,'1000000000000000',?,'2026-01-01T00:00:00Z')`, fmt.Sprintf("%x", sha256.Sum256([]byte(policyJSON)))); err != nil {
+		t.Fatal(err)
+	}
+	// A non-listening endpoint: construction must not dial RPC or require
+	// runtime authorization. Policy and gate attestations already exist in DB.
+	if err := configureUserTradeAPI(validationRoutes, d, cfg); err != nil {
+		t.Fatal("validation startup queried RPC or required authorization", err)
+	}
+	w = httptest.NewRecorder()
+	validationRoutes.handlers["/v1/"].ServeHTTP(w, r)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"internal_order_validation":"INTERNAL_VALIDATION_NOT_EXECUTION_ADMISSION"`) || !strings.Contains(w.Body.String(), `"submission_enabled":false`) || !strings.Contains(w.Body.String(), `"live":false`) {
+		t.Fatal(w.Body.String())
+	}
+	for _, table := range []string{"transaction_attempts", "canary_runtime_authorizations", "canary_risk_reservations", "canary_send_permits"} {
+		if err := db.QueryRow(`SELECT COUNT(*) FROM ` + table).Scan(&n); err != nil || n != 0 {
+			t.Fatal("validation startup created economic authority", table, n, err)
+		}
 	}
 }

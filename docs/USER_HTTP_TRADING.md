@@ -6,6 +6,8 @@ the rejection-only POST boundary below.
 
 Historical record only. HTTP-C1 adds opt-in MANUAL record-only intake, described
 in HTTP_MANUAL_ORDER_PERSISTENCE.md; it does not activate old rejected requests.
+HTTP_MANUAL_PARAMETER_VALIDATION.md documents C2's internal validation overlay,
+not execution admission, signing or submission authorization.
 
 Base: `main@7b278c4ffd48fe75c8f20d25185f0743222684b8`.
 Branch: `http-user-trade-contract`.

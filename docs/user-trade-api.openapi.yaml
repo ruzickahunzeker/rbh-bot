@@ -1,18 +1,20 @@
 openapi: 3.1.0
 info:
-  title: EVM Bot user HTTP trading contract — HTTP-A/B/C1
-  version: 0.3.0
+  title: EVM Bot user HTTP trading contract — HTTP-A/B/C1/C2
+  version: 0.4.0
   description: >-
     Local Unix-domain HTTP contract, execution/submission disabled. Valid new
     POSTs create immutable rejection records by default, or explicit opt-in
     MANUAL validation-pending operation identities. Neither is a send queue.
+    Optional C2 internal validation persists immutable block/hash-bound results,
+    not execution admission. No signing, nonce allocation or sending is reachable.
     No client-facing dry-run step. Live execution is not implemented here.
 security:
   - bearerAuth: []
 paths:
   /v1/trades:
     post:
-      summary: Record user intent only; default rejection, optional MANUAL persistence
+      summary: Record intent with optional internal validation; never execute or queue sending
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -23,11 +25,27 @@ paths:
               $ref: '#/components/schemas/TradeRequest'
       responses:
         '202':
-          description: Durable MANUAL intent only, not execution admission or queued sending
+          description: Durable MANUAL intent with optional validation overlay; not execution admission
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RecordedOrder'
+        '422':
+          description: TTL expired/unverifiable or validation/policy rejected; intake may already be durable
+          headers:
+            Location:
+              description: Durable request path when intake already succeeded; reuse original idempotency key
+              schema: {type: string}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Unverifiable chain observation; source/resolution may already be durable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '503':
           description: Durable SUBMISSION_DISABLED record, or API_UNAVAILABLE error
           content:
@@ -54,12 +72,12 @@ paths:
           $ref: '#/components/responses/Error'
   /v1/trades/{request_id}:
     get:
-      summary: Query immutable intake/rejection snapshot, not transaction outcome
+      summary: Query intake/rejection and optional historical validation, not transaction outcome
       parameters:
         - $ref: '#/components/parameters/RequestID'
       responses:
         '200':
-          description: Immutable caller-scoped intake/rejection snapshot
+          description: Immutable caller-scoped intake with optional saved validation; no RPC or new expiry
           content:
             application/json:
               schema:
@@ -287,7 +305,9 @@ components:
         request_id: {type: string}
         operation_id: {type: string, pattern: '^manual_op_req_[a-f0-9]{64}$'}
         status: {const: RECORDED}
-        reason_code: {const: VALIDATION_NOT_CONNECTED}
+        reason_code:
+          const: VALIDATION_NOT_CONNECTED
+          description: Historical C1 intake reason; consult optional validation overlay, not this reason, for saved validation
         request:
           $ref: '#/components/schemas/TradeRequest'
         api_policy_version: {type: integer}
@@ -299,6 +319,78 @@ components:
         send_authorized: {const: false}
         submission_queued: {const: false}
         duplicate: {type: boolean}
+        validation:
+          $ref: '#/components/schemas/ManualValidation'
+    ManualValidation:
+      type: object
+      additionalProperties: false
+      required: [status, policy_version, policy_hash, expires_at, result_hash, output, send_authorized]
+      description: Historical immutable validation only, not current readiness or execution permission
+      properties:
+        status: {const: VALIDATED_NOT_AUTHORIZED}
+        policy_version: {type: integer, minimum: 1}
+        policy_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        expires_at: {type: string, format: date-time}
+        result_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        send_authorized: {const: false}
+        output:
+          $ref: '#/components/schemas/ValidationOutput'
+    IntegerUnits:
+      type: string
+      pattern: '^(0|[1-9][0-9]*)$'
+      description: Exact integer smallest units, not a human decimal or float
+    Resolution:
+      type: object
+      required: [token, wallet, side, amount_in, native_balance, token_balance, allowance]
+      properties:
+        token:
+          type: object
+          description: Verified native-quote Pons v2 Curve metadata and identities at the persisted block/hash
+          required: [chain, address, decimals, protocol, curve, factory, runtime_code_hash, curve_runtime_code_hash, quote_asset, block, send_authorized]
+          properties:
+            chain: {const: robinhood}
+            address: {type: string}
+            name: {type: string}
+            symbol: {type: string}
+            decimals: {type: integer, minimum: 0, maximum: 255}
+            protocol: {const: pons_v2_curve}
+            curve: {type: string}
+            factory: {type: string}
+            runtime_code_hash: {type: string}
+            curve_runtime_code_hash: {type: string}
+            quote_asset: {const: native}
+            send_authorized: {const: false}
+            block:
+              type: object
+              required: [number, hash]
+              properties:
+                number: {type: integer, minimum: 1}
+                hash: {type: string, pattern: '^0x[a-f0-9]{64}$'}
+        wallet: {type: string}
+        side: {enum: [buy, sell]}
+        amount_in: {$ref: '#/components/schemas/IntegerUnits'}
+        native_balance: {$ref: '#/components/schemas/IntegerUnits'}
+        token_balance: {$ref: '#/components/schemas/IntegerUnits'}
+        allowance: {$ref: '#/components/schemas/IntegerUnits'}
+        min_receive_units: {$ref: '#/components/schemas/IntegerUnits'}
+    ValidationOutput:
+      type: object
+      additionalProperties: false
+      required: [resolution, quoted_out, minimum_out, quote_spent, to, from, value, data, gas_limit, gas_fee_cap, gas_tip_cap, gas_budget, return_data]
+      properties:
+        resolution: {$ref: '#/components/schemas/Resolution'}
+        quoted_out: {$ref: '#/components/schemas/IntegerUnits'}
+        minimum_out: {$ref: '#/components/schemas/IntegerUnits'}
+        quote_spent: {$ref: '#/components/schemas/IntegerUnits'}
+        to: {type: string}
+        from: {type: string}
+        value: {$ref: '#/components/schemas/IntegerUnits'}
+        data: {type: string, pattern: '^0x[a-f0-9]+$'}
+        gas_limit: {type: integer, minimum: 1}
+        gas_fee_cap: {$ref: '#/components/schemas/IntegerUnits'}
+        gas_tip_cap: {$ref: '#/components/schemas/IntegerUnits'}
+        gas_budget: {$ref: '#/components/schemas/IntegerUnits'}
+        return_data: {type: string, pattern: '^0x[a-f0-9]{64}$'}
     Error:
       type: object
       required: [error]

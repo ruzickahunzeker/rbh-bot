@@ -34,20 +34,22 @@ func (i Identity) valid() bool {
 }
 
 type Record struct {
-	RequestID          string  `json:"request_id"`
-	OperationID        *string `json:"operation_id"` // C1 identity only, never authorization.
-	Status             string  `json:"status"`
-	Reason             string  `json:"reason_code"`
-	Request            Request `json:"request"`
-	APIPolicyVersion   uint64  `json:"api_policy_version"`
-	APIPolicyHash      string  `json:"api_policy_hash"`
-	ExpiresAt          string  `json:"expires_at"`
-	CreatedAt          string  `json:"created_at"`
-	DeadlineCapability string  `json:"deadline_capability"`
-	ContractDeadline   bool    `json:"contract_deadline"`
-	SendAuthorized     bool    `json:"send_authorized"`
-	SubmissionQueued   bool    `json:"submission_queued"`
-	Duplicate          bool    `json:"duplicate"`
+	validationMaxFee   string
+	Validation         *ManualValidation `json:"validation,omitempty"`
+	RequestID          string            `json:"request_id"`
+	OperationID        *string           `json:"operation_id"` // C1 identity only, never authorization.
+	Status             string            `json:"status"`
+	Reason             string            `json:"reason_code"`
+	Request            Request           `json:"request"`
+	APIPolicyVersion   uint64            `json:"api_policy_version"`
+	APIPolicyHash      string            `json:"api_policy_hash"`
+	ExpiresAt          string            `json:"expires_at"`
+	CreatedAt          string            `json:"created_at"`
+	DeadlineCapability string            `json:"deadline_capability"`
+	ContractDeadline   bool              `json:"contract_deadline"`
+	SendAuthorized     bool              `json:"send_authorized"`
+	SubmissionQueued   bool              `json:"submission_queued"`
+	Duplicate          bool              `json:"duplicate"`
 }
 
 func scanRecord(row interface{ Scan(...any) error }) (Record, string, error) {
@@ -144,6 +146,22 @@ func (s *Store) Get(ctx context.Context, identity Identity, id string, byKey boo
 	r, _, err := scanRecord(s.db.QueryRowContext(ctx, selectRecord+`WHERE principal_id=? AND wallet_id=? AND `+field+`=?`, identity.PrincipalID, identity.WalletID, id))
 	if errors.Is(err, ErrNotFound) {
 		r, _, err = scanManualRecord(s.db.QueryRowContext(ctx, selectManualRecord+`WHERE m.principal_id=? AND m.wallet_id=? AND m.`+field+`=?`, identity.PrincipalID, identity.WalletID, id))
+	}
+	if err == nil && r.OperationID != nil {
+		v := &ManualValidator{store: s}
+		resolution, p, digest, found, e := v.loadResolution(ctx, *r.OperationID)
+		if e != nil {
+			return Record{}, e
+		}
+		if found {
+			result, exists, e := v.loadResult(ctx, *r.OperationID, resolution, p, digest, r.ExpiresAt)
+			if e != nil {
+				return Record{}, e
+			}
+			if exists {
+				r.Validation = &result
+			}
+		}
 	}
 	return r, err
 }

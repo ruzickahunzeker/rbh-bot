@@ -35,6 +35,7 @@ type Client struct {
 	next            atomic.Uint64
 	factoryCodeHash common.Hash
 	curveCodeHash   common.Hash
+	estimates       bool // Only a separately constructed Validator can estimate.
 }
 
 // New performs no network I/O. Only the deployment supplies an endpoint;
@@ -55,6 +56,10 @@ func (c *Client) rpc(ctx context.Context, method string, params any, out any) er
 	}
 	switch method {
 	case "eth_chainId", "eth_getBlockByNumber", "eth_getCode", "eth_call", "eth_getBalance", "eth_maxPriorityFeePerGas":
+	case "eth_estimateGas":
+		if !c.estimates {
+			return ErrObservation
+		}
 	default:
 		return ErrObservation
 	}

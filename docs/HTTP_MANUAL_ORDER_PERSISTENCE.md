@@ -1,5 +1,8 @@
 # HTTP-C1 — MANUAL order persistence
 
+Historical C1 record. HTTP_MANUAL_PARAMETER_VALIDATION.md documents C2's
+opt-in internal validation overlay; it does not authorize execution or sending.
+
 Local branch: `http-manual-order-persistence`.
 Parent HTTP-B: `45139064f58712a0bf7804492446d5413006ad27`.
 Status ceiling: `HTTP_C1_READY_FOR_REVIEW`; no independent PASS claimed.

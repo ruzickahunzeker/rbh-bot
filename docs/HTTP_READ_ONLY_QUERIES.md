@@ -7,6 +7,8 @@ Status ceiling: `HTTP_B_READY_FOR_REVIEW`, not independent PASS.
 
 Historical HTTP-B slice record. See HTTP_MANUAL_ORDER_PERSISTENCE.md for C1's
 opt-in record-only POST overlay. Query semantics remain read-only references.
+HTTP_MANUAL_PARAMETER_VALIDATION.md documents the separate C2 internal validator;
+HTTP-B Client itself still cannot estimate gas, simulate trades or send.
 
 Per user instruction this slice stays local: no GitHub push, PR, merge or new
 remote repository. HTTP-A is inherited as a local dependency, not claimed to

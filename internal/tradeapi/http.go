@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ruzickahunzeker/rbh-bot/internal/chainquery"
 	"github.com/ruzickahunzeker/rbh-bot/internal/ipc"
 )
 
@@ -27,11 +28,16 @@ type API struct {
 	mux          *http.ServeMux
 	queries      ReadQueries
 	manualIntake bool
+	validator    *ManualValidator
 }
 
 // Options never enables execution. ManualIntake records validation-pending
 // operations only. It defaults off and cannot grant canary authorization.
-type Options struct{ ManualIntake bool }
+type Options struct {
+	ManualIntake            bool
+	ValidationBackend       ManualValidationBackend
+	ValidationPolicyVersion uint64
+}
 
 func New(store *Store, identity Identity, token string, policy Policy) (*API, error) {
 	return NewWithQueries(store, identity, token, policy, nil)
@@ -42,6 +48,9 @@ func NewWithQueries(store *Store, identity Identity, token string, policy Policy
 }
 
 func NewWithOptions(store *Store, identity Identity, token string, policy Policy, queries ReadQueries, options Options) (*API, error) {
+	if (options.ValidationBackend != nil && (!options.ManualIntake || options.ValidationPolicyVersion == 0)) || (options.ValidationBackend == nil && options.ValidationPolicyVersion != 0) {
+		return nil, ErrInvalid
+	}
 	if store == nil || store.db == nil || !identity.valid() || len(token) < 32 || len(token) > 256 || policy.validate() != nil {
 		return nil, ErrInvalid
 	}
@@ -51,6 +60,13 @@ func NewWithOptions(store *Store, identity Identity, token string, policy Policy
 		}
 	}
 	h := &API{store: store, identity: identity, credential: sha256.Sum256([]byte(token)), policy: policy, now: time.Now, mux: http.NewServeMux(), queries: queries, manualIntake: options.ManualIntake}
+	if options.ValidationBackend != nil {
+		v, err := NewManualValidator(store, options.ValidationBackend, options.ValidationPolicyVersion)
+		if err != nil {
+			return nil, err
+		}
+		h.validator = v
+	}
 	h.mux.HandleFunc("POST /v1/trades", h.submit)
 	h.mux.HandleFunc("GET /v1/trades/by-idempotency-key", h.byKey)
 	h.mux.HandleFunc("GET /v1/trades/{request_id}", h.status)
@@ -212,6 +228,14 @@ func (h *API) submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Location", "/v1/trades/"+record.RequestID)
+	if record.OperationID != nil && h.validator != nil {
+		validation, err := h.validator.Validate(r.Context(), h.identity, record.RequestID)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		record.Validation = &validation
+	}
 	status := http.StatusServiceUnavailable
 	if record.OperationID != nil {
 		status = http.StatusAccepted
@@ -286,6 +310,12 @@ func (h *API) capabilities(w http.ResponseWriter, r *http.Request) {
 	if h.manualIntake {
 		stage, handling, events = "HTTP_C1_READY_FOR_REVIEW", "MANUAL_RECORD_ONLY", "MANUAL_ORDER_INTAKE_ONLY"
 	}
+	validationCapability := "NOT_CONNECTED"
+	if h.validator != nil {
+		stage = "HTTP_C2_READY_FOR_REVIEW"
+		handling = "MANUAL_RECORD_AND_INTERNAL_VALIDATION"
+		validationCapability = "INTERNAL_VALIDATION_NOT_EXECUTION_ADMISSION"
+	}
 	writeJSON(w, 200, map[string]any{
 		"chains": []string{"robinhood"}, "chain_id": 4663,
 		"execution_protocol_allowlist": []string{"pons_v2_curve"},
@@ -298,6 +328,7 @@ func (h *API) capabilities(w http.ResponseWriter, r *http.Request) {
 		"events_scope": events, "transport": "LOCAL_UDS",
 		"optional_user_limits_default": "UNSET",
 		"balance_token_fee_queries":    queries,
+		"internal_order_validation":    validationCapability,
 	})
 }
 
@@ -323,6 +354,12 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 func writeError(w http.ResponseWriter, r *http.Request, err error) {
 	status, code, message := 503, "API_UNAVAILABLE", "trade API unavailable"
 	switch {
+	case errors.Is(err, chainquery.ErrExpired):
+		status, code, message = 422, "APPLICATION_TTL_EXPIRED", "application TTL expired or unverifiable"
+	case errors.Is(err, chainquery.ErrValidation):
+		status, code, message = 422, "TRADE_VALIDATION_REJECTED", "trade parameters or limits rejected"
+	case errors.Is(err, chainquery.ErrObservation):
+		status, code, message = 502, "UNVERIFIABLE_OBSERVATION", "chain observation could not be verified"
 	case errors.Is(err, ErrInvalid):
 		status, code, message = 400, "INVALID_REQUEST", "invalid trade parameters"
 	case errors.Is(err, ErrPolicy):
