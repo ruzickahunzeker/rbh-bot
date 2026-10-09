@@ -125,6 +125,12 @@ oracles. The new package has only whitelisted pure standard-library imports.
 Whole-repository tests can exercise existing fake signing/submission fixtures;
 zero-call claims refer to the NEW production B1 dependency graph only.
 
+B1 implementation is local commit a09628a4bf4a9f7d352a84c9a865c2738042eb20.
+The subsequently completed full repository race run passed (trade 623.476s,
+tradeapi 141.760s). The run started with B1 sources before B2 edits and the B1
+code remained unchanged; this is not final B2 validation, independent review
+or a formal PASS.
+
 ```ini
 HTTP_C3_A = PASS_LOCAL_CLOSEOUT
 HTTP_C3_B1 = READY_FOR_REVIEW
