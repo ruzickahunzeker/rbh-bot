@@ -2,7 +2,9 @@
 
 Base: `d89830ae019ebe62b32fdea657289a39831d00fc` (local C2 closeout).
 Branch: `http-c3a-manual-execution-contract`.
-Status ceiling: `HTTP_C3_A_READY_FOR_REVIEW`; independent review NOT_PERFORMED.
+Reviewed implementation: `a3a5f47b176032f223a9c5db460f309fec06df35`.
+Independent review: PASS; formal closeout: COMPLETE_LOCAL_ONLY.
+Closeout branch: `http-c3a-contract-closeout`.
 Delivery is local only: no GitHub push, PR, merge, deployment or remote change.
 
 ## Scope
@@ -131,8 +133,9 @@ regression fixtures may exercise legacy local fake signing/submission; zero
 economic-call claims are scoped to this NEW adapter, not the entire service.
 
 ```ini
-HTTP_C3_A = READY_FOR_REVIEW
-independent_review = NOT_PERFORMED
+HTTP_C3_A = PASS
+independent_review = PASS
+formal_closeout = COMPLETE_LOCAL_ONLY
 C3_B = NOT_STARTED
 C3_C = NOT_STARTED
 production_broadcast = NOT_CONNECTED
@@ -144,4 +147,28 @@ release_ready = false
 No signer/SubmissionService/RawBroadcaster/SendRawTransaction/nonce allocator,
 permit, risk reservation or authorization write is connected to this adapter.
 Existing closed gates and W4-B ambiguity semantics are unchanged. Stop at the
-independent review gate; this delivery neither marks PASS nor enables live.
+next stage's scope gate; this local C3-A closeout does not enable live or claim
+C3-B/C3-C/C3 as a whole PASS.
+
+## Independent review and local closeout
+
+A separate reviewer agent, with no author conversation context forked, reviewed
+the exact implementation SHA above and found no C3-A blockers. Start/end HEAD
+matched that SHA and the worktree was clean. The reviewer independently ran:
+
+- `go test -race ./internal/tradeapi -run '^(TestHTTPC3A|TestUserHTTPTradeHasNoEconomicDependencies)' -count=1 -timeout=3m`: PASS (31.839s).
+- `go test ./internal/tradeapi -run '^TestHTTPC[12]' -count=1 -timeout=3m`: PASS (2.468s).
+- `go build ./...`, `go vet ./...`, `staticcheck ./...`: PASS.
+- Diff/gofmt checks, 13 evidence-to-test mappings and all SHA256SUMS: PASS.
+- Validation package: PASS (125 files at the reviewed baseline).
+
+Go checks used the fixed toolchain/caches with GOPROXY=off and GOTOOLCHAIN=local.
+The reviewer did NOT rerun all repository tests/race, contact a real chain,
+prove economic admission/budget compatibility or execute HTTP live trading.
+These are not implied by its scoped PASS.
+
+Historical implementation evidence `http-manual-execution-contract.json` is
+preserved unchanged, including its original READY_FOR_REVIEW/NOT_PERFORMED
+labels. Separate `http-c3a-joint-review.json` records formal local review and
+closeout. No runtime label, code, migration or configuration is changed by
+closeout. No remote main/CI/PR landing is claimed.
