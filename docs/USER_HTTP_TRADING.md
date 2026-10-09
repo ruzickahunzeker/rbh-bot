@@ -8,6 +8,8 @@ Historical record only. HTTP-C1 adds opt-in MANUAL record-only intake, described
 in HTTP_MANUAL_ORDER_PERSISTENCE.md; it does not activate old rejected requests.
 HTTP_MANUAL_PARAMETER_VALIDATION.md documents C2's internal validation overlay,
 not execution admission, signing or submission authorization.
+HTTP_MANUAL_EXECUTION_CONTRACT.md documents C3-A's internal read-only durable
+parameter adapter, not a new HTTP route or an execution/admission permission.
 
 Base: `main@7b278c4ffd48fe75c8f20d25185f0743222684b8`.
 Branch: `http-user-trade-contract`.
