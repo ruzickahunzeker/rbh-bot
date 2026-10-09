@@ -167,6 +167,11 @@ The reviewer did NOT rerun all repository tests/race, contact a real chain,
 prove economic admission/budget compatibility or execute HTTP live trading.
 These are not implied by its scoped PASS.
 
+The subsequent local delivery queue is documented in HTTP_TRADING_DELIVERY_PLAN.md;
+HTTP_MANUAL_ATOMIC_ADMISSION_DESIGN.md proposes C3-B's unit/transaction
+compatibility scope. Neither document grants real authorization or changes
+closed gate implementation semantics.
+
 Historical implementation evidence `http-manual-execution-contract.json` is
 preserved unchanged, including its original READY_FOR_REVIEW/NOT_PERFORMED
 labels. Separate `http-c3a-joint-review.json` records formal local review and
