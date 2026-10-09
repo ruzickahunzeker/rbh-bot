@@ -1,11 +1,15 @@
 # HTTP-C3-B — unit-aware atomic admission proposal
 
-Status: DESIGN_REVIEW_REQUIRED, not an accepted scope freeze or implementation.
+Status: USER_SCOPE_ACCEPTED_FOR_B1_B4_IMPLEMENTATION, independent design/code
+review still required; no economic authorization is implied.
 Local base: `6ed6ea60fcbad7d813ae88ff709ffe2f8d6626f2` (C3-A closeout).
 Design branch: `http-c3b-admission-design`.
-No code, migration, runtime policy, authorization or production wiring changes
-are included. C3-B/C3-C remain NOT_STARTED. This document is a proposal for the
-remaining compatibility decisions, not permission to modify closed gates.
+The original design-only commit is 0b26a9952593564ab09af8081d5dfc818b5968cb.
+The user's subsequent continuation accepted the single-input-unit restriction
+and additive shared transaction/accounting compatibility scope. B1 is tracked
+separately in HTTP_MANUAL_RISK_UNIT_SCHEMA.md; B2-B4/C3-C remain NOT_STARTED.
+Affected shared compatibility changes require regression and independent review;
+historical closed-gate PASS does not approve new behavior.
 
 ## Objective and unchanged boundaries
 
@@ -89,8 +93,9 @@ INPUT, excluding gas, in that declared unit. Gas has a separate risk cap.
 - A future multi-input-asset authorization requires a separate reviewed vector
   budget design, not a sum of different raw integers.
 
-This operational restriction is a PROPOSAL requiring design acceptance. It is
-not enabled here and does not change the user request contract.
+This operational restriction was accepted for the MANUAL implementation slice.
+It is not enabled for economic admission here and does not change the user
+request contract or allow the order handler to grant authorization.
 
 Authorization usage is a monotonically consumed allowance: unique admitted
 operation consumes count/input once; duplicate/restart consumes zero more.
@@ -238,9 +243,9 @@ No C3 package can grant real authorization or live access.
 
 ## Current result
 
-This proposal narrows the unresolved design and work packages; it does not
-claim ledger compatibility has already been solved, scope accepted, tests
-implemented or production logic changed. The required decision is acceptance
-of the single-input-unit authorization restriction and explicit additive
-shared accounting compatibility scope. Until then, design/review/checklist
-work is allowed; B1-B4 economic implementation is not started.
+The user accepted the single-input-unit restriction and additive compatibility
+scope. B1 implements pure measurement and isolated metadata; this does NOT mean
+atomic ledger compatibility is solved or economic admission is connected.
+B2-B4 must implement and prove the remaining transaction/source/accounting
+invariants. Independent review and separate closeout remain required. Signing,
+submission, sending, real authorization, live and remote writes remain prohibited.

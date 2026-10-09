@@ -11,8 +11,13 @@ internal quote/simulation and security gates remain required.
 - C3-A independent review PASS at a3a5f47b176032f223a9c5db460f309fec06df35.
 - C3-A docs/evidence closeout is local commit
   6ed6ea60fcbad7d813ae88ff709ffe2f8d6626f2.
-- C3-B proposal: HTTP_MANUAL_ATOMIC_ADMISSION_DESIGN.md, DESIGN_REVIEW_REQUIRED.
-- C3-B/C3-C/signing/send API adaptation not implemented by this plan.
+- C3-B B1-B4 unit/accounting implementation scope accepted by the user:
+  one input unit per MANUAL authorization; additive shared compatibility only.
+- B1 pure arithmetic and isolated metadata implemented on
+  http-c3b-b1-unit-schema; ordinary tests, focused race, build/vet/staticcheck
+  passed. Full repository race awaits a separate validation checkpoint;
+  independent review NOT_PERFORMED.
+- B2-B4 atomic admission and C3-C/signing/send adaptation are not yet implemented.
 - GitHub ignored by request: no fetch/push/PR/merge or remote-main claims.
 - production_broadcast NOT_CONNECTED; controlled authorization NOT_GRANTED;
   live=false; release_ready=false. Other closed gates are unchanged.
@@ -22,8 +27,8 @@ internal quote/simulation and security gates remain required.
 | Order | Batch | Complete when | Requires attention |
 |---|---|---|---|
 | 1 | C3-A independent review + local closeout | independent evidence/checksum and docs commit, clean tree | Complete |
-| 2 | C3-B compatibility/design inventory | units, data ownership, atomicity, legacy impact and test matrix documented | Proposal completed, compatibility acceptance needed |
-| 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Only after accepted shared-accounting scope |
+| 2 | C3-B compatibility/design inventory | units, data ownership, atomicity, legacy impact and test matrix documented | User scope acceptance recorded; independent review remains required |
+| 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Authorized; B1 local checkpoint, B2 next, full race pending |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Reviewer authorization required if not already granted for that stage |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Requires its own scoped implementation/review |
 | 6 | MANUAL execution/signing/submission adaptation | exact saved parameters integrate with existing core and multi-stage gates | Separate authority required; no real keys/chain sends implied |
