@@ -84,11 +84,28 @@ func (a *ManualExecutionReader) Load(ctx context.Context, id Identity, requestID
 		return ManualExecutionContract{}, err
 	}
 	defer tx.Rollback()
+	c, err := loadManualExecutionContractTx(ctx, tx, id, requestID, a.now)
+	if err != nil {
+		return ManualExecutionContract{}, err
+	}
+	if err = tx.Commit(); err != nil {
+		return ManualExecutionContract{}, err
+	}
+	return c, nil
+}
+
+// loadManualExecutionContractTx neither opens nor commits a transaction. C3-A
+// owns its read snapshot; future MANUAL admission must pass its SAME writer
+// connection. The returned checksum is still not economic permission.
+func loadManualExecutionContractTx(ctx context.Context, tx queryRow, id Identity, requestID string, now func() time.Time) (ManualExecutionContract, error) {
+	if ctx == nil || tx == nil || now == nil || !id.valid() || !validID(requestID) {
+		return ManualExecutionContract{}, ErrInvalid
+	}
 	r, wallet, err := validationSource(ctx, tx, id, requestID)
 	if err != nil {
 		return ManualExecutionContract{}, err
 	}
-	if err = ttlRecord(r, a.now()); err != nil {
+	if err = ttlRecord(r, now()); err != nil {
 		return ManualExecutionContract{}, err
 	}
 	resolution, p, digest, found, err := readResolution(ctx, tx, *r.OperationID)
@@ -156,10 +173,7 @@ func (a *ManualExecutionReader) Load(ctx context.Context, id Identity, requestID
 	}
 	c := manualContract(r, id, wallet, step, p, digest, resultHash, out)
 	// Final TTL check does not turn a read snapshot into an economic gate.
-	if err = ttlRecord(r, a.now()); err != nil {
-		return ManualExecutionContract{}, err
-	}
-	if err = tx.Commit(); err != nil {
+	if err = ttlRecord(r, now()); err != nil {
 		return ManualExecutionContract{}, err
 	}
 	return c, nil

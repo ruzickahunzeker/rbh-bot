@@ -15,9 +15,14 @@ internal quote/simulation and security gates remain required.
   one input unit per MANUAL authorization; additive shared compatibility only.
 - B1 pure arithmetic and isolated metadata implemented on
   http-c3b-b1-unit-schema; ordinary tests, focused race, build/vet/staticcheck
-  passed. Full repository race awaits a separate validation checkpoint;
+  passed. Full repository race subsequently passed (trade 623.476s);
   independent review NOT_PERFORMED.
-- B2-B4 atomic admission and C3-C/signing/send adaptation are not yet implemented.
+- B2 disconnected transaction-local inputs implemented on
+  http-c3b-b2-transaction-inputs; ordinary tests and final affected-package/
+  B2 three-run race passed. Combined C3-A/B2 three-run race rerun also passed
+  (244.004s); final ordinary tests/build/vet/staticcheck/validation passed.
+  No independent review/self-PASS. B3/B4 atomic admission and
+  C3-C/signing/send adaptation are not yet implemented.
 - GitHub ignored by request: no fetch/push/PR/merge or remote-main claims.
 - production_broadcast NOT_CONNECTED; controlled authorization NOT_GRANTED;
   live=false; release_ready=false. Other closed gates are unchanged.
@@ -28,7 +33,7 @@ internal quote/simulation and security gates remain required.
 |---|---|---|---|
 | 1 | C3-A independent review + local closeout | independent evidence/checksum and docs commit, clean tree | Complete |
 | 2 | C3-B compatibility/design inventory | units, data ownership, atomicity, legacy impact and test matrix documented | User scope acceptance recorded; independent review remains required |
-| 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Authorized; B1 local checkpoint, B2 next, full race pending |
+| 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Authorized; B1/B2 local author checkpoints, B3/B4 next per implementation work order |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Reviewer authorization required if not already granted for that stage |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Requires its own scoped implementation/review |
 | 6 | MANUAL execution/signing/submission adaptation | exact saved parameters integrate with existing core and multi-stage gates | Separate authority required; no real keys/chain sends implied |

@@ -7,7 +7,9 @@ Design branch: `http-c3b-admission-design`.
 The original design-only commit is 0b26a9952593564ab09af8081d5dfc818b5968cb.
 The user's subsequent continuation accepted the single-input-unit restriction
 and additive shared transaction/accounting compatibility scope. B1 is tracked
-separately in HTTP_MANUAL_RISK_UNIT_SCHEMA.md; B2-B4/C3-C remain NOT_STARTED.
+separately in HTTP_MANUAL_RISK_UNIT_SCHEMA.md. B2 transaction-local input
+verification is tracked in HTTP_MANUAL_TRANSACTION_INPUTS.md; B3/B4/C3-C remain
+NOT_STARTED and no atomic economic admission is connected.
 Affected shared compatibility changes require regression and independent review;
 historical closed-gate PASS does not approve new behavior.
 
@@ -246,6 +248,7 @@ No C3 package can grant real authorization or live access.
 The user accepted the single-input-unit restriction and additive compatibility
 scope. B1 implements pure measurement and isolated metadata; this does NOT mean
 atomic ledger compatibility is solved or economic admission is connected.
-B2-B4 must implement and prove the remaining transaction/source/accounting
-invariants. Independent review and separate closeout remain required. Signing,
+B2 implements disconnected transaction-local source/control/auth verification,
+but B3/B4 must implement/prove atomic accounting and lifecycle conservation.
+Independent review and separate closeout remain required. Signing,
 submission, sending, real authorization, live and remote writes remain prohibited.
