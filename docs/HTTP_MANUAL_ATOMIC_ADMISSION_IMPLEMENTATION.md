@@ -2,8 +2,12 @@
 
 Scope is the previously accepted B1-B4 design, not additional economic/send
 authority. This file fixes the next implementation order after the local B2
-checkpoint. No B3 migration, reservation consumer or ledger write is implemented
-by this document. Independent review remains required before formal closeout.
+checkpoint. The subsequent accounting prerequisite is documented in
+HTTP_MANUAL_ACCOUNTING_FOUNDATION.md: migration 019 adds immutable reservation
+unit metadata and a SELECT-only same-connection exposure verifier with legacy
+mode guards. It does NOT implement complete B3 admission or B4 conservation.
+This work order remains the incomplete atomic writer/lifecycle/dedupe plan.
+Independent review remains required before formal closeout.
 
 ## First: source and lifecycle/dedupe compatibility
 
@@ -25,7 +29,8 @@ Request/source expires_at and result parameters never change on transition.
 ## Second: additive binding metadata, no parallel accounting
 
 Select the next migration number only after checking local schema ancestry.
-Keep 006-018 immutable. Overlay the EXISTING ledgers with one-to-one metadata:
+Keep 006-019 immutable after the foundation lands. Overlay the EXISTING ledgers
+with one-to-one metadata:
 
 - operation admission binding: original request/fingerprint, C2 result and
   C3-A contract checksum, original policy/hash, MANUAL policy/hash, exact
@@ -120,3 +125,50 @@ not carry execution/signing/send rights. No HTTP composition yet.
 Only complete B3+B4 proof can reach HTTP_C3_B_READY_FOR_REVIEW. Author testing is
 not independent PASS. No C3-C route, signing/send adaptation, real authorization,
 live, GitHub or other chain/protocol work follows automatically from that state.
+
+## Concrete continuation after the accounting foundation
+
+These are implementation work packages inside the already accepted B3/B4
+boundary, NOT implemented behavior or authority to expose an HTTP/send route.
+Continue locally without requesting confirmation for each green test.
+
+1. Extract immutable source/result verification from initial lifecycle and
+   busy-wallet checks. Public C3-A keeps its original checks. A private duplicate
+   path reads only a complete existing admission binding; status alone is never
+   sufficient. Preserve exact C1/C2 quote/calldata/expiry and original hashes.
+2. Fix new lifecycle labels to MANUAL-specific operation/step statuses (e.g.
+   manual_admission_succeeded / manual_admitted), outside Store.Recoverable's
+   admitted/executing scan. Labels alone must not bypass direct-SQL audit or
+   prerequisite financial rows. Add legacy-candidate exclusion tests first.
+3. Introduce the next additive immutable admission binding/command overlay.
+   It references the original operation, step, reservation and authorization
+   operation row, never a second monetary ledger. INSERT command is the only
+   route creating the complete financial/lifecycle/audit set. Each shared-table
+   guard must reject a standalone half write or altered command identity.
+   Do not use a caller-set SQL flag as an authority bypass.
+4. Replace ONLY budget isolation guards when complete source/coupling/conservation
+   guards are present. Keep no-arm, permit and PASS-snapshot gates. Exact uint256
+   totals must be independently checked, not computed with SQLite REAL/CAST.
+   If schema-side arithmetic needs a pure checked function, register/test its
+   deterministic fail-closed contract on every relevant storage connection;
+   plain external SQLite lacking it must reject, not silently fall back. This
+   is a design option, not an already selected/registered function or hash proof.
+5. Verify nonzero lifetime usage: every authoritative operation row has the
+   same declared unit and complete admission binding; checked sum/count equals
+   aggregate usage, including retained FROZEN/RELEASED history. Corruption
+   rejects; no repair/refund/reset during admission. Across authorization IDs,
+   the same economic operation cannot be charged/admitted twice.
+6. Own BEGIN IMMEDIATE in a disconnected internal writer. Stop first, full
+   binding conflict/dedupe, source/policy/auth/unit checks, typed active exposure
+   and all-asset count caps, lane checks, one command, final TTL/auth/control
+   check, COMMIT once. Querying an expired historical decision is not renewed
+   authorization; errors never leak provisional success/partial exposure.
+7. Prove single-request/restart/direct-SQL/fault cases before 10,000 mixed
+   two-handle admissions. Include actual commit barriers for mutable controls,
+   usage==durable rows, zero unexplained accept/overcommit, one active wallet
+   reservation, and no nonce/artifact/send. No author self-PASS or C3-C wiring.
+
+Each local checkpoint records base/head, exact source/test hashes, actual
+ordinary/race/lint/manifest results, remaining proof and untouched safety state.
+Do not claim a prior run covers code changed after it started; keep historical
+validation distinct from final-source validation.

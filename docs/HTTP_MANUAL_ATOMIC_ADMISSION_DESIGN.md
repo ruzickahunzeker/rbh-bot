@@ -9,7 +9,10 @@ The user's subsequent continuation accepted the single-input-unit restriction
 and additive shared transaction/accounting compatibility scope. B1 is tracked
 separately in HTTP_MANUAL_RISK_UNIT_SCHEMA.md. B2 transaction-local input
 verification is tracked in HTTP_MANUAL_TRANSACTION_INPUTS.md; B3/B4/C3-C remain
-NOT_STARTED and no atomic economic admission is connected.
+NOT_STARTED at that B2 checkpoint and no atomic economic admission is connected.
+B3 now has only the isolated accounting prerequisite in
+HTTP_MANUAL_ACCOUNTING_FOUNDATION.md; complete B3/B4 remain incomplete and
+HTTP_C3_B NOT_READY. This does not grant additional economic/send authority.
 Affected shared compatibility changes require regression and independent review;
 historical closed-gate PASS does not approve new behavior.
 

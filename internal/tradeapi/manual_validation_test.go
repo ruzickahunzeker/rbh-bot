@@ -26,6 +26,7 @@ type validationBackend struct {
 	fault               string
 	during              func()
 	balance             atomic.Int64
+	wallet              string // optional controlled multi-wallet fixture identity
 }
 
 func (b *validationBackend) Resolve(_ context.Context, i chainquery.ValidationIntent) (chainquery.Resolution, error) {
@@ -52,7 +53,11 @@ func (b *validationBackend) Resolve(_ context.Context, i chainquery.ValidationIn
 			return chainquery.Resolution{}, err
 		}
 	}
-	r := chainquery.Resolution{Token: token, Wallet: testWallet, Side: i.Side, AmountIn: amount, NativeBalance: "2000000000000000000", TokenBalance: strconv.FormatInt(balance, 10), Allowance: "1000000000"}
+	wallet := b.wallet
+	if wallet == "" {
+		wallet = testWallet
+	}
+	r := chainquery.Resolution{Token: token, Wallet: wallet, Side: i.Side, AmountIn: amount, NativeBalance: "2000000000000000000", TokenBalance: strconv.FormatInt(balance, 10), Allowance: "1000000000"}
 	if i.MinReceive != "" {
 		d := uint8(18)
 		if i.Side == "buy" {
@@ -85,10 +90,10 @@ func (b *validationBackend) Complete(_ context.Context, i chainquery.ValidationI
 		}
 	}
 	amount, _ := new(big.Int).SetString(r.AmountIn, 10)
-	call, err := pons.BuildBuy(common.HexToAddress(validationCurve), amount, min, common.HexToAddress(testWallet), true)
+	call, err := pons.BuildBuy(common.HexToAddress(validationCurve), amount, min, common.HexToAddress(r.Wallet), true)
 	spent := r.AmountIn
 	if i.Side == "sell" {
-		call, err = pons.BuildSell(common.HexToAddress(validationCurve), amount, min, common.HexToAddress(testWallet))
+		call, err = pons.BuildSell(common.HexToAddress(validationCurve), amount, min, common.HexToAddress(r.Wallet))
 		spent = "0"
 	}
 	if err != nil {
@@ -103,7 +108,7 @@ func (b *validationBackend) Complete(_ context.Context, i chainquery.ValidationI
 	}
 	f, _ := new(big.Int).SetString(fee, 10)
 	gas := uint64(100000)
-	result := chainquery.ValidationOutput{Resolution: r, QuotedOut: out.String(), MinimumOut: min.String(), QuoteSpent: spent, To: validationCurve, From: testWallet, Value: call.Value.String(), Data: hexutil.Encode(call.Data), GasLimit: gas, GasFeeCap: fee, GasTipCap: tip, GasBudget: new(big.Int).Mul(f, new(big.Int).SetUint64(gas)).String(), ReturnData: hexutil.Encode(common.LeftPadBytes(out.Bytes(), 32))}
+	result := chainquery.ValidationOutput{Resolution: r, QuotedOut: out.String(), MinimumOut: min.String(), QuoteSpent: spent, To: validationCurve, From: r.Wallet, Value: call.Value.String(), Data: hexutil.Encode(call.Data), GasLimit: gas, GasFeeCap: fee, GasTipCap: tip, GasBudget: new(big.Int).Mul(f, new(big.Int).SetUint64(gas)).String(), ReturnData: hexutil.Encode(common.LeftPadBytes(out.Bytes(), 32))}
 	if b.fault == "wrong_amount" {
 		result.Resolution.AmountIn = "1"
 	}
