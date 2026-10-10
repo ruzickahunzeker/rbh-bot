@@ -1,12 +1,16 @@
 # HTTP C3-B — disconnected atomic MANUAL admission
 
-Local branch: `http-c3b-atomic-manual-admission`.
+Implementation branch: `http-c3b-atomic-manual-admission`.
 Implementation base: `a6922fdcd159e8ef41e6f67f1926743c4423beb6`.
+Reviewed implementation: `02eb0494fae28da3e88f095c73ffc4f07820986e`.
+Independent review: PASS; formal closeout: COMPLETE_LOCAL_ONLY.
+Closeout branch: `http-c3b-admission-closeout`.
 This supersedes the pending writer tasks in the earlier prerequisite work
 order, not the historical validation recorded for those earlier commits.
-Author acceptance is COMPLETE; HTTP_C3_B_READY_FOR_REVIEW, not independent
-PASS. Independent review is NOT_PERFORMED. No HTTP admission route or authorization
-grant is implemented, and no production/execution/send composition is added.
+HTTP_C3_B is PASS for disconnected B1–B4 admission only, not C3 as a whole.
+No HTTP admission route or authorization grant is implemented, and no
+production/execution/send composition is added. Delivery is local only: no
+GitHub push, PR, merge, remote-main or CI claim.
 
 ## One command and the existing owners
 
@@ -130,7 +134,7 @@ hashes, commands and actual results. Tests cover:
 - Import/call graph and empty economic-output tables prove no nonce/artifact/
   signer/submission/raw-send/permit/real-RPC paths in the new composition.
 
-This local harness is neither CI nor independent approval. No GitHub actions,
+The author harness is neither CI nor independent approval. No GitHub actions,
 push, PR, remote merge or background automation are performed. Historical
 closed gates are unchanged, and do not preapprove these new shared-core guards.
 
@@ -138,9 +142,10 @@ closed gates are unchanged, and do not preapprove these new shared-core guards.
 
 ```ini
 B3 = ATOMIC_COMMAND_AND_DISCONNECTED_WRITER_IMPLEMENTED
-B4 = AUTHOR_ACCEPTANCE_COMPLETE_PENDING_INDEPENDENT_REVIEW
-HTTP_C3_B = READY_FOR_REVIEW
-independent_review = NOT_PERFORMED
+B4 = AUTHOR_ACCEPTANCE_COMPLETE_INDEPENDENT_REVIEW_PASS
+HTTP_C3_B = PASS
+independent_review = PASS
+formal_closeout = COMPLETE_LOCAL_ONLY
 C3_C = NOT_STARTED
 deadline_capability = APPLICATION_TTL_ONLY
 contract_deadline = false
@@ -153,8 +158,42 @@ release_ready = false
 Final-source ordinary/full race/build/vet/staticcheck/gofmt/diff and offline
 validation passed. Full race: storage 57.716s, trade 913.103s, tradeapi 998.718s.
 Ordinary: trade 98.849s, tradeapi 49.496s. No subsequent source changes; only
-docs/evidence/checksum reflect those results. This is author READY_FOR_REVIEW,
-not independent approval. Independent review/closeout is a distinct gate. C3-C HTTP
-admission, MANUAL execution/signing/submission adaptation, operator authorization,
-BSC/Flap/Base and real live/sends remain separate scopes; none is automatically
-entered here.
+docs/evidence/checksum reflect those results. These remain author validation,
+not independent reruns. C3-C HTTP admission, MANUAL execution/signing/submission
+adaptation, operator authorization, BSC/Flap/Base and real live/sends remain
+separate scopes; none is automatically entered here.
+
+## Independent review and local closeout
+
+The user-authorized separate reviewer `http_c3b_independent_review` read the
+accepted design, B1/B2/accounting prerequisites, implementation, tests and
+evidence at the exact reviewed SHA above and found no blockers. The reviewer
+was not the implementing agent, but did receive forked author conversation
+context; this is not claimed as a blind/no-context review. Start/end HEAD
+matched the reviewed SHA and the worktree remained clean during review.
+
+Independent execution passed:
+
+- C3-B ordinary targeted regression: tradeapi 29.190s.
+- Separate verbose 10,000 mixed two-handle conservation: 29.248s, accepted=7,
+  deduped=1868, rejected=8125, unexplained=0, overcommit=0. Dedupe/reject counts
+  vary with scheduling; all requests and durable unique usage conserve.
+- `go test -race ./internal/tradeapi ./internal/storage -run '^(TestHTTPC3B3Atomic|TestHTTPC3B3FoundationLegacy|TestManualSchema)' -count=1 -timeout=5m`:
+  tradeapi 118.194s, storage 3.579s. This focused race does not include 10,000.
+- Storage full tests: 8.086s; manualrisk full tests: 0.017s; C07/W1/W2 targeted
+  trade regression: 3.372s.
+- Fixed HEAD/clean tree/diff checks, source hashes and package manifest:
+  PASS (131 entries at the reviewed implementation baseline).
+
+An overly broad race selection was stopped (exit 130) and is NOT counted as
+PASS. The reviewer did not rerun full-repository tests/race or prove current
+chain freshness, recovery health, HTTP/live integration or operator grants.
+All execution used disposable SQLite/dummy authorization/local fixtures;
+no real-chain RPC, signing or transaction sending was performed.
+
+Historical `http-manual-atomic-admission.json` is preserved unchanged, including
+its author READY_FOR_REVIEW/NOT_PERFORMED labels. Separate
+`http-c3b-joint-review.json` records independent PASS, exact test evidence and
+this local formal closeout. Runtime labels, code, migrations and configuration
+are unchanged. Next is a separately scoped C3-C plan; neither HTTP composition
+nor downstream MANUAL signing/submission is authorized by this closeout.

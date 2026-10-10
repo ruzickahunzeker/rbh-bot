@@ -38,8 +38,16 @@ internal quote/simulation and security gates remain required.
   disconnected local admission, not C3-C HTTP/execution/send wiring. Earlier
   prerequisite checkpoints above remain historical, not current ready claims.
   Final author ordinary/full race/build/vet/staticcheck/validation passed;
-  HTTP_C3_B READY_FOR_REVIEW, independent review NOT_PERFORMED. Full race
-  trade 913.103s / tradeapi 998.718s. No self-PASS or C3-C entry.
+  historical implementation evidence retains HTTP_C3_B READY_FOR_REVIEW and
+  independent review NOT_PERFORMED. Full author race trade 913.103s / tradeapi
+  998.718s; this is not an independent full-race claim.
+- C3-B independent review PASS at
+  02eb0494fae28da3e88f095c73ffc4f07820986e; formal closeout COMPLETE_LOCAL_ONLY
+  on http-c3b-admission-closeout. Separate http-c3b-joint-review.json records
+  reviewer ordinary/focused race, 10,000 conservation and scope limitations.
+  Reviewer received forked author context but was separate from implementation.
+  HTTP_C3_B PASS covers disconnected B1–B4 admission only, not C3 as a whole.
+  No C3-C, signing/submission adaptation, operator grant or remote activity.
 - production_broadcast NOT_CONNECTED; controlled authorization NOT_GRANTED;
   live=false; release_ready=false. Other closed gates are unchanged.
 
@@ -48,9 +56,9 @@ internal quote/simulation and security gates remain required.
 | Order | Batch | Complete when | Requires attention |
 |---|---|---|---|
 | 1 | C3-A independent review + local closeout | independent evidence/checksum and docs commit, clean tree | Complete |
-| 2 | C3-B compatibility/design inventory | units, data ownership, atomicity, legacy impact and test matrix documented | User scope acceptance recorded; independent review remains required |
-| 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Local author acceptance COMPLETE; C3-B READY_FOR_REVIEW, independent review pending |
-| 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Reviewer authorization required if not already granted for that stage |
+| 2 | C3-B compatibility/design inventory | units, data ownership, atomicity, legacy impact and test matrix documented | Complete; integrated independent review PASS |
+| 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
+| 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Requires its own scoped implementation/review |
 | 6 | MANUAL execution/signing/submission adaptation | exact saved parameters integrate with existing core and multi-stage gates | Separate authority required; no real keys/chain sends implied |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
