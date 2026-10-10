@@ -64,12 +64,21 @@ internal quote/simulation and security gates remain required.
   Local http-c3c-operational-error-hardening preserves causes in shared MANUAL
   verifier reads and adds per-read fault regressions without changing ledger,
   risk, TTL, gates, schema or economic dependencies. Original author evidence
-  remains historical and unchanged. Hardening is READY_FOR_REVIEW, not PASS;
-  fresh independent review is required before a separate local closeout.
+  remains historical and unchanged. Historical author hardening checkpoint was
+  READY_FOR_REVIEW pending fresh independent review.
   Final hardening full ordinary, C3-C/baseline negative-path focused race,
   three-run new-fault-test race, build/vet/staticcheck and offline validation
   passed. Evidence package now has 134 entries. No full-repository race or
-  independent hardening PASS is claimed by this author checkpoint.
+  independent hardening PASS is claimed by that author checkpoint.
+- C3-C fresh independent review PASS at
+  500735151be1ca9fec59ac4bf7c258bbb88cd025; formal closeout COMPLETE_LOCAL_ONLY
+  on http-c3c-admission-closeout. Separate http-c3c-joint-review.json records
+  selected reviewer ordinary/race/compatibility probes, the former cancellation
+  failure now returning sanitized 503, and retained typed rejection/usage/TTL.
+  The reviewer initially started with no forked author conversation and then
+  received a scoped re-review handoff; no blind-hardening-review claim is made.
+  HTTP_C3_C PASS covers default-off UDS admission/history only, not all-C3 PASS,
+  real grants, execution/signing/submission or live. Evidence package: 135 entries.
 - production_broadcast NOT_CONNECTED; controlled authorization NOT_GRANTED;
   live=false; release_ready=false. Other closed gates are unchanged.
 
@@ -81,7 +90,7 @@ internal quote/simulation and security gates remain required.
 | 2 | C3-B compatibility/design inventory | units, data ownership, atomicity, legacy impact and test matrix documented | Complete; integrated independent review PASS |
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
-| 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Initial independent FAIL; operational-error hardening READY_FOR_REVIEW pending fresh review; no closeout |
+| 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
 | 6 | MANUAL execution/signing/submission adaptation | exact saved parameters integrate with existing core and multi-stage gates | Separate authority required; no real keys/chain sends implied |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |

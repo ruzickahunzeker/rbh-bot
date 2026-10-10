@@ -1,5 +1,34 @@
 # HTTP C3-C — default-off MANUAL HTTP admission
 
+## Formal closeout — current status
+
+HTTP_C3_C = PASS; formal closeout COMPLETE_LOCAL_ONLY on
+`http-c3c-admission-closeout`, based exactly on reviewed head
+`500735151be1ca9fec59ac4bf7c258bbb88cd025`. Fresh independent review by the
+separate `http_c3c_independent_review` agent concluded PASS with no blockers.
+The initial review began without forked author conversation; the same reviewer
+then received the scoped hardening handoff and independently re-reviewed it.
+This is not a claim of a blind hardening review. The previous cancellation
+blocker is closed: operational faults preserve their cause and return sanitized
+503 API_UNAVAILABLE; verified invalid data still rejects, without changing
+reservation/usage/TTL/gate semantics.
+
+`http-c3c-joint-review.json` records the reviewed head, independent commands,
+results and limitations. Original author implementation/hardening evidence is
+preserved unchanged at its historical READY_FOR_REVIEW/PENDING checkpoints.
+This closeout changes docs/evidence/checksum only. No GitHub fetch/push/PR/merge
+or remote-main claim is made. Existing runtime capabilities remain static stage
+descriptions; this document does not turn them into health or send permission.
+
+PASS covers default-off HTTP admission and historical observation only, not C3
+as a whole or MANUAL execution/signing/submission adaptation. No real grant,
+signing/send/nonce/permit, live, deployment attestation or recovery health is
+approved. Production broadcast NOT_CONNECTED; authorization NOT_GRANTED;
+live=false; release_ready=false. Next work requires separately scoped MANUAL
+execution/signing/submission design; it is not started by this closeout.
+
+## Historical implementation and review checkpoints
+
 Implementation base: `e33c0bc32280c6599b818148913c6d55b4b71cfe` (local C3-B
 formal closeout). Branch: `http-c3c-default-off-admission`.
 Ceiling: HTTP_C3_C_READY_FOR_REVIEW, not independent PASS or all-C3 PASS.
@@ -18,8 +47,10 @@ touches shared MANUAL verifier helpers, including the validation-policy gate
 read; it does not change C3-B schema, ledger, risk, TTL, gate or atomicity rules.
 Original author evidence and previous closed-gate records remain historical
 and unchanged; current hardening evidence is
-`http-manual-admission-error-hardening.json`. Fresh review is required before
-closeout; the author cannot change HTTP_C3_C to PASS.
+`http-manual-admission-error-hardening.json`. This historical checkpoint required
+fresh independent review before closeout; its later PASS is recorded above and
+in the separate joint-review evidence, not retroactively written into author
+evidence.
 
 ## Frozen scope and unchanged user contract
 
@@ -38,8 +69,10 @@ authenticated ordinary user request
 ```
 
 This adds a transport composition and read projection, not a second financial
-ledger or state machine. C3-B writer, migrations 001–020, shared trade kernel,
-W4-B ambiguity/recovery semantics and existing closed-gate records are unchanged.
+ledger or state machine. Hardening only corrects shared MANUAL verifier error
+propagation; C3-B writer atomicity/ledger/risk rules, migrations 001–020, shared
+trade kernel, W4-B ambiguity/recovery semantics and existing closed-gate records
+are unchanged.
 No-arm, no-permit and no-PASS-snapshot guards remain in the production schema.
 Actual MANUAL authorization arming still requires a separately reviewed scope;
 this slice cannot make a real positive grant. Positive tests remove no-arm only
@@ -198,8 +231,10 @@ docs/evidence/checksum were subsequently completed.
 
 ```ini
 HTTP_C3_B = PASS
-HTTP_C3_C = READY_FOR_REVIEW
-independent_review = NOT_PERFORMED
+HTTP_C3_C = PASS
+independent_review = PASS
+formal_closeout = COMPLETE_LOCAL_ONLY
+reviewed_head = 500735151be1ca9fec59ac4bf7c258bbb88cd025
 manual_HTTP_admission_default = false
 manual_execution_signing_submission_adaptation = NOT_STARTED
 deadline_capability = APPLICATION_TTL_ONLY
@@ -210,8 +245,8 @@ live = false
 release_ready = false
 ```
 
-Stop at independent review. No self-PASS/closeout, downstream MANUAL execution
-or operator grant, mainnet, W4-D/W5, BSC/Flap/Base/Solana or public API expansion.
+Formal closeout does not authorize downstream MANUAL execution or operator
+grant, mainnet, W4-D/W5, BSC/Flap/Base/Solana or public API expansion.
 
 Independent review must evaluate default-off production registration and config
 failure before route registration; request/identity/auth-scope separation;
@@ -234,7 +269,8 @@ verifier-to-error-mapper integration tests, not end-to-end timed HTTP cancellati
 or mainnet availability evidence. Additional control/authorization/exposure
 checks and verified-rejection regression tests retain fail-closed behavior.
 
-Hardening remains READY_FOR_REVIEW, pending fresh independent review. No new
+Historical hardening checkpoint was READY_FOR_REVIEW pending fresh independent
+review; it is now reviewed PASS at the exact head stated above. No new
 route, production checkpoint, schema/migration, signer/submission/send/nonce,
 authorization grant, public listener or downstream execution scope is added.
 Production broadcast remains NOT_CONNECTED; authorization NOT_GRANTED;
@@ -249,3 +285,13 @@ mappings and 134-entry manifest checks PASS. Offline reference model 39 tests
 and Curve 5 fixture events PASS. Original reviewer overlay rerun by the author
 PASS (1.045s), including the former cancellation failure; this author rerun is
 not fresh independent approval. Full repository race was not run for this slice.
+
+Fresh reviewer validation passed: original overlay including the formerly
+failing cancellation probe (0.718s); C3-C/app/config plus selected C3-B negative
+paths (10.373s/0.213s/0.017s); hardening race (18.614s); C2/C3-B input
+compatibility (5.551s); exposure foundation (1.670s); focused vet/diff/source
+hashes/test mappings and all 134 reviewed manifest entries. These are selected
+independent tests, not independent full-repository tests/race. Fault probes are
+verifier-to-error-mapper and local transaction checkpoints, not timed end-to-end
+HTTP cancellation or real-chain availability. Formal closeout adds only its new
+review evidence/checksum entry; the resulting package has 135 entries.

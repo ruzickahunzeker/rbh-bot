@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_C3_C_DEFAULT_OFF_MANUAL_HTTP_ADMISSION_AND_OPERATIONAL_ERROR_HARDENING_LOCAL_CLOSEOUT_ONLY",
+  "reviewed_commit_sha": "500735151be1ca9fec59ac4bf7c258bbb88cd025",
+  "implementation_base_sha": "e33c0bc32280c6599b818148913c6d55b4b71cfe",
+  "original_implementation_sha": "e3b1c504ed4d9bc17468e6c03b17d74c60a581a5",
+  "reviewed_commit_is_remote_main": false,
+  "review_conclusion": "PASS",
+  "http_c3c_status": "PASS",
+  "formal_closeout": "COMPLETE_LOCAL_ONLY",
+  "closeout_branch": "http-c3c-admission-closeout",
+  "closeout_initial_ahead_behind": "0/0_AGAINST_REVIEWED_HARDENING_HEAD",
+  "independent_reviewer": {
+    "type": "SEPARATE_NON_AUTHOR_REVIEWER_AGENT",
+    "task": "http_c3c_independent_review",
+    "user_authorized": true,
+    "initial_author_conversation_context_forked": false,
+    "initial_fork_turns": "none",
+    "same_reviewer_rechecked_own_original_failure": true,
+    "hardening_followup_received_scoped_author_handoff": true,
+    "blind_hardening_review_claimed": false,
+    "reviewer_modified_repository_files": false,
+    "temporary_probes_outside_repository": true,
+    "reviewed_start_and_end_HEAD_exact": true,
+    "reviewed_start_and_end_worktree_clean": true,
+    "blockers": []
+  },
+  "previous_review": {
+    "reviewed_head": "e3b1c504ed4d9bc17468e6c03b17d74c60a581a5",
+    "conclusion": "FAIL",
+    "blocker": "LATE_OPERATIONAL_VERIFIER_FAILURE_WAS_MAPPED_TO_422_ADMISSION_REJECTION_INSTEAD_OF_SANITIZED_503",
+    "economic_safety_failure": "NOT_FOUND",
+    "closure": "ORIGINAL_INDEPENDENT_REPRODUCTION_NOW_503_API_UNAVAILABLE_UNKNOWN_OPERATIONAL_CAUSES_PRESERVED_VERIFIED_REJECTION_RETAINED"
+  },
+  "historical_author_evidence": [
+    {
+      "path": "evidence/http-manual-admission-http.json",
+      "sha256": "69e1f64b8c20b771fe8263d88ebd7ce0cc24f2f1d48bd7f01b2c0e4f34767c1b",
+      "preserved_unchanged": true,
+      "historical_status": "READY_FOR_REVIEW",
+      "historical_independent_review": "NOT_PERFORMED"
+    },
+    {
+      "path": "evidence/http-manual-admission-error-hardening.json",
+      "sha256": "097660dff76112b2fc570fcc38d5f73be41cfd618e3c387361c0fc4d30fa56a0",
+      "preserved_unchanged": true,
+      "historical_status": "READY_FOR_REVIEW",
+      "historical_fresh_independent_review": "PENDING"
+    }
+  ],
+  "reviewed_invariants": [
+    "DEFAULT_OFF_EXISTING_AUTHENTICATED_LOCAL_UDS_POST_NO_NEW_ROUTE_OR_PUBLIC_LISTENER",
+    "STRICT_PRIVATE_DETACHED_OPERATOR_EXPECTED_SCOPE_NOT_USER_BODY_IDENTITY_OR_AUTHORIZATION_GRANT",
+    "ONE_POST_EXISTING_INTAKE_VALIDATION_ATOMIC_ADMISSION_OBSERVATION_NOT_EXECUTION_OR_SEND_PERMISSION",
+    "IMMUTABLE_ABSOLUTE_EXPIRY_AND_EXACT_IDEMPOTENCY_NO_DUPLICATE_RESTART_REQUOTE_OR_RENEWED_ALLOWANCE",
+    "COMPLETE_HISTORY_BEFORE_INITIAL_ONLY_VALIDATOR_AND_CONCURRENT_HANDOFF_NO_SECOND_DURABLE_ADMISSION",
+    "ADVISORY_STOP_PREFLIGHT_DOES_NOT_REPLACE_C3_B_SAME_WRITER_FINAL_GATES",
+    "ENABLED_DUPLICATES_RETAIN_STOP_PRIORITY_GET_DISABLED_OBSERVATIONS_REMAIN_AVAILABLE_WITHOUT_ACTIVE_AUTH_OR_CLOCK",
+    "CANONICAL_COMPLETE_COMMAND_AUDIT_USAGE_HISTORY_VERIFIED_INCLUDING_OLDER_RELEASED_ROWS_NO_REFUND_REPAIR",
+    "STAGE_SEPARATE_DURABILITY_AND_POSTCOMMIT_RESPONSE_PROJECTION_LOSS_NOT_ROLLBACK_REUSE_ORIGINAL_KEY",
+    "OPERATIONAL_CAUSES_PRESERVED_SANITIZED_503_VERIFIED_INVALID_OR_ABSENT_INPUT_TYPED_REJECTION",
+    "AFTER_COMMAND_PRECOMMIT_FAULTS_ROLL_BACK_AND_PRESERVE_ORIGINAL_DURABLE_WORK",
+    "NO_SCHEMA_LEDGER_RISK_TTL_GATE_DRIFT_NO_ARM_NO_PERMIT_NO_PASS_SNAPSHOT_GUARDS_RETAINED",
+    "UNCHANGED_LEGACY_SEND_AMBIGUITY_RECOVERY_AND_NO_NEW_ECONOMIC_DEPENDENCY"
+  ],
+  "independent_validation": {
+    "toolchain_environment": "PATH=/tmp/rbh-go-toolchain/bin:$PATH GOCACHE=/tmp/rbh-go-build-cache GOMODCACHE=/tmp/rbh-go-mod-cache GOPROXY=off",
+    "original_reviewer_overlay": {
+      "command": "go test -overlay=/tmp/rbh-c3c-independent-review.AC8m21/overlay.json ./internal/tradeapi -run '^TestIndependentC3C' -count=1 -timeout=2m -v",
+      "status": "PASS",
+      "tradeapi_seconds": 0.718,
+      "coverage": "PREVIOUS_CANCELLATION_FAILURE_MISSING_COMMAND_MISSING_AUDIT_OLDER_RELEASED_HISTORY_CORRUPTION",
+      "reproduction_is_permanent": "CANCELLATION_REGRESSION_ALSO_IN_COMMITTED_HARDENING_TESTS_OTHER_OVERLAY_PROBES_ARE_TEMPORARY"
+    },
+    "composition_and_atomic_negative_paths": {
+      "command": "go test ./internal/tradeapi ./internal/app ./internal/config -run '^(TestHTTPC3C|TestUserTradeAPIStartup|TestUserHTTPTradeHasNoEconomicDependencies|TestHTTPC3B3Atomic(DedupeConflictAndCorruptCompleteHistory|StatementFaultWindowsRollbackEveryHalf|DirectSQLHalfAndMutationBypassRejected|LifetimeBudgetEqualityPlusOneAndReleasedHistory|CommitWindowControlWriterCannotInterleave|CanceledCommitAndConnectionControls)|TestHTTPC3B3Parameters)' -count=1 -timeout=4m",
+      "status": "PASS",
+      "package_seconds": {"tradeapi": 10.373, "app": 0.213, "config": 0.017}
+    },
+    "hardening_race": {
+      "command": "go test -race ./internal/tradeapi -run '^TestHTTPC3CHardening' -count=1 -timeout=3m",
+      "status": "PASS",
+      "tradeapi_seconds": 18.614
+    },
+    "C2_C3_B_input_compatibility": {
+      "command": "go test ./internal/tradeapi -run '^(TestHTTPC2|TestHTTPC3B2|TestHTTPC3B1)' -count=1 -timeout=3m",
+      "status": "PASS",
+      "tradeapi_seconds": 5.551
+    },
+    "exposure_foundation": {
+      "command": "go test ./internal/tradeapi -run '^TestHTTPC3B3Foundation' -count=1 -timeout=2m",
+      "status": "PASS",
+      "tradeapi_seconds": 1.670
+    },
+    "focused_vet": {
+      "command": "go vet ./internal/tradeapi ./internal/app ./internal/config",
+      "status": "PASS"
+    },
+    "source_hashes": "PASS_SIX_HARDENING_HASHES",
+    "named_test_mappings": "PASS_FIVE_HARDENING_TESTS",
+    "diff_and_fixed_clean_HEAD": "PASS",
+    "manifest": "PASS_134_ENTRIES_AT_REVIEWED_HEAD",
+    "full_repository_tests": "NOT_RERUN_BY_REVIEWER_AUTHOR_RESULT_SEPARATE",
+    "full_repository_race": "NOT_RERUN_BY_REVIEWER_NOT_CLAIMED",
+    "build_staticcheck": "AUTHOR_VALIDATION_ONLY_NOT_INDEPENDENT_RERUN",
+    "full_OpenAPI_schema_validation": "NOT_PERFORMED_NOT_CLAIMED",
+    "GitHub_CI": "NOT_RUN_NO_REMOTE_ACTIVITY",
+    "real_chain_RPC": "NOT_USED"
+  },
+  "prohibited_paths": {
+    "production_broadcast": "NOT_CONNECTED",
+    "signer_SubmissionService_SendRawTransaction_nonce_artifact_creation_permits": "NO_DEPENDENCY_ADDED_IN_REVIEWED_GRAPH",
+    "economic_rows": "EMPTY_IN_CONTROLLED_NEW_HTTP_HARNESS_NOT_WHOLE_SERVICE_TELEMETRY",
+    "real_authorization_grant": "NOT_GRANTED_NO_ARM_GUARD_RETAINED",
+    "positive_fixture_authorization": "DISPOSABLE_LOCAL_SQLITE_DUMMY_FIXTURE_NO_REAL_KEYS_OR_SEND",
+    "mainnet_send": "NOT_USED",
+    "new_public_listener_or_economic_route": "NOT_ADDED"
+  },
+  "limitations": [
+    "VERIFIER_TO_ERROR_MAPPER_AND_LOCAL_WRITER_CHECKPOINT_FAULT_PROBES_NOT_TIMED_END_TO_END_HTTP_CANCELLATION",
+    "OPERATOR_CONFIG_EXPECTED_DEPLOYMENT_IDENTITY_NOT_MEASURED_BINARY_ATTESTATION",
+    "NO_RECOVERY_SERVICE_HEALTH_OR_LIVE_READINESS_PROOF",
+    "NO_WHOLE_SERVICE_ZERO_SIGNING_OR_PRODUCTION_TELEMETRY_CLAIM",
+    "EVENTS_REMAIN_MANUAL_ORDER_INTAKE_ONLY_NO_NEW_ADMISSION_RECOVERY_STREAM",
+    "NO_MANUAL_EXECUTION_SIGNING_SUBMISSION_ADAPTATION_APPROVAL"
+  ],
+  "preserved_state": {
+    "HTTP_C3_B": "PASS",
+    "HTTP_C3_C": "PASS",
+    "manual_HTTP_admission_default": false,
+    "manual_execution_signing_submission_adaptation": "NOT_STARTED",
+    "chain": "ROBINHOOD_4663",
+    "protocol": "PONS_V2_CURVE_NATIVE_QUOTE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "other_closed_gate_status_changes": 0,
+    "W4_D_W5_BSC_Flap_Base_Solana": "NOT_ENTERED"
+  },
+  "delivery": "LOCAL_ONLY_NO_GITHUB_FETCH_PUSH_PR_OR_MERGE",
+  "next_action": "SEPARATELY_SCOPE_MANUAL_EXECUTION_SIGNING_SUBMISSION_DESIGN_ONLY_NOT_AUTOMATIC_IMPLEMENTATION",
+  "not_authorized": [
+    "C3_AS_A_WHOLE_PASS",
+    "MANUAL_EXECUTION_SIGNING_SUBMISSION_IMPLEMENTATION",
+    "SIGNING_SENDING_NONCE_OR_PERMIT",
+    "REAL_AUTHORIZATION_GRANT",
+    "LIVE_OR_RELEASE_READINESS",
+    "REAL_CHAIN_RPC_MAINNET",
+    "CLOSED_GATE_SEMANTICS_CHANGE",
+    "REMOTE_PUSH_PR_OR_MERGE"
+  ]
+}
