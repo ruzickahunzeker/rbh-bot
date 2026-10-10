@@ -3,6 +3,7 @@ package tradeapi
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -62,6 +63,12 @@ func (a *ManualAdmittedInputReader) Load(ctx context.Context, id Identity, reque
 		return ManualAdmittedInput{}, err
 	}
 	if err = tx.Commit(); err != nil {
+		// Cancellation may let database/sql roll back before Commit, which
+		// reports ErrTxDone rather than the original context cause. Preserve
+		// both; unrelated commit/DB errors remain unchanged.
+		if errors.Is(err, sql.ErrTxDone) && ctx.Err() != nil {
+			err = errors.Join(ctx.Err(), err)
+		}
 		return ManualAdmittedInput{}, err
 	}
 	return v, nil

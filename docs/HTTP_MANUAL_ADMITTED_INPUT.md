@@ -78,8 +78,30 @@ verifies that the reader leaves it untouched; it is not a signing test.
 
 Actual author commands/results and source hashes are recorded separately in
 `rbh-validation-package/evidence/http-manual-admitted-input.json`. Independent
-M1 review has NOT been performed or authorized. The maximum implementation
-status is `M1_READY_FOR_REVIEW`, never PASS or closeout.
+M1 review was not performed at the original author checkpoint. The maximum
+implementation status is `M1_READY_FOR_REVIEW`, never author PASS or closeout.
+
+### Independent review and commit-cancellation hardening
+
+Independent review of `e0554187ecc5d664a7103f88063f3d526a18a692` concluded
+FAIL. After the final clock read, context cancellation can cause `database/sql`
+to auto-rollback before `Commit`, returning `sql.ErrTxDone` without retaining
+`context.Canceled`. Zero output, sanitized 503 and no durable writes still held;
+the defect was lost operational cause, not economic fail-open.
+
+Local `http-m1-commit-cancellation-hardening` changes only the new reader's
+Commit-error branch: if ErrTxDone and a context cause coexist, retain both with
+`errors.Join`. Other DB/Commit errors remain unchanged. The public regression
+uses a single-connection pool and competing SELECT as an auto-rollback barrier,
+with real cancellation and a real deadline. It asserts both causes, zero output,
+503, query-only operation, unchanged whole-table snapshot and usable fresh reads.
+Applying this regression to the old source through a temporary overlay fails
+for both causes. No production hooks or semantics beyond error identity change.
+
+Historical author evidence remains unchanged; additive
+`http-manual-admitted-input-cancellation-hardening.json` records repair evidence.
+Fresh independent review is required; this repair does not authorize execution,
+send, M2 or formal closeout.
 
 ## Later stages — not implemented
 
@@ -96,7 +118,7 @@ GitHub operation, live or release enablement is included.
 HTTP_C3_B = PASS
 HTTP_C3_C = PASS
 M1 = READY_FOR_REVIEW
-independent_review = NOT_PERFORMED
+independent_review = PENDING_FRESH_REVIEW
 production_broadcast = NOT_CONNECTED
 controlled_canary_authorization = NOT_GRANTED
 live = false

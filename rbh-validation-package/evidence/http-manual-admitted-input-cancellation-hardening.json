@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "slice": "HTTP_MANUAL_M1_COMMIT_CANCELLATION_HARDENING",
+  "branch": "http-m1-commit-cancellation-hardening",
+  "implementation_base": "e0554187ecc5d664a7103f88063f3d526a18a692",
+  "M1": "READY_FOR_REVIEW",
+  "fresh_independent_review": "PENDING",
+  "previous_review": {
+    "reviewed_head": "e0554187ecc5d664a7103f88063f3d526a18a692",
+    "conclusion": "FAIL",
+    "reviewer": "http_m1_independent_review",
+    "author_context_fork": "NONE_INITIAL_REVIEW",
+    "blocker": "PUBLIC_LOAD_COMMIT_AUTO_ROLLBACK_RACE_LOSES_CONTEXT_CAUSE",
+    "reproduction": "REAL_CONTEXT_CANCELLATION_SINGLE_CONNECTION_COMPETING_SELECT_BARRIER_ERR_TX_DONE_ERRORS_IS_CANCELED_FALSE_THREE_RACE_RUNS",
+    "economic_safety": "ZERO_OUTPUT_NO_DURABLE_WRITES_SANITIZED_503_STILL_HELD",
+    "independent_M1_ordinary_seconds": 4.936,
+    "independent_M1_race_seconds": 79.221,
+    "independent_reproduction_race_seconds": 5.267,
+    "independent_other_probes_race_seconds": 22.395,
+    "limitation": "REVIEWER_FOCUSED_TESTS_AND_TMP_OVERLAY_NOT_FULL_REPOSITORY_TEST_RACE_BUILD_OR_OFFLINE_MODEL"
+  },
+  "repair": {
+    "scope": "NEW_READER_COMMIT_ERROR_BRANCH_ONLY",
+    "behavior": "IF_ERR_TX_DONE_AND_CONTEXT_ERR_COEXIST_JOIN_BOTH_CAUSES_OTHER_ERRORS_UNCHANGED",
+    "immutable_parameters_budget_TTL_and_snapshot_semantics": "UNCHANGED",
+    "economic_and_transport_dependencies": "UNCHANGED_NONE_ADDED",
+    "historical_author_evidence": "PRESERVED_UNCHANGED_NEW_EVIDENCE_ONLY"
+  },
+  "test_mapping": {
+    "public_late_cancel_and_real_deadline_after_all_reads_auto_rollback_before_commit": "TestHTTPM1HardeningPublicLateCancellationPreservesCause",
+    "both_causes_zero_output_503_query_only_whole_database_unchanged_fresh_read_available": "TestHTTPM1HardeningPublicLateCancellationPreservesCause",
+    "unchanged_14_initial_M1_tests": "ALL_TestHTTPM1_TESTS_INCLUDED_IN_ORDINARY_AND_SINGLE_RUN_RACE"
+  },
+  "validation": {
+    "focused_ordinary": {
+      "command": "go test ./internal/tradeapi -run '^TestHTTPM1' -count=1 -timeout=4m",
+      "status": "PASS",
+      "tradeapi_seconds": 10.150
+    },
+    "hardening_three_run_race": {
+      "command": "go test -race ./internal/tradeapi -run '^TestHTTPM1Hardening' -count=3 -timeout=3m",
+      "status": "PASS",
+      "tradeapi_seconds": 55.679
+    },
+    "negative_control_old_source": {
+      "command": "go test -race -overlay=<temporary_old_source_overlay> ./internal/tradeapi -run '^TestHTTPM1Hardening' -count=1 -timeout=3m",
+      "source": "EXACT_E055418_READER_SOURCE_ONLY_OVERLAID_NEW_REGRESSION_UNCHANGED",
+      "status": "EXPECTED_FAIL_BOTH_CANCEL_AND_DEADLINE_ERR_TX_DONE_WITHOUT_CONTEXT_CAUSE",
+      "tradeapi_seconds": 11.063,
+      "independence": "AUTHOR_REGRESSION_NEGATIVE_CONTROL_NOT_REVIEWER_REPRODUCTION"
+    },
+    "all_M1_single_run_race": {
+      "command": "go test -race ./internal/tradeapi -run '^TestHTTPM1' -count=1 -timeout=8m",
+      "status": "PASS",
+      "tradeapi_seconds": 196.327,
+      "selection": "ALL_15_M1_TESTS_SINGLE_RUN_NOT_FULL_REPOSITORY_RACE"
+    },
+    "compatibility_race": {
+      "command": "go test -race ./internal/tradeapi ./internal/app ./internal/config -run '^(TestHTTPC3CHardeningVerifierCancellationRegression|TestHTTPC3CHardeningVerifiedRejectionsRemainTyped|TestHTTPC3CHistorySurvivesRealReopenRevokeExpiryAndDisabledComposition|TestHTTPC3B3AtomicLifetimeBudgetEqualityPlusOneAndReleasedHistory|TestUserTradeAPIStartup|TestUserHTTPTradeHasNoEconomicDependencies|TestHTTPC3CAdmissionConfigurationDefaultOffAndFailClosed)' -count=1 -timeout=4m",
+      "status": "PASS",
+      "package_seconds": {"tradeapi": 37.192, "app": 6.604, "config": 1.050},
+      "selection": "FOCUSED_NOT_FULL_REPOSITORY_RACE"
+    },
+    "full_ordinary": {
+      "command": "go test ./... -count=1 -timeout=15m",
+      "status": "PASS",
+      "package_seconds": {"trade": 149.900, "tradeapi": 117.063, "storage": 11.609, "app": 0.306},
+      "scope": "APPROVED_OFFLINE_CONTROLLED_UDS_LOOPBACK_FIXTURES_ONLY"
+    },
+    "build": "PASS",
+    "vet": "PASS",
+    "staticcheck": "PASS",
+    "gofmt_diff": "PASS",
+    "manifest": "PASS_137_ENTRIES_NEW_SOURCE_HASHES_MATCH",
+    "full_repository_race": "NOT_RUN_NOT_CLAIMED",
+    "offline_reference_model": "PASS_39_MODEL_TESTS_TEMP_OUTPUT_HISTORICAL_REPORT_UNCHANGED",
+    "curve_expected_offline": "PASS_5_FIXTURE_EVENTS",
+    "GitHub_CI": "NOT_RUN_NO_REMOTE_ACTIVITY"
+  },
+  "source_sha256": {
+    "internal/tradeapi/manual_admitted_input.go": "1bddf4eacc5af2bf7a0b0af6374d8040519a0214956711dd4ece8383d61c9218",
+    "internal/tradeapi/manual_admitted_input_cancellation_test.go": "6964688f227326ae2da7f4668ee261e3e8b4221fe9e750135a6c8853925862fd"
+  },
+  "boundaries": {
+    "new_schema_routes_config_startup": false,
+    "new_economic_or_RPC_dependencies": false,
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "prohibited_calls": "ZERO_BY_DISCONNECTED_READER_GRAPH_NOT_PRODUCTION_TELEMETRY",
+    "fault_scope": "REAL_PUBLIC_SQLITE_LOAD_COMMIT_WINDOW_NOT_END_TO_END_HTTP_OR_MAINNET",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "M2_M3_M4_M5_W4_D_W5_BSC_Flap_Base_Solana": "NOT_ENTERED"
+  }
+}

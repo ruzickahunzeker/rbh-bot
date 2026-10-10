@@ -89,14 +89,29 @@ M1 on `http-m1-admitted-execution-input-reader`, base
 admitted input reader. See `HTTP_MANUAL_ADMITTED_INPUT.md`. A candidate is NOT
 execution/sign/send permission; original parameters/expiry and consumed C3-B
 budget remain unchanged. Maximum status `M1_READY_FOR_REVIEW`; independent
-review NOT_PERFORMED, no self-PASS/closeout. Stage-specific reviewer authority
-is required before M1 independent review (earlier C3-C authority does not carry).
+review was NOT_PERFORMED at that checkpoint, no self-PASS/closeout. Subsequent
+user authority covers read-only M1 independent review only, not later stages.
 M2–M5 remain unimplemented and separately scoped. Local-only work: no GitHub,
 schema/API/startup wiring, real authorization, signer/send/RPC or live changes.
 Final author full ordinary, all 14 M1 tests in three consecutive race runs
 (220.719s), selected C3-B/C3-C compatibility race, build/vet/staticcheck and
 offline validation passed. Full-repository race was not run. Evidence package
 has 136 entries; historical evidence remains unchanged.
+
+M1 independent review of `e0554187ecc5d664a7103f88063f3d526a18a692` concluded
+FAIL: public Load's commit-window context cancellation could return ErrTxDone
+without the cancellation cause (zero output/503/no writes still held). Local
+`http-m1-commit-cancellation-hardening` preserves both causes in that branch
+and adds a deterministic public cancellation/deadline regression. Scope is
+M1 error handling/tests/evidence only; fresh M1 independent review must follow
+before any closeout. Original author evidence is retained, not overwritten.
+Final author hardening full ordinary (trade 149.900s / tradeapi 117.063s), all
+15 M1 tests single-run race (196.327s), new public cancellation/deadline three-run
+race (55.679s), selected compatibility race, build/vet/staticcheck and offline
+validation passed. Regression with the old reader source fails both causes,
+confirming the original defect. Package has 137 entries; no full-repository race
+or author PASS is claimed. Maximum status remains M1_READY_FOR_REVIEW pending
+fresh independent review.
 
 ## Work queue
 
