@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "slice": "HTTP_MANUAL_M1_ADMITTED_EXECUTION_INPUT_READER",
+  "branch": "http-m1-admitted-execution-input-reader",
+  "implementation_base": "708163355be0b05e247d9597ee38951dabe1ed86",
+  "M1": "READY_FOR_REVIEW",
+  "independent_review": "NOT_PERFORMED_STAGE_SPECIFIC_AUTHORITY_NOT_GRANTED",
+  "HTTP_C3_B": "PASS_UNCHANGED",
+  "HTTP_C3_C": "PASS_UNCHANGED",
+  "semantics": {
+    "result": "ADMITTED_INPUT_CANDIDATE_NOT_PERMISSION",
+    "permissions": "EXECUTION_AND_SEND_ALWAYS_FALSE",
+    "scope": "SERVER_CONSTRUCTOR_IDENTITY_AND_ORIGINAL_REQUEST_ID_NOT_CALLER_SECURITY_FIELDS",
+    "snapshot": "ONE_SQLITE_READ_TRANSACTION_NOT_MUTABLE_CONTROL_COMMIT_FENCE",
+    "future_writer": "MUST_RELOAD_AND_AUTHORITATIVELY_REVALIDATE_CONTROLS_TTL_AUTH_SCOPE_RESERVATION_AND_WALLET",
+    "initial_only": "OWN_RESERVATION_RESERVED_USAGE_RESERVED_NO_EXISTING_OPERATION_ATTEMPT_NO_BUSY_WALLET",
+    "budget": "VERIFY_ALREADY_CONSUMED_ALLOWANCE_NO_SECOND_CHARGE_FULL_CAP_EQUALITY_VALID",
+    "parameters": "EXACT_SAVED_BUY_FIXED_SELL_RESOLVED_PERCENTAGE_SELL_CALLDATA_QUOTE_MINIMUM_GAS_FEE_AND_ABSOLUTE_EXPIRY",
+    "runtime_identity": "DURABLE_SAVED_SOURCE_AND_ALLOWLIST_MATCH_NO_RPC_VERIFICATION_OR_SEND_PERMISSION_CLAIM",
+    "candidate_denial": "DOES_NOT_BLOCK_HISTORY_OR_GRANT_RECOVERY_HEALTH",
+    "writes": "NONE_INCLUDING_AUDIT_USAGE_METRICS_OR_REPAIR"
+  },
+  "test_mapping": {
+    "exact_three_trade_modes_zero_tip_saved_expiry_no_requote_no_writes": "TestHTTPM1ExactAdmittedParametersAndNoWrites",
+    "full_lifetime_budget_equality_no_duplicate_consumption": "TestHTTPM1FullBudgetEqualityDoesNotConsumeAgain",
+    "total_changes_zero_and_caller_transaction_owned": "TestHTTPM1SelectOnlyHelperKeepsCallerTransaction",
+    "existing_inert_attempt_not_initial_work": "TestHTTPM1ExistingAttemptIsNotInitialCandidate",
+    "invalid_constructor_context_and_closed_db": "TestHTTPM1InvalidCompositionAndClosedDatabase",
+    "principal_wallet_seven_scope_fields_detached_return": "TestHTTPM1ScopeAndCallerBindingAndDetachedResults",
+    "stop_disable_revoke_expiry_exhaustion_noninitial_reservation_usage_history_survives": "TestHTTPM1MutableControlsAndReservationDenyButHistorySurvives",
+    "expiry_minus_one_ns_equal_plus_one_ns_final_check_clock_reversal_stop_priority": "TestHTTPM1TTLBoundaryFinalClockAndStopPriority",
+    "missing_command_audit_contract_hash_aggregate_usage_quote_corruption_no_repair": "TestHTTPM1CorruptOrMissingAdmissionFailsWithoutRepair",
+    "missing_control_gate_allowlist_runtime_drift_malformed_noncanonical_missing_expiry": "TestHTTPM1MissingControlsAllowlistAndMalformedExpiry",
+    "authorization_expiry_boundary_independent_of_intent_expiry_final_recheck": "TestHTTPM1AuthorizationExpiryBoundaryAndFinalRecheck",
+    "every_select_cancel_deadline_closed_db_sql_fault_sanitized_503": "TestHTTPM1OperationalFaultsPreserve503EveryRead",
+    "actual_file_close_reopen_16_concurrent_reads_original_ttl_usage_parameters": "TestHTTPM1RestartAndConcurrentReadsRediscoverUnchanged",
+    "ast_no_economic_or_write_calls_no_arm_permit_pass_or_reset_guards_retained": "TestHTTPM1DisconnectedReaderAndSchemaGuards"
+  },
+  "validation": {
+    "final_focused_ordinary": {
+      "command": "go test ./internal/tradeapi -run '^TestHTTPM1' -count=1 -timeout=4m",
+      "status": "PASS",
+      "tradeapi_seconds": 16.175
+    },
+    "full_ordinary": {
+      "command": "go test ./... -count=1 -timeout=15m",
+      "status": "PASS",
+      "package_seconds": {"trade": 212.481, "tradeapi": 159.911, "storage": 17.000, "app": 0.397},
+      "scope": "OFFLINE_CONTROLLED_UDS_LOOPBACK_FIXTURES_ONLY",
+      "final_source_note": "RUN_STARTED_BEFORE_TEST_ONLY_NIL_CONTEXT_STATICCHECK_COMMENT_NO_FUNCTIONAL_CHANGE_FINAL_FOCUSED_ORDINARY_AND_LINT_RECHECKED"
+    },
+    "M1_three_run_race": {
+      "command": "go test -race ./internal/tradeapi -run '^TestHTTPM1' -count=3 -timeout=15m",
+      "status": "PASS",
+      "tradeapi_seconds": 220.719,
+      "selection": "ALL_14_NEW_M1_TESTS_THREE_CONSECUTIVE_RUNS_FINAL_SOURCE_NOT_FULL_REPOSITORY_RACE"
+    },
+    "C3_B_C3_C_compatibility_race": {
+      "command": "go test -race ./internal/tradeapi ./internal/app ./internal/config -run '^(TestHTTPC3C|TestUserTradeAPIStartup|TestUserHTTPTradeHasNoEconomicDependencies|TestHTTPC3B3Atomic(DedupeConflictAndCorruptCompleteHistory|LifetimeBudgetEqualityPlusOneAndReleasedHistory|DirectSQLHalfAndMutationBypassRejected|CommitWindowControlWriterCannotInterleave|CanceledCommitAndConnectionControls))' -count=1 -timeout=10m",
+      "status": "PASS",
+      "package_seconds": {"tradeapi": 282.198, "app": 10.769, "config": 1.117},
+      "selection": "FOCUSED_COMPATIBILITY_NOT_FULL_REPOSITORY_RACE"
+    },
+    "full_repository_race": "NOT_RUN_NOT_CLAIMED",
+    "build": "PASS",
+    "vet": "PASS",
+    "staticcheck": "PASS",
+    "gofmt_diff": "PASS",
+    "manifest": "PASS_136_ENTRIES_SOURCE_HASHES_AND_14_NAMED_TESTS_MATCH",
+    "offline_reference_model": "PASS_39_MODEL_TESTS_TEMP_OUTPUT_HISTORICAL_REPORT_UNCHANGED",
+    "curve_expected_offline": "PASS_5_FIXTURE_EVENTS",
+    "initial_rounds": "TWO_NEW_TEST_FIELD_NAME_COMPILE_ERRORS_FIXED_ONE_EXPECTED_NIL_CONTEXT_LINT_SUPPRESSION_COMMENT_ADDED_SANDBOX_FULL_TEST_DENIED_LOCAL_SOCKETS_RERUN_APPROVED_CONTROLLED_FIXTURES_FIRST_M1_THREE_RUN_RACE_6M_TIMEOUT_IN_SQLITE_FIXTURE_INITIALIZATION_NOT_COUNTED_AS_PASS_RERUN_WITH_15M_BUDGET",
+    "GitHub_CI": "NOT_RUN_NO_REMOTE_ACTIVITY"
+  },
+  "source_sha256": {
+    "internal/tradeapi/manual_admitted_input.go": "3c4b1026f73f6d5017226db64a4b671f131c21f64d6ead735c81951319d24daa",
+    "internal/tradeapi/manual_admitted_input_test.go": "7aaa697ff980176af125f312e2d1e641ca7230f02cdd2eca7a72a3b8a93926aa"
+  },
+  "boundaries": {
+    "chain": "ROBINHOOD_4663_PONS_V2_CURVE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "new_schema_routes_config_startup": false,
+    "economic_dependencies": "NO_SIGNER_SUBMISSION_BROADCAST_RPC_NONCE_ARTIFACT_CREATION_PERMIT_OR_GRANT_DEPENDENCY",
+    "prohibited_calls": "ZERO_BY_DISCONNECTED_READER_GRAPH_NOT_PRODUCTION_CALL_COUNT_TELEMETRY",
+    "economic_rows": "ZERO_IN_EXACT_PARAMETER_RESTART_AND_GUARD_HARNESS_EXISTING_ATTEMPT_DENIAL_FIXTURE_INTENTIONALLY_HAS_ONE_INERT_ROW_UNCHANGED",
+    "fault_scope": "SELECT_HELPER_EXISTING_ERROR_MAPPER_LOCAL_SQLITE_NOT_TIMED_END_TO_END_HTTP",
+    "fixture_guard_removal": "DISPOSABLE_TEST_ONLY_NO_REAL_AUTHORIZATION_NO_MIGRATION_CHANGE",
+    "historical_evidence": "PRESERVED_UNCHANGED_ADDITIVE_EVIDENCE_ONLY",
+    "M2_M3_M4_M5_W4_D_W5_BSC_Flap_Base_Solana": "NOT_ENTERED",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}

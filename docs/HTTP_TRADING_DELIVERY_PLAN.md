@@ -82,6 +82,22 @@ internal quote/simulation and security gates remain required.
 - production_broadcast NOT_CONNECTED; controlled authorization NOT_GRANTED;
   live=false; release_ready=false. Other closed gates are unchanged.
 
+### Current MANUAL adaptation checkpoint
+
+M1 on `http-m1-admitted-execution-input-reader`, base
+`708163355be0b05e247d9597ee38951dabe1ed86`, adds only a disconnected read-only
+admitted input reader. See `HTTP_MANUAL_ADMITTED_INPUT.md`. A candidate is NOT
+execution/sign/send permission; original parameters/expiry and consumed C3-B
+budget remain unchanged. Maximum status `M1_READY_FOR_REVIEW`; independent
+review NOT_PERFORMED, no self-PASS/closeout. Stage-specific reviewer authority
+is required before M1 independent review (earlier C3-C authority does not carry).
+M2–M5 remain unimplemented and separately scoped. Local-only work: no GitHub,
+schema/API/startup wiring, real authorization, signer/send/RPC or live changes.
+Final author full ordinary, all 14 M1 tests in three consecutive race runs
+(220.719s), selected C3-B/C3-C compatibility race, build/vet/staticcheck and
+offline validation passed. Full-repository race was not run. Evidence package
+has 136 entries; historical evidence remains unchanged.
+
 ## Work queue
 
 | Order | Batch | Complete when | Requires attention |
@@ -91,7 +107,7 @@ internal quote/simulation and security gates remain required.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | exact saved parameters integrate with existing core and multi-stage gates | Separate authority required; no real keys/chain sends implied |
+| 6 | MANUAL execution/signing/submission adaptation | M1 read-only admitted inputs, then separately scoped M2–M5 | M1 author-ready only; independent review authority needed, no real keys/chain sends implied |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |
