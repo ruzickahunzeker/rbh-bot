@@ -144,6 +144,22 @@ Seven selected M1/C3-B/C3-C compatibility race tests plus the separately
 selected public M1 cancellation/deadline regression passed. New evidence is
 additive; historical M1/C3 records remain unchanged.
 
+M2 independent review of `46270e8195eb76758bf978e36bb28d40b4835d06` concluded
+FAIL: direct SQL legacy reservation/lane writes could reference the bound step
+under another operation, and positive-only completeness missed the pollution.
+`http-m2-binding-integrity-hardening` starts from that exact head and adds only
+022 guards, the disconnected verifier's strict-view check, tests/docs/evidence.
+See `HTTP_MANUAL_BINDING_INTEGRITY_HARDENING.md`. Original 001–021 and historical
+author evidence remain unchanged. Maximum checkpoint M2_READY_FOR_REVIEW;
+fresh independent review NOT_PERFORMED, no self-PASS/closeout or M3–M5.
+No HTTP/startup/chain/sign/send/authorization/live or remote wiring changes.
+Author hardening full ordinary and all 23 M2 tests plus both storage upgrades
+in three serial race runs passed (tradeapi 477.145s / storage 9.674s), as did
+build/vet/staticcheck and offline model/Curve checks. Full-repository race is
+not rerun or claimed PASS; the original timeout limitation remains explicit.
+Eight selected M1/C3-B/C3-C compatibility race tests (56.424s) and W4-C SQLite
+reopen race (4.646s) also passed. Additive evidence/checksum package has 140 entries.
+
 ## Work queue
 
 | Order | Batch | Complete when | Requires attention |
@@ -153,7 +169,7 @@ additive; historical M1/C3 records remain unchanged.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1 independent PASS/closeout; M2 metadata-only author batch to READY_FOR_REVIEW, pending stage-specific independent review; no keys/chain sends |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1 independent PASS/closeout; M2 former independent FAIL, 022 reference hardening to READY_FOR_REVIEW pending fresh independent review; no keys/chain sends |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |

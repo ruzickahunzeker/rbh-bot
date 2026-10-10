@@ -115,7 +115,7 @@ registration. Empty artifact/attempt/submission/nonce/permit/PASS tables are
 controlled-harness evidence, not production-wide telemetry. No recovery-health
 or end-to-end live trading claim is made. Historical evidence is retained.
 
-## Review gate
+## Original author review checkpoint (historical)
 
 Author validation is recorded in
 `rbh-validation-package/evidence/http-manual-execution-binding.json`.
@@ -151,3 +151,18 @@ Not included: HTTP/config/startup wiring, signer/SubmissionService/RawBroadcaste
 SendRawTransaction, RPC/mainnet, real grants, new nonce/attempt/artifact,
 rebuild/resign/replacement/fee bump, extra financial reservation, M3–M5,
 W4-D/W5, BSC/Flap/Base/Solana or release/live enablement.
+
+## Current reference hardening
+
+Independent review of `46270e8195eb76758bf978e36bb28d40b4835d06` concluded
+FAIL: legacy operation IDs could bypass reservation/lane guards by referencing
+the bound step, and the original complete view did not detect extra references.
+The claims of complete legacy-adoption protection above describe the original
+intent; that review disproved them at 021. The original author evidence/status
+block is historical, not the current independent review result.
+
+See `HTTP_MANUAL_BINDING_INTEGRITY_HARDENING.md` for the additive 022 fix,
+strict integrity view, reproduced predecessor defects, actual reopen tests and
+unchanged no-permission semantics. Current maximum is M2_READY_FOR_REVIEW,
+with the former independent FAIL retained and fresh review NOT_PERFORMED.
+No M2 PASS/closeout or M3 follows from author hardening.

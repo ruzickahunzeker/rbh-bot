@@ -78,7 +78,7 @@ func verifyManualExecutionBinding(ctx context.Context, q queryRow, b manualExecu
 		return zero, rejectManualInput("EXECUTION_BINDING_TIME_INVALID")
 	}
 	var complete int
-	if err = q.QueryRowContext(ctx, `SELECT COUNT(*) FROM manual_execution_binding_complete WHERE operation_id=?`, b.Operation).Scan(&complete); err != nil || complete != 1 {
+	if err = q.QueryRowContext(ctx, `SELECT COUNT(*) FROM manual_execution_binding_integrity WHERE operation_id=?`, b.Operation).Scan(&complete); err != nil || complete != 1 {
 		return zero, manualVerificationError(err, "EXECUTION_BINDING_INCOMPLETE")
 	}
 	unit := manualrisk.Unit{ChainID: c.Input.ChainID, Asset: c.Input.Asset, Decimals: c.Input.Decimals, Kind: manualrisk.TradeInput}

@@ -48,7 +48,7 @@ func insertBinding(s *Store, b manualExecutionBinding) error {
 
 func assertBinding(t *testing.T, s *Store, r Record, want int) {
 	t.Helper()
-	for _, table := range []string{"manual_execution_bindings", "manual_execution_binding_complete"} {
+	for _, table := range []string{"manual_execution_bindings", "manual_execution_binding_complete", "manual_execution_binding_integrity"} {
 		if count(t, s.db, table) != want {
 			t.Fatal("binding incomplete", table, want)
 		}
@@ -738,7 +738,7 @@ func TestHTTPM2DuplicateAfterExpiryRevokeIsOnlyHistory(t *testing.T) {
 func TestHTTPM2CorruptBindingNoRepairAndOperationalFailures(t *testing.T) {
 	for _, change := range []string{
 		`DROP TRIGGER manual_execution_binding_no_update; UPDATE manual_execution_bindings SET contract_hash='corrupt'`,
-		`DROP TRIGGER manual_execution_lane_no_delete; DELETE FROM execution_wallet_lanes`,
+		`DROP TRIGGER manual_execution_lane_no_delete; DROP TRIGGER manual_binding_lane_reference_delete; DELETE FROM execution_wallet_lanes`,
 		`DROP TRIGGER manual_execution_alert_no_delete; DELETE FROM canary_alert_outbox WHERE id LIKE 'manual-execution-alert:%'`,
 	} {
 		t.Run(change, func(t *testing.T) {
