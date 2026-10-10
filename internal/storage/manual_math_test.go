@@ -280,6 +280,7 @@ func TestManualSchemaMathPureCallbacksAndInvalidArity(t *testing.T) {
 		"compare": func() error { _, err := manualSQLCompare(nil, nil); return err },
 		"sum":     func() error { _, err := manualSQLSum(nil, nil); return err },
 		"time":    func() error { _, err := manualSQLTimeCompare(nil, nil); return err },
+		"shift":   func() error { _, err := manualSQLTimeShift(nil, nil); return err },
 	} {
 		if err := call(); err == nil {
 			t.Fatal("invalid callback arity did not fail closed", name)
@@ -307,4 +308,29 @@ func TestManualSchemaMathPureCallbacksAndInvalidArity(t *testing.T) {
 		}
 		return true
 	})
+}
+
+func TestManualSchemaMathExactWindowShift(t *testing.T) {
+	d := manualMathDB(t, filepath.Join(t.TempDir(), "window.db"))
+	for _, stamp := range []string{"2026-10-10T12:00:00Z", "2026-10-10T12:00:00.000000001Z", "2026-10-10T12:00:00.999999999Z"} {
+		base, _ := time.Parse(time.RFC3339Nano, stamp)
+		for _, seconds := range []int64{-31536000, -3600, -1, 0, 1, 3600, 31536000} {
+			var got string
+			if err := d.db.QueryRow(`SELECT manual_time_shift_seconds(?,?)`, stamp, seconds).Scan(&got); err != nil || got != base.Add(time.Duration(seconds)*time.Second).Format(time.RFC3339Nano) {
+				t.Fatal("inexact window", stamp, seconds, got, err)
+			}
+		}
+	}
+	for _, seconds := range []any{nil, "1", 1.0, -31536001, 31536001} {
+		var got any
+		if err := d.db.QueryRow(`SELECT manual_time_shift_seconds('2026-10-10T12:00:00Z',?)`, seconds).Scan(&got); err == nil {
+			t.Fatal("invalid shift", seconds)
+		}
+	}
+	for _, pair := range [][2]any{{"bad", 0}, {"2026-10-10T12:00:00+00:00", 0}, {"1970-01-01T00:00:00Z", -1}, {"9998-12-31T23:59:59Z", 1}} {
+		var got any
+		if err := d.db.QueryRow(`SELECT manual_time_shift_seconds(?,?)`, pair[0], pair[1]).Scan(&got); err == nil {
+			t.Fatal("invalid time/bounds", pair)
+		}
+	}
 }

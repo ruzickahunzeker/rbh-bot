@@ -136,7 +136,7 @@ func loadManualPolicy(ctx context.Context, q queryRow, id string, c ManualExecut
 	return p, digest, nil
 }
 
-func loadManualAuthorization(ctx context.Context, q queryRow, scope manualAdmissionScope, c ManualExecutionContract, p manualrisk.Policy, policyHash, gateHash string, now time.Time) (manualAuthorizationInput, error) {
+func loadManualAuthorizationIdentity(ctx context.Context, q queryRow, scope manualAdmissionScope, c ManualExecutionContract, p manualrisk.Policy, policyHash, gateHash string, now time.Time) (manualAuthorizationInput, error) {
 	var a manualAuthorizationInput
 	var state, mode, wallet, environment, build, release, deployment, ref, authorized, updated string
 	var chain, policy uint64
@@ -170,13 +170,17 @@ func loadManualAuthorization(ctx context.Context, q queryRow, scope manualAdmiss
 	if _, err = p.Limit(unit); err != nil {
 		return a, rejectManualInput("AUTHORIZATION_UNIT_INVALID")
 	}
-	// B1 isolation permits only unused identities. Nonzero history cannot be
-	// guessed into units. B3 will verify operation binding + conservation inside
-	// its complete atomic admission path; this helper does not consume anything.
-	var used, rows uint64
-	var total string
-	err = q.QueryRowContext(ctx, `SELECT u.operation_count,u.total_input,(SELECT COUNT(*) FROM canary_authorization_operation_usage WHERE authorization_id=u.authorization_id) FROM canary_authorization_usage u WHERE u.authorization_id=?`, a.ID).Scan(&used, &total, &rows)
-	if err != nil || used != 0 || total != "0" || rows != 0 || (manualrisk.Budget{Unit: unit, MaxOperations: a.MaxOperations, MaxTotalInput: a.MaxTotalInput}).Check(used, manualrisk.Quantity{Unit: unit, Units: total}, manualrisk.Quantity{Unit: unit, Units: c.Input.Units}) != nil {
+	return a, nil
+}
+
+func loadManualAuthorization(ctx context.Context, q queryRow, scope manualAdmissionScope, c ManualExecutionContract, p manualrisk.Policy, policyHash, gateHash string, now time.Time) (manualAuthorizationInput, error) {
+	a, err := loadManualAuthorizationIdentity(ctx, q, scope, c, p, policyHash, gateHash, now)
+	if err != nil {
+		return a, err
+	}
+	unit := manualrisk.Unit{ChainID: c.Input.ChainID, Asset: c.Input.Asset, Decimals: c.Input.Decimals, Kind: manualrisk.TradeInput}
+	used, total, err := verifyManualAuthorizationUsage(ctx, q, a.ID, unit)
+	if err != nil || (manualrisk.Budget{Unit: unit, MaxOperations: a.MaxOperations, MaxTotalInput: a.MaxTotalInput}).Check(used, total, manualrisk.Quantity{Unit: unit, Units: c.Input.Units}) != nil {
 		return a, rejectManualInput("AUTHORIZATION_BUDGET_UNVERIFIABLE_OR_EXCEEDED")
 	}
 	return a, nil

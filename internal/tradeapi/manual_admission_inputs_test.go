@@ -21,6 +21,10 @@ import (
 // Removing ONLY the no-arm guard tests future loader validation without
 // enabling budget/permit/PASS-snapshot paths in migration 018.
 func manualInputsFixture(t *testing.T, side string) (*storage.Database, *Store, *API, Record, manualAdmissionScope, string) {
+	return manualInputsFixtureBudget(t, side, 10, "1000000000000000000")
+}
+
+func manualInputsFixtureBudget(t *testing.T, side string, maxOperations uint64, maxTotalInput string) (*storage.Database, *Store, *API, Record, manualAdmissionScope, string) {
 	t.Helper()
 	d, s, h, _, path := validationAPI(t)
 	req := buy()
@@ -59,7 +63,7 @@ func manualInputsFixture(t *testing.T, side string) (*storage.Database, *Store, 
 	}
 	scope := manualAdmissionScope{AuthorizationID: "b2-auth", AuthorizationEpoch: 1, ManualPolicyID: p.ID, Environment: "b2-local", BuildSHA: strings.Repeat("1", 40), ReleaseID: "fixture-release", DeploymentID: "fixture-deployment"}
 	if _, err = s.db.Exec(`INSERT INTO canary_runtime_authorizations(id,epoch,mode,environment,chain_id,policy_version,wallet_id,build_sha,release_id,deployment_id,gate_evidence_set_hash,authorization_ref,max_operations,max_total_input,state,authorized_at,expires_at,created_at,updated_at)
- VALUES(?,1,'CONTROLLED_CANARY',?,4663,1,?,?,?,?,?,'dummy-local-not-a-real-grant',10,'1000000000000000000','PENDING',?,?,?,?)`, scope.AuthorizationID, scope.Environment, h.identity.WalletID, scope.BuildSHA, scope.ReleaseID, scope.DeploymentID, gateHash, stamp, testNow.Add(time.Hour).Format(time.RFC3339Nano), stamp, stamp); err != nil {
+ VALUES(?,1,'CONTROLLED_CANARY',?,4663,1,?,?,?,?,?,'dummy-local-not-a-real-grant',?,?,'PENDING',?,?,?,?)`, scope.AuthorizationID, scope.Environment, h.identity.WalletID, scope.BuildSHA, scope.ReleaseID, scope.DeploymentID, gateHash, maxOperations, maxTotalInput, stamp, testNow.Add(time.Hour).Format(time.RFC3339Nano), stamp, stamp); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = s.db.Exec(`INSERT INTO canary_authorization_usage VALUES(?,0,'0',?)`, scope.AuthorizationID, stamp); err != nil {

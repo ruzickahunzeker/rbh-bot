@@ -26,6 +26,7 @@ func init() {
 		{"manual_u256_cmp", 2, manualSQLCompare},
 		{"manual_u256_sum_json", 1, manualSQLSum},
 		{"manual_time_cmp", 2, manualSQLTimeCompare},
+		{"manual_time_shift_seconds", 2, manualSQLTimeShift},
 	} {
 		sqlite.MustRegisterDeterministicScalarFunction(f.name, f.n, f.fn)
 	}
@@ -137,4 +138,22 @@ func manualSQLTimeCompare(_ *sqlite.FunctionContext, args []driver.Value) (drive
 		return nil, err
 	}
 	return int64(a.Compare(b)), nil
+}
+
+// Exact bounded window arithmetic, preserving nanoseconds. No wall clock or
+// SQLite floating-point/julianday conversion is involved.
+func manualSQLTimeShift(_ *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) {
+	if len(args) != 2 {
+		return nil, errManualSQLValue
+	}
+	t, err := manualSQLTime(args[0])
+	seconds, ok := args[1].(int64)
+	if err != nil || !ok || seconds < -31536000 || seconds > 31536000 {
+		return nil, errManualSQLValue
+	}
+	shifted := t.Add(time.Duration(seconds) * time.Second)
+	if shifted.Year() < 1970 || shifted.Year() > 9998 {
+		return nil, errManualSQLValue
+	}
+	return shifted.UTC().Format(time.RFC3339Nano), nil
 }

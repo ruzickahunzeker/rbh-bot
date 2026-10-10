@@ -31,6 +31,15 @@ internal quote/simulation and security gates remain required.
   three focused race runs, build/vet/staticcheck and validation. No independent
   review/self-PASS; budget/arming/permit isolation remains closed.
 - GitHub ignored by request: no fetch/push/PR/merge or remote-main claims.
+- Atomic B3 continuation on http-c3b-atomic-manual-admission adds 020's coupled
+  command/writer, nonzero allowance conservation, SQL lifecycle/half-write
+  protection and B4 fault/commit-window/10,000 mixed-request harness. See
+  HTTP_MANUAL_ATOMIC_ADMISSION.md for current validation/review state. This is
+  disconnected local admission, not C3-C HTTP/execution/send wiring. Earlier
+  prerequisite checkpoints above remain historical, not current ready claims.
+  Final author ordinary/full race/build/vet/staticcheck/validation passed;
+  HTTP_C3_B READY_FOR_REVIEW, independent review NOT_PERFORMED. Full race
+  trade 913.103s / tradeapi 998.718s. No self-PASS or C3-C entry.
 - production_broadcast NOT_CONNECTED; controlled authorization NOT_GRANTED;
   live=false; release_ready=false. Other closed gates are unchanged.
 
@@ -40,7 +49,7 @@ internal quote/simulation and security gates remain required.
 |---|---|---|---|
 | 1 | C3-A independent review + local closeout | independent evidence/checksum and docs commit, clean tree | Complete |
 | 2 | C3-B compatibility/design inventory | units, data ownership, atomicity, legacy impact and test matrix documented | User scope acceptance recorded; independent review remains required |
-| 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Authorized; B1/B2 and B3 accounting prerequisite local author checkpoints; full B3/B4 next per work order |
+| 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Local author acceptance COMPLETE; C3-B READY_FOR_REVIEW, independent review pending |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Reviewer authorization required if not already granted for that stage |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Requires its own scoped implementation/review |
 | 6 | MANUAL execution/signing/submission adaptation | exact saved parameters integrate with existing core and multi-stage gates | Separate authority required; no real keys/chain sends implied |

@@ -1,5 +1,10 @@
 # HTTP-C3-B/B3-B4 — atomic ledger implementation work order
 
+Continuation: HTTP_MANUAL_ATOMIC_ADMISSION.md now documents additive 020's
+one-command coupled ledger and disconnected writer. The pending descriptions
+below are the original work order; final validation and review status belong
+to that continuation and its evidence, not earlier prerequisite reports.
+
 Scope is the previously accepted B1-B4 design, not additional economic/send
 authority. This file fixes the next implementation order after the local B2
 checkpoint. The subsequent accounting prerequisite is documented in

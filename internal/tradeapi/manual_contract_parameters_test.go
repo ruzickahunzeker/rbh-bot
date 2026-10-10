@@ -25,6 +25,11 @@ func TestHTTPC3B3ParametersHistoricalVerificationDoesNotWeakenPublicReader(t *te
 			if err != nil {
 				t.Fatal(err)
 			}
+			// Deliberately synthetic history, not a legitimate admission. 020
+			// now rejects these standalone transitions in the real schema.
+			if _, err = s.db.Exec(`DROP TRIGGER manual_command_operation_transition; DROP TRIGGER manual_command_step_transition`); err != nil {
+				t.Fatal(err)
+			}
 			if _, err = s.db.Exec(`UPDATE operations SET status=? WHERE id=?`, state, *r.OperationID); err != nil {
 				t.Fatal(err)
 			}
@@ -142,6 +147,12 @@ func TestHTTPC3B3ParametersManualLifecycleExcludedFromLegacyRecovery(t *testing.
 		t.Fatal(err)
 	}
 	for _, state := range []string{"manual_validation_succeeded", "manual_admission_succeeded"} {
+		if state == "manual_admission_succeeded" {
+			// Synthetic history for this immutable-reader prerequisite only.
+			if _, err = s.db.Exec(`DROP TRIGGER manual_command_operation_transition`); err != nil {
+				t.Fatal(err)
+			}
+		}
 		if _, err := s.db.Exec(`UPDATE operations SET status=? WHERE id=?`, state, *r.OperationID); err != nil {
 			t.Fatal(err)
 		}
