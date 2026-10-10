@@ -132,6 +132,7 @@ func TestHTTPM2HardeningLaneReferenceGuards(t *testing.T) {
 // 001..021 guards remain present; no production migration is rewritten.
 func bindingPredecessor021(t *testing.T, s *Store) {
 	t.Helper()
+	bindingPredecessor022(t, s)
 	rows, err := s.db.Query(`SELECT name FROM sqlite_master WHERE type='trigger' AND name LIKE 'manual_binding_%'`)
 	if err != nil {
 		t.Fatal(err)

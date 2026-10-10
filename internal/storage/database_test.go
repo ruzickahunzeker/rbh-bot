@@ -14,7 +14,7 @@ func TestOpenMigrateAndValidateEveryOwner(t *testing.T) {
 	wantMigrations := map[Owner]int{
 		FeedOwner:  4,
 		BotOwner:   3,
-		TradeOwner: 21, // 015..022 additive; 014 remains on its independent branch.
+		TradeOwner: 22, // 015..023 additive; 014 remains on its independent branch.
 	}
 	for _, owner := range []Owner{FeedOwner, BotOwner, TradeOwner} {
 		t.Run(string(owner), func(t *testing.T) {
@@ -145,6 +145,15 @@ func TestManualExecutionBindingUpgradeFrom020PreservesDurableRows(t *testing.T) 
 }
 
 func TestManualBindingReferenceUpgradeFrom021PreservesLegacy(t *testing.T) {
+	testManualBindingReferenceUpgradePreservesLegacy(t, 21)
+}
+
+func TestManualBindingReferenceUpgradeFrom022PreservesLegacy(t *testing.T) {
+	testManualBindingReferenceUpgradePreservesLegacy(t, 22)
+}
+
+func testManualBindingReferenceUpgradePreservesLegacy(t *testing.T, predecessor int64) {
+	t.Helper()
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "upgrade-021.db")
 	d, err := Open(ctx, TradeOwner, path)
@@ -170,7 +179,7 @@ func TestManualBindingReferenceUpgradeFrom021PreservesLegacy(t *testing.T) {
 		if e != nil {
 			t.Fatal(e)
 		}
-		if version > 21 {
+		if version > predecessor {
 			continue
 		}
 		raw, e := migrationFiles.ReadFile(name)
@@ -215,13 +224,16 @@ func TestManualBindingReferenceUpgradeFrom021PreservesLegacy(t *testing.T) {
  AND l.state='frozen' AND l.reserved_nonce='23' AND l.freeze_reason='ambiguous'`).Scan(&matched); err != nil || matched != 1 {
 		t.Fatal("022 changed existing legacy economic metadata", matched, err)
 	}
-	for _, name := range []string{"manual_b1_no_arm", "manual_b1_no_permit", "manual_b1_no_pass_snapshot", "manual_execution_binding_no_update", "manual_binding_reference_no_adoption", "manual_binding_reservation_reference_insert", "manual_binding_lane_reference_insert"} {
+	for _, name := range []string{"manual_b1_no_arm", "manual_b1_no_permit", "manual_b1_no_pass_snapshot", "manual_execution_binding_no_update", "manual_binding_reference_no_adoption", "manual_binding_reservation_reference_insert", "manual_binding_lane_reference_insert", "manual_binding_reservation_update_victim", "manual_binding_lane_update_victim", "manual_binding_reservation_insert_victim", "manual_binding_lane_insert_victim"} {
 		if err = d.db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='trigger' AND name=?`, name).Scan(&matched); err != nil || matched != 1 {
 			t.Fatal("closed/additive guard missing", name, err)
 		}
 	}
 	if err = d.db.QueryRow(`SELECT COUNT(*) FROM schema_migrations WHERE version=22`).Scan(&matched); err != nil || matched != 1 {
 		t.Fatal("022 journal/idempotency failed", matched, err)
+	}
+	if err = d.db.QueryRow(`SELECT COUNT(*) FROM schema_migrations WHERE version=23`).Scan(&matched); err != nil || matched != 1 {
+		t.Fatal("023 journal/idempotency failed", matched, err)
 	}
 	if err = d.db.QueryRow(`SELECT COUNT(*) FROM manual_execution_binding_integrity`).Scan(&matched); err != nil || matched != 0 {
 		t.Fatal("migration minted a binding", matched, err)

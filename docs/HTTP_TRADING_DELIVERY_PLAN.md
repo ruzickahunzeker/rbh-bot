@@ -160,6 +160,27 @@ not rerun or claimed PASS; the original timeout limitation remains explicit.
 Eight selected M1/C3-B/C3-C compatibility race tests (56.424s) and W4-C SQLite
 reopen race (4.646s) also passed. Additive evidence/checksum package has 140 entries.
 
+Fresh M2 independent review of that committed 022 fix at
+`b47239dd07dbf62c7ac4af7c0acd1c6737e0608e` concluded FAIL: UPDATE OR REPLACE
+could delete a different protected unique-key conflict victim, erase retained
+pollution and make the strict view accept history. Earlier NOT_PERFORMED text
+above is the historical author checkpoint, not current review status.
+`http-m2-update-replace-hardening` begins at that exact head and adds only
+migration 023, residual tests and docs/evidence/checksum. It covers financial
+operation/step/rowid and lane wallet/address/rowid victims, including explicit
+rowid INSERT OR REPLACE, independently of recursive trigger mode. Old migrations,
+production Go writer and historical evidence remain unchanged. See
+`HTTP_MANUAL_UPDATE_CONFLICT_HARDENING.md`, including its conservative rowid -1
+compatibility limitation. Highest checkpoint M2_READY_FOR_REVIEW; new residual
+fresh independent review NOT_PERFORMED, no author PASS/closeout, M3 or remote work.
+Final-source full ordinary and focused tests, seven residuals plus the 022
+upgrade in three race runs (tradeapi 235.317s / storage 6.044s), eight selected
+M1/C3 compatibility race tests (57.453s), W4-C reopen race (7.266s), lint/build
+and offline checks passed. All 30 M2 tests and three upgrades passed one race
+run before a test-only unused assignment cleanup; final residual reruns cover
+that cleanup. Full-repository race is not rerun or claimed PASS. New additive
+evidence records exact commands, hashes and limitations; manifest has 141 entries.
+
 ## Work queue
 
 | Order | Batch | Complete when | Requires attention |
@@ -169,7 +190,7 @@ reopen race (4.646s) also passed. Additive evidence/checksum package has 140 ent
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1 independent PASS/closeout; M2 former independent FAIL, 022 reference hardening to READY_FOR_REVIEW pending fresh independent review; no keys/chain sends |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1 independent PASS/closeout; M2 022 fresh review FAIL, 023 conflict-victim hardening to READY_FOR_REVIEW pending new fresh independent review; no keys/chain sends |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |

@@ -5,6 +5,17 @@ Branch: `http-m2-binding-integrity-hardening`.
 The independent review of that base concluded FAIL. This is a narrowly scoped
 fix, not M2 closeout, execution permission or M3 implementation.
 
+Historical checkpoint: fresh independent review of the committed 022 fix at
+`b47239dd07dbf62c7ac4af7c0acd1c6737e0608e` subsequently concluded **FAIL**.
+UPDATE guards protected OLD/NEW references but missed a different unique-key
+conflict victim implicitly deleted by UPDATE OR REPLACE with recursive triggers
+disabled. The reviewer reproduced reservation operation-key and lane wallet/
+address-key victim loss without removing guards. Ordinary tests passing did not
+close this residual. Statements below describe the earlier 022 implementation
+and author checkpoint, not a current assertion of complete REPLACE protection.
+See `HTTP_MANUAL_UPDATE_CONFLICT_HARDENING.md` for the additive 023 repair and
+new fresh-review-pending checkpoint. Historical JSON evidence is unchanged.
+
 ## Reviewed defects
 
 Migration 021 checked financial reservation and wallet lane writes primarily
@@ -87,7 +98,7 @@ Legacy test nonce values are inert metadata, not nonce allocation or signing.
 Reopen is not OS power-loss proof. Structural/harness zero economic paths are
 not production-wide telemetry. No mainnet, remote GitHub or credentials used.
 
-## Review checkpoint
+## Historical 022 author checkpoint (superseded by fresh review FAIL)
 
 Current author validation and limitations are recorded separately in
 `rbh-validation-package/evidence/http-manual-binding-integrity-hardening.json`.
