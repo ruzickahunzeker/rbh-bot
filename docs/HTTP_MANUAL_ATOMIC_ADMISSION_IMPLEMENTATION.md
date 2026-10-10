@@ -9,6 +9,13 @@ mode guards. It does NOT implement complete B3 admission or B4 conservation.
 This work order remains the incomplete atomic writer/lifecycle/dedupe plan.
 Independent review remains required before formal closeout.
 
+The subsequent checkpoint HTTP_MANUAL_ATOMIC_PREREQUISITES.md implements pure
+registered exact schema math and separates immutable parameter verification
+from C3-A's initial-only gates. No migration/command/writer/financial admission
+is added there. All budget/no-arm/permit/PASS-snapshot guards remain intact.
+The concrete tasks below remain pending except for this shared verifier and
+selection/implementation of the deterministic scalar arithmetic option.
+
 ## First: source and lifecycle/dedupe compatibility
 
 The C3-A/C2 readers currently accept validation lifecycle states only and reject
@@ -152,7 +159,10 @@ Continue locally without requesting confirmation for each green test.
    If schema-side arithmetic needs a pure checked function, register/test its
    deterministic fail-closed contract on every relevant storage connection;
    plain external SQLite lacking it must reject, not silently fall back. This
-   is a design option, not an already selected/registered function or hash proof.
+   was originally a design option. HTTP_MANUAL_ATOMIC_PREREQUISITES.md now
+   selects/registers exact uint256 add/compare/JSON string-sum and absolute
+   time compare. No migration references them yet, no hash proof is implied,
+   and no budget isolation guard is removed by that prerequisite checkpoint.
 5. Verify nonzero lifetime usage: every authoritative operation row has the
    same declared unit and complete admission binding; checked sum/count equals
    aggregate usage, including retained FROZEN/RELEASED history. Corruption

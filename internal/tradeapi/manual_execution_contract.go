@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ruzickahunzeker/rbh-bot/internal/chainquery"
 )
 
@@ -101,12 +102,62 @@ func loadManualExecutionContractTx(ctx context.Context, tx queryRow, id Identity
 	if ctx == nil || tx == nil || now == nil || !id.valid() || !validID(requestID) {
 		return ManualExecutionContract{}, ErrInvalid
 	}
-	r, wallet, err := validationSource(ctx, tx, id, requestID)
+	r, _, err := validationSource(ctx, tx, id, requestID)
 	if err != nil {
 		return ManualExecutionContract{}, err
 	}
 	if err = ttlRecord(r, now()); err != nil {
 		return ManualExecutionContract{}, err
+	}
+	// Public C3-A retains initial-only lifecycle and busy-wallet gates. The
+	// shared verifier below checks immutable parameters, not their permission.
+	var opStatus, stepStatus string
+	if err = tx.QueryRowContext(ctx, `SELECT o.status,s.status FROM manual_http_order_sources m JOIN operations o ON o.id=m.operation_id JOIN execution_steps s ON s.id=m.step_id WHERE m.id=?`, requestID).Scan(&opStatus, &stepStatus); err != nil {
+		return ManualExecutionContract{}, err
+	}
+	if opStatus != "manual_validation_succeeded" || stepStatus != "validation_succeeded" {
+		return ManualExecutionContract{}, ErrConflict
+	}
+	c, err := verifyManualContractParametersTx(ctx, tx, id, requestID)
+	if err != nil {
+		return ManualExecutionContract{}, err
+	}
+	current, currentHash, err := loadValidationPolicy(ctx, tx, c.PolicyVersion)
+	if err != nil {
+		return ManualExecutionContract{}, err
+	}
+	if currentHash != c.PolicyHash {
+		return ManualExecutionContract{}, ErrConflict
+	}
+	if err = validationWallet(ctx, tx, id, current, &c.Output.Resolution); err != nil {
+		return ManualExecutionContract{}, err
+	}
+	// Final TTL check does not turn a read snapshot into an economic gate.
+	if err = ttlRecord(r, now()); err != nil {
+		return ManualExecutionContract{}, err
+	}
+	return c, nil
+}
+
+// Immutable verification only: no TTL, lane, control, authorization or economic
+// lifecycle permission. Future durable duplicate verification must FIRST bind
+// a complete admission command/reservation/usage; calling this helper or seeing
+// an admitted status alone is never enough. No historical admission caller is
+// added; only the existing public initial-only reader uses it in production.
+func verifyManualContractParametersTx(ctx context.Context, tx queryRow, id Identity, requestID string) (ManualExecutionContract, error) {
+	if ctx == nil || tx == nil || !id.valid() || !validID(requestID) {
+		return ManualExecutionContract{}, ErrInvalid
+	}
+	r, _, err := scanManualRecord(tx.QueryRowContext(ctx, selectManualRecord+`WHERE m.id=? AND m.principal_id=? AND m.wallet_id=?`, requestID, id.PrincipalID, id.WalletID))
+	if err != nil {
+		return ManualExecutionContract{}, err
+	}
+	var wallet, requestJSON, opExpiry string
+	if err = tx.QueryRowContext(ctx, `SELECT m.wallet_address,o.request_json,o.expires_at FROM manual_http_order_sources m JOIN operations o ON o.id=m.operation_id WHERE m.id=?`, requestID).Scan(&wallet, &requestJSON, &opExpiry); err != nil {
+		return ManualExecutionContract{}, err
+	}
+	if common.HexToAddress(wallet) != common.HexToAddress(id.WalletAddress) || requestJSON != encode(r.Request) || opExpiry != r.ExpiresAt {
+		return ManualExecutionContract{}, ErrConflict
 	}
 	resolution, p, digest, found, err := readResolution(ctx, tx, *r.OperationID)
 	if err != nil {
@@ -122,26 +173,23 @@ func loadManualExecutionContractTx(ctx context.Context, tx queryRow, id Identity
 	if current != p || currentHash != digest {
 		return ManualExecutionContract{}, ErrConflict
 	}
-	if err = validationWallet(ctx, tx, id, p, &resolution); err != nil {
-		return ManualExecutionContract{}, err
-	}
 	var resultRaw, resultHash, apiRaw, step, source string
-	var opStatus, stepStatus, stepKind, stepExpiry, parameters, blockHash, capability string
+	var stepKind, stepExpiry, parameters, blockHash, capability string
 	var chain, opPolicy, stepPolicy, blockNumber, stepIndex uint64
 	var contractDeadline, sendAuthorized bool
 	err = tx.QueryRowContext(ctx, `SELECT v.result_json,v.result_hash,m.api_policy_json,m.step_id,m.source,
- o.status,s.status,s.kind,s.expires_at,s.parameters_json,s.quote_block_hash,o.deadline_capability,
+	 s.kind,s.expires_at,s.parameters_json,s.quote_block_hash,o.deadline_capability,
  o.chain_id,o.policy_version,s.policy_version,s.quote_block_number,s.step_index,m.contract_deadline,v.send_authorized
  FROM manual_http_order_sources m JOIN manual_trade_validations v ON v.operation_id=m.operation_id
  JOIN operations o ON o.id=m.operation_id AND o.wallet_id=m.wallet_id
  JOIN execution_steps s ON s.id=m.step_id AND s.operation_id=o.id AND s.wallet_id=m.wallet_id
  WHERE m.id=?`, requestID).Scan(&resultRaw, &resultHash, &apiRaw, &step, &source,
-		&opStatus, &stepStatus, &stepKind, &stepExpiry, &parameters, &blockHash, &capability,
+		&stepKind, &stepExpiry, &parameters, &blockHash, &capability,
 		&chain, &opPolicy, &stepPolicy, &blockNumber, &stepIndex, &contractDeadline, &sendAuthorized)
 	if err != nil {
 		return ManualExecutionContract{}, err
 	}
-	if source != "MANUAL" || chain != 4663 || step != "manual_step_"+requestID || stepIndex != 0 || stepKind != "manual_trade_validation" || opStatus != "manual_validation_succeeded" || stepStatus != "validation_succeeded" || opPolicy != p.Version || stepPolicy != p.Version || stepExpiry != r.ExpiresAt || capability != "APPLICATION_TTL_ONLY" || contractDeadline || sendAuthorized || blockNumber != resolution.Token.Block.Number || blockHash != resolution.Token.Block.Hash || parameters != resultRaw {
+	if source != "MANUAL" || chain != 4663 || step != "manual_step_"+requestID || stepIndex != 0 || stepKind != "manual_trade_validation" || opPolicy != p.Version || stepPolicy != p.Version || stepExpiry != r.ExpiresAt || capability != "APPLICATION_TTL_ONLY" || contractDeadline || sendAuthorized || blockNumber != resolution.Token.Block.Number || blockHash != resolution.Token.Block.Hash || parameters != resultRaw {
 		return ManualExecutionContract{}, ErrConflict
 	}
 	var api Policy
@@ -171,12 +219,7 @@ func loadManualExecutionContractTx(ctx context.Context, tx queryRow, id Identity
 			return ManualExecutionContract{}, ErrPolicy
 		}
 	}
-	c := manualContract(r, id, wallet, step, p, digest, resultHash, out)
-	// Final TTL check does not turn a read snapshot into an economic gate.
-	if err = ttlRecord(r, now()); err != nil {
-		return ManualExecutionContract{}, err
-	}
-	return c, nil
+	return manualContract(r, id, wallet, step, p, digest, resultHash, out), nil
 }
 
 func manualContract(r Record, id Identity, wallet, step string, p validationPolicy, policyHash, resultHash string, out chainquery.ValidationOutput) ManualExecutionContract {
