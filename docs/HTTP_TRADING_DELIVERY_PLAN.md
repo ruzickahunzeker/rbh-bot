@@ -120,8 +120,29 @@ records the former FAIL, cancellation/deadline closure, reviewer probes and
 actual independent validation. Historical implementation/hardening evidence
 remains unchanged. M1 PASS covers only the disconnected read-only admitted
 input reader, not execution/sign/send permission. Evidence package: 138 entries.
-Next authorized work is M2-A read-only scope freeze; M2-B is NOT_STARTED and
-not authorized by M1 review or this closeout. No remote/live change.
+At that closeout, the next step was M2-A read-only scope freeze; M1 review did
+not itself authorize M2-B. Subsequent user continuation authorized the frozen
+metadata-only M2-B slice, recorded below. No remote/live change.
+
+M2-B on `http-m2-durable-execution-binding`, exact base
+`20695c5de5f7beb99ef6346d4d21a061cf1d5b72`, implements additive migration 021
+and a disconnected atomic binding writer. See `HTTP_MANUAL_EXECUTION_BINDING.md`.
+It preserves the admission fact/validation step, adds one exact execution step
+and claims the existing wallet lane without nonce, artifact, second financial
+reservation or extra budget. Binding/step/lane/audit/alert are one atomic effect;
+same-writer final controls/auth/TTL and scope/ledger checks fail closed.
+Exact complete duplicates are history-only, never execution/send permission.
+The author batch stops at M2_READY_FOR_REVIEW; no independent M2 review or
+self-PASS/closeout is implied. Stage-specific reviewer permission is required.
+No HTTP/config/startup wiring, M3–M5, signing/send/RPC/mainnet or real grant.
+Author full ordinary, all 17 M2 tests plus upgrade in three-run race
+(tradeapi 747.703s / storage 14.156s), build/vet/staticcheck and offline validation
+passed. Initial focused race 15-minute timeout and full-repository race
+25-minute trade/tradeapi timeouts are retained in additive evidence, not relabeled
+PASS. Full race remains an explicit independent-review validation limitation.
+Seven selected M1/C3-B/C3-C compatibility race tests plus the separately
+selected public M1 cancellation/deadline regression passed. New evidence is
+additive; historical M1/C3 records remain unchanged.
 
 ## Work queue
 
@@ -132,7 +153,7 @@ not authorized by M1 review or this closeout. No remote/live change.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 read-only admitted inputs, then separately scoped M2–M5 | M1 independent PASS and local closeout complete; next M2-A design only, no real keys/chain sends implied |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1 independent PASS/closeout; M2 metadata-only author batch to READY_FOR_REVIEW, pending stage-specific independent review; no keys/chain sends |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |

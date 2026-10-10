@@ -172,9 +172,10 @@ func checkManualCandidateWallet(ctx context.Context, q queryRow, id Identity, c 
  EXISTS(SELECT 1 FROM execution_reservations WHERE wallet_id=w.id AND status IN ('reserved','signed','frozen')) OR
  EXISTS(SELECT 1 FROM canary_risk_reservations WHERE wallet_id=w.id AND operation_id!=? AND state IN ('reserved','frozen')) OR
  EXISTS(SELECT 1 FROM transaction_attempts t JOIN execution_steps s ON s.id=t.step_id WHERE s.operation_id=?) OR
- EXISTS(SELECT 1 FROM execution_steps WHERE wallet_id=w.id AND status IN ('nonce_reserved','signing','signed','submitted','broadcast_unknown','reconciling','manual_resolution'))
+ EXISTS(SELECT 1 FROM manual_execution_bindings WHERE operation_id=?) OR
+ EXISTS(SELECT 1 FROM execution_steps WHERE wallet_id=w.id AND status IN ('manual_execution_bound','nonce_reserved','signing','signed','submitted','broadcast_unknown','reconciling','manual_resolution'))
  FROM dry_run_wallets w JOIN canary_wallet_allowlist a ON a.wallet_id=w.id AND a.chain_id=4663 AND a.policy_version=? AND a.enabled=1 AND lower(a.address)=lower(w.address)
- WHERE w.id=? AND w.chain_id=4663 AND w.enabled=1`, c.OperationID, c.OperationID, c.PolicyVersion, id.WalletID).Scan(&address, &blocked)
+ WHERE w.id=? AND w.chain_id=4663 AND w.enabled=1`, c.OperationID, c.OperationID, c.OperationID, c.PolicyVersion, id.WalletID).Scan(&address, &blocked)
 	if err != nil {
 		return manualVerificationError(err, "CANDIDATE_WALLET_UNAVAILABLE")
 	}
