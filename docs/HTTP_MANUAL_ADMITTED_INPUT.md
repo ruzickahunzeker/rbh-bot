@@ -100,8 +100,24 @@ for both causes. No production hooks or semantics beyond error identity change.
 
 Historical author evidence remains unchanged; additive
 `http-manual-admitted-input-cancellation-hardening.json` records repair evidence.
-Fresh independent review is required; this repair does not authorize execution,
-send, M2 or formal closeout.
+At the author checkpoint, fresh independent review was pending; that repair
+did not authorize execution, send, M2 or formal closeout.
+
+### Formal closeout — local only
+
+Fresh independent review of `8466c83960f651730c4d7a7c48d6d709ea1c037b`
+concluded PASS. The same independent reviewer rechecked the original blocker,
+real public cancel/deadline regression and old-source negative control. All 15
+M1 ordinary/race tests, selected compatibility race, original independent
+corruption/busy-wallet/snapshot probes and 137-entry manifest passed. This is
+not a claim of independent full-repository testing or production telemetry.
+
+`http-m1-admitted-input-closeout` formally records M1 PASS in docs plus additive
+`http-m1-joint-review.json`. Historical author evidence and the original FAIL
+remain unchanged. The closeout has no source/schema/config/API/startup change
+and no remote Git activity. M1 PASS covers the disconnected read-only reader
+only; downstream writers must independently revalidate authoritative controls.
+M2 remains NOT_STARTED and requires its own scope freeze/implementation review.
 
 ## Later stages — not implemented
 
@@ -117,8 +133,9 @@ GitHub operation, live or release enablement is included.
 ```ini
 HTTP_C3_B = PASS
 HTTP_C3_C = PASS
-M1 = READY_FOR_REVIEW
-independent_review = PENDING_FRESH_REVIEW
+M1 = PASS
+independent_review = PASS
+formal_closeout = COMPLETE_LOCAL_ONLY
 production_broadcast = NOT_CONNECTED
 controlled_canary_authorization = NOT_GRANTED
 live = false

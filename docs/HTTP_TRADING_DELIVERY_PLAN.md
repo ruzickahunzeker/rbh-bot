@@ -113,6 +113,16 @@ confirming the original defect. Package has 137 entries; no full-repository race
 or author PASS is claimed. Maximum status remains M1_READY_FOR_REVIEW pending
 fresh independent review.
 
+M1 fresh independent review PASS at
+`8466c83960f651730c4d7a7c48d6d709ea1c037b`. Formal closeout COMPLETE_LOCAL_ONLY
+on `http-m1-admitted-input-closeout`; additive `http-m1-joint-review.json`
+records the former FAIL, cancellation/deadline closure, reviewer probes and
+actual independent validation. Historical implementation/hardening evidence
+remains unchanged. M1 PASS covers only the disconnected read-only admitted
+input reader, not execution/sign/send permission. Evidence package: 138 entries.
+Next authorized work is M2-A read-only scope freeze; M2-B is NOT_STARTED and
+not authorized by M1 review or this closeout. No remote/live change.
+
 ## Work queue
 
 | Order | Batch | Complete when | Requires attention |
@@ -122,7 +132,7 @@ fresh independent review.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 read-only admitted inputs, then separately scoped M2–M5 | M1 author-ready only; independent review authority needed, no real keys/chain sends implied |
+| 6 | MANUAL execution/signing/submission adaptation | M1 read-only admitted inputs, then separately scoped M2–M5 | M1 independent PASS and local closeout complete; next M2-A design only, no real keys/chain sends implied |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |
