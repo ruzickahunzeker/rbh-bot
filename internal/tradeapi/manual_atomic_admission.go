@@ -57,7 +57,10 @@ func verifyManualCommandTx(ctx context.Context, q queryRow, cmd manualAdmissionC
 	}
 	id := Identity{PrincipalID: stored.PrincipalID, WalletID: stored.WalletID, WalletAddress: stored.WalletAddress}
 	c, err := verifyManualContractParametersTx(ctx, q, id, cmd.Request)
-	if err != nil || encode(c) != cmd.ContractRaw || c.BindingHash != cmd.ContractHash || c.OperationID != cmd.Operation || c.StepID != cmd.Step || cmd.Reservation != "manual-risk:"+cmd.Operation {
+	if err != nil {
+		return ManualExecutionContract{}, manualVerificationError(err, "ADMISSION_CONTRACT_INVALID")
+	}
+	if encode(c) != cmd.ContractRaw || c.BindingHash != cmd.ContractHash || c.OperationID != cmd.Operation || c.StepID != cmd.Step || cmd.Reservation != "manual-risk:"+cmd.Operation {
 		return ManualExecutionContract{}, rejectManualInput("ADMISSION_CONTRACT_INVALID")
 	}
 	stamp, err := canonicalManualTime(cmd.CheckedAt)
@@ -65,16 +68,22 @@ func verifyManualCommandTx(ctx context.Context, q queryRow, cmd manualAdmissionC
 		return ManualExecutionContract{}, rejectManualInput("ADMISSION_TIME_INVALID")
 	}
 	p, digest, err := loadManualPolicy(ctx, q, cmd.Scope.ManualPolicyID, c, stamp)
-	if err != nil || digest != cmd.PolicyHash || p.ID != cmd.Scope.ManualPolicyID {
+	if err != nil {
+		return ManualExecutionContract{}, manualVerificationError(err, "ADMISSION_POLICY_INVALID")
+	}
+	if digest != cmd.PolicyHash || p.ID != cmd.Scope.ManualPolicyID {
 		return ManualExecutionContract{}, rejectManualInput("ADMISSION_POLICY_INVALID")
 	}
 	gate, err := manualGateEvidenceHash(ctx, q, stamp)
-	if err != nil || gate != cmd.GateHash {
+	if err != nil {
+		return ManualExecutionContract{}, manualVerificationError(err, "ADMISSION_GATE_INVALID")
+	}
+	if gate != cmd.GateHash {
 		return ManualExecutionContract{}, rejectManualInput("ADMISSION_GATE_INVALID")
 	}
 	var complete int
 	if err = q.QueryRowContext(ctx, `SELECT COUNT(*) FROM manual_admission_complete WHERE operation_id=?`, cmd.Operation).Scan(&complete); err != nil || complete != 1 {
-		return ManualExecutionContract{}, rejectManualInput("ADMISSION_LEDGER_INCOMPLETE")
+		return ManualExecutionContract{}, manualVerificationError(err, "ADMISSION_LEDGER_INCOMPLETE")
 	}
 	// Historical verification does not require active authorization, but its
 	// immutable identity/unit/time/caps MUST remain the original declaration.
@@ -89,7 +98,7 @@ func verifyManualCommandTx(ctx context.Context, q queryRow, cmd manualAdmissionC
 		cmd.Scope.BuildSHA, cmd.Scope.ReleaseID, cmd.Scope.DeploymentID, cmd.GateHash, cmd.Scope.ManualPolicyID,
 		cmd.PolicyHash, c.Input.Asset, c.Input.Decimals, cmd.CheckedAt, cmd.CheckedAt, cmd.CheckedAt).Scan(&n)
 	if err != nil || n != 1 {
-		return ManualExecutionContract{}, rejectManualInput("ADMISSION_AUTHORIZATION_IDENTITY_INVALID")
+		return ManualExecutionContract{}, manualVerificationError(err, "ADMISSION_AUTHORIZATION_IDENTITY_INVALID")
 	}
 	return c, nil
 }
@@ -107,13 +116,13 @@ func verifyManualAuthorizationUsage(ctx context.Context, q queryRow, auth string
  FROM canary_authorization_usage WHERE authorization_id=?`, auth, auth, auth).Scan(&used, &total, &rows, &raw)
 	var operations []string
 	if err != nil || json.Unmarshal([]byte(raw), &operations) != nil || used != rows || rows != uint64(len(operations)) {
-		return 0, zero, rejectManualInput("AUTHORIZATION_USAGE_INCOMPLETE")
+		return 0, zero, manualVerificationError(err, "AUTHORIZATION_USAGE_INCOMPLETE")
 	}
 	sum := zero
 	for _, operation := range operations {
 		cmd, err := scanManualCommand(q.QueryRowContext(ctx, `SELECT `+manualCommandColumns+` FROM manual_admission_commands WHERE operation_id=? AND authorization_id=?`, operation, auth))
 		if err != nil {
-			return 0, zero, rejectManualInput("AUTHORIZATION_USAGE_INCOMPLETE")
+			return 0, zero, manualVerificationError(err, "AUTHORIZATION_USAGE_INCOMPLETE")
 		}
 		c, err := verifyManualCommandTx(ctx, q, cmd)
 		if err != nil {
@@ -122,7 +131,7 @@ func verifyManualAuthorizationUsage(ctx context.Context, q queryRow, auth string
 		var amount, state string
 		if err = q.QueryRowContext(ctx, `SELECT amount,state FROM canary_authorization_operation_usage WHERE authorization_id=? AND operation_id=?`, auth, operation).Scan(&amount, &state); err != nil || amount != c.Input.Units ||
 			(state != "RESERVED" && state != "CONSUMED" && state != "FROZEN" && state != "RELEASED") {
-			return 0, zero, rejectManualInput("AUTHORIZATION_USAGE_INVALID")
+			return 0, zero, manualVerificationError(err, "AUTHORIZATION_USAGE_INVALID")
 		}
 		sum, err = manualrisk.Add(sum, manualrisk.Quantity{Unit: manualrisk.Unit{ChainID: c.Input.ChainID, Asset: c.Input.Asset, Decimals: c.Input.Decimals, Kind: manualrisk.TradeInput}, Units: amount})
 		if err != nil {
@@ -136,7 +145,7 @@ func verifyManualAuthorizationUsage(ctx context.Context, q queryRow, auth string
 	var maxInput string
 	if err = q.QueryRowContext(ctx, `SELECT max_operations,max_total_input FROM canary_runtime_authorizations WHERE id=?`, auth).Scan(&maxOperations, &maxInput); err != nil || used > maxOperations ||
 		manualrisk.CheckCap(zero, sum, manualrisk.Quantity{Unit: unit, Units: maxInput}) != nil {
-		return 0, zero, rejectManualInput("AUTHORIZATION_USAGE_CAP")
+		return 0, zero, manualVerificationError(err, "AUTHORIZATION_USAGE_CAP")
 	}
 	return used, sum, nil
 }
@@ -150,12 +159,12 @@ func verifyManualWriterConnection(ctx context.Context, conn *sql.Conn) error {
 	}{{"foreign_keys", 1}, {"synchronous", 2}, {"busy_timeout", 5000}} {
 		var got int
 		if err := conn.QueryRowContext(ctx, "PRAGMA "+check.name).Scan(&got); err != nil || got != check.want {
-			return rejectManualInput("WRITER_CONNECTION_UNVERIFIABLE")
+			return manualVerificationError(err, "WRITER_CONNECTION_UNVERIFIABLE")
 		}
 	}
 	var journal string
 	if err := conn.QueryRowContext(ctx, "PRAGMA journal_mode").Scan(&journal); err != nil || !strings.EqualFold(journal, "wal") {
-		return rejectManualInput("WRITER_CONNECTION_UNVERIFIABLE")
+		return manualVerificationError(err, "WRITER_CONNECTION_UNVERIFIABLE")
 	}
 	return nil
 }
@@ -294,7 +303,10 @@ func (w *manualAdmissionWriter) admit(ctx context.Context, id Identity, request 
 		return zero, err
 	}
 	gate, err := manualGateEvidenceHash(ctx, conn, final)
-	if err != nil || gate != cmd.GateHash || last != control {
+	if err != nil {
+		return zero, err
+	}
+	if gate != cmd.GateHash || last != control {
 		return zero, rejectManualInput("FINAL_CONTROL_OR_GATE_DRIFT")
 	}
 	if _, err = loadManualAuthorizationIdentity(ctx, conn, scope, c, v.Policy, v.PolicyHash, gate, final); err != nil {

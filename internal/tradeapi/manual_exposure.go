@@ -33,15 +33,15 @@ type manualExposureRow struct {
 func verifyManualExposureRow(ctx context.Context, conn *sql.Conn, row manualExposureRow, now time.Time) (manualrisk.Quantity, manualrisk.Quantity, error) {
 	r, fingerprint, err := scanManualRecord(conn.QueryRowContext(ctx, selectManualRecord+`WHERE m.operation_id=?`, row.Operation))
 	if err != nil {
-		return manualrisk.Quantity{}, manualrisk.Quantity{}, rejectManualInput("EXPOSURE_SOURCE_INVALID")
+		return manualrisk.Quantity{}, manualrisk.Quantity{}, manualVerificationError(err, "EXPOSURE_SOURCE_INVALID")
 	}
 	resolution, originalPolicy, sourceHash, found, err := readResolution(ctx, conn, row.Operation)
 	if err != nil || !found {
-		return manualrisk.Quantity{}, manualrisk.Quantity{}, rejectManualInput("EXPOSURE_RESOLUTION_INVALID")
+		return manualrisk.Quantity{}, manualrisk.Quantity{}, manualVerificationError(err, "EXPOSURE_RESOLUTION_INVALID")
 	}
 	current, currentHash, err := loadValidationPolicy(ctx, conn, originalPolicy.Version)
 	if err != nil || current != originalPolicy || currentHash != sourceHash {
-		return manualrisk.Quantity{}, manualrisk.Quantity{}, rejectManualInput("EXPOSURE_ORIGINAL_POLICY_INVALID")
+		return manualrisk.Quantity{}, manualrisk.Quantity{}, manualVerificationError(err, "EXPOSURE_ORIGINAL_POLICY_INVALID")
 	}
 	var raw, digest, policyID, policyHash, asset, kind, expiry, stamp, parentInput, parentGas, parentToken, parentHash, quoteHash, savedFingerprint, savedResult string
 	var chain, version, quote uint64
@@ -57,11 +57,11 @@ func verifyManualExposureRow(ctx context.Context, conn *sql.Conn, row manualExpo
 	if err != nil || json.Unmarshal([]byte(raw), &out) != nil || encode(out) != raw || hash([]byte(raw)) != digest || out.Resolution != resolution ||
 		savedResult != digest || parentHash != digest || savedFingerprint != fingerprint || expiry != r.ExpiresAt || stamp != row.Created || version != originalPolicy.Version ||
 		parentInput != resolution.AmountIn || parentGas != out.GasBudget || parentToken != resolution.Token.Address || quote != resolution.Token.Block.Number || quoteHash != resolution.Token.Block.Hash {
-		return manualrisk.Quantity{}, manualrisk.Quantity{}, rejectManualInput("EXPOSURE_BINDING_INVALID")
+		return manualrisk.Quantity{}, manualrisk.Quantity{}, manualVerificationError(err, "EXPOSURE_BINDING_INVALID")
 	}
 	var wallet, apiRaw string
 	if err = conn.QueryRowContext(ctx, `SELECT wallet_id,api_policy_json FROM manual_http_order_sources WHERE operation_id=?`, row.Operation).Scan(&wallet, &apiRaw); err != nil || wallet != row.Wallet {
-		return manualrisk.Quantity{}, manualrisk.Quantity{}, rejectManualInput("EXPOSURE_WALLET_INVALID")
+		return manualrisk.Quantity{}, manualrisk.Quantity{}, manualVerificationError(err, "EXPOSURE_WALLET_INVALID")
 	}
 	var api Policy
 	if json.Unmarshal([]byte(apiRaw), &api) != nil {
@@ -80,7 +80,7 @@ func verifyManualExposureRow(ctx context.Context, conn *sql.Conn, row manualExpo
 		expected.Asset, expected.Decimals = resolution.Token.Address, resolution.Token.Decimals
 	}
 	if err != nil || gotHash != policyHash || unit != expected {
-		return manualrisk.Quantity{}, manualrisk.Quantity{}, rejectManualInput("EXPOSURE_UNIT_OR_POLICY_INVALID")
+		return manualrisk.Quantity{}, manualrisk.Quantity{}, manualVerificationError(err, "EXPOSURE_UNIT_OR_POLICY_INVALID")
 	}
 	if _, err = p.Limit(unit); err != nil {
 		return manualrisk.Quantity{}, manualrisk.Quantity{}, rejectManualInput("EXPOSURE_UNIT_OR_POLICY_INVALID")
@@ -127,7 +127,7 @@ func loadManualExposureTx(ctx context.Context, conn *sql.Conn, wallet string, p 
 	cutoff := now.Add(-time.Duration(p.WindowSeconds) * time.Second)
 	projection, err := conn.QueryContext(ctx, `SELECT w.window_start,p.window_seconds FROM canary_window_usage w LEFT JOIN canary_policies p ON p.version=w.policy_version`)
 	if err != nil {
-		return zero, rejectManualInput("EXPOSURE_UNAVAILABLE")
+		return zero, manualVerificationError(err, "EXPOSURE_UNAVAILABLE")
 	}
 	for projection.Next() {
 		var raw string
@@ -152,7 +152,7 @@ func loadManualExposureTx(ctx context.Context, conn *sql.Conn, wallet string, p 
 	}
 	rows, err := conn.QueryContext(ctx, `SELECT id,operation_id,wallet_id,state,created_at FROM canary_risk_reservations ORDER BY id`)
 	if err != nil {
-		return zero, rejectManualInput("EXPOSURE_UNAVAILABLE")
+		return zero, manualVerificationError(err, "EXPOSURE_UNAVAILABLE")
 	}
 	var relevant []manualExposureRow
 	for rows.Next() {
@@ -185,7 +185,7 @@ func loadManualExposureTx(ctx context.Context, conn *sql.Conn, wallet string, p 
 	for _, row := range relevant {
 		var typed int
 		if err = conn.QueryRowContext(ctx, `SELECT COUNT(*) FROM manual_reservation_units WHERE reservation_id=? AND operation_id=?`, row.ID, row.Operation).Scan(&typed); err != nil || typed != 1 {
-			return zero, rejectManualInput("UNTYPED_RESERVATION_HISTORY")
+			return zero, manualVerificationError(err, "UNTYPED_RESERVATION_HISTORY")
 		}
 		input, outlay, err := verifyManualExposureRow(ctx, conn, row, now)
 		if err != nil {

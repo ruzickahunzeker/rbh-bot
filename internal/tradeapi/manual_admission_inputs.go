@@ -81,7 +81,7 @@ func readManualControl(ctx context.Context, q queryRow, now time.Time) (manualCo
 	var stop int
 	err := q.QueryRowContext(ctx, `SELECT emergency_stopped,mode,policy_version,effective_at,updated_at FROM canary_control_state WHERE singleton=1 AND chain_id=4663`).Scan(&stop, &mode, &c.PolicyVersion, &c.EffectiveAt, &c.UpdatedAt)
 	if err != nil {
-		return c, rejectManualInput("CONTROL_UNAVAILABLE")
+		return c, manualVerificationError(err, "CONTROL_UNAVAILABLE")
 	}
 	if stop == 1 {
 		return c, rejectManualInput("EMERGENCY_STOPPED")
@@ -110,7 +110,7 @@ func manualGateEvidenceHash(ctx context.Context, q queryRow, now time.Time) (str
 	} {
 		v := identity{Gate: expected[0]}
 		if err := q.QueryRowContext(ctx, `SELECT status,evidence_hash,attested_at FROM canary_gate_attestations WHERE gate=?`, v.Gate).Scan(&v.Status, &v.EvidenceHash, &v.AttestedAt); err != nil || v.Status != "PASS" || v.EvidenceHash != expected[1] {
-			return "", rejectManualInput("GATE_ATTESTATION_INVALID")
+			return "", manualVerificationError(err, "GATE_ATTESTATION_INVALID")
 		}
 		stamp, err := canonicalManualTime(v.AttestedAt)
 		if err != nil || now.IsZero() || stamp.After(now) {
@@ -126,7 +126,7 @@ func loadManualPolicy(ctx context.Context, q queryRow, id string, c ManualExecut
 	var version uint64
 	err := q.QueryRowContext(ctx, `SELECT policy_json,policy_hash,source_policy_version,source_policy_hash,created_at FROM manual_risk_policies WHERE id=?`, id).Scan(&raw, &digest, &version, &sourceHash, &created)
 	if err != nil || version != c.PolicyVersion || sourceHash != c.PolicyHash {
-		return manualrisk.Policy{}, "", rejectManualInput("MANUAL_POLICY_SOURCE_INVALID")
+		return manualrisk.Policy{}, "", manualVerificationError(err, "MANUAL_POLICY_SOURCE_INVALID")
 	}
 	p, err := manualrisk.ParsePolicy(raw, digest, c.PolicyVersion, c.PolicyHash)
 	stamp, te := canonicalManualTime(created)
@@ -143,7 +143,7 @@ func loadManualAuthorizationIdentity(ctx context.Context, q queryRow, scope manu
 	err := q.QueryRowContext(ctx, `SELECT id,epoch,state,mode,chain_id,wallet_id,policy_version,environment,build_sha,release_id,deployment_id,gate_evidence_set_hash,authorization_ref,max_operations,max_total_input,authorized_at,expires_at,created_at,updated_at FROM canary_runtime_authorizations WHERE id=?`, scope.AuthorizationID).Scan(
 		&a.ID, &a.Epoch, &state, &mode, &chain, &wallet, &policy, &environment, &build, &release, &deployment, &a.GateEvidenceSetHash, &ref, &a.MaxOperations, &a.MaxTotalInput, &authorized, &a.ExpiresAt, &a.CreatedAt, &updated)
 	if err != nil {
-		return a, rejectManualInput("AUTHORIZATION_UNAVAILABLE")
+		return a, manualVerificationError(err, "AUTHORIZATION_UNAVAILABLE")
 	}
 	if state != "ARMED" {
 		return a, rejectManualInput("AUTHORIZATION_NOT_ARMED")
@@ -165,7 +165,7 @@ func loadManualAuthorizationIdentity(ctx context.Context, q queryRow, scope manu
 	unit := manualrisk.Unit{ChainID: declaredChain, Asset: asset, Decimals: decimals, Kind: kind}
 	input := manualrisk.Unit{ChainID: c.Input.ChainID, Asset: c.Input.Asset, Decimals: c.Input.Decimals, Kind: manualrisk.TradeInput}
 	if err != nil || declaredEpoch != a.Epoch || declaredPolicy != p.ID || declaredHash != policyHash || source != "MANUAL" || declarationStamp != a.CreatedAt || unit.Validate() != nil || unit != input {
-		return a, rejectManualInput("AUTHORIZATION_UNIT_INVALID")
+		return a, manualVerificationError(err, "AUTHORIZATION_UNIT_INVALID")
 	}
 	if _, err = p.Limit(unit); err != nil {
 		return a, rejectManualInput("AUTHORIZATION_UNIT_INVALID")
@@ -180,7 +180,10 @@ func loadManualAuthorization(ctx context.Context, q queryRow, scope manualAdmiss
 	}
 	unit := manualrisk.Unit{ChainID: c.Input.ChainID, Asset: c.Input.Asset, Decimals: c.Input.Decimals, Kind: manualrisk.TradeInput}
 	used, total, err := verifyManualAuthorizationUsage(ctx, q, a.ID, unit)
-	if err != nil || (manualrisk.Budget{Unit: unit, MaxOperations: a.MaxOperations, MaxTotalInput: a.MaxTotalInput}).Check(used, total, manualrisk.Quantity{Unit: unit, Units: c.Input.Units}) != nil {
+	if err != nil {
+		return a, err
+	}
+	if (manualrisk.Budget{Unit: unit, MaxOperations: a.MaxOperations, MaxTotalInput: a.MaxTotalInput}).Check(used, total, manualrisk.Quantity{Unit: unit, Units: c.Input.Units}) != nil {
 		return a, rejectManualInput("AUTHORIZATION_BUDGET_UNVERIFIABLE_OR_EXCEEDED")
 	}
 	return a, nil

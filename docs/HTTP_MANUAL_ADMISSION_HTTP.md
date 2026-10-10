@@ -3,7 +3,23 @@
 Implementation base: `e33c0bc32280c6599b818148913c6d55b4b71cfe` (local C3-B
 formal closeout). Branch: `http-c3c-default-off-admission`.
 Ceiling: HTTP_C3_C_READY_FOR_REVIEW, not independent PASS or all-C3 PASS.
-Independent review NOT_PERFORMED. Delivery remains local only; no GitHub.
+Original author checkpoint: independent review NOT_PERFORMED. Delivery remains
+local only; no GitHub.
+
+The paragraph above describes the original author checkpoint. Independent
+review of `e3b1c504ed4d9bc17468e6c03b17d74c60a581a5` subsequently concluded
+FAIL: late cancellation/DB failure in historical verification was incorrectly
+reported as HTTP 422 MANUAL_ADMISSION_REJECTED rather than sanitized HTTP 503
+API_UNAVAILABLE. No economic safety failure was identified. The hardening on
+`http-c3c-operational-error-hardening`, based on that exact head, preserves
+operational causes through canonical/policy/gate/usage/exposure verification.
+Verified absent or invalid input remains a typed rejection. This necessarily
+touches shared MANUAL verifier helpers, including the validation-policy gate
+read; it does not change C3-B schema, ledger, risk, TTL, gate or atomicity rules.
+Original author evidence and previous closed-gate records remain historical
+and unchanged; current hardening evidence is
+`http-manual-admission-error-hardening.json`. Fresh review is required before
+closeout; the author cannot change HTTP_C3_C to PASS.
 
 ## Frozen scope and unchanged user contract
 
@@ -204,3 +220,32 @@ after C2 versus C3-B final writer controls; history projection completeness and
 absence of new permission; partial prior durability and response-loss recovery;
 unchanged schema/legacy queues; exact test/evidence mappings and prohibited-path
 proof scope. Author test success does not preapprove any of these checks.
+
+## Operational-error hardening acceptance
+
+The new test-only query wrapper faults each actual historical command and
+authorization-usage read after loading a successfully committed fixture command.
+Cancellation, expired context deadline, a closed DB handle and SQL read failure
+must preserve the operational cause and map through the actual HTTP error writer
+to sanitized 503 API_UNAVAILABLE. Earlier reads at each later fault point have
+already succeeded. Admission/reservation/usage counts and totals remain intact;
+history afterwards retains the original contract and expiry. These are
+verifier-to-error-mapper integration tests, not end-to-end timed HTTP cancellation
+or mainnet availability evidence. Additional control/authorization/exposure
+checks and verified-rejection regression tests retain fail-closed behavior.
+
+Hardening remains READY_FOR_REVIEW, pending fresh independent review. No new
+route, production checkpoint, schema/migration, signer/submission/send/nonce,
+authorization grant, public listener or downstream execution scope is added.
+Production broadcast remains NOT_CONNECTED; authorization NOT_GRANTED;
+live=false; release_ready=false. The original acceptance commands above remain
+historical author results, not results for the hardening head.
+
+Final hardening author validation: full ordinary suite PASS (trade 122.126s,
+tradeapi 83.840s); C3-C/baseline negative-path focused race PASS (tradeapi
+249.065s), plus all five new hardening tests with three race runs PASS
+(129.352s). Build/vet/staticcheck/gofmt/diff, six source hashes, five named test
+mappings and 134-entry manifest checks PASS. Offline reference model 39 tests
+and Curve 5 fixture events PASS. Original reviewer overlay rerun by the author
+PASS (1.045s), including the former cancellation failure; this author rerun is
+not fresh independent approval. Full repository race was not run for this slice.

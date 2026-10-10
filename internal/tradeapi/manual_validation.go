@@ -116,7 +116,13 @@ func loadValidationPolicy(ctx context.Context, q queryRow, version uint64) (vali
 	// prerequisite, not a C07 decision or runtime authorization grant.
 	for gate, want := range map[string]string{"C04": "c1af9454a6a4433b488158c25224d13dfbf31178c71dae7468c80917743381fd", "C05": "1a793f13d9304a31ed405f9fe25f1713cf79b6f8d28bb3da8ad16a01dc24c40b", "C08": "8178e7b976dbea67be1de83cec529171e56d154cd2114f1bf290bebbd1fc77d8"} {
 		var state, evidence string
-		if err = q.QueryRowContext(ctx, `SELECT status,evidence_hash FROM canary_gate_attestations WHERE gate=?`, gate).Scan(&state, &evidence); err != nil || state != "PASS" || evidence != want {
+		if err = q.QueryRowContext(ctx, `SELECT status,evidence_hash FROM canary_gate_attestations WHERE gate=?`, gate).Scan(&state, &evidence); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return p, "", ErrPolicy
+			}
+			return p, "", err
+		}
+		if state != "PASS" || evidence != want {
 			return p, "", ErrPolicy
 		}
 	}
