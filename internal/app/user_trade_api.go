@@ -16,10 +16,13 @@ type routeRegistrar interface{ Handle(string, http.Handler) }
 // listener, execution dependency, readiness flag or authorization grant.
 func configureUserTradeAPI(server routeRegistrar, database *storage.Database, cfg config.Config) error {
 	if cfg.TradeAPIConfigFile == "" {
-		if cfg.TradeAPIManualIntake || cfg.TradeAPIValidateOrders {
+		if cfg.TradeAPIManualIntake || cfg.TradeAPIValidateOrders || cfg.TradeAPIManualAdmission {
 			return tradeapi.ErrInvalid
 		}
 		return nil
+	}
+	if cfg.TradeAPIManualAdmission && (!cfg.TradeAPIManualIntake || !cfg.TradeAPIValidateOrders || cfg.LiveEnabled) {
+		return tradeapi.ErrInvalid
 	}
 	var queries tradeapi.ReadQueries
 	if cfg.TradeAPIReadQueries {
@@ -29,7 +32,7 @@ func configureUserTradeAPI(server routeRegistrar, database *storage.Database, cf
 		}
 		queries = client
 	}
-	options := tradeapi.Options{ManualIntake: cfg.TradeAPIManualIntake}
+	options := tradeapi.Options{ManualIntake: cfg.TradeAPIManualIntake, ManualAdmission: cfg.TradeAPIManualAdmission}
 	if cfg.TradeAPIValidateOrders {
 		if !cfg.TradeAPIManualIntake || cfg.TradeAPIValidationPolicy == 0 {
 			return tradeapi.ErrInvalid

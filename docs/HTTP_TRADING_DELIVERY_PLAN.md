@@ -48,6 +48,16 @@ internal quote/simulation and security gates remain required.
   Reviewer received forked author context but was separate from implementation.
   HTTP_C3_B PASS covers disconnected B1–B4 admission only, not C3 as a whole.
   No C3-C, signing/submission adaptation, operator grant or remote activity.
+- C3-C continuation on http-c3c-default-off-admission uses local C3-B closeout
+  e33c0bc32280c6599b818148913c6d55b4b71cfe. See
+  HTTP_MANUAL_ADMISSION_HTTP.md for the default-off UDS composition, server-owned
+  scope, historical projection and atomic admission boundary. No migration,
+  arming/permit/signing/send/recovery changes. C3-C independent review remains
+  NOT_PERFORMED; local author READY_FOR_REVIEW is not scoped PASS or all-C3 PASS.
+  Final author full ordinary tests, three focused race runs, broader C1/C2/C3
+  compatibility race (including 10,000), transport race, build/vet/staticcheck,
+  YAML/reference checks and offline validation passed. No full-repository race
+  or independent execution is claimed for C3-C. Evidence package: 133 entries.
 - production_broadcast NOT_CONNECTED; controlled authorization NOT_GRANTED;
   live=false; release_ready=false. Other closed gates are unchanged.
 
@@ -59,7 +69,7 @@ internal quote/simulation and security gates remain required.
 | 2 | C3-B compatibility/design inventory | units, data ownership, atomicity, legacy impact and test matrix documented | Complete; integrated independent review PASS |
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
-| 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Requires its own scoped implementation/review |
+| 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Author acceptance COMPLETE, READY_FOR_REVIEW; independent review required before closeout |
 | 6 | MANUAL execution/signing/submission adaptation | exact saved parameters integrate with existing core and multi-stage gates | Separate authority required; no real keys/chain sends implied |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |

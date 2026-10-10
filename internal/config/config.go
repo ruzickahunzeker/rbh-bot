@@ -42,6 +42,7 @@ type Config struct {
 	TradeAPIManualIntake     bool
 	TradeAPIValidateOrders   bool
 	TradeAPIValidationPolicy uint64
+	TradeAPIManualAdmission  bool
 }
 
 func Load(service Service) (Config, error) {
@@ -78,6 +79,13 @@ func Load(service Service) (Config, error) {
 	if service == TradeService && validateOrders && (!manualIntake || validationPolicy == 0 || os.Getenv("RBH_TRADE_API_CONFIG_FILE") == "") {
 		return Config{}, fmt.Errorf("validation requires scoped manual intake and explicit durable policy version")
 	}
+	manualAdmission, err := strconv.ParseBool(env("RBH_TRADE_API_MANUAL_ADMISSION", "false"))
+	if err != nil {
+		return Config{}, fmt.Errorf("invalid RBH_TRADE_API_MANUAL_ADMISSION")
+	}
+	if service == TradeService && manualAdmission && (!manualIntake || !validateOrders || validationPolicy == 0 || os.Getenv("RBH_TRADE_API_CONFIG_FILE") == "" || live) {
+		return Config{}, fmt.Errorf("manual admission requires scoped intake/validation configuration and live disabled")
+	}
 	if service == TradeService && canaryMode != CanaryProductionModeDisabled {
 		return Config{}, fmt.Errorf("RBH_CONTROLLED_CANARY_PRODUCTION_MODE must be %s in W4-A", CanaryProductionModeDisabled)
 	}
@@ -101,6 +109,7 @@ func Load(service Service) (Config, error) {
 		TradeAPIManualIntake:     manualIntake,
 		TradeAPIValidateOrders:   validateOrders,
 		TradeAPIValidationPolicy: validationPolicy,
+		TradeAPIManualAdmission:  manualAdmission,
 	}, nil
 }
 

@@ -36,6 +36,7 @@ func (i Identity) valid() bool {
 type Record struct {
 	validationMaxFee   string
 	Validation         *ManualValidation `json:"validation,omitempty"`
+	Admission          *ManualAdmission  `json:"admission,omitempty"`
 	RequestID          string            `json:"request_id"`
 	OperationID        *string           `json:"operation_id"` // C1 identity only, never authorization.
 	Status             string            `json:"status"`
@@ -148,6 +149,10 @@ func (s *Store) Get(ctx context.Context, identity Identity, id string, byKey boo
 		r, _, err = scanManualRecord(s.db.QueryRowContext(ctx, selectManualRecord+`WHERE m.principal_id=? AND m.wallet_id=? AND m.`+field+`=?`, identity.PrincipalID, identity.WalletID, id))
 	}
 	if err == nil && r.OperationID != nil {
+		r.Admission, err = s.manualAdmissionHistory(ctx, identity, r.RequestID)
+		if err != nil {
+			return Record{}, err
+		}
 		v := &ManualValidator{store: s}
 		resolution, p, digest, found, e := v.loadResolution(ctx, *r.OperationID)
 		if e != nil {

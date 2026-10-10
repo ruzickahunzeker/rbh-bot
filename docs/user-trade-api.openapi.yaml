@@ -1,20 +1,23 @@
 openapi: 3.1.0
 info:
-  title: EVM Bot user HTTP trading contract — HTTP-A/B/C1/C2
-  version: 0.4.0
+  title: EVM Bot user HTTP trading contract — HTTP-A/B/C1/C2/C3-C
+  version: 0.5.0
   description: >-
     Local Unix-domain HTTP contract, execution/submission disabled. Valid new
     POSTs create immutable rejection records by default, or explicit opt-in
     MANUAL validation-pending operation identities. Neither is a send queue.
     Optional C2 internal validation persists immutable block/hash-bound results,
-    not execution admission. No signing, nonce allocation or sending is reachable.
+    not execution admission. Optional default-off C3-C atomic admission reuses
+    existing risk/authorization ledgers; it cannot grant or arm authorization.
+    Admission observations never authorize execution/send. No signing, nonce
+    allocation or sending is reachable.
     No client-facing dry-run step. Live execution is not implemented here.
 security:
   - bearerAuth: []
 paths:
   /v1/trades:
     post:
-      summary: Record intent with optional internal validation; never execute or queue sending
+      summary: Record intent with optional validation and admission; never sign or queue sending
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -25,13 +28,13 @@ paths:
               $ref: '#/components/schemas/TradeRequest'
       responses:
         '202':
-          description: Durable MANUAL intent with optional validation overlay; not execution admission
+          description: Durable MANUAL intent with optional validation/admission observations; never signing/send permission
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RecordedOrder'
         '422':
-          description: TTL expired/unverifiable or validation/policy rejected; intake may already be durable
+          description: TTL expired/unverifiable or validation/admission rejected; intake/validation may already be durable
           headers:
             Location:
               description: Durable request path when intake already succeeded; reuse original idempotency key
@@ -47,7 +50,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '503':
-          description: Durable SUBMISSION_DISABLED record, or API_UNAVAILABLE error
+          description: Durable SUBMISSION_DISABLED record, or unavailable/stopped admission/API error; committed phases remain queryable
           content:
             application/json:
               schema:
@@ -72,12 +75,12 @@ paths:
           $ref: '#/components/responses/Error'
   /v1/trades/{request_id}:
     get:
-      summary: Query intake/rejection and optional historical validation, not transaction outcome
+      summary: Query intake/rejection and historical validation/admission, not transaction outcome
       parameters:
         - $ref: '#/components/parameters/RequestID'
       responses:
         '200':
-          description: Immutable caller-scoped intake with optional saved validation; no RPC or new expiry
+          description: Caller-scoped historical observations; no RPC, new expiry, execution/send permission or authorization requirement
           content:
             application/json:
               schema:
@@ -307,7 +310,7 @@ components:
         status: {const: RECORDED}
         reason_code:
           const: VALIDATION_NOT_CONNECTED
-          description: Historical C1 intake reason; consult optional validation overlay, not this reason, for saved validation
+          description: Historical C1 intake reason; consult validation/admission overlays, never interpret this field as transaction outcome
         request:
           $ref: '#/components/schemas/TradeRequest'
         api_policy_version: {type: integer}
@@ -321,6 +324,28 @@ components:
         duplicate: {type: boolean}
         validation:
           $ref: '#/components/schemas/ManualValidation'
+        admission:
+          $ref: '#/components/schemas/ManualAdmission'
+    ManualAdmission:
+      type: object
+      additionalProperties: false
+      required: [status, operation_id, reservation_id, reservation_state, contract_hash, expires_at, admitted_at, execution_authorized, send_authorized]
+      description: >-
+        Durable admission observation, NOT execution/send permission. First
+        committed POST reports ADMITTED_NOT_SIGNED_NOT_SUBMITTED; duplicates
+        and all GETs report HISTORICAL_ADMISSION_NOT_PERMISSION. Intake duplicate
+        does not imply budget was previously consumed. Stop/revoke/expiry do not
+        erase this observation; POST with enabled admission still checks controls.
+      properties:
+        status: {enum: [ADMITTED_NOT_SIGNED_NOT_SUBMITTED, HISTORICAL_ADMISSION_NOT_PERMISSION]}
+        operation_id: {type: string}
+        reservation_id: {type: string}
+        reservation_state: {enum: [reserved, frozen, committed, released]}
+        contract_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        expires_at: {type: string, format: date-time}
+        admitted_at: {type: string, format: date-time}
+        execution_authorized: {const: false}
+        send_authorized: {const: false}
     ManualValidation:
       type: object
       additionalProperties: false

@@ -20,23 +20,27 @@ import (
 // API owns one immutable caller/wallet scope. This initial slice is local UDS
 // only, not a public multi-tenant server. It cannot be configured to send.
 type API struct {
-	store        *Store
-	identity     Identity
-	credential   [32]byte
-	policy       Policy
-	now          func() time.Time
-	mux          *http.ServeMux
-	queries      ReadQueries
-	manualIntake bool
-	validator    *ManualValidator
+	store          *Store
+	identity       Identity
+	credential     [32]byte
+	policy         Policy
+	now            func() time.Time
+	mux            *http.ServeMux
+	queries        ReadQueries
+	manualIntake   bool
+	validator      *ManualValidator
+	admissionScope *manualAdmissionScope
 }
 
-// Options never enables execution. ManualIntake records validation-pending
-// operations only. It defaults off and cannot grant canary authorization.
+// Options never enables signing/execution or sending. Intake, internal
+// validation and atomic admission are separately opt-in. Admission configuration
+// is not a grant and cannot arm an authorization or create permits.
 type Options struct {
 	ManualIntake            bool
 	ValidationBackend       ManualValidationBackend
 	ValidationPolicyVersion uint64
+	ManualAdmission         bool
+	AdmissionScope          *ManualAdmissionScope
 }
 
 func New(store *Store, identity Identity, token string, policy Policy) (*API, error) {
@@ -48,6 +52,9 @@ func NewWithQueries(store *Store, identity Identity, token string, policy Policy
 }
 
 func NewWithOptions(store *Store, identity Identity, token string, policy Policy, queries ReadQueries, options Options) (*API, error) {
+	if options.ManualAdmission && (!options.ManualIntake || options.ValidationBackend == nil || options.AdmissionScope == nil || !options.AdmissionScope.internal().valid()) || !options.ManualAdmission && options.AdmissionScope != nil {
+		return nil, ErrInvalid
+	}
 	if (options.ValidationBackend != nil && (!options.ManualIntake || options.ValidationPolicyVersion == 0)) || (options.ValidationBackend == nil && options.ValidationPolicyVersion != 0) {
 		return nil, ErrInvalid
 	}
@@ -66,6 +73,10 @@ func NewWithOptions(store *Store, identity Identity, token string, policy Policy
 			return nil, err
 		}
 		h.validator = v
+	}
+	if options.ManualAdmission {
+		scope := options.AdmissionScope.internal() // detached deployment configuration
+		h.admissionScope = &scope
 	}
 	h.mux.HandleFunc("POST /v1/trades", h.submit)
 	h.mux.HandleFunc("GET /v1/trades/by-idempotency-key", h.byKey)
@@ -229,12 +240,24 @@ func (h *API) submit(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Location", "/v1/trades/"+record.RequestID)
 	if record.OperationID != nil && h.validator != nil {
-		validation, err := h.validator.Validate(r.Context(), h.identity, record.RequestID)
+		if err := h.validateAndAdmit(r.Context(), &record); err != nil {
+			writeError(w, r, err)
+			return
+		}
+	} else if record.OperationID != nil {
+		// Default-off composition can still return a committed admission's
+		// historical observation; it must not rerun validation or admit anew.
+		history, err := h.store.manualAdmissionHistory(r.Context(), h.identity, record.RequestID)
 		if err != nil {
 			writeError(w, r, err)
 			return
 		}
-		record.Validation = &validation
+		if history != nil {
+			if err = h.returnExistingAdmission(r.Context(), &record); err != nil {
+				writeError(w, r, err)
+				return
+			}
+		}
 	}
 	status := http.StatusServiceUnavailable
 	if record.OperationID != nil {
@@ -311,10 +334,16 @@ func (h *API) capabilities(w http.ResponseWriter, r *http.Request) {
 		stage, handling, events = "HTTP_C1_READY_FOR_REVIEW", "MANUAL_RECORD_ONLY", "MANUAL_ORDER_INTAKE_ONLY"
 	}
 	validationCapability := "NOT_CONNECTED"
+	admissionCapability := "NOT_CONNECTED"
 	if h.validator != nil {
 		stage = "HTTP_C2_READY_FOR_REVIEW"
 		handling = "MANUAL_RECORD_AND_INTERNAL_VALIDATION"
 		validationCapability = "INTERNAL_VALIDATION_NOT_EXECUTION_ADMISSION"
+	}
+	if h.admissionScope != nil {
+		stage = "HTTP_C3_C_READY_FOR_REVIEW"
+		handling = "MANUAL_RECORD_VALIDATE_AND_ATOMIC_ADMISSION"
+		admissionCapability = "DURABLE_ADMISSION_NOT_EXECUTION_OR_SEND_PERMISSION"
 	}
 	writeJSON(w, 200, map[string]any{
 		"chains": []string{"robinhood"}, "chain_id": 4663,
@@ -329,6 +358,7 @@ func (h *API) capabilities(w http.ResponseWriter, r *http.Request) {
 		"optional_user_limits_default": "UNSET",
 		"balance_token_fee_queries":    queries,
 		"internal_order_validation":    validationCapability,
+		"manual_order_admission":       admissionCapability,
 	})
 }
 
@@ -353,7 +383,13 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 
 func writeError(w http.ResponseWriter, r *http.Request, err error) {
 	status, code, message := 503, "API_UNAVAILABLE", "trade API unavailable"
+	var admissionError *manualInputError
 	switch {
+	case errors.As(err, &admissionError):
+		status, code, message = 422, "MANUAL_ADMISSION_REJECTED", "manual admission rejected; durable intake may already exist"
+		if admissionError.Code == "EMERGENCY_STOPPED" || admissionError.Code == "CONTROL_UNAVAILABLE" || admissionError.Code == "CONTROL_UNVERIFIABLE" || admissionError.Code == "CANARY_DISABLED" {
+			status, code, message = 503, "MANUAL_ADMISSION_UNAVAILABLE", "manual admission stopped or control unavailable"
+		}
 	case errors.Is(err, chainquery.ErrExpired):
 		status, code, message = 422, "APPLICATION_TTL_EXPIRED", "application TTL expired or unverifiable"
 	case errors.Is(err, chainquery.ErrValidation):

@@ -133,4 +133,41 @@ func TestUserTradeAPIStartupDefaultOffAndScopedRegistration(t *testing.T) {
 			t.Fatal("validation startup created economic authority", table, n, err)
 		}
 	}
+	admissionRoutes := &testRoutes{handlers: map[string]http.Handler{}}
+	cfg.TradeAPIManualAdmission = true
+	if err := configureUserTradeAPI(admissionRoutes, d, cfg); err == nil || len(admissionRoutes.handlers) != 0 {
+		t.Fatal("admission without server-owned scope registered")
+	}
+	// Server-owned expected identity is not authority. No grant/control/usage
+	// is created and construction cannot contact even the local RPC endpoint.
+	scopeJSON := `{"authorization_id":"not-granted","authorization_epoch":1,"manual_policy_id":"manual-local","environment":"local","build_sha":"` + strings.Repeat("1", 40) + `","release_id":"local-release","deployment_id":"local-deployment"}`
+	if err := os.WriteFile(path, []byte(`{"principal_id":"tg-bot","wallet_id":"wallet-01","wallet_address":"`+address+`","token":"`+credential+`","manual_admission":`+scopeJSON+`}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := configureUserTradeAPI(admissionRoutes, d, cfg); err != nil || len(admissionRoutes.handlers) != 1 {
+		t.Fatal("default-off admission composition required grant/RPC health", err)
+	}
+	w = httptest.NewRecorder()
+	admissionRoutes.handlers["/v1/"].ServeHTTP(w, r)
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"manual_order_admission":"DURABLE_ADMISSION_NOT_EXECUTION_OR_SEND_PERMISSION"`) || !strings.Contains(w.Body.String(), `"submission_enabled":false`) {
+		t.Fatal("admission startup overstates sending", w.Body.String())
+	}
+	post = httptest.NewRequest("POST", "/v1/trades", strings.NewReader(`{"chain":"robinhood","wallet_id":"wallet-01","token":"0x2000000000000000000000000000000000000002","side":"buy","amount":"0.01","slippage_percent":"3"}`))
+	post.Header.Set("Authorization", "Bearer "+credential)
+	post.Header.Set("Content-Type", "application/json")
+	post.Header.Set("Idempotency-Key", "no-auth-admission")
+	w = httptest.NewRecorder()
+	admissionRoutes.handlers["/v1/"].ServeHTTP(w, post)
+	if w.Code != 503 || !strings.Contains(w.Body.String(), "MANUAL_ADMISSION_UNAVAILABLE") {
+		t.Fatal("unavailable control allowed validation or admission", w.Body.String())
+	}
+	for _, table := range []string{"transaction_attempts", "transaction_submissions", "canary_runtime_authorizations", "canary_risk_reservations", "canary_send_permits", "canary_runtime_gate_snapshots", "manual_admission_commands"} {
+		if err := db.QueryRow(`SELECT COUNT(*) FROM ` + table).Scan(&n); err != nil || n != 0 {
+			t.Fatal("admission startup fabricated economic authority", table, n, err)
+		}
+	}
+	cfg.LiveEnabled = true
+	if err := configureUserTradeAPI(&testRoutes{handlers: map[string]http.Handler{}}, d, cfg); err == nil {
+		t.Fatal("admission wiring enabled live")
+	}
 }

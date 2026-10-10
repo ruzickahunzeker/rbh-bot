@@ -1,5 +1,6 @@
 // Package tradeapi is the user-facing HTTP contract. This slice is deliberately
-// record/rejection-only: no execution, signer, send RPC, permit or nonce dependency.
+// default-off intake/validation/admission: no signer, send RPC, permit or nonce
+// dependency. A durable reservation is not execution/send permission.
 package tradeapi
 
 import (

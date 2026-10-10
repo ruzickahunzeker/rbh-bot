@@ -41,15 +41,18 @@ func LoadFileWithOptions(database *storage.Database, path string, internalCreden
 	if err != nil || len(body) > 16384 {
 		return nil, configurationError
 	}
-	if validateConfigObject(json.NewDecoder(bytes.NewReader(body)), false) != nil {
+	shape := json.NewDecoder(bytes.NewReader(body))
+	shape.UseNumber()
+	if validateConfigObject(shape, false) != nil {
 		return nil, configurationError
 	}
 	var cfg struct {
-		PrincipalID   string  `json:"principal_id"`
-		WalletID      string  `json:"wallet_id"`
-		WalletAddress string  `json:"wallet_address"`
-		Token         string  `json:"token"`
-		Policy        *Policy `json:"api_policy,omitempty"`
+		PrincipalID   string                `json:"principal_id"`
+		WalletID      string                `json:"wallet_id"`
+		WalletAddress string                `json:"wallet_address"`
+		Token         string                `json:"token"`
+		Policy        *Policy               `json:"api_policy,omitempty"`
+		Admission     *ManualAdmissionScope `json:"manual_admission,omitempty"`
 	}
 	d := json.NewDecoder(bytes.NewReader(body))
 	d.DisallowUnknownFields()
@@ -62,6 +65,12 @@ func LoadFileWithOptions(database *storage.Database, path string, internalCreden
 	}
 	if cfg.Token == internalCredential {
 		return nil, configurationError
+	}
+	if cfg.Admission != nil {
+		if !options.ManualAdmission || options.AdmissionScope != nil {
+			return nil, configurationError
+		}
+		options.AdmissionScope = cfg.Admission
 	}
 	p := DefaultPolicy()
 	if cfg.Policy != nil {
@@ -105,6 +114,12 @@ func validateConfigObject(d *json.Decoder, policy bool) error {
 			}
 			continue
 		}
+		if !policy && key == "manual_admission" {
+			if err = validateAdmissionConfigObject(d); err != nil {
+				return err
+			}
+			continue
+		}
 		allowed := false
 		if policy {
 			switch key {
@@ -130,6 +145,45 @@ func validateConfigObject(d *json.Decoder, policy bool) error {
 	}
 	t, err = d.Token()
 	if err != nil || t != json.Delim('}') {
+		return ErrInvalid
+	}
+	return nil
+}
+
+func validateAdmissionConfigObject(d *json.Decoder) error {
+	t, err := d.Token()
+	if err != nil || t != json.Delim('{') {
+		return ErrInvalid
+	}
+	seen := map[string]bool{}
+	for d.More() {
+		t, err = d.Token()
+		key, ok := t.(string)
+		if err != nil || !ok || seen[key] {
+			return ErrInvalid
+		}
+		seen[key] = true
+		switch key {
+		case "authorization_id", "authorization_epoch", "manual_policy_id", "environment", "build_sha", "release_id", "deployment_id":
+		default:
+			return ErrInvalid
+		}
+		value, err := d.Token()
+		if err != nil || value == nil {
+			return ErrInvalid
+		}
+		if key == "authorization_epoch" {
+			if _, ok := value.(json.Number); !ok {
+				// The outer decoder must use UseNumber for exact signed-SQLite
+				// epoch bounds. A float cannot carry deployment authority.
+				return ErrInvalid
+			}
+		} else if s, ok := value.(string); !ok || s == "" {
+			return ErrInvalid
+		}
+	}
+	t, err = d.Token()
+	if err != nil || t != json.Delim('}') || len(seen) != 7 {
 		return ErrInvalid
 	}
 	return nil

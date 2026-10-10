@@ -2,6 +2,41 @@ package config
 
 import "testing"
 
+func TestHTTPC3CAdmissionConfigurationDefaultOffAndFailClosed(t *testing.T) {
+	for _, name := range []string{"RBH_TRADE_API_MANUAL_ADMISSION", "RBH_TRADE_API_MANUAL_INTAKE", "RBH_TRADE_API_VALIDATE_ORDERS", "RBH_TRADE_API_VALIDATION_POLICY_VERSION", "RBH_TRADE_API_CONFIG_FILE", "RBH_LIVE_ENABLED"} {
+		t.Setenv(name, "")
+	}
+	cfg, err := Load(TradeService)
+	if err != nil || cfg.TradeAPIManualAdmission || cfg.LiveEnabled {
+		t.Fatal("admission not default off", err)
+	}
+	t.Setenv("RBH_TRADE_API_MANUAL_ADMISSION", "bad")
+	if _, err := Load(TradeService); err == nil {
+		t.Fatal("invalid admission flag")
+	}
+	t.Setenv("RBH_TRADE_API_MANUAL_ADMISSION", "true")
+	for _, name := range []string{"RBH_TRADE_API_CONFIG_FILE", "RBH_TRADE_API_MANUAL_INTAKE", "RBH_TRADE_API_VALIDATE_ORDERS", "RBH_TRADE_API_VALIDATION_POLICY_VERSION"} {
+		if _, err := Load(TradeService); err == nil {
+			t.Fatal("missing prerequisite accepted", name)
+		}
+		value := "true"
+		if name == "RBH_TRADE_API_CONFIG_FILE" {
+			value = "/test-only/api.json"
+		} else if name == "RBH_TRADE_API_VALIDATION_POLICY_VERSION" {
+			value = "1"
+		}
+		t.Setenv(name, value)
+	}
+	cfg, err = Load(TradeService)
+	if err != nil || !cfg.TradeAPIManualAdmission || cfg.LiveEnabled {
+		t.Fatal("bounded config rejected", err)
+	}
+	t.Setenv("RBH_LIVE_ENABLED", "true")
+	if _, err := Load(TradeService); err == nil {
+		t.Fatal("admission config enabled live")
+	}
+}
+
 func TestHTTPC2ValidationConfigurationFailClosed(t *testing.T) {
 	t.Setenv("RBH_TRADE_API_VALIDATE_ORDERS", "")
 	t.Setenv("RBH_TRADE_API_VALIDATION_POLICY_VERSION", "")
