@@ -6,6 +6,12 @@ The independent alert/audit static subreview of that base concluded FAIL;
 the interrupted broader M2 review remained BLOCKED. That reviewer did not
 complete a full-M2 verdict or runtime reproduction. This batch is not closeout.
 
+Subsequent checkpoint: fresh review at committed `5010258ab7ad2ef889f376bb280809f2087d809b`
+was interrupted (BLOCKED_REVIEW_INCOMPLETE), but first reproduced binding-rowid
+replacement under FK ON/recursion OFF. See `HTTP_MANUAL_BINDING_ROWID_HARDENING.md`
+for the additive 025 fix. This document/JSON remains historical 024 evidence;
+neither the reviewer race PASS nor new author hardening is full M2 approval.
+
 ## Residual and minimal implementation
 
 Alerts have unique id, unique audit_id and implicit rowid. Migration 021 guarded

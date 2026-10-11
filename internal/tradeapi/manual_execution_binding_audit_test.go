@@ -22,6 +22,7 @@ var bindingAuditGuards = []string{
 // definition for the 023 predecessor. All landed 001..023 guards remain intact.
 func bindingPredecessor023(t *testing.T, s *Store) {
 	t.Helper()
+	bindingPredecessor024(t, s)
 	for _, name := range bindingAuditGuards {
 		if _, err := s.db.Exec(`DROP TRIGGER IF EXISTS ` + name); err != nil {
 			t.Fatal(err)
@@ -187,8 +188,9 @@ func TestHTTPM2AuditAlert023NegativeControlAndRetainedUpgrade(t *testing.T) {
 			if bindingAuditRows(t, s)+bindingVictimState(t, s) != before {
 				t.Fatal("upgrade changed retained metadata")
 			}
-			if count(t, s.db, "schema_migrations") != 23 {
-				t.Fatal("024 journal missing")
+			var journal int
+			if err := s.db.QueryRow(`SELECT COUNT(*) FROM schema_migrations WHERE version IN (24,25)`).Scan(&journal); err != nil || journal != 2 {
+				t.Fatal("024/025 journal missing", journal, err)
 			}
 			assertAuditDuplicate(t, s, h, r, scope, kind == "alert_self_rowid")
 		})

@@ -203,6 +203,23 @@ The additive manifest now has 142 entries. Full-repository race was not rerun
 and is not claimed PASS; prior timeouts and intermediate failures remain in
 evidence. These author checks do not advance M2 past READY_FOR_REVIEW.
 
+Fresh independent review at `5010258ab7ad2ef889f376bb280809f2087d809b` remained
+BLOCKED_REVIEW_INCOMPLETE after tooling interruption. It first reproduced loss
+of an immutable binding through implicit-rowid INSERT replacement with FK ON
+and recursion OFF; existing focused race PASS did not close that product defect.
+The authorized `http-m2-binding-rowid-hardening` slice adds 025 and permanent
+regressions only; prior migrations/production writer/history remain unchanged.
+See `HTTP_MANUAL_BINDING_ROWID_HARDENING.md`. Stop at M2_READY_FOR_REVIEW for a
+new independent review, not author PASS/closeout or M3.
+
+025 final-source full ordinary tests PASS; all 48 M2 tests and five upgrades
+focused race PASS (638.830s / 9.338s). Six new tests plus the 024 upgrade
+three-run race PASS before an unrelated test-journal assertion fix, then rerun
+within final M2 race. Selected eight M1/C3 and W4C reopen race PASS; build,
+vet, staticcheck, offline checks and 143-entry manifest PASS. Initial sandbox
+socket failure, old hardcoded-journal assertion and interrupted pre-final runs
+remain explicit in additive evidence. No full-repository race PASS is claimed.
+
 ## Work queue
 
 | Order | Batch | Complete when | Requires attention |
@@ -212,7 +229,7 @@ evidence. These author checks do not advance M2 past READY_FOR_REVIEW.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1 independent PASS/closeout; M2 full review BLOCKED and alert/audit static subreview FAIL, 024 hardening to READY_FOR_REVIEW pending fresh independent review; no keys/chain sends |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1 independent PASS/closeout; M2 full review incomplete with reproduced binding-rowid defect, 025 minimal hardening to READY_FOR_REVIEW pending fresh independent review; no keys/chain sends |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |

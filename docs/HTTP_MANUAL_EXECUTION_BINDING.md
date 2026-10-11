@@ -174,3 +174,9 @@ alert/audit subreview (FAIL, not a runtime reproduction or full verdict).
 Current authorized 024 hardening is described in
 `HTTP_MANUAL_AUDIT_ALERT_HARDENING.md`; all earlier author checkpoints above
 remain historical. Maximum M2_READY_FOR_REVIEW, fresh review still required.
+
+At `5010258ab7ad2ef889f376bb280809f2087d809b`, another interrupted full review
+reproduced a binding-table implicit-rowid INSERT replacement defect. See
+`HTTP_MANUAL_BINDING_ROWID_HARDENING.md` for minimal additive 025 protection,
+permanent regressions and unchanged no-permission scope. Review remains pending
+at the new author checkpoint; no lost-history repair or M3 is authorized.
