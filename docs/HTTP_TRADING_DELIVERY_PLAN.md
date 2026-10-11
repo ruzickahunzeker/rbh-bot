@@ -13,6 +13,13 @@ See `HTTP_MANUAL_M2_CLOSEOUT.md`. Earlier stage statements below retain their
 historical meaning. Next action is M3-A scope freeze, not signer/send wiring;
 production broadcast and authorization remain disconnected/not granted.
 
+M3-A scope freeze is recorded in `HTTP_MANUAL_SIGNING_SCOPE.md`, based on local
+M2 closeout `7e38c0cdb40bf043a3b9d66806de0ce56f433895`. M3 implementation
+NOT_STARTED. The first future batch is a disconnected SELECT-only bound input
+reader/pure unsigned envelope, without schema, signer, nonce, artifact or send
+effects. Later controlled nonce/signing batches require their own authority and
+review; no production lifecycle/live/authorization is implied by this plan.
+
 - HTTP C1/C2 implementation is local; C2 closeout records independent PASS.
 - C3-A independent review PASS at a3a5f47b176032f223a9c5db460f309fec06df35.
 - C3-A docs/evidence closeout is local commit
@@ -243,7 +250,7 @@ M2_READY_FOR_REVIEW pending fresh independent review, not PASS or M3.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2 independent PASS and local formal closeout; next M3-A scope freeze only, no keys/chain sends |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2 PASS/local closeout; M3-A scope frozen, implementation NOT_STARTED; next separately authorized M3-B1 read-only bound input, no signer/nonce/send |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |
