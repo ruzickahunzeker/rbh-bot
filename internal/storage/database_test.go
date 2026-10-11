@@ -14,7 +14,7 @@ func TestOpenMigrateAndValidateEveryOwner(t *testing.T) {
 	wantMigrations := map[Owner]int{
 		FeedOwner:  4,
 		BotOwner:   3,
-		TradeOwner: 24, // 015..025 additive; 014 remains on its independent branch.
+		TradeOwner: 25, // 015..026 additive; 014 remains on its independent branch.
 	}
 	for _, owner := range []Owner{FeedOwner, BotOwner, TradeOwner} {
 		t.Run(string(owner), func(t *testing.T) {
@@ -160,6 +160,10 @@ func TestManualBindingRowidUpgradeFrom024PreservesLegacy(t *testing.T) {
 	testManualBindingReferenceUpgradePreservesLegacy(t, 24)
 }
 
+func TestManualBindingRetainedLaneUpgradeFrom025PreservesLegacy(t *testing.T) {
+	testManualBindingReferenceUpgradePreservesLegacy(t, 25)
+}
+
 func testManualBindingReferenceUpgradePreservesLegacy(t *testing.T, predecessor int64) {
 	t.Helper()
 	ctx := context.Background()
@@ -257,5 +261,13 @@ func testManualBindingReferenceUpgradePreservesLegacy(t *testing.T, predecessor 
 	}
 	if err = d.db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='trigger' AND name='manual_binding_insert_conflict_victim'`).Scan(&matched); err != nil || matched != 1 {
 		t.Fatal("025 binding conflict guard missing", matched, err)
+	}
+	if err = d.db.QueryRow(`SELECT COUNT(*) FROM schema_migrations WHERE version=26`).Scan(&matched); err != nil || matched != 1 {
+		t.Fatal("026 journal/idempotency failed", matched, err)
+	}
+	for _, name := range []string{"manual_binding_lane_retained_delete", "manual_binding_lane_retained_update"} {
+		if err = d.db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='trigger' AND name=?`, name).Scan(&matched); err != nil || matched != 1 {
+			t.Fatal("026 retained-lane guard missing", name, matched, err)
+		}
 	}
 }

@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "slice": "HTTP_MANUAL_M2_RETAINED_LANE_HARDENING",
+  "branch": "http-m2-retained-lane-hardening",
+  "implementation_base": "c59e13e342dfe1fb2d9ad986ac817629aee7ef05",
+  "preceding_independent_review": {
+    "conclusion": "FAIL",
+    "complete_full_M2_verdict": true,
+    "blocker": "RETAINED_WALLET_ADDRESS_ONLY_LANE_DELETE_OR_RETARGET_CAN_HIDE_POLLUTION",
+    "finding_basis": "STATIC_NOT_RUNTIME_REPRODUCED_BY_REVIEWER",
+    "withdrawn_sequence": "ALIAS_INSERT_AFTER_COMPLETE_BINDING_IS_REJECTED_BY_021_NOT_USED",
+    "reviewer_focused_race": "PASS_TRADEAPI_458_744S_STORAGE_9_337S_NOT_APPROVAL"
+  },
+  "M1": "PASS_UNCHANGED",
+  "M2": "READY_FOR_REVIEW",
+  "fresh_post_026_independent_review": "PENDING",
+  "implementation": {
+    "migration": "ADDITIVE_026_TWO_OLD_ROW_GUARDS_ONLY_001_THROUGH_025_UNCHANGED",
+    "relevance": ["operation", "execution_step", "validation_step", "owned_step", "wallet", "normalized_address"],
+    "update_exception": "EXACT_EMPTY_IDLE_TO_RESERVED_BOUND_CLAIM_SAME_WALLET_NORMALIZED_ADDRESS_CHECKED_AT_NO_NONCE_FREEZE",
+    "guard_failure": "RAISE_ABORT_ENTIRE_STATEMENT_ROLLBACK_OFF_AND_ON",
+    "production_writer_views_accounting_HTTP_config_startup": "UNCHANGED",
+    "retained_history": "NO_CLEANUP_RECONSTRUCTION_RELEASE_EXPIRY_REFRESH_OR_BUDGET_RECHARGE",
+    "negative_control": "AUTHOR_REPRODUCED_ACTUAL_021_PRE_BINDING_ALIAS_UPGRADE_025_DELETION_RETARGET_HIDE_POLLUTION_COMMITTED_DUPLICATE_ACCEPTANCE_AND_REOPEN",
+    "negative_control_scope": "HISTORICAL_DUPLICATE_PERMISSION_FLAGS_FALSE_NOT_A_PROVEN_ECONOMIC_ACTION",
+    "already_hidden_025_history": "026_CANNOT_RECONSTRUCT_POLLUTION_ALREADY_REMOVED_BEFORE_UPGRADE",
+    "normal_compatibility": "EXACT_IDLE_UPSERT_AND_UNRELATED_LEGACY_UPDATE_DELETE_RETAINED"
+  },
+  "test_mapping": {
+    "021_pre_binding_case_alias_025_transactional_negative_control_OFF_ON_FK": "TestHTTPM2RetainedLane025NegativeControl",
+    "025_committed_delete_retarget_writer_duplicate_acceptance_reopen": "TestHTTPM2RetainedLane025CommittedRepairNegativeControl",
+    "026_denial_snapshot_reopen_invalid_zero_result_duplicate": "TestHTTPM2RetainedLaneMutationDenialAndReopen",
+    "twelve_competitors_two_handles_OFF_ON_no_usage_or_expiry_drift": "TestHTTPM2RetainedLaneTwoHandleDenial",
+    "multirow_UPDATE_DELETE_atomic_rollback": "TestHTTPM2RetainedLaneMixedStatementRollback",
+    "exact_idle_UPSERT_and_unrelated_legacy_compatibility": "TestHTTPM2RetainedLaneIdleClaimAndLegacyCompatibility",
+    "second_trigger_fault_migration_rollback_retry_idempotency": "TestHTTPM2RetainedLaneMigrationRollbackAndRetry",
+    "actual_embedded_025_upgrade_legacy_submitted_frozen_closed_guards": "TestManualBindingRetainedLaneUpgradeFrom025PreservesLegacy",
+    "disconnected_writer_and_closed_permission_guards": "TestHTTPM2DependencyGraphAndClosedGuards"
+  },
+  "validation": {
+    "author_only": true,
+    "initial_new_tests": "FAIL_COMPILE_TEST_FIELD_NAMES_THEN_FAIL_HELPER_ASSUMED_GLOBAL_EMPTY_RESERVATION_FIXED_TO_ALLOW_INERT_UNRELATED_LEGACY_HISTORY_NOT_RELABELLED_PASS",
+    "initial_all_M2": "FAIL_OLD_INTENTIONAL_CORRUPTION_FIXTURE_DID_NOT_REMOVE_NEW_026_DELETE_GUARD_TEST_ONLY_FIX",
+    "initial_full_ordinary": "INTERRUPTED_AFTER_IDENTIFYING_OLD_CORRUPTION_FIXTURE_FAILURE_NO_PASS_CLAIM",
+    "source_freeze": "NO_SCHEMA_GO_SOURCE_EDITS_AFTER_TEST_ONLY_CORRUPTION_FIXTURE_FIX_FINAL_VALIDATION",
+    "all_M2_ordinary_final": {
+      "command": "go test -p 1 ./internal/tradeapi ./internal/storage -run '^(TestHTTPM2|TestManualExecutionBindingUpgrade|TestManualBindingReferenceUpgrade|TestManualBindingAuditUpgrade|TestManualBindingRowidUpgrade|TestManualBindingRetainedLaneUpgrade|TestOpenMigrate)' -count=1 -timeout=5m",
+      "status": "PASS",
+      "M2_named_tests": 55,
+      "binding_upgrade_tests": 6,
+      "package_seconds": {"tradeapi": 67.493, "storage": 1.356}
+    },
+    "new_three_run_race": {
+      "command": "go test -race -p 1 ./internal/tradeapi ./internal/storage -run '^(TestHTTPM2RetainedLane|TestManualBindingRetainedLaneUpgrade)' -count=3 -timeout=10m",
+      "status": "PASS",
+      "new_named_tests": 7,
+      "new_upgrade_tests": 1,
+      "package_seconds": {"tradeapi": 269.350, "storage": 8.625},
+      "source_note": "NEW_TESTS_AND_HELPERS_UNCHANGED_DURING_OLD_TEST_ONLY_CORRUPTION_FIXTURE_FIX_FINAL_ALL_M2_RACE_REEXECUTES_ALL_TESTS"
+    },
+    "full_ordinary_final": {
+      "command": "go test -p 1 ./... -count=1 -timeout=15m",
+      "status": "PASS",
+      "package_seconds": {"trade": 123.900, "tradeapi": 128.462, "storage": 11.695},
+      "network_scope": "CONTROLLED_LOOPBACK_UNIX_SOCKET_FIXTURES_ONLY_NO_CHAIN_RPC"
+    },
+    "all_M2_race_final": {
+      "command": "go test -race -p 1 ./internal/tradeapi ./internal/storage -run '^(TestHTTPM2|TestManualExecutionBindingUpgrade|TestManualBindingReferenceUpgrade|TestManualBindingAuditUpgrade|TestManualBindingRowidUpgrade|TestManualBindingRetainedLaneUpgrade)' -count=1 -timeout=20m",
+      "status": "PASS",
+      "M2_named_tests": 55,
+      "binding_upgrade_tests": 6,
+      "package_seconds": {"tradeapi": 519.101, "storage": 11.361}
+    },
+    "M1_C3_compatibility": "FULL_FINAL_ORDINARY_SUITE_INCLUDES_EXISTING_M1_C3_TESTS_NOT_INDEPENDENT_RECERTIFICATION_NO_SEPARATE_M1_C3_RACE_RERUN",
+    "selected_W4C_reopen_race": {
+      "command": "go test -race -p 1 ./internal/trade -run '^TestW4CProductionLifecycleSQLiteReopen$' -count=1 -timeout=5m",
+      "status": "PASS",
+      "trade_seconds": 11.845,
+      "scope": "MIGRATION_COMPATIBILITY_NOT_RECOVERY_SERVICE_HEALTH"
+    },
+    "full_repository_race": "NOT_RERUN_NO_PASS_CLAIM_PRIOR_TIMEOUTS_PRESERVED",
+    "build_vet_staticcheck_final": "PASS_GO_BUILD_ALL_GO_VET_ALL_STATICCHECK_ALL",
+    "offline_model": "PASS_39_TESTS_TEMP_REPORT_OLD_REPORT_UNCHANGED",
+    "offline_curve": "PASS_5_FIXTURE_EVENTS",
+    "format_diff_manifest_source_hash_mapping": "PASS_GO_FMT_DIFF_CHECK_144_MANIFEST_ENTRIES_SIX_SOURCE_HASHES_NINE_TEST_MAPPINGS",
+    "GitHub_CI": "NOT_RUN_NO_REMOTE_ACTIVITY"
+  },
+  "source_sha256": {
+    "internal/storage/migrations/trade/026_manual_binding_retained_lane_integrity.sql": "8128bc308036c78c85fead789a9c148ab2bab17616510c32c556f62db4bc313f",
+    "internal/tradeapi/manual_execution_binding_lane_history_test.go": "5565682e735655b42d0464ed1d6767203b8036b15ac3adba7724c9fcd92ee611",
+    "internal/tradeapi/manual_execution_binding_rowid_test.go": "5ae7bf636969512e7530fbd9d427b0e49f24d8e4a21e3d47fc5df4c23872ae05",
+    "internal/tradeapi/manual_execution_binding_test.go": "47389e44b0a5c5c0b77775a191febd155b42f9d1c7295f7db8b2e4546a651674",
+    "internal/storage/database_test.go": "37423baa1e4f38e7a18512d1f199728f9361a9d2a98d4e2474e5aaa3d7d55901",
+    "internal/tradeapi/manual_execution_binding.go": "0c702ebf05cadb5f382a1f8e265063144ca2b95555219133f516139e44d1ab61"
+  },
+  "boundaries": {
+    "historical_evidence": "PRESERVED_UNCHANGED_ADDITIVE_RECORD_ONLY",
+    "fixtures": "DISPOSABLE_SQLITE_INERT_LEGACY_RESERVATION_NONCE_METADATA_EXISTING_FAKE_AUTH_NO_ARM_REMOVAL_NO_REAL_GRANT_FK_ON",
+    "corruption_fixture": "EXPLICIT_GUARD_REMOVAL_FOR_OLD_MISSING_HISTORY_TEST_ONLY_NOT_REACHABLE_025_NEGATIVE_CONTROL",
+    "crash_scope": "FILE_CLOSE_REOPEN_STATEMENT_AND_MIGRATION_ROLLBACK_NOT_OS_POWER_LOSS_PROOF",
+    "prohibited_path_evidence": "UNCHANGED_WRITER_STRUCTURAL_GUARDS_EMPTY_TARGET_ECONOMIC_TABLES_SNAPSHOT_NO_CONSUMPTION_NOT_PRODUCTION_TELEMETRY",
+    "chain": "ROBINHOOD_4663_PONS_V2_CURVE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "signer_submission_broadcaster_real_RPC_nonce_attempt_artifact_permit_real_grant": "NOT_CONNECTED_OR_CREATED_BY_THIS_SLICE",
+    "M3_M4_M5_W4_D_W5_other_chains": "NOT_ENTERED",
+    "remote_operations": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}

@@ -220,6 +220,14 @@ vet, staticcheck, offline checks and 143-entry manifest PASS. Initial sandbox
 socket failure, old hardcoded-journal assertion and interrupted pre-final runs
 remain explicit in additive evidence. No full-repository race PASS is claimed.
 
+The completed independent M2 review at `c59e13e342dfe1fb2d9ad986ac817629aee7ef05`
+concluded FAIL on a static retained address-only lane blocker. The subsequent
+local `http-m2-retained-lane-hardening` slice adds 026 OLD-update/DELETE relevance
+protection, with reachable actual 021 pre-binding alias negative controls,
+unchanged retained history and exact idle-claim compatibility. See
+`HTTP_MANUAL_RETAINED_LANE_HARDENING.md`. Author checkpoint remains
+M2_READY_FOR_REVIEW pending fresh independent review, not PASS or M3.
+
 ## Work queue
 
 | Order | Batch | Complete when | Requires attention |
@@ -229,7 +237,7 @@ remain explicit in additive evidence. No full-repository race PASS is claimed.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1 independent PASS/closeout; M2 full review incomplete with reproduced binding-rowid defect, 025 minimal hardening to READY_FOR_REVIEW pending fresh independent review; no keys/chain sends |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1 independent PASS/closeout; complete M2 review FAIL at c59e13e, 026 retained-lane hardening to READY_FOR_REVIEW pending fresh review; no keys/chain sends |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |

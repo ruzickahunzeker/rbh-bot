@@ -180,3 +180,10 @@ reproduced a binding-table implicit-rowid INSERT replacement defect. See
 `HTTP_MANUAL_BINDING_ROWID_HARDENING.md` for minimal additive 025 protection,
 permanent regressions and unchanged no-permission scope. Review remains pending
 at the new author checkpoint; no lost-history repair or M3 is authorized.
+
+The subsequent complete independent review of `c59e13e342dfe1fb2d9ad986ac817629aee7ef05`
+concluded FAIL on retained wallet/address-only lane deletion/retargeting (static
+finding, not reviewer runtime reproduction). Additive 026 author hardening and
+permanent reachable 021 pre-binding negative controls are documented in
+`HTTP_MANUAL_RETAINED_LANE_HARDENING.md`. Prior checkpoints remain historical;
+maximum M2_READY_FOR_REVIEW, fresh post-026 independent review still required.

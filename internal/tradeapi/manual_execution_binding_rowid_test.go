@@ -14,6 +14,7 @@ import (
 // none of the M2 integrity guards or foreign keys is disabled.
 func bindingPredecessor024(t *testing.T, s *Store) {
 	t.Helper()
+	bindingPredecessor025(t, s)
 	if _, err := s.db.Exec(`DROP TRIGGER IF EXISTS manual_binding_insert_conflict_victim; DELETE FROM schema_migrations WHERE version=25`); err != nil {
 		t.Fatal(err)
 	}
