@@ -13,6 +13,7 @@ import (
 // remain. Reopen/Migrate reinstalls the actual embedded 023 before assertions.
 func bindingPredecessor022(t *testing.T, s *Store) {
 	t.Helper()
+	bindingPredecessor023(t, s)
 	for _, name := range []string{"manual_binding_reservation_update_victim", "manual_binding_lane_update_victim", "manual_binding_reservation_insert_victim", "manual_binding_lane_insert_victim"} {
 		if _, err := s.db.Exec(`DROP TRIGGER IF EXISTS ` + name); err != nil {
 			t.Fatal(err)

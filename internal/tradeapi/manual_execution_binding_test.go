@@ -739,7 +739,7 @@ func TestHTTPM2CorruptBindingNoRepairAndOperationalFailures(t *testing.T) {
 	for _, change := range []string{
 		`DROP TRIGGER manual_execution_binding_no_update; UPDATE manual_execution_bindings SET contract_hash='corrupt'`,
 		`DROP TRIGGER manual_execution_lane_no_delete; DROP TRIGGER manual_binding_lane_reference_delete; DELETE FROM execution_wallet_lanes`,
-		`DROP TRIGGER manual_execution_alert_no_delete; DELETE FROM canary_alert_outbox WHERE id LIKE 'manual-execution-alert:%'`,
+		`DROP TRIGGER manual_execution_alert_no_delete; DROP TRIGGER manual_execution_alert_retained_no_delete; DELETE FROM canary_alert_outbox WHERE id LIKE 'manual-execution-alert:%'`,
 	} {
 		t.Run(change, func(t *testing.T) {
 			_, s, h, r, scope, _ := bindingFixture(t, "buy")

@@ -166,3 +166,11 @@ strict integrity view, reproduced predecessor defects, actual reopen tests and
 unchanged no-permission semantics. Current maximum is M2_READY_FOR_REVIEW,
 with the former independent FAIL retained and fresh review NOT_PERFORMED.
 No M2 PASS/closeout or M3 follows from author hardening.
+
+Later checkpoints: 023 repaired different unique conflict victims on
+reservations/lanes. Its committed head `3be7a805e693f7973d9224aaf7fd812003a7e911`
+then had an interrupted full review (BLOCKED) and an independent static
+alert/audit subreview (FAIL, not a runtime reproduction or full verdict).
+Current authorized 024 hardening is described in
+`HTTP_MANUAL_AUDIT_ALERT_HARDENING.md`; all earlier author checkpoints above
+remain historical. Maximum M2_READY_FOR_REVIEW, fresh review still required.

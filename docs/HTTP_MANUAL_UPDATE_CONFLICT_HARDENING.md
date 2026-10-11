@@ -5,6 +5,14 @@ Exact implementation base: `b47239dd07dbf62c7ac4af7c0acd1c6737e0608e`.
 Fresh independent review of that base concluded FAIL. This batch repairs only
 the residual metadata integrity boundary; it is not M2 closeout or M3.
 
+Subsequent checkpoint: the full independent review at committed head
+`3be7a805e693f7973d9224aaf7fd812003a7e911` was interrupted and remained BLOCKED.
+A separate read-only alert/audit static subreview concluded FAIL: alert
+audit_id/rowid conflict victims and composed audit replacement were not covered.
+That reviewer did not execute reproductions or conclude a full-M2 verdict.
+See `HTTP_MANUAL_AUDIT_ALERT_HARDENING.md` for the 024 repair and new pending
+fresh-review checkpoint. This document and its JSON are historical 023 evidence.
+
 ## Residual and repair boundary
 
 With `recursive_triggers=OFF`, SQLite UPDATE OR REPLACE can implicitly delete a

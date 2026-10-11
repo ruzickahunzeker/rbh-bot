@@ -181,6 +181,28 @@ run before a test-only unused assignment cleanup; final residual reruns cover
 that cleanup. Full-repository race is not rerun or claimed PASS. New additive
 evidence records exact commands, hashes and limitations; manifest has 141 entries.
 
+At committed `3be7a805e693f7973d9224aaf7fd812003a7e911`, the full fresh review
+remained BLOCKED after reviewer tooling interruption. A separate independent
+read-only alert/audit static subreview concluded FAIL, not a full-M2 verdict or
+runtime reproduction. It found missing alert audit_id/rowid conflict-victim
+protection and a composed path altering audit history accepted by the old view.
+User-authorized `http-m2-audit-alert-hardening` starts from that exact head and
+adds migration 024, tests/docs/evidence/checksum only. It preserves 001–023 and
+the production Go writer, upgrades the existing strict view transactionally,
+protects M2 audit/alert identities and rejects observably altered history.
+See `HTTP_MANUAL_AUDIT_ALERT_HARDENING.md` for limits. Highest checkpoint remains
+M2_READY_FOR_REVIEW, fresh independent review NOT_PERFORMED; no author PASS,
+closeout, M3, HTTP/startup/send/live or remote changes.
+
+024 final-source author validation: full ordinary Go tests, build, vet and
+staticcheck PASS; all 42 M2 tests plus four binding upgrades focused race PASS
+(482.100s / 7.549s); three critical audit tests plus the 023-to-024 upgrade
+three-run race PASS (103.475s / 6.233s). Eight selected M1/C3 compatibility
+race tests and the W4C SQLite reopen race also PASS (72.269s / 17.401s).
+The additive manifest now has 142 entries. Full-repository race was not rerun
+and is not claimed PASS; prior timeouts and intermediate failures remain in
+evidence. These author checks do not advance M2 past READY_FOR_REVIEW.
+
 ## Work queue
 
 | Order | Batch | Complete when | Requires attention |
@@ -190,7 +212,7 @@ evidence records exact commands, hashes and limitations; manifest has 141 entrie
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1 independent PASS/closeout; M2 022 fresh review FAIL, 023 conflict-victim hardening to READY_FOR_REVIEW pending new fresh independent review; no keys/chain sends |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1 independent PASS/closeout; M2 full review BLOCKED and alert/audit static subreview FAIL, 024 hardening to READY_FOR_REVIEW pending fresh independent review; no keys/chain sends |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |
