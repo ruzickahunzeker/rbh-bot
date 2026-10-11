@@ -7,6 +7,12 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest MANUAL checkpoint: M1 PASS; M2 independent PASS at
+`03e333b03ce562ca72d03b0f86dc3e9be0e44216`, formal closeout COMPLETE_LOCAL_ONLY.
+See `HTTP_MANUAL_M2_CLOSEOUT.md`. Earlier stage statements below retain their
+historical meaning. Next action is M3-A scope freeze, not signer/send wiring;
+production broadcast and authorization remain disconnected/not granted.
+
 - HTTP C1/C2 implementation is local; C2 closeout records independent PASS.
 - C3-A independent review PASS at a3a5f47b176032f223a9c5db460f309fec06df35.
 - C3-A docs/evidence closeout is local commit
@@ -237,7 +243,7 @@ M2_READY_FOR_REVIEW pending fresh independent review, not PASS or M3.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1 independent PASS/closeout; complete M2 review FAIL at c59e13e, 026 retained-lane hardening to READY_FOR_REVIEW pending fresh review; no keys/chain sends |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2 independent PASS and local formal closeout; next M3-A scope freeze only, no keys/chain sends |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |

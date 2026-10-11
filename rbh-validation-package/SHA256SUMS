@@ -142,3 +142,4 @@ b6dd974356cf4a2cf90b44ec27eda44f232c10b6ffb394e7c6d00a1f21b025db  evidence/http-
 717b0f47cbe7cdd50b9ddeb971287cd9b81e243c8a5bba412852e923b8ddb23e  evidence/http-manual-audit-alert-hardening.json
 7e33fe14b88c43884eddf2ec226addb35213c34b0d9f5561a6a1c0aa148d03fd  evidence/http-manual-binding-rowid-hardening.json
 ea95b2cffb0343ca8ad9b4fc3efa7d08548fff1824ce1afe1c1826ebc4e723fe  evidence/http-manual-retained-lane-hardening.json
+db7ecba7e62756d27abefa1d532591eddc4e897b573ea153a1a9d3fec8e64f5d  evidence/http-m2-joint-review.json

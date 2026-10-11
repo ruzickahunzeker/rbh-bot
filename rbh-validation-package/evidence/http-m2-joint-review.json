@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_MANUAL_M2_DISCONNECTED_METADATA_BINDING_CUMULATIVE_LOCAL_CLOSEOUT_ONLY",
+  "reviewed_commit_sha": "03e333b03ce562ca72d03b0f86dc3e9be0e44216",
+  "reviewed_commit_is_remote_main": false,
+  "implementation_base_sha": "20695c5de5f7beb99ef6346d4d21a061cf1d5b72",
+  "latest_hardening_base_sha": "c59e13e342dfe1fb2d9ad986ac817629aee7ef05",
+  "review_conclusion": "PASS",
+  "m2_status": "PASS",
+  "formal_closeout": "COMPLETE_LOCAL_ONLY",
+  "closeout_branch": "http-m2-execution-binding-closeout",
+  "closeout_initial_ahead_behind": "0/0_AGAINST_EXACT_REVIEWED_HEAD",
+  "independent_reviewer": {
+    "type": "SEPARATE_NON_AUTHOR_READ_ONLY_REVIEWER_AGENT",
+    "task": "http_m2_retained_lane_fresh_review",
+    "user_authorized": true,
+    "initial_author_conversation_context_forked": false,
+    "scoped_handoff_with_prior_findings_and_author_results": true,
+    "blind_review_claimed": false,
+    "repository_modified": false,
+    "start_and_end_HEAD_exact": true,
+    "start_and_end_worktree_clean": true,
+    "blockers": []
+  },
+  "closed_blockers": [
+    "022_CROSS_OPERATION_LEGACY_RESERVATION_AND_LANE_REFERENCES_STRICT_VIEW",
+    "023_REPLACEMENT_UPDATE_AND_INSERT_CONFLICT_VICTIMS_DECLARED_KEYS_AND_ROWID",
+    "024_EXACT_IMMUTABLE_AUDIT_ALERT_IDENTITIES_AND_EFFECTS",
+    "025_BINDING_INSERT_ROWID_CONFLICT_VICTIM",
+    "026_RETAINED_WALLET_NORMALIZED_ADDRESS_OLD_ROW_DELETE_RETARGET"
+  ],
+  "previous_completed_review": {
+    "reviewed_head": "c59e13e342dfe1fb2d9ad986ac817629aee7ef05",
+    "conclusion": "FAIL",
+    "residual_basis_at_that_review": "STATIC_NOT_RUNTIME_REPRODUCED",
+    "residual": "RETAINED_ADDRESS_ONLY_LANE_DELETE_OR_RETARGET_HIDES_POLLUTION",
+    "fresh_review_runtime_closure": "ACTUAL_021_PRE_BINDING_ALIAS_ACTUAL_025_COMMITTED_MUTATION_HISTORICAL_DUPLICATE_ACCEPTANCE_026_DENIAL_NO_REPAIR",
+    "withdrawn_sequence": "POST_BINDING_ALIAS_INSERTION_NOT_USED_021_REJECTS"
+  },
+  "historical_author_evidence": [
+    {"path": "evidence/http-manual-execution-binding.json", "sha256": "6039db10b3f805b13ca88ca053c0fdeee89c4bb3d62866da655d506ccb76dc4b"},
+    {"path": "evidence/http-manual-binding-integrity-hardening.json", "sha256": "b6dd974356cf4a2cf90b44ec27eda44f232c10b6ffb394e7c6d00a1f21b025db"},
+    {"path": "evidence/http-manual-update-conflict-hardening.json", "sha256": "7e03fb82f8393b5e5ae15ff75115b713f4a4507f1e47024ce4341a6972a393ab"},
+    {"path": "evidence/http-manual-audit-alert-hardening.json", "sha256": "717b0f47cbe7cdd50b9ddeb971287cd9b81e243c8a5bba412852e923b8ddb23e"},
+    {"path": "evidence/http-manual-binding-rowid-hardening.json", "sha256": "7e33fe14b88c43884eddf2ec226addb35213c34b0d9f5561a6a1c0aa148d03fd"},
+    {"path": "evidence/http-manual-retained-lane-hardening.json", "sha256": "ea95b2cffb0343ca8ad9b4fc3efa7d08548fff1824ce1afe1c1826ebc4e723fe"}
+  ],
+  "historical_author_evidence_preserved_unchanged": true,
+  "reviewed_invariants": [
+    "IMMUTABLE_OPERATION_REQUEST_VALIDATION_EXECUTION_WALLET_CHAIN_POLICY_QUOTE_ABSOLUTE_EXPIRY_DEPLOYMENT_BINDING",
+    "NONCE_FREE_EXACT_WALLET_LANE_CLAIM_NOT_SECOND_FINANCIAL_RESERVATION",
+    "ORIGINAL_ADMISSION_SINGLE_RISK_AND_LIFETIME_BUDGET_OWNER_NO_RECHARGE_OR_REFUND",
+    "BINDING_STEP_LANE_AUDIT_ALERT_ATOMIC_DIRECT_SQL_AND_WRITER",
+    "HISTORICAL_DUPLICATE_FALSE_PERMISSION_FLAGS_NO_EXPIRY_RENEWAL_OR_REPAIR",
+    "STOP_PRIORITY_FINAL_CURRENT_CONTROL_AUTH_GATE_TTL_RECHECK_FENCED_WRITER",
+    "RETAINED_POLLUTION_DELETE_UPDATE_REPLACEMENT_ROWID_PROTECTION_FK_ON_OFF_ON_RECURSION",
+    "EXACT_IDLE_CLAIM_AND_UNRELATED_LEGACY_COMPATIBILITY",
+    "NO_SIGNER_SUBMISSION_BROADCAST_REAL_RPC_NONCE_ARTIFACT_ATTEMPT_PERMIT_DEPENDENCY"
+  ],
+  "independent_validation": {
+    "all_M2_ordinary": {
+      "command": "go test -p 1 ./internal/tradeapi ./internal/storage -run '^(TestHTTPM2|TestManualExecutionBindingUpgrade|TestManualBindingReferenceUpgrade|TestManualBindingAuditUpgrade|TestManualBindingRowidUpgrade|TestManualBindingRetainedLaneUpgrade|TestOpenMigrate)' -count=1 -timeout=5m",
+      "status": "PASS",
+      "M2_named_tests": 55,
+      "binding_upgrade_tests": 6,
+      "package_seconds": {"tradeapi": 31.774, "storage": 0.553}
+    },
+    "focused_race": {
+      "command": "go test -race -p 1 ./internal/tradeapi ./internal/storage -run '^(TestHTTPM2RetainedLane|TestManualBindingRetainedLaneUpgrade|TestHTTPM2DependencyGraphAndClosedGuards|TestHTTPM2HardeningLegacyCompatibilityAndIdleClaim)' -count=1 -timeout=10m",
+      "status": "PASS",
+      "package_seconds": {"tradeapi": 60.548, "storage": 2.785}
+    },
+    "manifest_source_hashes_mappings": "PASS_144_ENTRIES_SIX_SOURCE_HASHES_NINE_TEST_MAPPINGS_AT_REVIEWED_HEAD",
+    "full_repository_ordinary_build_vet_staticcheck_offline_and_all_M2_race": "AUTHOR_EVIDENCE_NOT_INDEPENDENT_RERUN",
+    "full_repository_race": "NOT_RERUN_NO_PASS_CLAIM_HISTORICAL_TIMEOUTS_RETAINED",
+    "GitHub_CI_real_RPC": "NOT_USED"
+  },
+  "limitations": [
+    "FILE_REOPEN_AND_SQLITE_ROLLBACK_NOT_OS_CRASH_POWER_LOSS_PROOF",
+    "EXECUTION_STEP_REPLACEMENT_FK_AND_SAME_ID_GUARD_ASSESSMENT_STATIC_NO_BESPOKE_RUNTIME_PROBE",
+    "NEGATIVE_ROWID_CONSERVATIVE_AVAILABILITY_LIMIT_REMAINS",
+    "POLLUTION_REMOVED_UNDER_025_CANNOT_BE_RECONSTRUCTED_BY_026",
+    "NO_SHARED_OWNER_C3_RECERTIFICATION_RECOVERY_HEALTH_OR_PRODUCTION_TELEMETRY",
+    "INERT_FIXTURE_AUTH_NONCE_METADATA_NOT_REAL_GRANT_OR_ALLOCATION",
+    "NO_M3_SIGNING_OR_SEND_AUTHORIZATION"
+  ],
+  "preserved_state": {
+    "HTTP_C3_B": "PASS", "HTTP_C3_C": "PASS", "M1": "PASS", "M2": "PASS",
+    "C04": "PASS", "C05": "PASS", "C07": "PASS", "C08": "PASS",
+    "M3_implementation": "NOT_STARTED",
+    "chain": "ROBINHOOD_4663", "protocol": "PONS_V2_CURVE_NATIVE_QUOTE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY", "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED", "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false, "release_ready": false, "other_closed_gate_implementation_changes": 0
+  },
+  "delivery": "LOCAL_ONLY_NO_GITHUB_FETCH_PUSH_PR_MERGE",
+  "next_action": "M3_A_SCOPE_FREEZE_ONLY_NOT_IMPLEMENTATION"
+}

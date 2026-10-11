@@ -4,6 +4,15 @@ Implementation base: `20695c5de5f7beb99ef6346d4d21a061cf1d5b72`.
 Local branch: `http-m2-durable-execution-binding`.
 Scope: M2-B metadata-only handoff after M1 independent PASS; not M3–M5.
 
+## Current formal checkpoint
+
+M2 independent review PASS at `03e333b03ce562ca72d03b0f86dc3e9be0e44216`;
+M2 formal closeout COMPLETE_LOCAL_ONLY, M2 PASS for disconnected metadata only.
+See `HTTP_MANUAL_M2_CLOSEOUT.md` and additive `http-m2-joint-review.json`.
+All earlier READY_FOR_REVIEW/FAIL/PENDING statements below are historical
+checkpoints, not the current formal result. No signer/send/live permission is
+granted. Next action is M3-A scope freeze only, not implementation.
+
 ## Frozen data ownership
 
 Reuse the existing Operation → ExecutionStep → TransactionAttempt lifecycle.
