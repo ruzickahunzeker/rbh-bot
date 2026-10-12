@@ -1,5 +1,13 @@
 # MANUAL M3-B2 — controlled local nonce lifecycle
 
+Latest local hardening checkpoint: `http-m3b2-nonce-hardening`, based on
+`11e594fcd41479e001cb900791bdf35e9e4e2bc8`. Independent review of that base
+concluded FAIL (nonce storage-class and retained orphan alias exclusions).
+The original author record below is historical, not a fresh review result.
+The authorized hardening adds 028 only; migrations 001–027 and the original
+author evidence remain byte-identical. Maximum checkpoint remains
+M3_B2_READY_FOR_REVIEW / PENDING_FRESH_INDEPENDENT_REVIEW, not PASS or B3.
+
 Branch: `http-m3b2-nonce-lifecycle`.
 Base: `09176c1143ad62ebb40cb0a58ad6ac00f68ec874` (M3-B1 local closeout).
 
@@ -150,3 +158,49 @@ M4/M5/W4-D/W5, remote fetch/push/PR/merge or automatic PASS/closeout.
 
 Stop at M3_B2_READY_FOR_REVIEW for separately authorized independent read-only
 B2 review. Do not reuse the previous B1 reviewer permission or begin B3.
+
+## Subsequent B2 alias-integrity hardening
+
+The independent reviewer reproduced two holes at `11e594f`: normal SQL can
+store a legacy nonce as BLOB bytes `23`, which Go reads as `"23"` but SQLite
+compares unequal to TEXT `"23"`; an inner join can omit a retained attempt
+whose step is missing even when its direct wallet/address and nonce conflict.
+Neither result granted execution/signing/send permission. Nevertheless both
+violate exact nonce conflict exclusion and corrupt-history zero-output denial.
+
+028 adds a pure `manual_nonce_value_valid` scalar that accepts canonical uint64
+TEXT only (including zero and above-int64 values, excluding successor overflow).
+It never casts, normalizes, repairs or reallocates malformed history. The
+query-only alias view preserves attempts with LEFT JOINs; direct wallet/address
+identity is independent of a successful step/operation join, and step/operation
+wallet identities remain covered. Relevant malformed nonce or unverifiable
+ownership rejects; canonical nonconflicting legacy history and unrelated
+wallet history are not globally blocked.
+
+The original 027 completeness predicates are preserved in a read-only base
+view. The public `manual_nonce_claim_complete` now additionally excludes all
+relevant invalid/conflicting aliases. New claim guards enforce that check for
+direct SQL before any claim effects, including OR IGNORE/REPLACE. Scoped guards
+protect retained aliases and their ownership/conflict victims against mutation,
+deletion, adoption and REPLACE with recursion OFF/ON. They exempt only the
+original claim-owned attempt when protecting external ownership metadata;
+027 still owns and checks the exact legal step/lane transition. No new state,
+financial owner, permission, accounting charge, TTL or nonce window is created.
+
+Permanent tests cover the original normal-SQL BLOB case; malformed/noncanonical
+relevant values; orphan first claim and historical duplicate; direct SQL;
+actual file reopen; unchanged durable snapshots; conflict-victim/no-repair
+behavior; canonical/unrelated legacy compatibility; scalar replacement pool
+connections; and late-failure atomic 027-to-028 upgrade without data repair.
+Explicit corruption fixtures restore the production guards/FK before testing
+denial. The original owner-only corruption fixture drops the new insertion
+guard as well, solely to keep its corruption injection explicit, not to weaken
+production policy.
+
+Validation/results and source hashes are additive in
+`evidence/http-manual-nonce-alias-hardening.json`. Original author hashes are
+historical snapshots at `11e594f`, not current-source claims. Replaying earlier
+reviewer probes during hardening is author regression evidence, not a fresh
+independent approval. No closeout, production nonce adapter, HTTP/startup,
+signer/cipher/submission/send, real grant/RPC/mainnet/live, B3/B4/M4/M5 or remote
+operation is authorized by this hardening.

@@ -7,6 +7,17 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest B2 update: independent read-only review at
+`11e594fcd41479e001cb900791bdf35e9e4e2bc8` concluded FAIL for nonce storage-class
+and orphan alias integrity. User authorized local-only B2 hardening on
+`http-m3b2-nonce-hardening`, based exactly on that reviewed head. Additive 028
+and permanent tests address those two findings; old 001–027, B1/M1/M2 and
+historical evidence remain unchanged. See `HTTP_MANUAL_NONCE_LIFECYCLE.md`
+and additive `http-manual-nonce-alias-hardening.json`. Maximum checkpoint is
+M3_B2_READY_FOR_REVIEW, pending separately authorized fresh independent review.
+No author PASS/closeout, B3, HTTP/startup adapter, signer or sending follows.
+Earlier NOT_PERFORMED author records below are historical at the original head.
+
 Latest MANUAL checkpoint: M1 PASS; M2 independent PASS at
 `03e333b03ce562ca72d03b0f86dc3e9be0e44216`, formal closeout COMPLETE_LOCAL_ONLY.
 See `HTTP_MANUAL_M2_CLOSEOUT.md`. Earlier stage statements below retain their
@@ -311,7 +322,7 @@ M2_READY_FOR_REVIEW pending fresh independent review, not PASS or M3.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3-B1 PASS/local closeout; M3-A frozen; B2 READY_FOR_REVIEW, independent review NOT_PERFORMED; next separately authorized B2 review; B3/B4/M4/M5 not started, no signer/send/live permission |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3-B1 PASS/local closeout; M3-A frozen; original B2 independent FAIL, B2 hardening READY_FOR_REVIEW pending fresh review; B3/B4/M4/M5 not started, no signer/send/live permission |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |

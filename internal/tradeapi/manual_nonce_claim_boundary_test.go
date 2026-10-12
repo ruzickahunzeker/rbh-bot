@@ -399,7 +399,7 @@ func TestHTTPM3B2ClaimedOwnerOnlyAttemptAliasRejectedAndNotRepaired(t *testing.T
 	}
 	// Inject retained pollution solely to check phase-aware negative completeness
 	// and no implicit repair; this is not a reachable bypass of the guard above.
-	if _, err := s.db.Exec(`DROP TRIGGER manual_execution_no_attempt`); err != nil {
+	if _, err := s.db.Exec(`DROP TRIGGER manual_execution_no_attempt; DROP TRIGGER manual_nonce_alias_insert`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.db.Exec(query); err != nil {

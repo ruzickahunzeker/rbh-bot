@@ -11,6 +11,19 @@ import (
 // uint64 nonce and SHA256. A plain SQL client without it fails closed. It has
 // no RPC, clock, database, allocation or authorization capability.
 func init() {
+	sqlite.MustRegisterDeterministicScalarFunction("manual_nonce_value_valid", 1,
+		func(_ *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) {
+			// SQLite TEXT affinity does not convert BLOB values. Never cast a
+			// malformed stored nonce into a seemingly valid nonce identity.
+			raw, ok := args[0].(string)
+			if !ok {
+				return int64(0), nil
+			}
+			if _, err := manualnonce.Nonce(raw); err != nil {
+				return int64(0), nil
+			}
+			return int64(1), nil
+		})
 	sqlite.MustRegisterDeterministicScalarFunction("manual_nonce_observation_valid", 5,
 		func(_ *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) {
 			var values [5]string
