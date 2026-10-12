@@ -10,8 +10,10 @@ internal quote/simulation and security gates remain required.
 Latest MANUAL checkpoint: M1 PASS; M2 independent PASS at
 `03e333b03ce562ca72d03b0f86dc3e9be0e44216`, formal closeout COMPLETE_LOCAL_ONLY.
 See `HTTP_MANUAL_M2_CLOSEOUT.md`. Earlier stage statements below retain their
-historical meaning. M3-A is frozen and the user-authorized M3-B1 read-only
-implementation is now at M3_B1_READY_FOR_REVIEW, not signer/send wiring;
+historical meaning. M3-A is frozen; M3-B1 independent review PASS at
+`5780e854e787a05076f7239796937921bc3c344a` and formal closeout
+COMPLETE_LOCAL_ONLY. See `HTTP_MANUAL_M3_B1_CLOSEOUT.md`. This is not whole-M3
+PASS or signer/send wiring;
 production broadcast and authorization remain disconnected/not granted.
 
 M3-A scope freeze is recorded in `HTTP_MANUAL_SIGNING_SCOPE.md`, based on local
@@ -24,9 +26,11 @@ binding, current controls/auth/TTL/allowlists and conserved original accounting;
 the output is detached candidate metadata with ALL permission flags false.
 Snapshot stop races are explicitly not writer fencing. There is no schema,
 signer, nonce, artifact, RPC or send effect, and no HTTP/config/startup wiring.
-Author checkpoint M3_B1_READY_FOR_REVIEW, independent review NOT_PERFORMED.
-Next action requires stage-specific read-only M3-B1 reviewer authority; prior
-M2 permission is not reused. B2/B3/B4 and M4/M5 are not started by this slice.
+Original author checkpoint M3_B1_READY_FOR_REVIEW / review NOT_PERFORMED is
+historical and preserved unchanged. Separate stage-specific reviewer authority
+was granted; independent B1 review PASS and local formal closeout now record
+M3-B1 PASS. Next candidate requires separate B2 implementation authorization;
+B2/B3/B4 and M4/M5 are not started or authorized by this closeout.
 No production lifecycle/live/authorization or remote operation is implied.
 
 Final B1 author validation: full ordinary Go tests PASS (trade 177.256s /
@@ -36,7 +40,21 @@ runs PASS (715.637s); nine selected M1/M2/C3 compatibility race tests PASS
 39 offline reference-model tests, five Curve fixtures, all source hashes/test
 mappings and the additive 147-entry manifest PASS. Full-repository race was
 not run; no author independent-review or production telemetry claim. Earlier
-fixture failures are recorded, not relabeled PASS. Stop for B1 review.
+fixture failures are recorded, not relabeled PASS. That was the author checkpoint,
+not the subsequent independent review.
+
+B1 independent reviewer validation: all 16 ordinary tests PASS (14.094s),
+single focused race PASS (186.047s), nine selected M1/M2/C3 ordinary tests PASS
+(10.143s), W4-C file reopen ordinary PASS (0.879s), 17 extra durable corruption
+overlay probes PASS (4.077s), and final overlay rerun including exact nonzero
+tips for all three trade forms PASS (3.527s). Package vet, 147 reviewed
+checksums, source hashes and mappings PASS; no independent full suite/race/
+staticcheck, real-chain integration or production telemetry claim. Existing
+compiled package dependencies are not confused with reader capability absence.
+Separate docs/evidence/checksum closeout on `http-m3b1-bound-input-closeout`
+preserves historical author records and adds `http-m3b1-joint-review.json`.
+The manifest has 148 entries. B1 PASS grants no nonce/signing/send permission;
+stop before B2 pending separate authority, live/release readiness unchanged.
 
 - HTTP C1/C2 implementation is local; C2 closeout records independent PASS.
 - C3-A independent review PASS at a3a5f47b176032f223a9c5db460f309fec06df35.
@@ -268,7 +286,7 @@ M2_READY_FOR_REVIEW pending fresh independent review, not PASS or M3.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2 PASS/local closeout; M3-A frozen; M3-B1 READY_FOR_REVIEW, independent review NOT_PERFORMED; next separately authorized read-only B1 review, no B2/signer/nonce/send |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3-B1 PASS/local closeout; M3-A frozen; next separately authorized B2 nonce lifecycle without signer; B2/B3/B4/M4/M5 not started, no send/live permission |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |
