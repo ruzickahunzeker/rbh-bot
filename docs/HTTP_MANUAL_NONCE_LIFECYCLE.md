@@ -1,6 +1,15 @@
 # MANUAL M3-B2 — controlled local nonce lifecycle
 
-Latest residual checkpoint: `http-m3b2-nonce-residual-hardening`, based exactly
+Latest reference/byte checkpoint: `http-m3b2-reference-byte-hardening`, based
+exactly on reviewed `152e5083abd0bf7457bf9824a487aeba3adce844`. The fresh
+independent reviewer concluded FAIL for own-claim NUL-suffixed evidence,
+untrusted parent references omitted by raw joins, and UPDATE rename adoption
+through NEW.id. The standing user authorization covers this narrow B2 repair
+and subsequent independent review, not signing/send or B3. Additive 030 only;
+001–029, original writer and historical evidence remain immutable. Maximum
+implementation checkpoint remains M3_B2_READY_FOR_REVIEW, never author PASS.
+
+Previous residual checkpoint: `http-m3b2-nonce-residual-hardening`, based exactly
 on reviewed `ad15d05054b4077ac0a2df3ad5bae3997ac983f5`. That fresh independent
 review concluded FAIL: BLOB wallet relevance, retained orphan parent INSERT
 repair, and globally-scoped idempotency-key victim protection. This authorized
@@ -258,3 +267,43 @@ Previous independent FAILs remain recorded; author regression is not fresh
 independent approval. No production nonce adapter, HTTP/config/startup, signer,
 cipher, artifact, permit, submission, send, grant, mainnet, live, B3/B4/M4/M5,
 remote operation or automatic closeout follows from these checks.
+
+## Subsequent B2 complete-byte claim and reference hardening
+
+030 adds a pure ten-argument encoded observation validator. Each of the five
+original evidence fields/facts is supplied with complete hex bytes and its
+SQLite storage class; all must be TEXT and pass the original canonical
+manualnonce verifier. BEFORE INSERT checks apply to the claim's own nonce,
+JSON, hash and checked_at for INSERT/IGNORE/REPLACE. The original 028 public
+completeness predicates are preserved in a base view; the public view adds the
+same full-byte own-evidence check. Claim-owned attempts are never exempt from
+their own evidence validation. Old scalars stay unchanged for old migrations.
+
+Negative alias/parent guard joins compare complete encoded reference bytes to
+identify potentially relevant ownership that raw TEXT-versus-BLOB equality
+misses. This is denial-only correlation, not a trusted parent resolution:
+non-TEXT step/operation references and parent IDs in a relevant alias make it
+unsafe. Nothing is cast, repaired, adopted or reallocated. The existing positive
+execution/admission/effect joins remain unchanged. Unrelated wallets' retained
+BLOB references remain outside the blocked domain.
+
+Parent INSERT and UPDATE guards inspect incoming references through NEW.id,
+while old-owner and conflict-victim guards continue to protect OLD.id/rowid.
+The same encoded correlation protects retained parent update/delete/replace
+victims. The exact claim-owned legal step transition remains allowed; no second
+lifecycle, reservation, budget charge, expiry/epoch window or permission exists.
+
+Permanent tests cover all four own evidence NUL suffixes, public completeness
+denial for explicitly retained 029-shaped history, first/direct-SQL and retained
+BLOB parent conflicts, restored guards/FK, update/delete/victims with recursion
+OFF/ON, projected parent rename, actual file reopen and unrelated-reference
+compatibility. Storage tests check full-byte TEXT/BLOB/NULL/NUL facts and
+replacement connections plus real 029-to-030 late-failure rollback/idempotent
+retry without history repair. Reviewer-only probes are retained as historical
+independent FAIL evidence; any author replay is not another independent review.
+
+See additive `evidence/http-manual-nonce-reference-bytes-hardening.json` for
+source hashes, exact validation scope, intermediate failures and limits. Stop at
+B2 READY_FOR_REVIEW until a new independent reviewer passes the fixed commit.
+No signing/cipher/production adapter/startup/permit/submission/send, real
+RPC/key/grant/mainnet/live, B3/B4/M4/M5/W4-D/W5 or remote action follows.

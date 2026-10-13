@@ -7,7 +7,20 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
-Latest B2 residual update: fresh independent review of
+Latest B2 reference/byte update: fresh independent review of
+`152e5083abd0bf7457bf9824a487aeba3adce844` concluded FAIL with 24 extra
+probe failures: own claim NUL evidence, BLOB parent references and incoming
+parent UPDATE rename adoption. Authorized local-only continuation fixes just
+these B2 semantics on `http-m3b2-reference-byte-hardening`. Additive 030,
+complete-byte own-evidence verifier, denial-only reference joins and projected
+NEW.id guards preserve 001–029, original writer, M1/M2/B1/runtime and old
+evidence. See `HTTP_MANUAL_NONCE_LIFECYCLE.md` and new
+`http-manual-nonce-reference-bytes-hardening.json`. The implementation stops
+at READY_FOR_REVIEW; only fresh independent PASS can lead to separately
+recorded docs/evidence closeout under the user's continuing authorization.
+No automatic B3, signer/send, production/real grant/live or remote operation.
+
+Previous B2 residual update: fresh independent review of
 `ad15d05054b4077ac0a2df3ad5bae3997ac983f5` concluded FAIL for BLOB wallet
 identity relevance, missing-parent repair and globally scoped idempotency-key
 victim protection. Authorized local `http-m3b2-nonce-residual-hardening` is
