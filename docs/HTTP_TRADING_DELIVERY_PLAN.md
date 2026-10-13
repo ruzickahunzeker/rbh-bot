@@ -7,7 +7,18 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
-Latest B2 reference/byte update: fresh independent review of
+Latest B2 claimed-state update: independent review of
+`46e371c36e73e598d2aa1ffb3ffd5d88cce1e790` passed prior byte/reference/adoption
+regressions but concluded FAIL for contradictory retained claimed accounting
+states. Continuing local authorization covers only additive 031 public-view
+validation and tests/evidence on `http-m3b2-claimed-state-hardening`.
+Original risk reserved/frozen and usage RESERVED/FROZEN are required; valid
+frozen history remains false-permission/no-query. 001–030, shared M2/C3 checker,
+writer and financial transitions remain unchanged. See lifecycle and new
+`http-manual-nonce-claimed-state-hardening.json`. Stop at READY_FOR_REVIEW until
+fresh independent PASS; no signer/send/B3/live or remote authority follows.
+
+Previous B2 reference/byte update: fresh independent review of
 `152e5083abd0bf7457bf9824a487aeba3adce844` concluded FAIL with 24 extra
 probe failures: own claim NUL evidence, BLOB parent references and incoming
 parent UPDATE rename adoption. Authorized local-only continuation fixes just

@@ -150,3 +150,4 @@ db7ecba7e62756d27abefa1d532591eddc4e897b573ea153a1a9d3fec8e64f5d  evidence/http-
 e5f4ad2ea0f028e975f56ad0ae0f1dd9a074e78037e646a9ccf8dfd1540725e5  evidence/http-manual-nonce-alias-hardening.json
 6d1f5b6ea11588ba7355203adf3bc18b4d9ae824ea2ead9e9dfae26a01d9af59  evidence/http-manual-nonce-residual-hardening.json
 e06e8a00bda0082f2e7719f312525212fb75fca9fa060cca53944d7144d85132  evidence/http-manual-nonce-reference-bytes-hardening.json
+41be165007f020a43e4f9148beeaeb4d3b12c7e9c9a7d057536176282c38528f  evidence/http-manual-nonce-claimed-state-hardening.json

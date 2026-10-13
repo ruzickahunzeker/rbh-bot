@@ -1,6 +1,14 @@
 # MANUAL M3-B2 — controlled local nonce lifecycle
 
-Latest reference/byte checkpoint: `http-m3b2-reference-byte-hardening`, based
+Latest claimed-state checkpoint: `http-m3b2-claimed-state-hardening`, based
+on reviewed `46e371c36e73e598d2aa1ffb3ffd5d88cce1e790`. Fresh independent
+review passed the byte/reference/adoption fixes but concluded FAIL for retained
+claimed risk released/committed or usage RELEASED/CONSUMED being accepted as
+valid history. Additive 031 changes the B2 public completeness gate only;
+001–030, original writer and shared M2/C3 accounting/history code remain intact.
+Maximum remains B2 READY_FOR_REVIEW, pending a new independent decision.
+
+Previous reference/byte checkpoint: `http-m3b2-reference-byte-hardening`, based
 exactly on reviewed `152e5083abd0bf7457bf9824a487aeba3adce844`. The fresh
 independent reviewer concluded FAIL for own-claim NUL-suffixed evidence,
 untrusted parent references omitted by raw joins, and UPDATE rename adoption
@@ -307,3 +315,31 @@ source hashes, exact validation scope, intermediate failures and limits. Stop at
 B2 READY_FOR_REVIEW until a new independent reviewer passes the fixed commit.
 No signing/cipher/production adapter/startup/permit/submission/send, real
 RPC/key/grant/mainnet/live, B3/B4/M4/M5/W4-D/W5 or remote action follows.
+
+## Subsequent B2 claimed accounting-state hardening
+
+031 preserves the exact 030 whole-byte public predicates as a base view and
+requires the original same-operation/wallet risk reservation to be reserved or
+frozen, and original same-operation/authorization usage to be RESERVED or FROZEN.
+No accounting state is changed by the migration. No shared historical checker
+is tightened for M2/C3, no budget is refunded/recharged and no owner is added.
+All four valid risk/usage combinations remain readable historical metadata with
+false execution/sign/send permissions and zero new nonce query. The existing
+freeze-only mutation guards stay unchanged; normal SQL still cannot release,
+consume or thaw claimed work. Corrupt retained terminal states are additionally
+rejected by completeness, even after exact guards are restored or files reopen.
+
+Permanent tests cover four normal denied updates, explicit single-state-guard
+retained corruption followed by restoration, zero-output/no-query/no-write
+history denial, no implicit repair and actual file reopen. Positive tests keep
+the original nonce/artifact-free attempt and all accounting snapshots unchanged
+through every valid reserved/frozen combination and reopen. A real 030-to-031
+test forces migration-journal failure after view replacement, proving both views
+and journal roll back; retry is idempotent and preserves legacy BLOB/orphan data.
+Old upgrade introspection now checks the layered alias, byte and accounting
+predicates, not only the public view's immediate SQL text.
+
+See additive `evidence/http-manual-nonce-claimed-state-hardening.json`. Author
+regression does not grant independent PASS. The original reviewed commit and
+retained-corruption finding remain recorded. No signer/send, new nonce/expiry,
+financial transition, real grant/RPC/mainnet/live, B3 or remote action is added.

@@ -94,8 +94,11 @@ func TestManualNonceAliasUpgradeFrom027AtomicAndNoRepair(t *testing.T) {
 	if err = d.db.QueryRow(`SELECT nonce,step_id,wallet_id FROM transaction_attempts WHERE id='legacy-orphan'`).Scan(&nonce, &step, &wallet); err != nil || nonce != "23" || step != "missing-step" || wallet != "legacy-wallet" {
 		t.Fatal("orphan silently repaired", nonce, step, wallet, err)
 	}
-	if err = d.db.QueryRow(`SELECT sql FROM sqlite_master WHERE name='manual_nonce_claim_complete'`).Scan(&actualView); err != nil || !strings.Contains(actualView, "manual_nonce_observation_bytes_valid") {
+	if err = d.db.QueryRow(`SELECT sql FROM sqlite_master WHERE name='manual_nonce_claim_complete'`).Scan(&actualView); err != nil || !strings.Contains(actualView, "canary_risk_reservations") || !strings.Contains(actualView, "canary_authorization_operation_usage") {
 		t.Fatal("upgraded completeness absent", err)
+	}
+	if err = d.db.QueryRow(`SELECT sql FROM sqlite_master WHERE name='manual_nonce_claim_030_complete'`).Scan(&actualView); err != nil || !strings.Contains(actualView, "manual_nonce_observation_bytes_valid") {
+		t.Fatal("original whole-byte completeness not preserved", err)
 	}
 	if err = d.db.QueryRow(`SELECT sql FROM sqlite_master WHERE name='manual_nonce_claim_028_complete'`).Scan(&actualView); err != nil || !strings.Contains(actualView, "manual_nonce_attempt_aliases") || !strings.Contains(actualView, "manual_nonce_claim_027_complete") {
 		t.Fatal("original alias completeness not preserved", err)
