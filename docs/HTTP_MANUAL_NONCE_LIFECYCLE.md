@@ -1,6 +1,15 @@
 # MANUAL M3-B2 — controlled local nonce lifecycle
 
-Latest local hardening checkpoint: `http-m3b2-nonce-hardening`, based on
+Latest residual checkpoint: `http-m3b2-nonce-residual-hardening`, based exactly
+on reviewed `ad15d05054b4077ac0a2df3ad5bae3997ac983f5`. That fresh independent
+review concluded FAIL: BLOB wallet relevance, retained orphan parent INSERT
+repair, and globally-scoped idempotency-key victim protection. This authorized
+slice adds 029 and local tests/evidence only. Old 001–028, original nonce writer,
+M1/M2/B1 and historical evidence remain unchanged. The maximum checkpoint is
+M3_B2_READY_FOR_REVIEW, pending a separately authorized fresh independent review;
+there is no author PASS, closeout or B3 authorization.
+
+Previous local hardening checkpoint: `http-m3b2-nonce-hardening`, based on
 `11e594fcd41479e001cb900791bdf35e9e4e2bc8`. Independent review of that base
 concluded FAIL (nonce storage-class and retained orphan alias exclusions).
 The original author record below is historical, not a fresh review result.
@@ -204,3 +213,48 @@ reviewer probes during hardening is author regression evidence, not a fresh
 independent approval. No closeout, production nonce adapter, HTTP/startup,
 signer/cipher/submission/send, real grant/RPC/mainnet/live, B3/B4/M4/M5 or remote
 operation is authorized by this hardening.
+
+## Subsequent B2 identity / missing-parent / uniqueness hardening
+
+029 changes only the alias view and narrowly named guards, preserving the
+original 027 completeness base and the public 028 completeness wrapper. Wallet
+identity in attempt, step and operation and case-insensitive sender address are
+compared by a pure storage-class-aware scalar. It reports TEXT equality or a
+matching BLOB as distinct values; a BLOB match is an untrusted denial witness,
+never canonical input. Irrelevant BLOB identities and canonical nonconflicting
+legacy history remain outside the blocked domain. No history is rewritten.
+
+Scalar inputs use `hex(value)` plus `typeof(value)` so embedded NUL cannot be
+silently truncated by SQLite's UDF TEXT conversion. Stored nonce validation
+also checks the complete encoded bytes and original TEXT storage class; a
+canonical prefix followed by NUL is malformed, not another valid nonce. The
+original scalars remain for historical 027/028 objects; 029's aliases and
+incoming mutation guards use the complete-byte validator. The pure functions
+have no RPC, clock, allocation, database-write or authorization capability.
+
+Missing-step and missing-operation guards preserve retained claimed history
+before INSERT/UPDATE can supply or rename a missing parent. INSERT/IGNORE/
+REPLACE and UPDATE/REPLACE are checked with recursion OFF/ON. Additional NEW
+identity guards prevent incoming step/operation metadata from adopting attempts
+into a claimed wallet's blocked domain. Claim-owned exact legal transitions
+remain governed by 027; no second state machine or accounting owner is added.
+
+Operation conflict protection uses ID, rowid or the actual composite unique
+key `(chain_id,wallet_id,idempotency_key)`, never a globally unique key claim.
+Same key on an unrelated wallet remains legal; replacing the real conflict
+victim remains forbidden. The existing Robinhood-only chain constraint is not
+relaxed, and this slice does not claim another-chain support.
+
+Permanent tests map each residual to first-claim SQL/duplicate denial, immutable
+snapshots, zero query on rejected history, restored guards around explicit
+retained-corruption fixtures, actual file reopen, no parent repair, mutation
+denial, compatibility and true conflict victims. Separate storage tests cover
+replacement connections, whole-byte/NUL comparisons and a real 028-to-029 late
+failure rolling back replaced views/guards/journal, followed by idempotent retry
+with unchanged BLOB/orphan legacy rows. No migration repairs or allocates work.
+
+`evidence/http-manual-nonce-residual-hardening.json` is additive author evidence.
+Previous independent FAILs remain recorded; author regression is not fresh
+independent approval. No production nonce adapter, HTTP/config/startup, signer,
+cipher, artifact, permit, submission, send, grant, mainnet, live, B3/B4/M4/M5,
+remote operation or automatic closeout follows from these checks.

@@ -7,7 +7,19 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
-Latest B2 update: independent read-only review at
+Latest B2 residual update: fresh independent review of
+`ad15d05054b4077ac0a2df3ad5bae3997ac983f5` concluded FAIL for BLOB wallet
+identity relevance, missing-parent repair and globally scoped idempotency-key
+victim protection. Authorized local `http-m3b2-nonce-residual-hardening` is
+based exactly on that reviewed head. Additive 029, complete-byte pure scalar
+checks and permanent tests address only these residuals; 001–028, the nonce
+writer, M1/M2/B1, startup/trade runtime and historical evidence stay unchanged.
+See `HTTP_MANUAL_NONCE_LIFECYCLE.md` and additive
+`http-manual-nonce-residual-hardening.json`. Maximum checkpoint remains
+M3_B2_READY_FOR_REVIEW / PENDING_FRESH_INDEPENDENT_REVIEW. No B3/closeout,
+signer/cipher, submission/send, real query/grant/live or remote action.
+
+Previous B2 update: independent read-only review at
 `11e594fcd41479e001cb900791bdf35e9e4e2bc8` concluded FAIL for nonce storage-class
 and orphan alias integrity. User authorized local-only B2 hardening on
 `http-m3b2-nonce-hardening`, based exactly on that reviewed head. Additive 028
