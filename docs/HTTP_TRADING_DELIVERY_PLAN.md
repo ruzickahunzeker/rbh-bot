@@ -7,6 +7,19 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest B2 attempt-free wallet update: fresh independent review at
+`3d8c016274e7f767982338fa77401708087ec0bd` closed 031 accounting but concluded
+FAIL for matching BLOB wallet unresolved step/operation identities missing
+from first-claim checks. Standing local continuation covers only additive 032,
+B2-specific pre-query/writer denial and tests/evidence on
+`http-m3b2-unresolved-step-hardening`. Original 001–031, shared M1/M2/B1 readers,
+history checker, financial phases, HTTP/config/startup and sending boundaries
+remain unchanged. Historical duplicates are still false-permission history,
+not refreshed actions. Maximum M3-B2 READY_FOR_REVIEW; fresh independent review
+must pass before conditional docs/evidence closeout. No automatic B3/live,
+authorization grant or GitHub operation. See lifecycle and
+`http-manual-nonce-unresolved-wallet-hardening.json`.
+
 Latest B2 claimed-state update: independent review of
 `46e371c36e73e598d2aa1ffb3ffd5d88cce1e790` passed prior byte/reference/adoption
 regressions but concluded FAIL for contradictory retained claimed accounting

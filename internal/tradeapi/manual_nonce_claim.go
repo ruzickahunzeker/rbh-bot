@@ -136,6 +136,19 @@ func readManualNonceClaim(ctx context.Context, q queryRow, request string) (manu
 	return scanManualNonceClaim(q.QueryRowContext(ctx, `SELECT `+manualNonceClaimColumns+` FROM manual_nonce_claims WHERE operation_id=(SELECT operation_id FROM manual_http_order_sources WHERE id=?)`, request))
 }
 
+// B2-only denial check, not a change to the shared B1 reader. The same view is
+// enforced by SQL before INSERT, after the out-of-transaction observation.
+func checkManualNonceUnresolvedWallet(ctx context.Context, q queryRow, request string) error {
+	var blocked bool
+	if err := q.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM manual_nonce_unresolved_wallet_steps WHERE operation_id=(SELECT operation_id FROM manual_execution_bindings WHERE request_id=?))`, request).Scan(&blocked); err != nil {
+		return err
+	}
+	if blocked {
+		return ErrWallet
+	}
+	return nil
+}
+
 // Own read snapshot before observation. Duplicate history skips the observer.
 func (w *manualNonceClaimWriter) read(ctx context.Context, id Identity, request string, scope manualAdmissionScope) (ManualBoundSigningInput, *manualNonceClaimResult, error) {
 	var zero ManualBoundSigningInput
@@ -167,6 +180,9 @@ func (w *manualNonceClaimWriter) read(ctx context.Context, id Identity, request 
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return zero, nil, err
 	} else {
+		if err = checkManualNonceUnresolvedWallet(ctx, tx, request); err != nil {
+			return zero, nil, err
+		}
 		v, err = loadManualBoundSigningInputTx(ctx, tx, id, request, manualNonceExpectedScope(scope), w.now)
 		if err != nil {
 			return zero, nil, err
@@ -285,6 +301,9 @@ func (w *manualNonceClaimWriter) claim(ctx context.Context, id Identity, request
 		return nonceResult(q, c, true), nil
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
+		return zero, err
+	}
+	if err = checkManualNonceUnresolvedWallet(ctx, conn, request); err != nil {
 		return zero, err
 	}
 	current, err := loadManualBoundSigningInputTx(ctx, conn, id, request, manualNonceExpectedScope(scope), w.now)

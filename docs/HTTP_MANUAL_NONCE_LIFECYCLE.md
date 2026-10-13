@@ -1,5 +1,21 @@
 # MANUAL M3-B2 — controlled local nonce lifecycle
 
+Latest attempt-free wallet checkpoint: `http-m3b2-unresolved-step-hardening`,
+based on independently reviewed `3d8c016274e7f767982338fa77401708087ec0bd`.
+031's accounting state fix passed fresh independent probes, but cumulative B2
+concluded FAIL: a normal-SQL BLOB wallet identity on an unresolved legacy step
+or its parent operation bypassed first-claim exclusivity without any attempt.
+Additive 032 uses a complete-byte denial-only LEFT JOIN view, checked by the
+B2 private reader before observation, its serialized writer and direct-SQL
+BEFORE/AFTER claim guards. Matching retained missing/BLOB parents and malformed
+status storage reject; unrelated wallets and non-active metadata are not
+globally blocked. Historical false-permission duplicates remain history, not
+new actions; this first-claim gate is not a B3 signing permission or a change
+to the shared B1 reader. No metadata is normalized, repaired, adopted or
+released. 001–031 and all accounting/phase transitions remain unchanged.
+Maximum remains B2 READY_FOR_REVIEW pending another fixed-head independent
+decision. No closeout, signer/send/B3/real RPC/grant/live or remote action.
+
 Latest claimed-state checkpoint: `http-m3b2-claimed-state-hardening`, based
 on reviewed `46e371c36e73e598d2aa1ffb3ffd5d88cce1e790`. Fresh independent
 review passed the byte/reference/adoption fixes but concluded FAIL for retained
