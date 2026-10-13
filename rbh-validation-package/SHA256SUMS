@@ -152,3 +152,4 @@ e5f4ad2ea0f028e975f56ad0ae0f1dd9a074e78037e646a9ccf8dfd1540725e5  evidence/http-
 e06e8a00bda0082f2e7719f312525212fb75fca9fa060cca53944d7144d85132  evidence/http-manual-nonce-reference-bytes-hardening.json
 41be165007f020a43e4f9148beeaeb4d3b12c7e9c9a7d057536176282c38528f  evidence/http-manual-nonce-claimed-state-hardening.json
 17d9c46abe9a6ca7621f2bb5d91c798a0b6486d9976fd0fa5c41c6da655c0a8b  evidence/http-manual-nonce-unresolved-wallet-hardening.json
+fe0716f3d6389c4244479dd3ecf5bb475874c8c96b456e3655432559a0dccfd5  evidence/http-m3b2-joint-review.json

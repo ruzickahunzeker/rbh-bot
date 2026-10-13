@@ -7,6 +7,21 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Current MANUAL checkpoint: M1 PASS, M2 PASS, M3-B1 PASS and M3-B2 independent
+review PASS at `b24eb92e92804161c7d9117c584df67b4a74c087`; B2 formal closeout
+COMPLETE_LOCAL_ONLY on `http-m3b2-nonce-closeout`. See
+`HTTP_MANUAL_M3_B2_CLOSEOUT.md` and `http-m3b2-joint-review.json`. Cumulative
+027–032 was independently reviewed, including the prior alias/identity/byte/
+accounting/attempt-free wallet findings. All39 B2 ordinary, ten storage nonce,
+three pure, previous overlays, 14-case new matrix, four final-guard ordering
+cases, selected single race and nine compatibility tests PASS. No independent
+full-suite/full39-race/CI or production-health claim. Historical scope/lifecycle
+and author evidence remain at their reviewed snapshots; checkpoints below are
+historical, not the current verdict. Whole M3 remains INCOMPLETE_NOT_PASS;
+B3/B4 NOT_STARTED and require separate scope/authority. No signer/send/real
+nonce RPC/grant/live/remote action follows; broadcast NOT_CONNECTED,
+authorization NOT_GRANTED, live=false and release_ready=false remain unchanged.
+
 Latest B2 attempt-free wallet update: fresh independent review at
 `3d8c016274e7f767982338fa77401708087ec0bd` closed 031 accounting but concluded
 FAIL for matching BLOB wallet unresolved step/operation identities missing
