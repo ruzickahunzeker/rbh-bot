@@ -168,7 +168,7 @@ func TestHTTPM3B3ADisconnectedSourceNoSigningAndNoSchema(t *testing.T) {
 	})
 	_, s, _, _ := fixture(t)
 	var latest int
-	if err := s.db.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&latest); err != nil || latest != 33 {
+	if err := s.db.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&latest); err != nil || latest != 34 {
 		t.Fatal("unexpected schema checkpoint", latest, err)
 	}
 	for _, name := range []string{"manual_b1_no_arm", "manual_b1_no_permit", "manual_b1_no_pass_snapshot", "manual_execution_no_attempt_update", "manual_nonce_no_submission_insert"} {

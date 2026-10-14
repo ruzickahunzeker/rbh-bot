@@ -7,6 +7,16 @@ implementation only, not production signing, HTTP wiring or real sending.
 
 ## Ordered work and current checkpoint
 
+Foundation independent review of `bee4513d2514146e849b5bc5034fc75d96b77eaf`
+concluded B3-A scope-limited PASS, B3-B1 FAIL (combined FAIL). It reproduced
+retained BLOB audit/outbox witness repair/adoption and a total-64-byte interior
+NUL owner accepted by SQLite GLOB. That historical FAIL is not overwritten.
+Additive 034 addresses only these foundation residuals, with encoded denial-only
+witness/victim/OLD+NEW protection, full-byte owner checks and extra-alert
+completeness exclusion. 001–033 remain byte-identical. Legitimate outbox delivery
+updates remain supported. No phase/signing/send guard is opened. Fixes require
+fresh foundation review; this is not whole-B3 completion or approval.
+
 B3-A is implemented and author-validated locally. The new package has no signer;
 only test files use existing local signer/cipher primitives with ephemeral keys.
 The SELECT-only claimed-facts helper is disconnected and is not a fresh gate.
@@ -33,8 +43,9 @@ M2 = PASS
 M3-B1 = PASS
 M3-B2 = PASS
 M3-B3 = IN_PROGRESS
-M3-B3-A = IMPLEMENTED_AUTHOR_VALIDATED_NOT_INDEPENDENTLY_REVIEWED
+M3-B3-A = FOUNDATION_SCOPE_INDEPENDENT_PASS_AT_BEE4513
 M3-B3-B1 = DURABLE_MARKER_FOUNDATION_NOT_SIGNING_READY
+foundation_review = FAIL_AT_BEE4513_HARDENING_PENDING_FRESH_REVIEW
 M3-B4 = NOT_STARTED
 M3 overall = INCOMPLETE_NOT_PASS
 production_broadcast = NOT_CONNECTED
@@ -97,6 +108,18 @@ changes, retries idempotently and preserves legacy BLOB/orphan rows. The prior
 artifact tests now use an external test package solely to avoid a test-only
 import cycle through existing trade -> storage -> manualartifact dependencies;
 no production signer dependency or implementation was moved or changed.
+
+034 also denies retained same-byte BLOB audit/outbox replacement, rowid victims,
+duplicate TEXT witness insertion, OLD identity changes and projected NEW
+adoption. Extra relevant alert aliases make history incomplete; removing them
+is forbidden. Owner validation checks both byte and TEXT length plus lowercase
+ASCII hex, so leading/interior/trailing NULs cannot hide inside 64 bytes.
+Retained corruption remains untouched/unreadable after actual file reopen.
+Fault tests explicitly disable original table triggers/FK only for disposable
+seeding and restore every exact trigger definition/FK before the tested action.
+The owner-history negative control satisfies the old 033 predicate including
+its matching audit payload, isolating the new full-byte rejection. No DB
+wall-clock/signing-permission or hostile-schema-modification guarantee follows.
 
 ## Invocation ambiguity and writer fencing
 
@@ -176,7 +199,7 @@ B4/M4/M5/W4-D/W5 or remote fetch/push/PR/merge action is authorized here.
 
 ### B3-B2: exact artifact phase contract
 
-- Next additive migration, never edits to 001–033. Immutable command binds the
+- Next additive migration, never edits to 001–034. Immutable command binds the
   existing marker owner/facts, ciphertext/key/nonce/hash metadata and completion
   time to the ONE existing attempt. No second financial owner or transaction.
 - Same-statement command effect updates only that prepared attempt to signed,

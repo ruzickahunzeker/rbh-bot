@@ -7,6 +7,16 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+B3 foundation review at `bee4513` concluded B3-A scope-limited PASS / B3-B1
+FAIL, not whole-B3 approval. The continuing local slice adds only 034 and
+permanent residual/upgrade tests: full-byte owner identity, denial-only encoded
+audit/outbox witness/victim/adoption protection and extra-alert exclusion.
+001–033 and actual prepared step/attempt/lane/sign/send guards remain intact;
+legitimate alert delivery updates remain allowed. Fresh foundation review is
+pending. B3 remains IN_PROGRESS_NOT_READY_NOT_PASS; no signer orchestrator,
+artifact phase, HTTP/startup wiring, grant/send/live or remote operation follows.
+See `HTTP_MANUAL_M3_B3_SIGNING.md` and the additive witness-hardening evidence.
+
 Latest B3 foundation continuation: additive 033 records a one-shot immutable
 signing-intent marker, exact same-statement audit/alert and read-only ambiguity
 history. It preserves 001–032 and all actual signing/attempt/lane/send guards;
