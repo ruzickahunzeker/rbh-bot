@@ -7,6 +7,19 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Current continuation: the user's subsequent execution instruction authorizes
+local M3-B3 on `http-m3b3-controlled-local-signing`, base
+`6c706f411cb3bac95c4425f7e8c33af72381e929`. See
+`HTTP_MANUAL_M3_B3_SIGNING.md` for ordered B3-A/B/C/D and ambiguity/AAD boundary.
+B3-A adds exact artifact facts, strict EIP-1559 verification/encrypted local
+candidate primitives and a SELECT-only original B2 claim projection. It owns
+no signer, DB mutation, current gate or HTTP capability. Tests alone use ephemeral
+keys with existing local signer/cipher primitives. B3 = IN_PROGRESS, not
+READY_FOR_REVIEW/PASS; invocation schema, fenced orchestration and remaining
+acceptance evidence are NOT implemented by B3-A. No whole-M3, B4, production
+signing/send/grant/live or remote operation follows. Historical checkpoints
+below retain their prior meaning, including the B2 closeout's no-B3 authority.
+
 Current MANUAL checkpoint: M1 PASS, M2 PASS, M3-B1 PASS and M3-B2 independent
 review PASS at `b24eb92e92804161c7d9117c584df67b4a74c087`; B2 formal closeout
 COMPLETE_LOCAL_ONLY on `http-m3b2-nonce-closeout`. See
