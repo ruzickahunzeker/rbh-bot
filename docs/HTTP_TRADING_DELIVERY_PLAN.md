@@ -7,6 +7,15 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Fresh B3 foundation review of `13fe6b7` closed original 034 owner/alias defects
+but concluded B3-B1 FAIL for missing-witness recreation. Additive 035 permits
+original audit/alert creation only inside one transient statement scope, closed
+before marker insertion succeeds. Deferred FK prevents standalone scope commit;
+retained markers cannot reopen or adopt a preseeded scope. No backfill/repair,
+financial ledger, signing phase or economic permission is added. 001–034 stay
+unchanged. Fresh scoped review is pending; whole B3 remains IN_PROGRESS / NOT_READY
+/ NOT_PASS, all production grant/send/live/remote boundaries unchanged.
+
 B3 foundation review at `bee4513` concluded B3-A scope-limited PASS / B3-B1
 FAIL, not whole-B3 approval. The continuing local slice adds only 034 and
 permanent residual/upgrade tests: full-byte owner identity, denial-only encoded

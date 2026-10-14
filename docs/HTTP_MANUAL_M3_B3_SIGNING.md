@@ -7,6 +7,20 @@ implementation only, not production signing, HTTP wiring or real sending.
 
 ## Ordered work and current checkpoint
 
+Fresh foundation review of `13fe6b76d4b6cd868704d1229bd99c07f4748d98`
+closed 034's owner/alias findings but still concluded B3-B1 FAIL: absent
+audit/alert witnesses could be reinserted for retained markers. Additive 035
+restricts creation to a transient same-statement SQL scope. A BEFORE marker
+trigger opens it; exact original audit/alert effects run; verified closure
+removes it before success. The deferred FK prevents standalone scope commit,
+and an existing marker forbids reopening. Preseeded scopes cannot be adopted.
+Missing historical witnesses remain missing, never repaired/backfilled.
+All scopes must be empty after success; residual scope makes history incomplete.
+This is statement coordination only, not a new execution state machine, durable
+financial owner or reusable invocation/send permit. 001–034 are unchanged;
+only the marker's own effect trigger is replaced in 035 with its original
+payloads and explicit closure. Fresh review remains required.
+
 Foundation independent review of `bee4513d2514146e849b5bc5034fc75d96b77eaf`
 concluded B3-A scope-limited PASS, B3-B1 FAIL (combined FAIL). It reproduced
 retained BLOB audit/outbox witness repair/adoption and a total-64-byte interior
@@ -45,7 +59,7 @@ M3-B2 = PASS
 M3-B3 = IN_PROGRESS
 M3-B3-A = FOUNDATION_SCOPE_INDEPENDENT_PASS_AT_BEE4513
 M3-B3-B1 = DURABLE_MARKER_FOUNDATION_NOT_SIGNING_READY
-foundation_review = FAIL_AT_BEE4513_HARDENING_PENDING_FRESH_REVIEW
+foundation_review = FAIL_AT_13FE6B7_ADDITIVE035_PENDING_FRESH_REVIEW
 M3-B4 = NOT_STARTED
 M3 overall = INCOMPLETE_NOT_PASS
 production_broadcast = NOT_CONNECTED
@@ -199,7 +213,7 @@ B4/M4/M5/W4-D/W5 or remote fetch/push/PR/merge action is authorized here.
 
 ### B3-B2: exact artifact phase contract
 
-- Next additive migration, never edits to 001–034. Immutable command binds the
+- Next additive migration, never edits to 001–035. Immutable command binds the
   existing marker owner/facts, ciphertext/key/nonce/hash metadata and completion
   time to the ONE existing attempt. No second financial owner or transaction.
 - Same-statement command effect updates only that prepared attempt to signed,
