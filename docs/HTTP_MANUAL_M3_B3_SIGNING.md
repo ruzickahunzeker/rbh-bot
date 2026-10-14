@@ -10,8 +10,10 @@ implementation only, not production signing, HTTP wiring or real sending.
 B3-A is implemented and author-validated locally. The new package has no signer;
 only test files use existing local signer/cipher primitives with ephemeral keys.
 The SELECT-only claimed-facts helper is disconnected and is not a fresh gate.
-No invocation marker, signing transition or artifact row exists yet. This is
-not B3 completion or independent approval; B3-B/C/D below remain required.
+B3-B1 now adds additive 033's marker/audit foundation and read-only ambiguity
+history. No code inserts markers outside controlled SQL tests, opens signing
+transitions or invokes a signer. This is not B3 completion or independent
+approval; B3-B2/C/D below remain required.
 
 1. B3-A: exact claimed-transaction projection, strict signed-byte verification
    and versioned MANUAL encrypted artifact primitives. No durable transitions
@@ -32,6 +34,7 @@ M3-B1 = PASS
 M3-B2 = PASS
 M3-B3 = IN_PROGRESS
 M3-B3-A = IMPLEMENTED_AUTHOR_VALIDATED_NOT_INDEPENDENTLY_REVIEWED
+M3-B3-B1 = DURABLE_MARKER_FOUNDATION_NOT_SIGNING_READY
 M3-B4 = NOT_STARTED
 M3 overall = INCOMPLETE_NOT_PASS
 production_broadcast = NOT_CONNECTED
@@ -54,6 +57,46 @@ resolution, fee default, financial owner, budget consumption or TTL/epoch window
 Keep Operation -> ExecutionStep -> TransactionAttempt. Claim remains original
 unsigned prepared attempt until the explicitly reviewed B3-B transitions exist.
 No new financial ledger or second recovery/submission state machine.
+
+## Durable marker foundation (B3-B1 / 033)
+
+`manual_signing_intents` is append-only coordination metadata on the original
+B2 claim, not a second execution state machine, financial reservation or permit.
+One operation and one 64-hex owner identity can be recorded once. Facts JSON
+is derived in SQL from the durable claim/binding/command in the exact Go
+canonical order; full-byte scalar validation rejects malformed/type/NUL drift.
+The source guard requires original complete prepared claim, original reserved
+risk/usage, source-derived wallet/contract/token identity, active bound auth,
+control/policy/durable gate identities, conserved already-consumed budget and
+fresh same-nonce query evidence. Checked time is evidence, NOT the DB wall clock
+or signing permission; a future writer must independently recheck current time
+and all mutable gates after marker commit, immediately before any signer call.
+
+Every INSERT/IGNORE/REPLACE either creates exactly one marker with its exact
+durable audit and WARNING outbox event, or aborts the whole statement. Dropped
+or ignored audit/alert writes cannot produce marker-only success. UPDATE,
+DELETE, implicit rowid/REPLACE conflict victims and retained byte aliases cannot
+reset/adopt the marker. Future consumers must treat any incomplete/unverifiable
+marker as deny/frozen, not as permission to start anew.
+
+This foundation intentionally retains the original step `nonce_reserved`,
+attempt `prepared` and exclusive lane `reserved`; all existing signed-artifact,
+lane-release, financial-release and send guards remain closed. The immutable
+marker is an additional reason no new invocation is allowed. "Frozen" here
+means no new action/release, not a newly introduced textual lane phase. A
+later additive exact phase contract is still required for signing/artifact
+effects; no blanket exception is introduced in 033. History returns only
+SIGNING_OUTCOME_UNKNOWN_NOT_PERMISSION with all three permission flags false,
+even after stop/revoke/expiry or restart; it never says a signer actually ran.
+
+Tests use direct SQL in disposable fixtures, including explicit restored
+guard/CHECK/FK corruption injection, real file reopen and 12 simultaneous
+contenders across two DB handles. Pure scalar registration survives pool
+replacement. Real 032→033 late journal failure rolls back all schema/journal
+changes, retries idempotently and preserves legacy BLOB/orphan rows. The prior
+artifact tests now use an external test package solely to avoid a test-only
+import cycle through existing trade -> storage -> manualartifact dependencies;
+no production signer dependency or implementation was moved or changed.
 
 ## Invocation ambiguity and writer fencing
 
@@ -128,3 +171,63 @@ HTTP/config/startup wiring, SubmissionService, ReplayUnknown, RawBroadcaster,
 SendRawTransaction, send permits, real authorization grant, unrestricted live,
 mainnet/live/release change, BSC/Flap/Base/Solana, Long/LP/strategy expansion,
 B4/M4/M5/W4-D/W5 or remote fetch/push/PR/merge action is authorized here.
+
+## Remaining batches — implementation checklist, not completed evidence
+
+### B3-B2: exact artifact phase contract
+
+- Next additive migration, never edits to 001–033. Immutable command binds the
+  existing marker owner/facts, ciphertext/key/nonce/hash metadata and completion
+  time to the ONE existing attempt. No second financial owner or transaction.
+- Same-statement command effect updates only that prepared attempt to signed,
+  that nonce_reserved step to signed and that exclusive reserved lane to signed,
+  with exact audit/alert. Original operation/validation/admission facts remain.
+- Replace only named guard definitions by retaining their complete old deny
+  predicate and adding an exact one-way command-owned row/column/rowid exception.
+  No generic "marker exists" or "status signed" exception; no unrelated victims.
+- New phase-aware completeness verifies original immutable B2/M2 facts AND
+  all exact new effects. Any phase projection used for equality must first
+  verify the actual signed row against the full command and cannot normalize
+  malformed storage or make old initial-only views accept arbitrary signed rows.
+- Marker-without-complete-artifact remains ambiguity. Original B2 history APIs
+  must never convert a signing/signed phase to a fresh claim or sign permission.
+  Missing/corrupt artifacts reject without repair, re-encryption or resign.
+- Schema proves metadata/effect/audit completeness; it cannot decrypt ciphertext
+  without a key. Every usable artifact history path must ALSO decrypt and verify
+  exact bytes against original facts. No schema-complete => crypto-valid claim.
+
+### B3-C: disconnected fenced local orchestration
+
+- A first invocation requires original B2 claim; never allocate a nonce here.
+  Read candidate facts, query a bounded controlled-local observer outside the
+  writer, and verify same original nonce/current chain/runtime/canonical evidence.
+- BEGIN IMMEDIATE reloads emergency stop first, scope/auth/epoch/deployment,
+  policy/allowlists/attestations, original complete claim/accounting/usage caps,
+  wallet exclusivity and canonical non-reversing current clock/absolute expiry.
+  Commit a single marker with a fresh per-call owner only after final rechecks.
+- After marker commit, acquire a new writer fence and repeat all authoritative
+  mutable and evidence-age checks. Only this uninterrupted first invocation's
+  in-memory ownership may continue. Reading an owner ID from history is NOT
+  permission to resume; any subsequent call/restart is history/ambiguity only.
+- Check matching signer address, final time/auth/application TTL and bounded
+  observer freshness immediately before synchronous local signer invocation.
+  Hold the writer fence through the bounded trusted call/outcome; no orphan
+  signer goroutine, background retry or plaintext fallback.
+- Exact raw verification/encryption, current time/expiry/evidence checks and
+  atomic command/effect commit must succeed before returning metadata. Failure
+  after marker never erases ambiguity or automatically signs a second time.
+- Complete artifact history skips observer/signer and remains false-permission
+  after TTL/revoke/stop. Its exact encrypted bytes/identity are unchanged.
+  No HTTP/config/startup adapter or submission/send dependency is added.
+
+### B3-D: cumulative acceptance evidence
+
+Test exact BUY/fixed SELL/resolved percentage SELL with ephemeral matching keys,
+one invocation under competing callers, wrong signer zero calls, gate denial
+zero calls, control-writer barriers, every marker/sign/encryption/commit fault,
+response loss and actual file close/reopen. Prove no retry/restart resign or new
+nonce, no leaked usable artifact on failure, original accounting conserved,
+all direct-SQL/IGNORE/REPLACE/victim/retained-phase protections and no send.
+Then run proportionate full ordinary/race/compatibility/lint/validation checks,
+record real commands/results/limits and stop at M3_B3_READY_FOR_REVIEW. Stage-
+specific independent review is still required; prior B2 PASS is not B3 approval.

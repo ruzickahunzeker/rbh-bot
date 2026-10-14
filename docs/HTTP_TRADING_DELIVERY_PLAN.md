@@ -7,6 +7,17 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest B3 foundation continuation: additive 033 records a one-shot immutable
+signing-intent marker, exact same-statement audit/alert and read-only ambiguity
+history. It preserves 001–032 and all actual signing/attempt/lane/send guards;
+the original prepared attempt and exclusive reserved lane remain untouched.
+No marker-write API, signer orchestration, signed artifact or new economic
+effect is wired. B3-B1 is a foundation only, B3 still IN_PROGRESS, not
+READY_FOR_REVIEW/PASS. Source checked_at is evidence, not a wall-clock or signer
+permit; the pending B3-C writer must recheck fresh controls/time/evidence under
+a final fence. See `HTTP_MANUAL_M3_B3_SIGNING.md` and additive intent-foundation
+evidence. No remote operation, real authorization/RPC/key/send/live or B4 follows.
+
 Current continuation: the user's subsequent execution instruction authorizes
 local M3-B3 on `http-m3b3-controlled-local-signing`, base
 `6c706f411cb3bac95c4425f7e8c33af72381e929`. See

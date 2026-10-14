@@ -1,4 +1,4 @@
-package manualartifact
+package manualartifact_test
 
 import (
 	"bytes"
@@ -15,16 +15,17 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ruzickahunzeker/rbh-bot/internal/manualartifact"
 	"github.com/ruzickahunzeker/rbh-bot/internal/trade"
 )
 
-func artifactFixture(t *testing.T) (Facts, *ecdsa.PrivateKey, Cipher) {
+func artifactFixture(t *testing.T) (manualartifact.Facts, *ecdsa.PrivateKey, manualartifact.Cipher) {
 	t.Helper()
 	key, err := crypto.GenerateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
-	f := Facts{Version: Version, OperationID: "manual-op", RequestID: "req-1", ExecutionStepID: "manual-exec:manual-op", AttemptID: "manual-nonce:manual-op", WalletID: "wallet-01", ReservationID: "manual-risk:manual-op",
+	f := manualartifact.Facts{Version: manualartifact.Version, OperationID: "manual-op", RequestID: "req-1", ExecutionStepID: "manual-exec:manual-op", AttemptID: "manual-nonce:manual-op", WalletID: "wallet-01", ReservationID: "manual-risk:manual-op",
 		ContractHash: strings.Repeat("1", 64), ChainID: 4663, From: crypto.PubkeyToAddress(key.PublicKey).Hex(), To: "0x2000000000000000000000000000000000000002",
 		Value: "10000000000000000", Data: "0x12345678", Nonce: "0", GasLimit: 100000, GasFeeCap: "1000000000", GasTipCap: "0", PolicyVersion: 1, PolicyHash: strings.Repeat("2", 64),
 		QuoteBlockNumber: 100, QuoteBlockHash: "0x" + strings.Repeat("3", 64), RuntimeCodeHash: "0x" + strings.Repeat("4", 64), ExpiresAt: "2026-10-14T00:00:30Z", ClaimedAt: "2026-10-14T00:00:00Z", ClaimObservationHash: strings.Repeat("5", 64), DeadlineCapability: "APPLICATION_TTL_ONLY",
@@ -53,7 +54,7 @@ func rawSigned(t *testing.T, tx *types.Transaction, key *ecdsa.PrivateKey, chain
 	return raw
 }
 
-func signedFacts(t *testing.T, f Facts, key *ecdsa.PrivateKey) []byte {
+func signedFacts(t *testing.T, f manualartifact.Facts, key *ecdsa.PrivateKey) []byte {
 	t.Helper()
 	tx, err := f.Transaction()
 	if err != nil {
@@ -75,16 +76,16 @@ func TestManualArtifactExactRoundTripNonceTipAndOwnedBuffers(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				decoded, err := Decode(rawFacts)
+				decoded, err := manualartifact.Decode(rawFacts)
 				if err != nil || decoded != f {
 					t.Fatal("canonical round trip", err)
 				}
-				v, err := Seal(raw, f, c)
+				v, err := manualartifact.Seal(raw, f, c)
 				if err != nil || v.FactsHash != digest || v.KeyVersion != "fixture-only" || !bytes.Equal(original, raw) || bytes.Contains(v.Ciphertext, raw) {
 					t.Fatal("seal", v.Version, err)
 				}
 				before := append([]byte(nil), v.Ciphertext...)
-				checked, err := Open(v, f, c)
+				checked, err := manualartifact.Open(v, f, c)
 				if err != nil || checked.TxHash != v.TxHash || checked.FactsHash != digest || !bytes.Equal(before, v.Ciphertext) {
 					t.Fatal("open", err)
 				}
@@ -153,19 +154,19 @@ func TestManualArtifactRejectsEverySignedFieldSubstitution(t *testing.T) {
 			} else {
 				raw = rawSigned(t, tx, useKey, chain)
 			}
-			v, err := Verify(raw, f)
-			if err == nil || v != (Verification{}) {
+			v, err := manualartifact.Verify(raw, f)
+			if err == nil || v != (manualartifact.Verification{}) {
 				t.Fatal("substitution accepted", field)
 			}
-			encrypted, err := Seal(raw, f, c)
-			if err == nil || !reflect.DeepEqual(encrypted, Encrypted{}) {
+			encrypted, err := manualartifact.Seal(raw, f, c)
+			if err == nil || !reflect.DeepEqual(encrypted, manualartifact.Encrypted{}) {
 				t.Fatal("invalid raw encrypted", field)
 			}
 		})
 	}
-	for _, raw := range [][]byte{nil, {}, {2, 0}, append(signedFacts(t, f, key), 0), bytes.Repeat([]byte{2}, MaxRawBytes+1)} {
-		v, err := Verify(raw, f)
-		if err == nil || v != (Verification{}) {
+	for _, raw := range [][]byte{nil, {}, {2, 0}, append(signedFacts(t, f, key), 0), bytes.Repeat([]byte{2}, manualartifact.MaxRawBytes+1)} {
+		v, err := manualartifact.Verify(raw, f)
+		if err == nil || v != (manualartifact.Verification{}) {
 			t.Fatal("malformed raw accepted")
 		}
 	}
@@ -175,26 +176,26 @@ func TestManualArtifactRejectsNoncanonicalIdentity(t *testing.T) {
 	f, key, _ := artifactFixture(t)
 	bad := []struct {
 		name   string
-		change func(*Facts)
+		change func(*manualartifact.Facts)
 	}{
-		{"version", func(f *Facts) { f.Version = 0 }}, {"chain", func(f *Facts) { f.ChainID = 1 }},
-		{"step", func(f *Facts) { f.ExecutionStepID = "other" }}, {"attempt", func(f *Facts) { f.AttemptID = "other" }}, {"reservation", func(f *Facts) { f.ReservationID = "other" }},
-		{"nul_identity", func(f *Facts) { f.WalletID += "\x00" }}, {"oversized_identity", func(f *Facts) { f.RequestID = strings.Repeat("a", 129) }},
-		{"nonce_leading_zero", func(f *Facts) { f.Nonce = "00" }}, {"nonce_max", func(f *Facts) { f.Nonce = "18446744073709551615" }}, {"nonce_overflow", func(f *Facts) { f.Nonce = "18446744073709551616" }},
-		{"value_plus", func(f *Facts) { f.Value = "+1" }}, {"value_leading_zero", func(f *Facts) { f.Value = "01" }}, {"value_negative", func(f *Facts) { f.Value = "-1" }}, {"value_overflow", func(f *Facts) { f.Value = new(big.Int).Lsh(big.NewInt(1), 256).String() }},
-		{"zero_fee", func(f *Facts) { f.GasFeeCap = "0" }}, {"tip_above_fee", func(f *Facts) { f.GasTipCap = "1000000001" }}, {"bad_tip", func(f *Facts) { f.GasTipCap = " 0" }},
-		{"zero_gas", func(f *Facts) { f.GasLimit = 0 }}, {"gas_over_SQL", func(f *Facts) { f.GasLimit = math.MaxUint64 }}, {"policy_over_SQL", func(f *Facts) { f.PolicyVersion = math.MaxUint64 }},
-		{"gas_budget_overflow", func(f *Facts) {
+		{"version", func(f *manualartifact.Facts) { f.Version = 0 }}, {"chain", func(f *manualartifact.Facts) { f.ChainID = 1 }},
+		{"step", func(f *manualartifact.Facts) { f.ExecutionStepID = "other" }}, {"attempt", func(f *manualartifact.Facts) { f.AttemptID = "other" }}, {"reservation", func(f *manualartifact.Facts) { f.ReservationID = "other" }},
+		{"nul_identity", func(f *manualartifact.Facts) { f.WalletID += "\x00" }}, {"oversized_identity", func(f *manualartifact.Facts) { f.RequestID = strings.Repeat("a", 129) }},
+		{"nonce_leading_zero", func(f *manualartifact.Facts) { f.Nonce = "00" }}, {"nonce_max", func(f *manualartifact.Facts) { f.Nonce = "18446744073709551615" }}, {"nonce_overflow", func(f *manualartifact.Facts) { f.Nonce = "18446744073709551616" }},
+		{"value_plus", func(f *manualartifact.Facts) { f.Value = "+1" }}, {"value_leading_zero", func(f *manualartifact.Facts) { f.Value = "01" }}, {"value_negative", func(f *manualartifact.Facts) { f.Value = "-1" }}, {"value_overflow", func(f *manualartifact.Facts) { f.Value = new(big.Int).Lsh(big.NewInt(1), 256).String() }},
+		{"zero_fee", func(f *manualartifact.Facts) { f.GasFeeCap = "0" }}, {"tip_above_fee", func(f *manualartifact.Facts) { f.GasTipCap = "1000000001" }}, {"bad_tip", func(f *manualartifact.Facts) { f.GasTipCap = " 0" }},
+		{"zero_gas", func(f *manualartifact.Facts) { f.GasLimit = 0 }}, {"gas_over_SQL", func(f *manualartifact.Facts) { f.GasLimit = math.MaxUint64 }}, {"policy_over_SQL", func(f *manualartifact.Facts) { f.PolicyVersion = math.MaxUint64 }},
+		{"gas_budget_overflow", func(f *manualartifact.Facts) {
 			f.GasFeeCap = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1)).String()
 		}},
-		{"no_quote", func(f *Facts) { f.QuoteBlockNumber = 0 }}, {"zero_epoch", func(f *Facts) { f.AuthorizationEpoch = 0 }},
-		{"zero_address", func(f *Facts) { f.To = "0x" + strings.Repeat("0", 40) }}, {"short_address", func(f *Facts) { f.From = "0x01" }},
-		{"uppercase_data", func(f *Facts) { f.Data = "0xDEAD" }}, {"odd_data", func(f *Facts) { f.Data = "0x123" }}, {"empty_data", func(f *Facts) { f.Data = "0x" }}, {"large_data", func(f *Facts) { f.Data = "0x" + strings.Repeat("ab", MaxDataBytes+1) }},
-		{"missing_hash", func(f *Facts) { f.PolicyHash = "" }}, {"bad_runtime", func(f *Facts) { f.RuntimeCodeHash = "0x" + strings.Repeat("0", 64) }},
-		{"bad_quote", func(f *Facts) { f.QuoteBlockHash += "\x00" }}, {"bad_build", func(f *Facts) { f.BuildSHA = "ABC" }},
-		{"expiry_offset", func(f *Facts) { f.ExpiresAt = "2026-10-14T00:00:30+00:00" }}, {"expiry_nul", func(f *Facts) { f.ExpiresAt += "\x00" }},
-		{"claim_equality", func(f *Facts) { f.ClaimedAt = f.ExpiresAt }}, {"claim_after", func(f *Facts) { f.ClaimedAt = "2026-10-14T00:00:31Z" }},
-		{"capability", func(f *Facts) { f.DeadlineCapability = "CONTRACT" }}, {"contract_deadline", func(f *Facts) { f.ContractDeadline = true }},
+		{"no_quote", func(f *manualartifact.Facts) { f.QuoteBlockNumber = 0 }}, {"zero_epoch", func(f *manualartifact.Facts) { f.AuthorizationEpoch = 0 }},
+		{"zero_address", func(f *manualartifact.Facts) { f.To = "0x" + strings.Repeat("0", 40) }}, {"short_address", func(f *manualartifact.Facts) { f.From = "0x01" }},
+		{"uppercase_data", func(f *manualartifact.Facts) { f.Data = "0xDEAD" }}, {"odd_data", func(f *manualartifact.Facts) { f.Data = "0x123" }}, {"empty_data", func(f *manualartifact.Facts) { f.Data = "0x" }}, {"large_data", func(f *manualartifact.Facts) { f.Data = "0x" + strings.Repeat("ab", manualartifact.MaxDataBytes+1) }},
+		{"missing_hash", func(f *manualartifact.Facts) { f.PolicyHash = "" }}, {"bad_runtime", func(f *manualartifact.Facts) { f.RuntimeCodeHash = "0x" + strings.Repeat("0", 64) }},
+		{"bad_quote", func(f *manualartifact.Facts) { f.QuoteBlockHash += "\x00" }}, {"bad_build", func(f *manualartifact.Facts) { f.BuildSHA = "ABC" }},
+		{"expiry_offset", func(f *manualartifact.Facts) { f.ExpiresAt = "2026-10-14T00:00:30+00:00" }}, {"expiry_nul", func(f *manualartifact.Facts) { f.ExpiresAt += "\x00" }},
+		{"claim_equality", func(f *manualartifact.Facts) { f.ClaimedAt = f.ExpiresAt }}, {"claim_after", func(f *manualartifact.Facts) { f.ClaimedAt = "2026-10-14T00:00:31Z" }},
+		{"capability", func(f *manualartifact.Facts) { f.DeadlineCapability = "CONTRACT" }}, {"contract_deadline", func(f *manualartifact.Facts) { f.ContractDeadline = true }},
 	}
 	raw := signedFacts(t, f, key)
 	for _, tc := range bad {
@@ -207,24 +208,24 @@ func TestManualArtifactRejectsNoncanonicalIdentity(t *testing.T) {
 			if tx, err := copy.Transaction(); err == nil || tx != nil {
 				t.Fatal("invalid candidate transaction")
 			}
-			if v, err := Verify(raw, copy); err == nil || v != (Verification{}) {
+			if v, err := manualartifact.Verify(raw, copy); err == nil || v != (manualartifact.Verification{}) {
 				t.Fatal("invalid verification")
 			}
 		})
 	}
 	canonical, _, _ := f.Canonical()
 	for _, raw := range []string{" " + canonical, canonical + "\n", canonical + "\x00", canonical + "{}", strings.Replace(canonical, `"version":1`, `"version":1,"version":1`, 1), strings.Replace(canonical, `"version":1`, `"version":1,"extra":false`, 1)} {
-		if got, err := Decode(raw); err == nil || got != (Facts{}) {
+		if got, err := manualartifact.Decode(raw); err == nil || got != (manualartifact.Facts{}) {
 			t.Fatal("noncanonical JSON accepted")
 		}
 	}
 	// Max-sized valid calldata still round trips through canonical decoding.
-	f.Data = "0x" + strings.Repeat("ab", MaxDataBytes)
+	f.Data = "0x" + strings.Repeat("ab", manualartifact.MaxDataBytes)
 	canonical, _, err := f.Canonical()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, err := Decode(canonical); err != nil || got != f {
+	if got, err := manualartifact.Decode(canonical); err != nil || got != f {
 		t.Fatal("valid maximum identity cannot roundtrip", err)
 	}
 }
@@ -232,27 +233,27 @@ func TestManualArtifactRejectsNoncanonicalIdentity(t *testing.T) {
 func TestManualArtifactAADAuthenticatesEveryMetadataField(t *testing.T) {
 	f, key, c := artifactFixture(t)
 	raw := signedFacts(t, f, key)
-	original, err := Seal(raw, f, c)
+	original, err := manualartifact.Seal(raw, f, c)
 	if err != nil {
 		t.Fatal(err)
 	}
 	changes := []struct {
 		name   string
-		change func(*Facts)
+		change func(*manualartifact.Facts)
 	}{
-		{"operation", func(f *Facts) {
+		{"operation", func(f *manualartifact.Facts) {
 			f.OperationID = "other-op"
 			f.ExecutionStepID = "manual-exec:other-op"
 			f.AttemptID = "manual-nonce:other-op"
 			f.ReservationID = "manual-risk:other-op"
 		}},
-		{"request", func(f *Facts) { f.RequestID = "other" }}, {"wallet", func(f *Facts) { f.WalletID = "other" }},
-		{"contract", func(f *Facts) { f.ContractHash = strings.Repeat("9", 64) }}, {"policy", func(f *Facts) { f.PolicyVersion++ }}, {"policy_hash", func(f *Facts) { f.PolicyHash = strings.Repeat("9", 64) }},
-		{"quote_block", func(f *Facts) { f.QuoteBlockNumber++ }}, {"quote_hash", func(f *Facts) { f.QuoteBlockHash = "0x" + strings.Repeat("9", 64) }}, {"runtime", func(f *Facts) { f.RuntimeCodeHash = "0x" + strings.Repeat("9", 64) }},
-		{"expiry", func(f *Facts) { f.ExpiresAt = "2026-10-14T00:00:31Z" }}, {"claim_time", func(f *Facts) { f.ClaimedAt = "2026-10-14T00:00:01Z" }}, {"claim_observation", func(f *Facts) { f.ClaimObservationHash = strings.Repeat("9", 64) }},
-		{"auth", func(f *Facts) { f.AuthorizationID = "other" }}, {"epoch", func(f *Facts) { f.AuthorizationEpoch++ }}, {"manual_policy", func(f *Facts) { f.ManualPolicyID = "other" }},
-		{"manual_hash", func(f *Facts) { f.ManualPolicyHash = strings.Repeat("9", 64) }}, {"gate_hash", func(f *Facts) { f.GateEvidenceSetHash = strings.Repeat("9", 64) }},
-		{"environment", func(f *Facts) { f.Environment = "other" }}, {"build", func(f *Facts) { f.BuildSHA = strings.Repeat("9", 40) }}, {"release", func(f *Facts) { f.ReleaseID = "other" }}, {"deployment", func(f *Facts) { f.DeploymentID = "other" }},
+		{"request", func(f *manualartifact.Facts) { f.RequestID = "other" }}, {"wallet", func(f *manualartifact.Facts) { f.WalletID = "other" }},
+		{"contract", func(f *manualartifact.Facts) { f.ContractHash = strings.Repeat("9", 64) }}, {"policy", func(f *manualartifact.Facts) { f.PolicyVersion++ }}, {"policy_hash", func(f *manualartifact.Facts) { f.PolicyHash = strings.Repeat("9", 64) }},
+		{"quote_block", func(f *manualartifact.Facts) { f.QuoteBlockNumber++ }}, {"quote_hash", func(f *manualartifact.Facts) { f.QuoteBlockHash = "0x" + strings.Repeat("9", 64) }}, {"runtime", func(f *manualartifact.Facts) { f.RuntimeCodeHash = "0x" + strings.Repeat("9", 64) }},
+		{"expiry", func(f *manualartifact.Facts) { f.ExpiresAt = "2026-10-14T00:00:31Z" }}, {"claim_time", func(f *manualartifact.Facts) { f.ClaimedAt = "2026-10-14T00:00:01Z" }}, {"claim_observation", func(f *manualartifact.Facts) { f.ClaimObservationHash = strings.Repeat("9", 64) }},
+		{"auth", func(f *manualartifact.Facts) { f.AuthorizationID = "other" }}, {"epoch", func(f *manualartifact.Facts) { f.AuthorizationEpoch++ }}, {"manual_policy", func(f *manualartifact.Facts) { f.ManualPolicyID = "other" }},
+		{"manual_hash", func(f *manualartifact.Facts) { f.ManualPolicyHash = strings.Repeat("9", 64) }}, {"gate_hash", func(f *manualartifact.Facts) { f.GateEvidenceSetHash = strings.Repeat("9", 64) }},
+		{"environment", func(f *manualartifact.Facts) { f.Environment = "other" }}, {"build", func(f *manualartifact.Facts) { f.BuildSHA = strings.Repeat("9", 40) }}, {"release", func(f *manualartifact.Facts) { f.ReleaseID = "other" }}, {"deployment", func(f *manualartifact.Facts) { f.DeploymentID = "other" }},
 	}
 	for _, tc := range changes {
 		t.Run(tc.name, func(t *testing.T) {
@@ -265,8 +266,8 @@ func TestManualArtifactAADAuthenticatesEveryMetadataField(t *testing.T) {
 			// Even relabeling the untrusted hash cannot bypass authenticated AAD.
 			tampered := original
 			tampered.FactsHash = newHash
-			v, err := Open(tampered, changed, c)
-			if err == nil || v != (Verification{}) {
+			v, err := manualartifact.Open(tampered, changed, c)
+			if err == nil || v != (manualartifact.Verification{}) {
 				t.Fatal("metadata relabel accepted")
 			}
 		})
@@ -274,7 +275,7 @@ func TestManualArtifactAADAuthenticatesEveryMetadataField(t *testing.T) {
 }
 
 type faultCipher struct {
-	Cipher
+	manualartifact.Cipher
 	mode     string
 	leaked   []byte
 	decrypts int
@@ -336,8 +337,8 @@ func TestManualArtifactCipherFaultsTamperZeroOutputAndNoLeak(t *testing.T) {
 	for _, mode := range []string{"encrypt_error", "encrypt_panic", "corrupt_encrypt", "short_nonce", "decrypt_error", "decrypt_panic", "empty_key", "bad_key", "key_drift", "mutate_ciphertext", "mutate_nonce"} {
 		t.Run(mode, func(t *testing.T) {
 			fault := &faultCipher{Cipher: c, mode: mode}
-			v, err := Seal(raw, f, fault)
-			if err == nil || !reflect.DeepEqual(v, Encrypted{}) || strings.Contains(err.Error(), "sensitive") || !bytes.Equal(original, raw) {
+			v, err := manualartifact.Seal(raw, f, fault)
+			if err == nil || !reflect.DeepEqual(v, manualartifact.Encrypted{}) || strings.Contains(err.Error(), "sensitive") || !bytes.Equal(original, raw) {
 				t.Fatal("fault exposed result or detail", err)
 			}
 			if len(fault.leaked) > 0 && !bytes.Equal(fault.leaked, make([]byte, len(fault.leaked))) {
@@ -345,7 +346,7 @@ func TestManualArtifactCipherFaultsTamperZeroOutputAndNoLeak(t *testing.T) {
 			}
 		})
 	}
-	v, err := Seal(raw, f, c)
+	v, err := manualartifact.Seal(raw, f, c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -374,26 +375,26 @@ func TestManualArtifactCipherFaultsTamperZeroOutputAndNoLeak(t *testing.T) {
 			case "empty":
 				copy.Ciphertext = nil
 			case "size":
-				copy.Ciphertext = make([]byte, MaxRawBytes+17)
+				copy.Ciphertext = make([]byte, manualartifact.MaxRawBytes+17)
 			}
-			checked, err := Open(copy, f, c)
-			if err == nil || checked != (Verification{}) {
+			checked, err := manualartifact.Open(copy, f, c)
+			if err == nil || checked != (manualartifact.Verification{}) {
 				t.Fatal("corrupt artifact accepted")
 			}
 		})
 	}
 	wrong, _ := trade.NewAESGCMCipher("fixture-only", bytes.Repeat([]byte{8}, 32))
-	if got, err := Open(v, f, wrong); err == nil || got != (Verification{}) {
+	if got, err := manualartifact.Open(v, f, wrong); err == nil || got != (manualartifact.Verification{}) {
 		t.Fatal("wrong key accepted")
 	}
 	var nilCipher *trade.AESGCMCipher
-	for _, cipher := range []Cipher{nil, nilCipher} {
-		if got, err := Seal(raw, f, cipher); err == nil || !reflect.DeepEqual(got, Encrypted{}) {
+	for _, cipher := range []manualartifact.Cipher{nil, nilCipher} {
+		if got, err := manualartifact.Seal(raw, f, cipher); err == nil || !reflect.DeepEqual(got, manualartifact.Encrypted{}) {
 			t.Fatal("nil cipher accepted")
 		}
 	}
 	spy := &faultCipher{Cipher: c}
-	if _, err := Seal(raw, f, spy); err != nil {
+	if _, err := manualartifact.Seal(raw, f, spy); err != nil {
 		t.Fatal(err)
 	}
 	if len(spy.leaked) == 0 || !bytes.Equal(spy.leaked, make([]byte, len(spy.leaked))) {
