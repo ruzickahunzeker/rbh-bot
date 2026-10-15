@@ -7,6 +7,33 @@ implementation only, not production signing, HTTP wiring or real sending.
 
 ## Ordered work and current checkpoint
 
+Current foundation checkpoint: independent read-only review **PASS** at
+`ff073f02713c4f03b7cdd0c98ff63095b697d729`, limited to B3-A/B1. All prior owner,
+retained-alias and missing-witness findings are closed within the reviewed
+FK-ON / intact-trigger boundary. Independent focused tests and additional
+temporary SQL probes passed. The author's complete affected-package ordinary
+run also finished PASS (storage 9.908s / tradeapi 210.368s); this later result
+is recorded additively, not by rewriting the frozen implementation evidence.
+See `evidence/http-manual-m3b3-foundation-review.json` for exact commands,
+review/probe hashes, qualifications and retained prior FAILs.
+
+This is a foundation checkpoint, NOT whole-B3 closeout or permission to sign.
+B3-B2 exact artifact phase, B3-C fenced local orchestration and B3-D cumulative
+acceptance remain unimplemented. Existing attempt/step/lane and signing/send
+guards are unchanged. The next implementation must use the next additive
+migration, keep original facts/accounting and introduce no HTTP/startup/send.
+
+The tested threat limit is explicit: normal SQL cannot reopen or independently
+commit the creation scope. If an administrator deliberately disables its source
+guard and forges matching creation authority, direct SQL can rebuild/close
+effects; no protection against that hostile schema modification is claimed.
+Historical reads reject residual scope without clearing it. The SQL scope is
+never signing authority; later orchestration still requires fresh mutable gates,
+an in-memory first-call owner and the final writer fence.
+
+Historical review/fix checkpoints follow; their FAIL/pending statements describe
+their original snapshots, not the current foundation conclusion.
+
 Fresh foundation review of `13fe6b76d4b6cd868704d1229bd99c07f4748d98`
 closed 034's owner/alias findings but still concluded B3-B1 FAIL: absent
 audit/alert witnesses could be reinserted for retained markers. Additive 035
@@ -57,9 +84,9 @@ M2 = PASS
 M3-B1 = PASS
 M3-B2 = PASS
 M3-B3 = IN_PROGRESS
-M3-B3-A = FOUNDATION_SCOPE_INDEPENDENT_PASS_AT_BEE4513
-M3-B3-B1 = DURABLE_MARKER_FOUNDATION_NOT_SIGNING_READY
-foundation_review = FAIL_AT_13FE6B7_ADDITIVE035_PENDING_FRESH_REVIEW
+M3-B3-A = FOUNDATION_SCOPE_INDEPENDENT_PASS_AT_FF073F
+M3-B3-B1 = REVIEWED_DURABLE_MARKER_FOUNDATION_NOT_SIGNING_READY
+foundation_review = PASS_AT_FF073F_SCOPE_LIMITED_NOT_WHOLE_B3
 M3-B4 = NOT_STARTED
 M3 overall = INCOMPLETE_NOT_PASS
 production_broadcast = NOT_CONNECTED

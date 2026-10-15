@@ -7,6 +7,18 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest local B3 foundation checkpoint: independent B3-A/B1 review PASS at
+`ff073f02713c4f03b7cdd0c98ff63095b697d729`. The prior owner/alias/missing-witness
+findings are closed within FK-ON / reviewed-trigger semantics. Independent
+focused and additional temporary SQL probes PASS; author complete storage/API
+ordinary PASS (9.908s / 210.368s). Additive foundation-review evidence preserves
+prior FAILs, historical hashes and explicit forged-scope-authority limitations.
+This checkpoint changes docs/evidence/checksum only. Whole B3 is still
+IN_PROGRESS_NOT_READY_NOT_PASS; B3-B2 artifact phase, B3-C local orchestration
+and B3-D acceptance remain required. No phase guard, signer/API/startup/send,
+authorization/live/release or remote operation is enabled by this review.
+Historical FAIL/pending checkpoints below keep their snapshot meaning.
+
 Fresh B3 foundation review of `13fe6b7` closed original 034 owner/alias defects
 but concluded B3-B1 FAIL for missing-witness recreation. Additive 035 permits
 original audit/alert creation only inside one transient statement scope, closed
