@@ -7,6 +7,24 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest local M4-B1 continuation: disconnected durable submission foundation
+on `http-m4b1-submission-foundation`, base
+`4855d982aca882b9ca2b1eccd965efe725ce2679`. Additive037 stores exact original
+artifact/contract/accounting metadata plus atomic immutable audit/alert. No
+old schema guard/view is replaced; no-arm/no-permit/no-PASS and downstream
+submission/receipt/effect/release guards remain closed. No Go runtime writer,
+caller, crypto, gate, permit or transport is added. Author validation COMPLETE:
+M4_B1_READY_FOR_REVIEW; independent review NOT_PERFORMED. Final full repository
+ordinary PASS (API321.406s); selected race PASS (API498.535s), including all13
+B1 tests, plus build/vet/staticcheck/offline checks. Two old schema metadata
+expectations advance by one; no old behavior assertion is removed. Historical
+fixture and checkpoint failures are preserved, not relabeled PASS. Whole M4-B
+INCOMPLETE_NOT_READY_NOT_PASS. See `HTTP_MANUAL_M4_B1_FOUNDATION.md`
+and additive B1 evidence for source/historical-permission distinctions, fixture
+qualification and validation. B2/B3/B4 and M4-C/D/M5 remain NOT_STARTED. Maximum
+M4_B1_READY_FOR_REVIEW only; no production/HTTP/startup/sign/send/grant/live/
+release/remote action follows. All older checkpoints remain historical snapshots.
+
 Latest local M4-A formal closeout: independent review PASS at
 `32a5fd6d0855b99a2151bedbc87c3adfe2f75594`, formally recorded on separate
 docs/evidence-only `http-m4a-artifact-closeout`. M4-A = PASS; formal closeout =
@@ -575,7 +593,7 @@ M2_READY_FOR_REVIEW pending fresh independent review, not PASS or M3.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3 and M4-A controlled-local PASS/local closeout; whole M4 INCOMPLETE_NOT_PASS; B/C/D and M5 NOT_STARTED; next candidate separately authorized M4-B detailed contract, no production signing/send/live permission |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3/M4-A controlled-local PASS/local closeout; M4_B1_READY_FOR_REVIEW (author only); whole M4-B incomplete, B2/B3/B4/C/D/M5 NOT_STARTED; no production signing/send/live permission |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |
