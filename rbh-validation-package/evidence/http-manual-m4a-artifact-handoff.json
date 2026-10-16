@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_MANUAL_M4_A_PRIVATE_READ_ONLY_SOURCE_AWARE_ARTIFACT_METADATA_NO_SUBMISSION_WIRING",
+  "branch": "http-m4a-artifact-handoff",
+  "implementation_base": "1b6b528fea77b57f94f8bd1b964a425e17192ff5",
+  "M4_A": "READY_FOR_REVIEW",
+  "checkpoint": "M4_A_READY_FOR_REVIEW",
+  "M4": "INCOMPLETE_NOT_PASS",
+  "independent_M4_A_review": "NOT_PERFORMED",
+  "change_contract": {
+    "product": "ONE_NEW_PRIVATE_READER_FILE_ONLY_REUSES_UNCHANGED_M3_HISTORY_CRYPTO_SOURCE_AND_ACCOUNTING_VERIFIERS",
+    "schema_migrations": 0,
+    "old_product_tests_and_evidence": "UNCHANGED_EXCEPT_DELIVERY_PLAN_CURRENT_STATUS",
+    "source_format": "DURABLE_MANUAL_OWNERSHIP_ONLY_NO_CALLER_FORMAT_OR_HASH_OVERRIDE_NO_LEGACY_DECRYPT_FALLBACK",
+    "supported_phase": "SIGNED_PREBROADCAST_ONLY_ORIGINAL036_NOT_WIDENED",
+    "unsupported_phases": "UNSIGNED_MARKER_ONLY_SUBMISSION_RECEIPT_POSITION_PHASES_REJECT_NO_REPAIR_OR_STATE_TRANSITION",
+    "capabilities": "STORE_PLUS_KEYVERSION_DECRYPT_ONLY_NO_ENCRYPTOR_SIGNER_OBSERVER_CLOCK_OR_TRANSPORT",
+    "adapter": "EXISTING_M3_CIPHER_INTERFACE_REQUIRES_ENCRYPT_METHOD_PRIVATE_STUB_ALWAYS_ERRCIPHER_NEVER_CALLED_NO_UNDERLYING_ENCRYPT_DEPENDENCY",
+    "result": "DETACHED_FACTS_AUTHENTICATED_HASHES_KEY_COMPLETION_METADATA_NO_RAW_CIPHERTEXT_ENCRYPTION_NONCE_OWNER_OR_PERMIT",
+    "freshness": "ONE_READ_SNAPSHOT_METADATA_NOT_CURRENT_ACTION_PERMISSION_OR_TTL_AUTH_GATE"
+  },
+  "test_mapping": {
+    "three_sides_exact_repeated_snapshot_no_mutation_real_reopen_stop_revoke_frozen": "TestHTTPM4AExactReadOnlyReopenAfterControls",
+    "unsigned_and_signing_ambiguity_no_artifact_manufacture_no_decrypt": "TestHTTPM4AUnsignedAndAmbiguousNeverBecomeArtifact",
+    "principal_wallet_auth_epoch_policy_environment_build_release_deploy_drift_predecrypt": "TestHTTPM4AOwnerAndScopeDenialsBeforeDecrypt",
+    "both_AAD_directions_tamper_unknown_key_no_retry_or_fallback": "TestHTTPM4ALegacyAADAndCryptoFailuresNeverFallback",
+    "legacy_text_blob_canary_source_collision_retained_downstream_phase_no_repair": "TestHTTPM4ADurableLegacyCollisionAndUnsupportedPhase",
+    "crypto_panic_error_cancel_deadline_typed_nil_invalid_composition_zero_output": "TestHTTPM4ACancelPanicAndInvalidCompositionZeroOutput",
+    "missing_source_and_closed_DB_no_alternate_artifact": "TestHTTPM4AMissingSourceAndClosedDBFailClosed",
+    "real_WAL_second_writer_snapshot_candidate_not_gate_fresh_read_rejects": "TestHTTPM4ASnapshotNeverSubstitutesForFreshGate",
+    "no_write_encrypt_signer_submit_send_or_production_references_metadata_shape": "TestHTTPM4AReadOnlyDependencyAndMetadataContract"
+  },
+  "author_validation": {
+    "environment": "PATH=/tmp/rbh-go-toolchain/bin:$PATH GOCACHE=/tmp/rbh-go-build-cache GOMODCACHE=/tmp/rbh-go-mod-cache GOPROXY=off",
+    "focused": {"command": "go test ./internal/tradeapi -run '^TestHTTPM4A' -count=1 -v -timeout=5m", "status": "PASS", "tests": 9, "seconds": 8.045, "final_product_and_test_source": true},
+    "full_repository_ordinary": {
+      "command": "go test -p 1 ./... -count=1 -timeout=20m -json", "status": "PASS",
+      "seconds": {"storage": 10.791, "trade": 155.380, "tradeapi": 296.503, "app": 0.176},
+      "M4_A_top_level_tests": 9,
+      "qualification": "FINAL_PRODUCT_TEST_SOURCE_CACHED_DEPENDENCIES_CONTROLLED_LOCAL_LOOPBACK_UDS_RPC_FIXTURES_ONLY_NO_REAL_KEY_CHAIN_GRANT_OR_SEND",
+      "local_test_network_permission": "APPROVED_FOR_EXISTING_LOOPBACK_UDS_FIXTURES_NOT_REAL_NETWORK_TRADING"
+    },
+    "selected_single_race": {
+      "command": "go test -race -p 1 ./internal/manualartifact ./internal/storage ./internal/tradeapi -run '^(TestManualArtifact|TestManualSignedArtifact|TestManualSigning|TestHTTPM4A|TestHTTPM3B3ArtifactPhaseHistoryLateCancellationZeroOutput$|TestHTTPM3B3CLocalExactSignHistoryAndReopen$|TestHTTPM3B4ProductionGraphRemainsDisconnected$|TestUserHTTPTradeHasNoEconomicDependencies$)' -count=1 -v -timeout=10m -json",
+      "status": "PASS", "top_level_tests": {"manualartifact": 6, "storage": 6, "tradeapi": 13},
+      "M4_A_top_level_tests": 9,
+      "seconds": {"manualartifact": 1.312, "storage": 15.323, "tradeapi": 248.237},
+      "final_product_and_test_source": true
+    },
+    "build_vet_staticcheck": {"status": "PASS", "commands": ["go build ./...", "go vet ./...", "/tmp/rbh-bin/staticcheck ./..."], "output": "EMPTY_SUCCESS_LOGS"},
+    "offline": {"commands": ["python3 scripts/verify_curve_expected.py", "python3 scripts/verify_offline.py --output /tmp/rbh-m4a-author-1BdCXy/offline-results.json"], "status": "PASS", "curve_fixtures": 5, "reference_tests": 39, "reference_seconds": 2.936, "qualification": "OFFLINE_MODELS_NOT_REAL_CHAIN"},
+    "intermediate_failures": [
+      {"stage": "FIRST_EIGHT_TEST_FOCUSED", "seconds": 7.086, "status": "FAIL", "reason": "NEW_UNSUPPORTED_PHASE_FIXTURE_EXPECTED_DIRECT_SUBMISSION_INSERT_TO_SUCCEED_EXISTING_NO_SUBMISSION_GUARD_CORRECTLY_REJECTED", "raw_output": "TOOL_SESSION8219_NOT_PERSISTED_AS_LOG"},
+      {"stage": "EIGHT_TEST_FOCUSED_AFTER_FIXTURE_CORRECTION", "seconds": 7.202, "status": "PASS", "qualification": "BEFORE_NEW_NINTH_TEST_AND_EXTRA_CANARY_SOURCE_DEADLINE_AAD_NEGATIVE_CASES_NOT_FINAL_SOURCE_VALIDATION"},
+      {"stage": "NINE_TEST_FOCUSED_WITH_CANARY_SOURCE_FIXTURE", "seconds": 8.120, "status": "FAIL", "reason": "NEW_FIXTURE_EXPECTED_LEGACY_CANARY_SOURCE_INSERT_EXISTING_TYPED_ADMISSION_GUARD_CORRECTLY_REJECTED", "raw_log": "focused-source-guard-failure.log"}
+    ],
+    "fixture_correction": "FIRST_ASSERT_EXACT_EXISTING_SQL_GUARD_REJECTION_AND_UNCHANGED_SNAPSHOT_THEN_DISPOSABLE_RETAINED_POLLUTION_SEED_RESTORE_ORIGINAL_GUARDS_AND_FK_BEFORE_READ_NO_PRODUCT_FIX_OR_RELAXED_ASSERTION",
+    "final_integrity": {
+      "gofmt_and_diff_check": "PASS",
+      "package_checker": "PASS_170_ENTRIES",
+      "old_manifest_entries": "ALL169_PRESERVED_PLUS_ONE_ADDITIVE_EVIDENCE",
+      "tracked_base_files": "UNCHANGED_EXCEPT_DELIVERY_PLAN_AND_MANIFEST",
+      "migrations001_through036": "UNCHANGED",
+      "source_document_log_hashes_and_nine_test_mappings": "PASS",
+      "qualification": "AUTHOR_CHECKS_NOT_INDEPENDENT_REVIEW"
+    },
+    "temporary_logs": {
+      "directory": "/tmp/rbh-m4a-author-1BdCXy",
+      "shipped": false,
+      "sha256": {
+        "focused.log": "6b69ce6feef11c68233be56ddcdb20d10deb3056b1efe1e24baee264eaf05a63",
+        "full-ordinary.jsonl": "7636f76871695e6286fb69ef67e7d18e4ee2d31eb6b556419d93d9ab788e6149",
+        "selected-race.jsonl": "2dedf75bb684dc1559c43f2ab4a74aa2711859a33b8da9d6e377ee89a10a6dc8",
+        "focused-source-guard-failure.log": "88bd2130792a127e6632489f4d4bde53a4a98356176149f3cb1dc2a0d357f673",
+        "offline-results.json": "0702ba39770e58bee7d17d519fa64b410719b14a78f7b95b76bd192108f3f774"
+      }
+    },
+    "not_claimed": ["FRESH_INDEPENDENT_REVIEW", "FULL_REPOSITORY_RACE", "REMOTE_CI", "REAL_CHAIN", "POWER_LOSS", "M4_PASS"]
+  },
+  "source_sha256": {
+    "internal/tradeapi/manual_submission_artifact.go": "6938d86d4673ba56c12e5a0ad111974e383aaab7b604c153e24ebe1626795e29",
+    "internal/tradeapi/manual_submission_artifact_test.go": "d71b08c7678f9788b1fc055281951aa9be0bc780ad3843d86bbe563a9bfcddc3",
+    "internal/tradeapi/manual_signed_artifact.go": "07ae59002f76d997595014002b99ab97495b6bab21d4308ab941ebd31fb448ee",
+    "internal/manualartifact/encryption.go": "9648c50e364af447a4adefc6f8808432d020cf025fa4377aaa396f9c233de8a1",
+    "docs/HTTP_MANUAL_SUBMISSION_SCOPE.md": "e488fd2d811e04180cfa997161463d9bf802112a33c4c8229f99141d06f50bc3",
+    "docs/HTTP_MANUAL_M4_A_ARTIFACT.md": "ce8249eb50140e7ddcfeca7262053743d8e6ae37e1888ef6231126014372ebb0",
+    "docs/HTTP_TRADING_DELIVERY_PLAN.md": "bfa420640c4d2aca8b223fe343bb2c31e6b1d2356248c7afae72d830a8334f2d"
+  },
+  "limits": [
+    "PRIVATE_METADATA_HISTORY_NOT_SUBMISSION_INPUT_PERMISSION_OR_BYTE_HANDOFF",
+    "NO_LEGACY_ARTIFACT_READER_ADAPTER_OR_AUTODETECT_FALLBACK_MANUAL_ONLY",
+    "OLD036_PHASE_COMPLETENESS_UNCHANGED_FUTURE_SUBMISSION_RECOVERY_PHASES_REQUIRE_SEPARATE_ADDITIVE_CONTRACT",
+    "WAL_SNAPSHOT_CAN_BE_STALE_AFTER_VALID_READ_FRESH_ACTION_GATE_REQUIRED",
+    "TRUSTED_SYNCHRONOUS_DECRYPTOR_NO_FORCIBLE_PREEMPTION",
+    "OWNED_BUFFER_CLEARING_BY_EXISTING_M3_CIPHER_NOT_GO_LIBRARY_SECURE_ERASURE",
+    "NORMAL_REVIEWED_FK_ON_SCHEMA_NOT_ARBITRARY_HOSTILE_SCHEMA_MODIFICATION",
+    "CORRUPTION_FIXTURES_RESTORE_GUARDS_FK_NOT_PROOF_THOSE_INSERTS_ARE_ALLOWED",
+    "REAL_FILE_REOPEN_NOT_POWER_LOSS_PROOF",
+    "POSITIVE_SETUP_HAS_ONE_EPHEMERAL_OFFLINE_SIGNATURE_READER_SIGN_ENCRYPT_OBSERVE_SEND_WRITES_ZERO"
+  ],
+  "boundaries": {
+    "M1": "PASS_UNCHANGED", "M2": "PASS_UNCHANGED", "M3": "PASS_UNCHANGED",
+    "C04": "PASS_UNCHANGED", "C05": "PASS_UNCHANGED", "C07": "PASS_UNCHANGED", "C08": "PASS_UNCHANGED",
+    "chain": "ROBINHOOD4663_PONS_V2_CURVE_NATIVE_QUOTE_ONLY", "deadline_capability": "APPLICATION_TTL_ONLY", "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED", "controlled_canary_authorization": "NOT_GRANTED", "live": false, "release_ready": false,
+    "reader_signer_observer_encrypt_submission_replay_transport_permit_new_nonce_actions": 0,
+    "reader_durable_writes_repairs_releases_recharges_or_new_expiry_windows": 0,
+    "migration_existing_product_test_HTTP_config_startup_changes": 0,
+    "M4_B_C_D_M5_W4_D_W5_other_chains": "NOT_ENTERED",
+    "remote_operations": false,
+    "maximum": "M4_A_READY_FOR_REVIEW_STOP_BEFORE_M4_B_NO_SELF_PASS_OR_CLOSEOUT"
+  }
+}
