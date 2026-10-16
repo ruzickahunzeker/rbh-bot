@@ -25,8 +25,14 @@ func manualInputsFixture(t *testing.T, side string) (*storage.Database, *Store, 
 }
 
 func manualInputsFixtureBudget(t *testing.T, side string, maxOperations uint64, maxTotalInput string) (*storage.Database, *Store, *API, Record, manualAdmissionScope, string) {
+	return manualInputsFixtureBudgetWallet(t, side, maxOperations, maxTotalInput, "")
+}
+
+// Optional generated address is exclusively for offline crypto fixtures,
+// configured BEFORE any immutable HTTP/admission facts are created.
+func manualInputsFixtureBudgetWallet(t *testing.T, side string, maxOperations uint64, maxTotalInput string, wallet string) (*storage.Database, *Store, *API, Record, manualAdmissionScope, string) {
 	t.Helper()
-	d, s, h, _, path := validationAPI(t)
+	d, s, h, _, path := artifactValidationAPI(t, wallet)
 	req := buy()
 	req.Fee.TipGwei = "0"
 	if side != "buy" {

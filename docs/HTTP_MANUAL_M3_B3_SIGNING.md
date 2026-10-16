@@ -7,6 +7,16 @@ implementation only, not production signing, HTTP wiring or real sending.
 
 ## Ordered work and current checkpoint
 
+Current continuation implements **B3-B2 exact artifact phase only**, based on
+local checkpoint `0a8978f`. Additive 036 introduces one immutable artifact command,
+exact one-way original attempt/step/lane transitions, atomic audit/alert and
+SELECT-only decrypt-and-verify history. It preserves 001–035 and original initial-
+only views; nine exact guard exceptions retain their complete old deny domains.
+No production command writer, signer invocation or HTTP/startup/send is wired.
+Author validation is complete; independent phase review is NOT performed.
+See `HTTP_MANUAL_M3_B3_ARTIFACT_PHASE.md`. B3-C/D remain pending, whole B3 is
+IN_PROGRESS_NOT_READY_NOT_PASS. Foundation PASS below does not approve this phase.
+
 Current foundation checkpoint: independent read-only review **PASS** at
 `ff073f02713c4f03b7cdd0c98ff63095b697d729`, limited to B3-A/B1. All prior owner,
 retained-alias and missing-witness findings are closed within the reviewed
@@ -19,9 +29,9 @@ review/probe hashes, qualifications and retained prior FAILs.
 
 This is a foundation checkpoint, NOT whole-B3 closeout or permission to sign.
 B3-B2 exact artifact phase, B3-C fenced local orchestration and B3-D cumulative
-acceptance remain unimplemented. Existing attempt/step/lane and signing/send
-guards are unchanged. The next implementation must use the next additive
-migration, keep original facts/accounting and introduce no HTTP/startup/send.
+acceptance were unimplemented at that checkpoint. Its attempt/step/lane and
+signing/send guards were unchanged. The current B3-B2 continuation is separately
+recorded above; source facts/accounting and no HTTP/startup/send remain required.
 
 The tested threat limit is explicit: normal SQL cannot reopen or independently
 commit the creation scope. If an administrator deliberately disables its source
@@ -86,6 +96,7 @@ M3-B2 = PASS
 M3-B3 = IN_PROGRESS
 M3-B3-A = FOUNDATION_SCOPE_INDEPENDENT_PASS_AT_FF073F
 M3-B3-B1 = REVIEWED_DURABLE_MARKER_FOUNDATION_NOT_SIGNING_READY
+M3-B3-B2 = AUTHOR_VALIDATED_PENDING_INDEPENDENT_PHASE_REVIEW
 foundation_review = PASS_AT_FF073F_SCOPE_LIMITED_NOT_WHOLE_B3
 M3-B4 = NOT_STARTED
 M3 overall = INCOMPLETE_NOT_PASS
@@ -240,7 +251,7 @@ B4/M4/M5/W4-D/W5 or remote fetch/push/PR/merge action is authorized here.
 
 ### B3-B2: exact artifact phase contract
 
-- Next additive migration, never edits to 001–035. Immutable command binds the
+- Additive 036, never edits to 001–035. Immutable command binds the
   existing marker owner/facts, ciphertext/key/nonce/hash metadata and completion
   time to the ONE existing attempt. No second financial owner or transaction.
 - Same-statement command effect updates only that prepared attempt to signed,

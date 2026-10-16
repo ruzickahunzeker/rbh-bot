@@ -7,6 +7,14 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Current local B3-B2 continuation at base `0a8978f`: additive 036 exact artifact
+command/attempt/step/lane/audit/alert contract and disconnected SELECT-only
+decrypt/verify history. Original 001–035, old initial-only views and accounting
+are preserved. No production command writer or signer/HTTP/startup/send wiring.
+Author validation is complete; foundation review PASS does not cover the new
+phase. Whole B3 remains IN_PROGRESS_NOT_READY_NOT_PASS; B3-C/D pending. See
+`HTTP_MANUAL_M3_B3_ARTIFACT_PHASE.md`. No live/grant/remote authority follows.
+
 Latest local B3 foundation checkpoint: independent B3-A/B1 review PASS at
 `ff073f02713c4f03b7cdd0c98ff63095b697d729`. The prior owner/alias/missing-witness
 findings are closed within FK-ON / reviewed-trigger semantics. Independent

@@ -121,6 +121,10 @@ func (b *validationBackend) Complete(_ context.Context, i chainquery.ValidationI
 	return result, nil
 }
 func validationSeed(t *testing.T, s *Store, p validationPolicy) {
+	validationSeedWallet(t, s, p, testWallet)
+}
+
+func validationSeedWallet(t *testing.T, s *Store, p validationPolicy, wallet string) {
 	t.Helper()
 	if p.Version == 0 {
 		p = validationPolicy{Version: 1, Protocol: "PONS_V2_CURVE", MaxOperation: "2000000000000000000", MaxWallet: "4000000000000000000", MaxToken: "4000000000000000000", MaxTotal: "8000000000000000000", MaxGas: "1000000", MaxFee: "3000000000", MaxTip: "1000000000", MinBalance: "1000000000000000", MaxSellBPS: 10000, MaxSlippageBPS: 500, MaxOperations: 100, WindowSeconds: 3600, MaxUnresolved: 1}
@@ -129,7 +133,7 @@ func validationSeed(t *testing.T, s *Store, p validationPolicy) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, q := range []string{`INSERT INTO canary_wallet_allowlist VALUES('wallet-01','` + testWallet + `',4663,` + strconv.FormatUint(p.Version, 10) + `,1,'2026-01-01T00:00:00Z')`, `INSERT INTO canary_token_allowlist VALUES('` + testToken + `','PONS_V2_CURVE',` + strconv.FormatUint(p.Version, 10) + `,1,'2026-01-01T00:00:00Z')`, `INSERT INTO canary_contract_allowlist VALUES('` + validationCurve + `','CURVE','PONS_V2_CURVE','` + chainquery.CurveCodeHash + `',` + strconv.FormatUint(p.Version, 10) + `,1,'C02','2026-01-01T00:00:00Z')`} {
+	for _, q := range []string{`INSERT INTO canary_wallet_allowlist VALUES('wallet-01','` + wallet + `',4663,` + strconv.FormatUint(p.Version, 10) + `,1,'2026-01-01T00:00:00Z')`, `INSERT INTO canary_token_allowlist VALUES('` + testToken + `','PONS_V2_CURVE',` + strconv.FormatUint(p.Version, 10) + `,1,'2026-01-01T00:00:00Z')`, `INSERT INTO canary_contract_allowlist VALUES('` + validationCurve + `','CURVE','PONS_V2_CURVE','` + chainquery.CurveCodeHash + `',` + strconv.FormatUint(p.Version, 10) + `,1,'C02','2026-01-01T00:00:00Z')`} {
 		if _, err = s.db.Exec(q); err != nil {
 			t.Fatal(err)
 		}
