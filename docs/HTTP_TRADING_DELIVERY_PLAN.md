@@ -7,6 +7,22 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest local M3 formal closeout: cumulative controlled-local B1/B2/B3/B4
+independent review PASS at `eed70549bb8c4f02fb1fc62e09d7a151a985fcf4`, formally
+recorded on separate docs/evidence-only `http-m3-signing-closeout`. M3 = PASS;
+formal closeout = COMPLETE_LOCAL_ONLY. This closes the frozen local harness,
+not HTTP/production signing, query/key composition, submission or send readiness.
+Independent ordinary includes all111 M3 API tests plus the HTTP dependency
+guard; selected race covers all B4 tests, nonce/signing concurrency/fences,
+actual COMMIT failures, four process exits and two fresh probes. Reviewed
+168 manifest entries, 11 source hashes and evidence attribution match. Exact
+commands/results, two reviewer-harness failures and limitations are in
+`HTTP_MANUAL_M3_CLOSEOUT.md` and additive `evidence/http-m3-joint-review.json`.
+All previous snapshots below remain historical and unchanged. No production
+wiring/key/query/sign/send/permit, authorization, mainnet/live/release or remote
+action follows. M4/M5 remain NOT_STARTED. Next candidate is a separately
+authorized read-only M4 scope freeze, not M4 implementation or real execution.
+
 Latest local M3-B4 checkpoint: author cumulative controlled-local acceptance
 COMPLETE on `http-m3b4-cumulative-acceptance`, base
 `df5060e3bb0d5d3748404a2d109db2616c8555cf`. Tests/docs/additive evidence/checksum
@@ -529,7 +545,7 @@ M2_READY_FOR_REVIEW pending fresh independent review, not PASS or M3.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3-B1/B2/B3 PASS/local closeout; B4 author acceptance complete; M3_READY_FOR_REVIEW pending fresh cumulative independent review, not PASS; no production signing/send/live or M4/M5 |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3 controlled-local PASS/local closeout; M4/M5 NOT_STARTED; next candidate M4 read-only scope freeze, no production signing/send/live permission |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |
