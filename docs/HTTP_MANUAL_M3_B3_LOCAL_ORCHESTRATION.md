@@ -7,8 +7,8 @@ controlled-local implementation, not production signing or send composition.
 
 ```ini
 M3-B3-C = INDEPENDENT_SCOPE_PASS_AT_CE9F46A
-M3-B3-D = NOT_COMPLETE
-M3-B3 = IN_PROGRESS_NOT_READY_FOR_REVIEW_NOT_PASS
+M3-B3-D = AUTHOR_ACCEPTANCE_COMPLETE_PENDING_CUMULATIVE_REVIEW
+M3-B3 = READY_FOR_REVIEW
 M3 overall = INCOMPLETE_NOT_PASS
 production_broadcast = NOT_CONNECTED
 controlled_canary_authorization = NOT_GRANTED
@@ -22,6 +22,11 @@ orchestration stage. Independent all-C ordinary, selected race and 25 original
 probe cases passed. See additive local-orchestration-review evidence. Original
 author evidence below retains its historical pending-review/source-hash meaning;
 this checkpoint does not close whole B3 or authorize production signing/send.
+
+The subsequent D test/evidence-only continuation now completes author cumulative
+acceptance with unchanged C product code. See `HTTP_MANUAL_M3_B3_ACCEPTANCE.md`.
+Whole B3 is READY_FOR_REVIEW, not PASS; prior scope-limited C review does not
+approve the new D tests or replace the fresh cumulative independent review.
 
 ## Composition and input
 
@@ -135,8 +140,9 @@ production behavior or acceptance of unexplained outcomes is relaxed.
 Author commands/results, intermediate failures and source hashes are recorded
 in additive `evidence/http-manual-m3b3-local-orchestration.json`. Its original
 NOT_PERFORMED verdict is historical; the new review evidence records independent
-C-only PASS, not reused artifact/foundation approval. B3-D remains incomplete.
-No whole-B3 READY/PASS, B4/M4/M5/W4-D/W5 or production-health claim follows.
+C-only PASS, not reused artifact/foundation approval. D was incomplete at that
+checkpoint; its later author acceptance is recorded separately. No whole-B3
+PASS, B4/M4/M5/W4-D/W5 or production-health claim follows from C approval.
 
 All ten C tests plus the HTTP no-economic-dependency test pass on final source
 (19.827s). The full C single race passed (450.009s) BEFORE the final small stop-
@@ -145,8 +151,9 @@ the affected three tests are rerun under race on final source separately.
 The cumulative foundation/artifact/C ordinary run passed earlier (61.800s)
 before later test-only cases. Build/vet/staticcheck and final storage/artifact
 compatibility pass, as do 39 offline model checks and five Curve fixtures.
-No final full-repository suite/race, CI or independent orchestration approval is
-claimed. The evidence distinguishes each source snapshot and its limitations.
+At that original C author checkpoint no full-repository suite/race, CI or
+independent orchestration approval was claimed. The later independent C verdict
+and D acceptance above are separate records, not rewrites of that evidence.
 
 001–036, earlier history/guard implementations, financial ledger and existing
 HTTP/config/startup are unchanged. No real RPC, key/grant, production signer

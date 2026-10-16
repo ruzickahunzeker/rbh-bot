@@ -7,6 +7,16 @@ implementation only, not production signing, HTTP wiring or real sending.
 
 ## Ordered work and current checkpoint
 
+Latest cumulative B3-D checkpoint at base `334d6b4`: tests/evidence only,
+including permanent original C probes, actual SQLite COMMIT failures and four
+real subprocess-exit windows. Product code and 001–036 remain byte-identical
+to C-reviewed `ce9f46a`. Final cumulative 6/7/51-test single race and full
+repository ordinary/build/vet/staticcheck/offline validation PASS. B3 is now
+READY_FOR_REVIEW only; fresh cumulative independent review is NOT performed.
+See `HTTP_MANUAL_M3_B3_ACCEPTANCE.md` and additive cumulative-acceptance evidence.
+Earlier incomplete/pending statements are historical checkpoints. No B3 PASS,
+B4, production signer/HTTP/startup/send wiring, grant/live or remote action.
+
 Latest B3-C checkpoint: independent read-only review PASS at
 `ce9f46a08b1e1403171ad9f603937f98640508d4`, limited to disconnected local
 orchestration. No product or schema change is made by this checkpoint. Freshness
@@ -125,7 +135,8 @@ M1 = PASS
 M2 = PASS
 M3-B1 = PASS
 M3-B2 = PASS
-M3-B3 = IN_PROGRESS
+M3-B3 = READY_FOR_REVIEW
+M3-B3-D = AUTHOR_ACCEPTANCE_COMPLETE_PENDING_CUMULATIVE_INDEPENDENT_REVIEW
 M3-B3-A = FOUNDATION_SCOPE_INDEPENDENT_PASS_AT_FF073F
 M3-B3-B1 = REVIEWED_DURABLE_MARKER_FOUNDATION_NOT_SIGNING_READY
 M3-B3-B2 = INDEPENDENT_SCOPE_PASS_AT_43BDA02_NOT_SIGNING_READY

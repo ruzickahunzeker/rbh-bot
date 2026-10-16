@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "scope": "M3_B3_D_CUMULATIVE_CONTROLLED_LOCAL_ACCEPTANCE_ONLY_NO_PRODUCTION_WIRING",
+  "branch": "http-m3b3-controlled-local-signing",
+  "implementation_base": "334d6b4c51d1844d233421ae251ecde1e1fc74ec",
+  "unchanged_product_reviewed_head": "ce9f46a08b1e1403171ad9f603937f98640508d4",
+  "M3_B3_C_independent_review": "PASS_SCOPE_LIMITED_RECORDED_SEPARATELY",
+  "M3_B3_D": "AUTHOR_ACCEPTANCE_COMPLETE_PENDING_CUMULATIVE_INDEPENDENT_REVIEW",
+  "M3_B3": "READY_FOR_REVIEW",
+  "review_state": "PENDING_FRESH_CUMULATIVE_INDEPENDENT_REVIEW",
+  "independent_cumulative_review": "NOT_PERFORMED_NOT_INHERITED_FROM_A_B_OR_C",
+  "change_contract": {
+    "allowed_changes": "TWO_NEW_TEST_FILES_DOCS_ADDITIVE_EVIDENCE_CHECKSUM_ONLY",
+    "existing_product_and_migrations": "BYTE_IDENTICAL_TO_C_REVIEWED_CE9F46A_ORIGINAL001_TO036_PRESERVED",
+    "review_probe_promotion": "NINE_TEST25_CASE_INDEPENDENT_C_OVERLAY_TO_PERMANENT_AUTHOR_MAINTAINED_D_REGRESSIONS_WITH_RENAMED_SYMBOLS_PROVENANCE_HASH_NOT_NEW_INDEPENDENT_APPROVAL",
+    "original_probe_sha256": "ab63ce71839acc0fcfe57fab8bbe151a130c6f5a96649e037a6460b55b58211a",
+    "new_stronger_evidence": "REAL_OS_EXIT_AT_FOUR_WINDOWS_PLUS_ACTUAL_DEFERRED_FK_COMMIT_FAILURE_AT_MARKER_AND_ARTIFACT",
+    "ownership": "ORIGINAL_OPERATION_STEP_ATTEMPT_LANE_RISK_RESERVATION_CONSUMED_LIFETIME_USAGE_NONCE_AND_EXPIRY_NO_NEW_FINANCIAL_OWNER_OR_WINDOW"
+  },
+  "test_mapping": {
+    "exact_buy_fixed_sell_resolved_sell_original_claim_and_metadata": ["TestHTTPM3B3AExactOriginalClaimProjectionNoWrites", "TestHTTPM3B3ArtifactPhaseExactAtomicHistory", "TestHTTPM3B3CLocalExactSignHistoryAndReopen"],
+    "all_signed_fields_and_AAD_identity_zero_output": ["TestManualArtifactRejectsEverySignedFieldSubstitution", "TestManualArtifactAADAuthenticatesEveryMetadataField", "TestManualArtifactCipherFaultsTamperZeroOutputAndNoLeak"],
+    "direct_SQL_guard_deny_domains_atomic_faults_conflict_victims_no_repair": ["TestManualArtifactPhasePreservesOldGuardDenyDomains", "TestHTTPM3B3ArtifactPhaseFaultsRollback", "TestHTTPM3B3ArtifactPhaseDirectMutationsAndVictims", "TestHTTPM3B3ArtifactPhaseRetainedCorruptionReopenNoRepair", "TestHTTPM3B3CreationMissingWitnessReopenNoReinsert"],
+    "one_signer_under_concurrency_real_control_fence_original_TTL_budget": ["TestHTTPM3B3CLocalTwoHandlesOneInvocation", "TestHTTPM3B3CLocalWriterFenceBlocksControlCommit", "TestHTTPM3B3CLocalBoundaryExpiryNeverReturnsArtifact"],
+    "crypto_key_encrypt_decrypt_panic_cancel_sanitized_marker_retained": "TestHTTPM3B3DAdversarialCrypto",
+    "late_valid_signature_after_deadline_awaited_not_exposed": "TestHTTPM3B3DLateSynchronousSigner",
+    "real_reopen_corrupt_marker_artifact_denied_without_repair_or_action": "TestHTTPM3B3DCorruptHistoryNeverRepairs",
+    "valid_before_commit_metadata_after_expiry_or_clock_reversal_not_permission": "TestHTTPM3B3DPostCommitClockCharacterization",
+    "expiry_during_final_signer_address_checks_signer_zero": "TestHTTPM3B3DImmediateCallbackAfterSignerChecks",
+    "second_handle_risk_usage_freeze_auth_exhaustion_wallet_disable_before_final_fence_signer_zero": "TestHTTPM3B3DSecondFenceAccountingDrift",
+    "cancel_after_marker_or_artifact_commit_zero_response_then_exact_history": "TestHTTPM3B3DCancellationAfterDurableCommits",
+    "original_operation_and_input_caps_equality_one_sign_no_recharge": "TestHTTPM3B3DOriginalBudgetEquality",
+    "restored_guard_retained_allowlist_gate_epoch_deployment_usage_corruption_signer_zero": "TestHTTPM3B3DSecondFenceRetainedGateCorruption",
+    "actual_SQLite_commit_error787_original_claim_marker_failure_no_sign_artifact_failure_no_resign": "TestHTTPM3B3DActualCommitFailureRetainsOriginalClaim",
+    "actual_process_exit_marker_sign_artifact_insert_commit_reopen_audits_empty_scopes_exact_no_action_history": "TestHTTPM3B3DProcessCrashRediscovery",
+    "prohibited_HTTP_and_local_composition_paths": ["TestUserHTTPTradeHasNoEconomicDependencies", "TestHTTPM3B3CLocalCompositionDisconnected"]
+  },
+  "process_exit_evidence": {
+    "mechanism": "PARENT_STARTS_EXISTING_TEST_BINARY_CHILD_GENERATES_EPHEMERAL_KEY_WRITES_ONLY_NON_SECRET_DESCRIPTOR_THEN_OS_EXIT86_NO_DEFERRED_ROLLBACK_CLOSE_OR_CLEANUP",
+    "temporary_data": "CHILD_DB_UNDER_PARENT_TEST_TEMP_ROOT_KEY_NEVER_SERIALIZED_IN_ARGUMENT_ENV_OR_FILE",
+    "after_marker_commit": {"signer_calls": 0, "durable_result": "SIGNING_AMBIGUITY_ONLY"},
+    "after_sign_before_artifact": {"signer_calls": 1, "durable_result": "SIGNING_AMBIGUITY_ONLY"},
+    "after_artifact_insert_before_commit": {"signer_calls": 1, "durable_result": "TRANSACTION_OUTCOME_ROLLBACK_SIGNING_AMBIGUITY_ONLY"},
+    "after_artifact_commit": {"signer_calls": 1, "durable_result": "EXACT_AUTHENTICATED_ARTIFACT_HISTORY_ONLY"},
+    "restart_composition": "FRESH_STORE_AND_FIXTURE_CIPHER_NO_SIGNER_OBSERVER_OR_CLOCK",
+    "assertions": "ORIGINAL_NONCE23_AND_CONSERVED_USAGE_MARKER_AUDIT1_ARTIFACT_AUDIT_IFF_COMMITTED_SCOPES0_SEND_TABLES0_THREE_IDENTICAL_HISTORY_READS_WITH_NO_DB_CHANGE_OR_PERMISSION",
+    "limit": "REAL_PROCESS_EXIT_RECOVERY_NOT_OS_POWER_LOSS_HARDWARE_DURABILITY_OR_PRODUCTION_KEY_AVAILABILITY"
+  },
+  "real_commit_failure": {
+    "mechanism": "TEST_ONLY_EXTRA_TABLE_TRIGGER_INJECTS_DEFERRED_FOREIGN_KEY_INTO_TRANSACTION_REAL_COMMIT_FAILS_EXTENDED_SQLITE_ERROR787_ORIGINAL_GUARDS_INTACT",
+    "marker_commit_failure": "ZERO_SIGNER_ZERO_MARKER_FULL_ROLLBACK_ORIGINAL_CLAIM_RETAINED_LATER_EXPLICIT_REQUEST_MAY_SIGN_SAME_NONCE_ONCE_NO_INTERNAL_RETRY",
+    "artifact_commit_failure": "ONE_SIGNER_DURABLE_MARKER_RETAINED_ENTIRE_ARTIFACT_EFFECT_ROLLBACK_REAL_REOPEN_THEN_AMBIGUITY_ONLY_NO_OBSERVER_OR_SECOND_SIGNATURE",
+    "not_claimed": "NO_SIMULATED_COMMIT_CALLBACK_LABELLED_ACTUAL_FAILURE_NO_NEW_FINANCIAL_OWNER_OR_EXPIRY"
+  },
+  "author_validation": {
+    "initial_D_tests": {"command": "go test ./internal/tradeapi -run '^TestHTTPM3B3D' -count=1 -v -timeout=5m", "status": "PASS", "tradeapi_seconds": 13.732, "qualification": "BEFORE_ADDITION_OF_ACTUAL_COMMIT_TEST_AND_EXTRA_PROCESS_AUDIT_SCOPE_ASSERTIONS"},
+    "actual_commit_test": {"command": "go test ./internal/tradeapi -run '^TestHTTPM3B3DActualCommitFailureRetainsOriginalClaim$' -count=1 -v -timeout=3m", "status": "PASS", "tradeapi_seconds": 1.165},
+    "cumulative_ordinary": {
+      "command": "go test -p 1 ./internal/manualartifact ./internal/storage ./internal/tradeapi -run '^(TestManualArtifact|TestManualSignedArtifact|TestManualSigning|TestHTTPM3B3|TestUserHTTPTradeHasNoEconomicDependencies|TestOpenMigrateAndValidateEveryOwner)' -count=1 -timeout=10m",
+      "status": "PASS", "seconds": {"manualartifact": 0.032, "storage": 0.703, "tradeapi": 79.170},
+      "qualification": "FINAL_PRODUCT_AND_D_COMMIT_TEST_BEFORE_TEST_ONLY_EXTRA_PROCESS_AUDIT_SCOPE_ASSERTIONS_FINAL_RACE_AND_FULL_ORDINARY_COVER_THOSE_ADDITIONS"
+    },
+    "cumulative_race": {"command": "go test -race -p 1 ./internal/manualartifact ./internal/storage ./internal/tradeapi -run '^(TestManualArtifact|TestManualSignedArtifact|TestManualSigning|TestHTTPM3B3|TestUserHTTPTradeHasNoEconomicDependencies|TestOpenMigrateAndValidateEveryOwner)' -count=1 -v -timeout=35m", "status": "PASS", "seconds": {"manualartifact": 1.242, "storage": 18.086, "tradeapi": 1860.260}, "tests": {"manualartifact": 6, "storage": 7, "tradeapi": 51}, "qualification": "FINAL_SOURCE_ALL_CUMULATIVE_B3_AND_SELECTED_STORAGE_PRIMITIVES_SINGLE_RUN_NOT_FULL_REPOSITORY_RACE", "new_commit_fault_seconds": 27.49, "real_process_exit_seconds": 48.74, "C_concurrency": "ONE_CODE5_ZERO_RESULT_SAFE_REJECTION_ONE_SIGNATURE_UNEXPLAINED_OUTCOMES0"},
+    "full_repository_ordinary": {"command": "go test -p 1 ./... -count=1 -timeout=20m", "status": "PASS", "seconds": {"app": 0.170, "storage": 10.625, "trade": 160.944, "tradeapi": 278.960}, "qualification": "FINAL_PRODUCT_AND_TEST_SOURCE_CACHED_DEPENDENCIES_CONTROLLED_LOOPBACK_UDS_FIXTURES_ONLY_NO_REAL_ENDPOINT_KEY_OR_CHAIN_SEND"},
+    "build_vet_staticcheck": {"commands": ["go build ./...", "go vet ./...", "STATICCHECK_CACHE=/tmp/rbh-staticcheck-cache /tmp/rbh-bin/staticcheck ./..."], "status": "PASS"},
+    "offline": {"commands": ["python3 scripts/check_package.py", "python3 scripts/verify_curve_expected.py", "python3 scripts/verify_offline.py --output /tmp/m3b3d-offline-results.json"], "status": "PASS", "manifest_before_D_addition": 165, "reference_tests": 39, "reference_seconds": 2.529, "curve_fixtures": 5, "qualification": "OFFLINE_MODEL_AND_FIXTURES_NOT_REAL_CHAIN_OR_PRODUCTION_TELEMETRY"},
+    "intermediate_failures_this_D_batch": [],
+    "previous_failures": "PRESERVED_IN_UNCHANGED_ORIGINAL_FOUNDATION_ARTIFACT_ORCHESTRATION_AUTHOR_AND_INDEPENDENT_EVIDENCE_NOT_RELABELLED_PASS",
+    "not_claimed": ["FULL_REPOSITORY_RACE", "REMOTE_CI", "INDEPENDENT_CUMULATIVE_B3_REVIEW", "REAL_CHAIN", "POWER_LOSS"]
+  },
+  "source_sha256": {
+    "internal/manualsign/sign.go": "3f626bb9a62859f27543ac40911205d99e8ce73935b9385a1f554a39c6655dd8",
+    "internal/tradeapi/manual_local_signing.go": "98881ff85da6086c1e0ffbdea38ae658f2b2381de5a1d57e6d06954e0975ff7f",
+    "internal/tradeapi/manual_local_signing_test.go": "8dd7369acd9f0e667faa77da128eeff440fc5899015b6d669e3e77b743875702",
+    "internal/tradeapi/manual_signing_acceptance_test.go": "bd598873105d4c95fe76f5914674b36728df04f1ef6e16b9031a771d3200dafe",
+    "internal/tradeapi/manual_signing_process_test.go": "de7e14d2981644c3327aaa064dd717dd620a6243cd49a3f876297f9bc9e33a00",
+    "docs/HTTP_MANUAL_M3_B3_ACCEPTANCE.md": "7fc0fbea67416328975f5b44631dc127a8c53d2072707e50d12480c7a611511c",
+    "docs/HTTP_MANUAL_M3_B3_LOCAL_ORCHESTRATION.md": "9e4407fe5449b0c7c64106a8f438ad20e65c740c1c323c69c3712e1de316c3cd",
+    "docs/HTTP_MANUAL_M3_B3_SIGNING.md": "c6393048c4fad29db460e516345203286651f9e68beb68fb22693a9afecfe50c",
+    "docs/HTTP_TRADING_DELIVERY_PLAN.md": "b8fbb9111cb0e2421668d218ce64f2d4fe8f35c0de13567dce241dd75b60a0e6"
+  },
+  "limits": {
+    "schema": "NORMAL_FK_ON_INTACT_REVIEWED_GUARDS_NOT_ARBITRARY_HOSTILE_SCHEMA_MODIFICATION_OR_FORGED_CREATION_AUTHORITY",
+    "negative_seeds": "DISPOSABLE_RETAINED_CORRUPTION_SEEDS_RESTORE_EXACT_GUARDS_AND_FK_BEFORE_TESTED_ACTION_NOT_A_CLAIM_THOSE_MUTATIONS_ARE_NORMALLY_ALLOWED",
+    "clock_and_crypto": "TRUSTED_CONTROLLED_CLOCK_QUERY_OBSERVER_AND_SYNCHRONOUS_LOCAL_SIGNER_CIPHER_NO_FORCIBLE_PREEMPTION_OF_UNTRUSTED_BLOCKING_CODE",
+    "raw_memory": "OWNED_BUFFERS_CLEARED_NO_SECURE_ERASURE_OF_GO_CRYPTO_LIBRARY_COPIES_CLAIM",
+    "freshness": "CHECK_IMMEDIATELY_BEFORE_INVOCATION_AND_OUTCOME_COMMIT_POST_VALID_COMMIT_METADATA_IS_NOT_FRESH_ACTION_PERMISSION",
+    "evidence_attribution": "PROMOTED_PROBES_AND_ALL_NEW_D_RUNS_ARE_AUTHOR_VALIDATION_FRESH_CUMULATIVE_INDEPENDENT_APPROVAL_NOT_PERFORMED"
+  },
+  "boundaries": {
+    "M1": "PASS_UNCHANGED", "M2": "PASS_UNCHANGED", "M3_B1": "PASS_UNCHANGED", "M3_B2": "PASS_UNCHANGED",
+    "C04": "PASS_UNCHANGED", "C05": "PASS_UNCHANGED", "C07": "PASS_UNCHANGED", "C08": "PASS_UNCHANGED",
+    "chain": "ROBINHOOD4663_PONS_V2_CURVE_NATIVE_QUOTE_ONLY", "deadline_capability": "APPLICATION_TTL_ONLY", "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED", "controlled_canary_authorization": "NOT_GRANTED", "live": false, "release_ready": false,
+    "local_signer_calls": "EXACTLY_ONE_IN_FRESH_POSITIVE_OR_POST_INVOCATION_FAILURE_FIXTURES_ZERO_IN_ENTRY_PRE_SIGN_DENIAL_AMBIGUOUS_OR_COMMITTED_PROCESS_RESTART_HAS_NO_SIGNER",
+    "production_signer_composition_submission_replay_raw_send_permits_mainnet_new_nonce_actions": 0,
+    "product_migration_HTTP_config_startup_changes": 0,
+    "M3_B4": "NOT_STARTED", "M3_overall": "INCOMPLETE_NOT_PASS", "whole_B3_PASS": false,
+    "remote_operations": false, "proof_scope": "LOCAL_TEST_STRUCTURAL_AND_PROCESS_EXIT_NOT_REAL_RUNTIME_TELEMETRY",
+    "next": "FRESH_AUTHORIZED_READ_ONLY_CUMULATIVE_B3_REVIEW_STOP_AT_READY_FOR_REVIEW_NO_AUTOMATIC_CLOSEOUT_B4_OR_PASS"
+  }
+}

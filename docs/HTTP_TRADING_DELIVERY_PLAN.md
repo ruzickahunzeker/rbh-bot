@@ -7,6 +7,17 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest local B3-D checkpoint: cumulative author acceptance COMPLETE at base
+`334d6b4`, with tests/docs/evidence/checksum only and unchanged `ce9f46a` product
+implementation/001–036. Final-source cumulative B3 race PASS (6 pure / 7 storage
+/ 51 API; API 1860.260s); full repository ordinary PASS (trade 160.944s / API
+278.960s / storage 10.625s). Real COMMIT faults and four process-exit windows
+PASS, plus build/vet/staticcheck and offline checks. B3 is READY_FOR_REVIEW, not
+PASS. Fresh cumulative independent review is required; scope-limited A/B/C
+approval is not reused. B4 remains NOT_STARTED, whole M3 INCOMPLETE_NOT_PASS.
+See `HTTP_MANUAL_M3_B3_ACCEPTANCE.md`. No production key/query/grant/sign/send,
+HTTP/startup/live/release or remote operation follows from this checkpoint.
+
 Latest local B3-C checkpoint: independent read-only review PASS at
 `ce9f46a08b1e1403171ad9f603937f98640508d4`; ordinary 20.074s, selected race
 54.798s and 25 original probe cases PASS. All 164 reviewed manifest entries and
