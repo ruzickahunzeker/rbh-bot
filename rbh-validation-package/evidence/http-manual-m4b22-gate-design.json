@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_MANUAL_M4_B22_NON_AUTHORIZING_RUNTIME_VERIFIER_DESIGN_ONLY",
+  "branch": "http-m4b22-gate-design",
+  "base": "094053090d6dbe85b9469da58a54d1de94431b14",
+  "checkpoint": "M4_B22_DESIGN_READY_FOR_ACCEPTANCE",
+  "scope_acceptance": "PENDING_USER_ACCEPTANCE",
+  "implementation": "NOT_STARTED",
+  "independent_review": "NOT_PERFORMED",
+  "M4_B21": "PASS_UNCHANGED",
+  "M4_B2": "INCOMPLETE_NOT_READY_NOT_PASS",
+  "M4_B": "INCOMPLETE_NOT_READY_NOT_PASS",
+  "M4": "INCOMPLETE_NOT_PASS",
+  "proposed_contract": {
+    "component": "PRIVATE_DISCONNECTED_MANUAL_RUNTIME_VERIFIER_AND_OPTIONAL_DB_OBSERVATION_CAPTURE",
+    "phase": "COMPLETE_SIGNED_PREBROADCAST_ONLY_NO_SUBMISSION_HISTORY",
+    "result": "TRANSIENT_VERIFIED_RUNTIME_CANDIDATE_NOT_PERMISSION_NO_RAW_BUFFERS_NO_DESERIALIZED_CAPABILITY",
+    "all_action_flags": false,
+    "fresh_gate_required": true,
+    "B21_proof_flags": "REMAIN_FALSE_UNCHANGED_DB_OBSERVATION_NOT_EXTERNAL_PROOF",
+    "time": "OPERATOR_OWNED_BOUNDED_TIME_PROVIDER_PLUS_PROCESS_STICKY_REVERSAL_AND_DURABLE_DOMAIN_FLOOR_FAULT_LATCH_NOT_PLAIN_TIME_NOW_OR_SQL_BOOL_PROOF",
+    "time_bounds": "SOURCE_TIMES_LE_WALL_MINUS_ERROR_AND_WALL_PLUS_ERROR_LT_ORIGINAL_TTL_AUTH_AND_SUBMISSION_LEASE_EXPIRY_EQUALITY_REJECT",
+    "deployment": "MEASURED_BINARY_BUILD_AND_AUTHENTICATED_IMMUTABLE_COMPOSITION_NOT_COPIED_DB_OR_HTTP_FIELDS",
+    "lease": "EXACT_EXPECTED_PROCESS_SUBMISSION_ROLE_ENV_HOLDER_EPOCH_EXPIRY_FINAL_DB_RECHECK_NO_ACQUIRE_RENEW_OR_RECOVERY_COUPLING",
+    "artifact": "ORIGINAL_MANUAL_V1_FULL_FACTS_AAD_DECRYPT_ONLY_OPEN_VERIFY_NO_LEGACY_FALLBACK_NO_RESIGN",
+    "RPC": "FIXED_READ_ONLY_CHAIN_PROFILE_QUOTE_CANONICAL_AND_CURRENT_CODE_ANCHOR_CHECKS_CONTROLLED_LOCAL_FIXTURES_ONLY",
+    "final_fence": "PREPARE_EXTERNAL_OBSERVATION_OUTSIDE_WRITER_THEN_OWNED_BEGIN_IMMEDIATE_STOP_FIRST_ALL_DB_AND_TIME_OWNER_ARTIFACT_RECHECK_AUDIT_AND_METADATA_COMMIT",
+    "future_B23": "FRESH_PREPARATION_PLUS_TRANSACTION_LOCAL_FINAL_CHECK_ON_B23_OWN_WRITER_NO_NESTED_CAPTURE_OR_REUSABLE_CANDIDATE",
+    "external_atomicity_claim": false,
+    "proposed039": "CLOCK_DOMAIN_GENERATION_HIGH_WATER_FAULT_LATCH_ONLY_NOT_CREATED_OR_RESERVED_NO_PERMISSION_EVIDENCE_TABLE",
+    "fault_persistence": "ROLLBACK_FAILED_CAPTURE_BEFORE_SEPARATE_BOUNDED_METADATA_ONLY_LATCH_AUDIT_TRANSACTION_NO_FALSE_DURABLE_CLAIM_ON_DB_FAILURE"
+  },
+  "current_gap_mapping": {
+    "historical_crypto_not_freshness": ["internal/tradeapi/manual_submission_artifact.go", "internal/tradeapi/manual_signed_artifact.go", "internal/manualartifact/encryption.go", "internal/manualartifact/verify.go"],
+    "configuration_not_measured_identity": ["internal/tradeapi/manual_admission_inputs.go"],
+    "per_invocation_not_durable_clock": ["internal/tradeapi/manual_local_signing.go"],
+    "DB_observation_not_proof": ["internal/storage/migrations/trade/038_manual_submission_gate_evidence.sql"],
+    "fixed_readonly_RPC_no_exact_submission_observer": ["internal/chainquery/client.go"],
+    "legacy_source_and_permit_paths_not_MANUAL_composition": ["internal/trade/canary_orchestrator.go"],
+    "lease_row_not_expected_process_owner": ["internal/trade/canary_runtime.go"]
+  },
+  "proposed_acceptance_areas_NOT_EXECUTED": [
+    "EXACT_THREE_SIDES_ORIGINAL_NONCE_EXPIRY_QUOTE_FEES_ZERO_TIP_AND_TYPED_USAGE",
+    "SOURCE_OWNER_SECURITY_FIELD_OVERRIDE_DENIAL",
+    "ARTIFACT_FULL_FACTS_AAD_TAMPER_KEY_DRIFT_AND_NO_FALLBACK",
+    "CLOCK_TTL_AUTH_LEASE_BOUNDARIES_UNCERTAINTY_MALFORMED_STICKY_REVERSAL",
+    "REAL_FILE_REOPEN_DURABLE_FLOOR_LATCH_GENERATION_AND_AUDIT",
+    "MEASURED_PROCESS_IDENTITY_NOT_CONFIG_EQUALITY",
+    "EXPECTED_SUBMISSION_OWNER_FRACTIONAL_EXPIRY_AND_RECOVERY_INDEPENDENCE",
+    "RPC_CHAIN_PROFILE_CODE_QUOTE_ANCHOR_CONTRADICTION_TIMEOUT_AND_FIXED_METHODS",
+    "FINAL_TRANSACTION_STOP_REVOKE_TAKEOVER_SOURCE_DRIFT_BARRIERS",
+    "AUDIT_ABORT_IGNORE_FAIL_LATE_REPAIR_UPSERT_MULTIROW_COMMIT_AND_LATCH_CRASH",
+    "DUPLICATE_RESTART_NO_NEW_EXPIRY_NONCE_PERMIT_OR_BUDGET",
+    "NO_PRODUCTION_HTTP_STARTUP_SIGN_PERMIT_SUBMISSION_REPLAY_SEND_REACHABILITY"
+  ],
+  "proposed_implementation_order_NOT_STARTED": [
+    "PRIVATE_CLOCK_PROCESS_LEASE_QUERY_CONTRACTS_CONTROLLED_FIXTURES",
+    "ADDITIVE039_CLOCK_METADATA_AND_DIRECT_SQL_ATOMIC_AUDIT_TESTS",
+    "NARROW_READ_ONLY_OBSERVER_DECRYPT_ONLY_ORIGINAL_ARTIFACT_PROJECTION",
+    "PRIVATE_PREPARATION_FINAL_CHECK_CAPTURE_CONTEXT_FAULT_HANDLING",
+    "AUTHOR_REGRESSION_RACE_EVIDENCE_LOCAL_COMMIT_INDEPENDENT_REVIEW_GATE"
+  ],
+  "inspected_source_sha256": {
+    "internal/tradeapi/manual_submission_artifact.go": "6938d86d4673ba56c12e5a0ad111974e383aaab7b604c153e24ebe1626795e29",
+    "internal/tradeapi/manual_signed_artifact.go": "07ae59002f76d997595014002b99ab97495b6bab21d4308ab941ebd31fb448ee",
+    "internal/tradeapi/manual_admission_inputs.go": "1f212fa639e297c0dfdfe6a3e3db075746404e5fd7a44e24b21ee79e2ed8945e",
+    "internal/tradeapi/manual_local_signing.go": "98881ff85da6086c1e0ffbdea38ae658f2b2381de5a1d57e6d06954e0975ff7f",
+    "internal/storage/migrations/trade/038_manual_submission_gate_evidence.sql": "38e4757268855105b38feab7b1f2691bb11bb2ac56f62055f2cf2d358ef08710",
+    "internal/manualartifact/encryption.go": "9648c50e364af447a4adefc6f8808432d020cf025fa4377aaa396f9c233de8a1",
+    "internal/manualartifact/verify.go": "71ef184033240976c8b8881cc6a69d33669aa4fdb24d65c632b812544b6d3006",
+    "internal/chainquery/client.go": "00bdc5b0c7a5150b8bec7609d5d2b59fe7c7081da2389997e2773c80412da197",
+    "internal/trade/canary_orchestrator.go": "6417cdc1587803945cf4ef1dd283c57814e91e8576f32c1cd7fe1fb0b0d248d2",
+    "internal/trade/canary_runtime.go": "6e930e7002ff1ad02a16c5f352e729fd9651423eb40faa36a30a6856a6a6b567"
+  },
+  "design_document_sha256": {
+    "docs/HTTP_MANUAL_M4_B22_GATE_DESIGN.md": "1e1463a42aeb99e7524501d76b78a1d7d9949b1f25ee8ef1d33affb2e3370acc",
+    "docs/HTTP_TRADING_DELIVERY_PLAN.md": "36c4039804e1ac4909da0a40ab1762c555443024b7dc1a90df0d583c24af808c"
+  },
+  "validation_scope": {
+    "checks": "EXACT_BASE_CLEAN_BRANCH_SOURCE_TRACEABILITY_HASHES_DOC_SCOPE_OLD_FILE_PRESERVATION_177_PLUS1_MANIFEST_WHITESPACE",
+    "runtime_tests_executed": false,
+    "new_runtime_claims_proved": false,
+    "proposed_tests_are_results": false,
+    "remote_CI_or_chain_evidence": false
+  },
+  "preservation": {
+    "all_product_tests_schema001_to038_prior_evidence_and_reviewed_docs": "BYTE_IDENTICAL_TO_BASE",
+    "changed_paths": ["docs/HTTP_MANUAL_M4_B22_GATE_DESIGN.md", "docs/HTTP_TRADING_DELIVERY_PLAN.md", "rbh-validation-package/evidence/http-manual-m4b22-gate-design.json", "rbh-validation-package/SHA256SUMS"],
+    "manifest": "177_PRIOR_LINES_PRESERVED_PLUS_ADDITIVE_ENTRY178",
+    "historical_status_results_timeouts_and_hashes": "NOT_REWRITTEN"
+  },
+  "boundaries": {
+    "M1_M2_M3_M4A_B1_B21_C04_C05_C07_C08": "PASS_UNCHANGED",
+    "chain": "ROBINHOOD4663_PONS_V2_CURVE_NATIVE_QUOTE_ONLY", "deadline_capability": "APPLICATION_TTL_ONLY", "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED", "controlled_canary_authorization": "NOT_GRANTED", "live": false, "release_ready": false,
+    "Go_test_migration_HTTP_config_startup_changes": 0,
+    "new_sign_decrypt_RPC_permit_PASS_submit_replay_send_nonce_or_financial_calls": 0,
+    "actual039": "NOT_CREATED", "B23_B3_B4_C_D_M5_W4_D_W5_other_chains": "NOT_ENTERED", "remote_operations": false
+  },
+  "next_boundary": "ACCEPT_B22_DETAILED_SCOPE_AND_AUTHORIZE_IMPLEMENTATION_BEFORE_CODE_OR039_NO_AUTOMATIC_REVIEW_OR_PASS"
+}
