@@ -7,6 +7,24 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest local M3-B4 checkpoint: author cumulative controlled-local acceptance
+COMPLETE on `http-m3b4-cumulative-acceptance`, base
+`df5060e3bb0d5d3748404a2d109db2616c8555cf`. Tests/docs/additive evidence/checksum
+only; all prior product/tests/001–036 and historical evidence unchanged.
+M3 = READY_FOR_REVIEW (M3_READY_FOR_REVIEW), not PASS. Full repository ordinary
+PASS includes all111 M3 API tests (16 B1 / 39 B2 / 50 B3 / 6 B4; API285.864s).
+Selected cumulative race PASS (6 pure artifact / 3 nonce / 17 storage / 13 API;
+API256.659s), plus build/vet/staticcheck/offline verification. New regressions
+cover complete phase-by-phase real reopen, old-reader phase denial, existing
+HTTP signed-history duplicate without crypto/action, retained-owner no-resume,
+late query/cancellation and whole cmd/internal graph boundaries. Prior B3
+probes promoted to permanent author tests are not fresh independent approval.
+See `HTTP_MANUAL_M3_ACCEPTANCE.md` and additive cumulative M3 evidence for exact
+commands, failures/limits and source hashes. Next is separately authorized fresh
+cumulative M3 independent review; no automatic closeout/PASS/M4/M5, production
+query/key/signer/send/permit, HTTP/startup wiring, grant/live/release or remote
+action. All older checkpoints below remain historical snapshots.
+
 Latest local B3 formal closeout: cumulative A/B/C/D independent review PASS at
 `682bb317a1b69b2d0b0156e08ab631b65c1f360b`, recorded on the separate
 `http-m3b3-signing-closeout` docs/evidence-only branch. M3-B3 = PASS and formal
@@ -511,7 +529,7 @@ M2_READY_FOR_REVIEW pending fresh independent review, not PASS or M3.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3-B1/B2/B3 PASS and local closeout; M3-A frozen; B4 NOT_STARTED, whole M3 INCOMPLETE_NOT_PASS; no production signing/send/live permission or M4/M5 |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3-B1/B2/B3 PASS/local closeout; B4 author acceptance complete; M3_READY_FOR_REVIEW pending fresh cumulative independent review, not PASS; no production signing/send/live or M4/M5 |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |
