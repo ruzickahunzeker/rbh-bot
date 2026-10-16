@@ -7,6 +7,23 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest local M4-B1 formal closeout: independent review PASS at
+`6fa755be25047868e51daddd66672943a91e478b`, recorded on separate docs/evidence-only
+`http-m4b1-submission-closeout`. M4-B1 = PASS; formal closeout COMPLETE_LOCAL_ONLY.
+Only the disconnected structural foundation is closed, not current gate/permit,
+cryptographic proof or whole M4-B. Independent ordinary storage2/API13, selected
+race artifact6/storage4/API17 (API498.878s), four new probe groups, reviewed172
+manifest entries, nine hashes,14 mappings/eight author log hashes PASS. Two
+nonblocking observations (byte-equivalent retained BLOB audit details; new
+arbitrary RAISE(FAIL) yielding incomplete row/scope) and their intact-schema
+limits are explicitly preserved in `HTTP_MANUAL_M4_B1_CLOSEOUT.md` and additive
+`evidence/http-m4b1-joint-review.json`, not hidden or described as repairs.
+All earlier READY/NOT_PERFORMED/hash evidence keeps its historical meaning.
+Whole M4-B INCOMPLETE_NOT_READY_NOT_PASS; B2/B3/B4/C/D/M5 remain NOT_STARTED.
+Next candidate is separately authorized M4-B2 detailed gate/permit design;
+no guard opening, product/schema/HTTP/startup/sign/send/grant/live/release or
+remote action follows from this closeout.
+
 Latest local M4-B1 continuation: disconnected durable submission foundation
 on `http-m4b1-submission-foundation`, base
 `4855d982aca882b9ca2b1eccd965efe725ce2679`. Additive037 stores exact original
@@ -593,7 +610,7 @@ M2_READY_FOR_REVIEW pending fresh independent review, not PASS or M3.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3/M4-A controlled-local PASS/local closeout; M4_B1_READY_FOR_REVIEW (author only); whole M4-B incomplete, B2/B3/B4/C/D/M5 NOT_STARTED; no production signing/send/live permission |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3/M4-A/M4-B1 controlled-local PASS/local closeout; whole M4-B incomplete; B2/B3/B4/C/D/M5 NOT_STARTED; next candidate separately authorized B2 gate/permit design, no production signing/send/live permission |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |
