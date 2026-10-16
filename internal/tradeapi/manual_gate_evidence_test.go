@@ -317,9 +317,9 @@ func TestHTTPM4B21WitnessFaultsAndUncommittableInterruptedScope(t *testing.T) {
 				if insertErr == nil {
 					t.Fatal("expected injected statement FAIL")
 				}
-				var scopes int
-				if err := conn.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM manual_gate_evidence_scopes`).Scan(&scopes); err != nil || scopes != 1 {
-					t.Fatal("probe did not reach retained incomplete scope", scopes, err)
+				var scopes, parents int
+				if err := conn.QueryRowContext(context.Background(), `SELECT (SELECT COUNT(*) FROM manual_gate_evidence_scopes),(SELECT COUNT(*) FROM manual_submission_gate_evidence)`).Scan(&scopes, &parents); err != nil || scopes != 1 || parents != 0 {
+					t.Fatal("witness fault must precede parent insertion", scopes, parents, err)
 				}
 				_, err = conn.ExecContext(context.Background(), `COMMIT`)
 				var coded interface{ Code() int }
@@ -399,7 +399,7 @@ func TestHTTPM4B21DuplicateNamespaceVictimsAndConcurrentHandles(t *testing.T) {
 		`INSERT OR REPLACE INTO canary_runtime_audit(rowid,id,event_type,reason_code,details_json,created_at) SELECT rowid,'outside','outside','outside','{}',created_at FROM canary_runtime_audit WHERE event_type='MANUAL_SUBMISSION_GATE_EVIDENCE'`,
 		`DELETE FROM canary_alert_outbox WHERE id LIKE 'manual-gate-alert:%'`,
 		`UPDATE canary_alert_outbox SET severity='CRITICAL' WHERE id LIKE 'manual-gate-alert:%'`,
-		`INSERT INTO manual_gate_evidence_scopes(id,operation_id,source_hash) SELECT id,operation_id,source_hash FROM manual_submission_gate_evidence`,
+		`INSERT INTO manual_gate_evidence_scopes(id,operation_id,source_hash,checked_at) SELECT id,operation_id,source_hash,checked_at FROM manual_submission_gate_evidence`,
 	} {
 		if _, err := s.db.Exec(query); err == nil || admittedDatabaseSnapshot(t, s.db) != before {
 			t.Fatal("identity/victim/scope bypass", query, err)
@@ -501,7 +501,7 @@ func TestHTTPM4B21NoGuardOpeningAndNoRuntimeCaller(t *testing.T) {
 func TestHTTPM4B21OrphanScopePreseedAndFreshMetadataNoWindow(t *testing.T) {
 	_, s, _, v := gateEvidenceFixture(t, "buy")
 	before := admittedDatabaseSnapshot(t, s.db)
-	if _, err := s.db.Exec(`INSERT INTO manual_gate_evidence_scopes(id,operation_id,source_hash) VALUES(?,?,?)`, v.id, v.operation, v.digest); err == nil || admittedDatabaseSnapshot(t, s.db) != before {
+	if _, err := s.db.Exec(`INSERT INTO manual_gate_evidence_scopes(id,operation_id,source_hash,checked_at) VALUES(?,?,?,?)`, v.id, v.operation, v.digest, v.checked); err == nil || admittedDatabaseSnapshot(t, s.db) != before {
 		t.Fatal("orphan scope committed", err)
 	}
 	for _, verb := range []string{"INSERT", "INSERT OR IGNORE", "INSERT OR REPLACE"} {
@@ -526,4 +526,99 @@ func TestHTTPM4B21OrphanScopePreseedAndFreshMetadataNoWindow(t *testing.T) {
 		t.Fatal("fresh metadata created economic/expiry window")
 	}
 	assertGateEvidence(t, s, fresh)
+}
+
+// Promote the independent BLOCKED-head probe: even after a once-only FAIL clears,
+// later SQL may not adopt a failed scope and turn it into committed evidence.
+// Completing provisional witnesses is not itself permission or successful repair.
+func TestHTTPM4B21InterruptedWitnessCannotAdoptOrCommit(t *testing.T) {
+	for _, scenario := range []struct{ table, verb string }{
+		{"canary_runtime_audit", "INSERT"}, {"canary_runtime_audit", "INSERT OR IGNORE"},
+		{"canary_runtime_audit", "INSERT OR REPLACE"}, {"canary_runtime_audit", "INSERT OR FAIL"},
+		{"canary_alert_outbox", "INSERT"}, {"canary_alert_outbox", "INSERT OR IGNORE"},
+		{"canary_alert_outbox", "INSERT OR REPLACE"}, {"canary_alert_outbox", "INSERT OR FAIL"},
+	} {
+		table := scenario.table
+		for _, drift := range []bool{false, true} {
+			name := table + "/" + scenario.verb + "/original"
+			if drift {
+				name = table + "/" + scenario.verb + "/stop_revoke_freeze_lease_deleted"
+			}
+			t.Run(name, func(t *testing.T) {
+				_, s, _, v := gateEvidenceFixture(t, "buy")
+				field, match := "event_type", "MANUAL_SUBMISSION_GATE_EVIDENCE"
+				if table == "canary_alert_outbox" {
+					field, match = "audit_id", "manual-gate-audit:"+v.id
+				}
+				if _, err := s.db.Exec(`CREATE TRIGGER gate_once_fault BEFORE INSERT ON ` + table + ` WHEN NEW.` + field + `='` + match + `' AND NOT EXISTS(SELECT 1 FROM canary_runtime_audit WHERE id='gate-once-cleared') BEGIN SELECT RAISE(FAIL,'once-only witness fault'); END`); err != nil {
+					t.Fatal(err)
+				}
+				before := admittedDatabaseSnapshot(t, s.db)
+				economic := foundationEconomicSnapshot(t, s)
+				conn, err := s.db.Conn(context.Background())
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer conn.Close()
+				exec := func(query string, args ...any) {
+					t.Helper()
+					if _, err := conn.ExecContext(context.Background(), query, args...); err != nil {
+						t.Fatal(query, err)
+					}
+				}
+				exec(`BEGIN IMMEDIATE`)
+				defer conn.ExecContext(context.Background(), `ROLLBACK`)
+				if _, err := conn.ExecContext(context.Background(), scenario.verb+` INTO manual_submission_gate_evidence VALUES(?,?,?,?,?)`, v.id, v.operation, v.source, v.digest, v.checked); err == nil || !strings.Contains(err.Error(), "once-only witness fault") {
+					t.Fatal("fault must interrupt witness staging", err)
+				}
+				var parents, scopes int
+				if err := conn.QueryRowContext(context.Background(), `SELECT (SELECT COUNT(*) FROM manual_submission_gate_evidence),(SELECT COUNT(*) FROM manual_gate_evidence_scopes)`).Scan(&parents, &scopes); err != nil || parents != 0 || scopes != 1 {
+					t.Fatal("failed witness created parent", parents, scopes, err)
+				}
+				if drift {
+					exec(`UPDATE canary_control_state SET emergency_stopped=1; UPDATE canary_runtime_authorizations SET state='REVOKED'; UPDATE canary_risk_reservations SET state='frozen'; UPDATE canary_authorization_operation_usage SET state='FROZEN'; DELETE FROM canary_worker_leases`)
+				}
+				// No DDL after the error: clear the fault using unrelated ordinary SQL.
+				exec(`INSERT INTO canary_runtime_audit(id,event_type,reason_code,details_json,created_at) VALUES('gate-once-cleared','TEST_ONCE_FAULT_CLEARED','test fault cleared','{}',?)`, v.checked)
+				if table == "canary_runtime_audit" {
+					exec(`INSERT INTO canary_runtime_audit(id,event_type,operation_id,attempt_id,authorization_id,authorization_epoch,reason_code,details_json,created_at)
+ SELECT 'manual-gate-audit:'||s.id,'MANUAL_SUBMISSION_GATE_EVIDENCE',s.operation_id,q.attempt_id,b.authorization_id,b.authorization_epoch,
+ 'DB_OBSERVATION_NOT_GATE_OR_SEND_PERMISSION',json_object('evidence_id',s.id,'source_hash',s.source_hash),s.checked_at
+ FROM manual_gate_evidence_scopes s JOIN manual_nonce_claims q ON q.operation_id=s.operation_id JOIN manual_execution_bindings b ON b.operation_id=s.operation_id`)
+				}
+				exec(`INSERT INTO canary_alert_outbox(id,audit_id,severity,state,created_at) SELECT 'manual-gate-alert:'||id,'manual-gate-audit:'||id,'INFO','PENDING',checked_at FROM manual_gate_evidence_scopes`)
+				for _, verb := range []string{"INSERT", "INSERT OR IGNORE", "INSERT OR REPLACE", "INSERT OR FAIL"} {
+					if _, err := conn.ExecContext(context.Background(), verb+` INTO manual_submission_gate_evidence VALUES(?,?,?,?,?)`, v.id, v.operation, v.source, v.digest, v.checked); err == nil {
+						t.Fatal("later statement adopted failed scope", verb)
+					}
+				}
+				if _, err := conn.ExecContext(context.Background(), `DELETE FROM manual_gate_evidence_scopes`); err == nil {
+					t.Fatal("witness repair closed scope without parent")
+				}
+				var complete int
+				if err := conn.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM manual_gate_evidence_complete`).Scan(&complete); err != nil || complete != 0 {
+					t.Fatal("repaired incomplete evidence accepted", complete, err)
+				}
+				_, err = conn.ExecContext(context.Background(), `COMMIT`)
+				var coded interface{ Code() int }
+				if err == nil || !errors.As(err, &coded) || coded.Code() != 787 {
+					t.Fatal("later witness repair made COMMIT possible", err)
+				}
+				exec(`ROLLBACK`)
+				if err := conn.Close(); err != nil {
+					t.Fatal(err)
+				}
+				if before != admittedDatabaseSnapshot(t, s.db) || economic != foundationEconomicSnapshot(t, s) {
+					t.Fatal("rollback retained witness/control/economic mutations")
+				}
+				if _, err := s.db.Exec(`DROP TRIGGER gate_once_fault`); err != nil {
+					t.Fatal(err)
+				}
+				if err := insertGateEvidence(s.db, v, "INSERT"); err != nil {
+					t.Fatal("fresh statement after rollback rejected", err)
+				}
+				assertGateEvidence(t, s, v)
+			})
+		}
+	}
 }

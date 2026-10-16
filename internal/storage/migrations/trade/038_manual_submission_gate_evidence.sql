@@ -22,6 +22,7 @@ CREATE TABLE manual_gate_evidence_scopes(
  id TEXT NOT NULL PRIMARY KEY REFERENCES manual_submission_gate_evidence(id) DEFERRABLE INITIALLY DEFERRED,
  operation_id TEXT NOT NULL,
  source_hash TEXT NOT NULL,
+ checked_at TEXT NOT NULL,
  empty_ref INTEGER NOT NULL DEFAULT 1 REFERENCES manual_gate_evidence_empty(id) DEFERRABLE INITIALLY DEFERRED
 );
 
@@ -113,6 +114,8 @@ BEGIN
  SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM canary_control_state WHERE singleton=1 AND chain_id=4663 AND emergency_stopped IS 0 AND mode='CONTROLLED_CANARY')
  THEN RAISE(ABORT,'manual gate control unavailable disabled or stopped') END;
  SELECT CASE WHEN typeof(NEW.id)!='text' OR typeof(NEW.operation_id)!='text' OR typeof(NEW.source_hash)!='text' OR NEW.empty_ref IS NOT 1
+ OR manual_artifact_time_valid(hex(NEW.checked_at),typeof(NEW.checked_at))!=1
+ OR hex(NEW.id)!=hex('manual-gate-evidence:'||manual_artifact_bytes_sha256(hex(json_object('operation_id',NEW.operation_id,'source_hash',NEW.source_hash,'checked_at',NEW.checked_at))))
  OR EXISTS(SELECT 1 FROM manual_submission_gate_evidence x WHERE hex(x.id)=hex(NEW.id))
  OR EXISTS(SELECT 1 FROM manual_gate_evidence_scopes x WHERE hex(x.id)=hex(NEW.id) OR x.rowid=NEW.rowid)
  OR NOT EXISTS(SELECT 1 FROM manual_gate_evidence_valid_source e WHERE e.operation_id IS NEW.operation_id AND hex(NEW.source_hash)=hex(manual_artifact_bytes_sha256(hex(e.source_json))))
@@ -132,11 +135,20 @@ BEGIN
  AND manual_time_cmp(NEW.checked_at,e.operation_expires_at)<0 AND manual_time_cmp(NEW.checked_at,e.auth_expires_at)<0 AND manual_time_cmp(NEW.checked_at,e.lease_expires_at)<0
  AND NOT EXISTS(SELECT 1 FROM canary_gate_attestations g WHERE manual_artifact_time_valid(hex(g.attested_at),typeof(g.attested_at))!=1 OR manual_time_cmp(NEW.checked_at,g.attested_at)<0))
  OR EXISTS(SELECT 1 FROM manual_submission_gate_evidence x WHERE hex(x.id)=hex(NEW.id) OR x.rowid=NEW.rowid)
+ OR EXISTS(SELECT 1 FROM manual_gate_evidence_scopes x WHERE hex(x.id)=hex(NEW.id))
  OR EXISTS(SELECT 1 FROM canary_runtime_audit a WHERE hex(a.id)=hex('manual-gate-audit:'||NEW.id)
  OR (hex(a.event_type)=hex('MANUAL_SUBMISSION_GATE_EVIDENCE') AND hex(a.details_json)=hex(json_object('evidence_id',NEW.id,'source_hash',NEW.source_hash))))
  OR EXISTS(SELECT 1 FROM canary_alert_outbox a WHERE hex(a.id)=hex('manual-gate-alert:'||NEW.id) OR hex(a.audit_id)=hex('manual-gate-audit:'||NEW.id))
  THEN RAISE(ABORT,'manual gate evidence exact bounded DB source required') END;
- INSERT INTO manual_gate_evidence_scopes(id,operation_id,source_hash) VALUES(NEW.id,NEW.operation_id,NEW.source_hash);
+ -- Witness faults happen BEFORE the parent row can exist. A retained failed
+ -- scope cannot close without that parent, and a later parent INSERT cannot
+ -- adopt the existing scope/witnesses. FK_ON then forbids partial COMMIT.
+ INSERT INTO manual_gate_evidence_scopes(id,operation_id,source_hash,checked_at) VALUES(NEW.id,NEW.operation_id,NEW.source_hash,NEW.checked_at);
+ INSERT INTO canary_runtime_audit(id,event_type,operation_id,attempt_id,authorization_id,authorization_epoch,reason_code,details_json,created_at)
+ SELECT 'manual-gate-audit:'||NEW.id,'MANUAL_SUBMISSION_GATE_EVIDENCE',NEW.operation_id,q.attempt_id,b.authorization_id,b.authorization_epoch,
+ 'DB_OBSERVATION_NOT_GATE_OR_SEND_PERMISSION',json_object('evidence_id',NEW.id,'source_hash',NEW.source_hash),NEW.checked_at
+ FROM manual_nonce_claims q JOIN manual_execution_bindings b ON b.operation_id=q.operation_id WHERE q.operation_id=NEW.operation_id;
+ INSERT INTO canary_alert_outbox(id,audit_id,severity,state,created_at) VALUES('manual-gate-alert:'||NEW.id,'manual-gate-audit:'||NEW.id,'INFO','PENDING',NEW.checked_at);
 END;
 
 -- Preclose validates only this statement's exact metadata+witnesses. Deep old
@@ -169,26 +181,28 @@ SELECT e.* FROM manual_gate_evidence_preclose e
 JOIN (SELECT * FROM manual_submission_foundation_complete LIMIT -1) f ON f.operation_id IS e.operation_id
 WHERE NOT EXISTS(SELECT 1 FROM manual_gate_evidence_scopes s WHERE hex(s.id)=hex(e.id));
 CREATE TRIGGER manual_gate_scope_close BEFORE DELETE ON manual_gate_evidence_scopes
-WHEN NOT EXISTS(SELECT 1 FROM (SELECT * FROM manual_gate_evidence_preclose LIMIT -1) e WHERE e.id IS OLD.id AND e.operation_id IS OLD.operation_id AND e.source_hash IS OLD.source_hash)
+WHEN NOT EXISTS(SELECT 1 FROM (SELECT * FROM manual_gate_evidence_preclose LIMIT -1) e WHERE e.id IS OLD.id AND e.operation_id IS OLD.operation_id AND e.source_hash IS OLD.source_hash AND e.checked_at IS OLD.checked_at)
 BEGIN SELECT RAISE(ABORT,'manual gate incomplete witnesses cannot close'); END;
 
 CREATE TRIGGER manual_gate_audit_insert BEFORE INSERT ON canary_runtime_audit
 WHEN (hex(NEW.event_type)=hex('MANUAL_SUBMISSION_GATE_EVIDENCE') OR substr(hex(NEW.id),1,length(hex('manual-gate-audit:')))=hex('manual-gate-audit:')
  OR EXISTS(SELECT 1 FROM canary_runtime_audit a JOIN manual_submission_gate_evidence e ON hex(a.id)=hex('manual-gate-audit:'||e.id) WHERE a.rowid=NEW.rowid OR hex(a.id)=hex(NEW.id)))
- AND NOT EXISTS(SELECT 1 FROM manual_gate_evidence_scopes s JOIN manual_submission_gate_evidence e ON e.id IS s.id AND e.operation_id IS s.operation_id AND e.source_hash IS s.source_hash
- JOIN manual_execution_bindings b ON b.operation_id=e.operation_id JOIN manual_nonce_claims q ON q.operation_id=e.operation_id
- WHERE NEW.id IS 'manual-gate-audit:'||e.id AND NEW.event_type IS 'MANUAL_SUBMISSION_GATE_EVIDENCE'
- AND NEW.operation_id IS e.operation_id AND NEW.attempt_id IS q.attempt_id AND NEW.authorization_id IS b.authorization_id AND NEW.authorization_epoch IS b.authorization_epoch
- AND NEW.reason_code IS 'DB_OBSERVATION_NOT_GATE_OR_SEND_PERMISSION' AND NEW.created_at IS e.checked_at AND typeof(NEW.details_json)='text'
- AND hex(NEW.details_json)=hex(json_object('evidence_id',e.id,'source_hash',e.source_hash))
+ AND NOT EXISTS(SELECT 1 FROM manual_gate_evidence_scopes s
+ JOIN manual_execution_bindings b ON b.operation_id=s.operation_id JOIN manual_nonce_claims q ON q.operation_id=s.operation_id
+ WHERE NEW.id IS 'manual-gate-audit:'||s.id AND NEW.event_type IS 'MANUAL_SUBMISSION_GATE_EVIDENCE'
+ AND NEW.operation_id IS s.operation_id AND NEW.attempt_id IS q.attempt_id AND NEW.authorization_id IS b.authorization_id AND NEW.authorization_epoch IS b.authorization_epoch
+ AND NEW.reason_code IS 'DB_OBSERVATION_NOT_GATE_OR_SEND_PERMISSION' AND NEW.created_at IS s.checked_at AND typeof(NEW.details_json)='text'
+ AND hex(NEW.details_json)=hex(json_object('evidence_id',s.id,'source_hash',s.source_hash))
+ AND NOT EXISTS(SELECT 1 FROM manual_submission_gate_evidence e WHERE hex(e.id)=hex(s.id))
  AND NOT EXISTS(SELECT 1 FROM canary_runtime_audit x WHERE hex(x.id)=hex(NEW.id) OR x.rowid=NEW.rowid OR (hex(x.event_type)=hex(NEW.event_type) AND hex(x.details_json)=hex(NEW.details_json))))
 BEGIN SELECT RAISE(ABORT,'manual gate audit initial statement only'); END;
 CREATE TRIGGER manual_gate_alert_insert BEFORE INSERT ON canary_alert_outbox
 WHEN (substr(hex(NEW.id),1,length(hex('manual-gate-alert:')))=hex('manual-gate-alert:') OR substr(hex(NEW.audit_id),1,length(hex('manual-gate-audit:')))=hex('manual-gate-audit:')
  OR EXISTS(SELECT 1 FROM canary_alert_outbox a JOIN manual_submission_gate_evidence e ON hex(a.id)=hex('manual-gate-alert:'||e.id) OR hex(a.audit_id)=hex('manual-gate-audit:'||e.id)
  WHERE a.rowid=NEW.rowid OR hex(a.id)=hex(NEW.id) OR hex(a.audit_id)=hex(NEW.audit_id)))
- AND NOT EXISTS(SELECT 1 FROM manual_gate_evidence_scopes s JOIN manual_submission_gate_evidence e ON e.id IS s.id AND e.operation_id IS s.operation_id AND e.source_hash IS s.source_hash
- WHERE NEW.id IS 'manual-gate-alert:'||e.id AND NEW.audit_id IS 'manual-gate-audit:'||e.id AND NEW.severity IS 'INFO' AND NEW.state IS 'PENDING' AND NEW.created_at IS e.checked_at AND NEW.delivered_at IS NULL
+ AND NOT EXISTS(SELECT 1 FROM manual_gate_evidence_scopes s
+ WHERE NEW.id IS 'manual-gate-alert:'||s.id AND NEW.audit_id IS 'manual-gate-audit:'||s.id AND NEW.severity IS 'INFO' AND NEW.state IS 'PENDING' AND NEW.created_at IS s.checked_at AND NEW.delivered_at IS NULL
+ AND NOT EXISTS(SELECT 1 FROM manual_submission_gate_evidence e WHERE hex(e.id)=hex(s.id))
  AND NOT EXISTS(SELECT 1 FROM canary_alert_outbox x WHERE hex(x.id)=hex(NEW.id) OR hex(x.audit_id)=hex(NEW.audit_id) OR x.rowid=NEW.rowid))
 BEGIN SELECT RAISE(ABORT,'manual gate alert initial statement only'); END;
 CREATE TRIGGER manual_gate_alert_update BEFORE UPDATE ON canary_alert_outbox
@@ -204,11 +218,6 @@ WHEN EXISTS(SELECT 1 FROM manual_submission_gate_evidence e WHERE hex(OLD.id)=he
 BEGIN SELECT RAISE(ABORT,'manual gate alert retained'); END;
 CREATE TRIGGER manual_gate_evidence_effect AFTER INSERT ON manual_submission_gate_evidence
 BEGIN
- INSERT INTO canary_runtime_audit(id,event_type,operation_id,attempt_id,authorization_id,authorization_epoch,reason_code,details_json,created_at)
- SELECT 'manual-gate-audit:'||NEW.id,'MANUAL_SUBMISSION_GATE_EVIDENCE',NEW.operation_id,q.attempt_id,b.authorization_id,b.authorization_epoch,
- 'DB_OBSERVATION_NOT_GATE_OR_SEND_PERMISSION',json_object('evidence_id',NEW.id,'source_hash',NEW.source_hash),NEW.checked_at
- FROM manual_nonce_claims q JOIN manual_execution_bindings b ON b.operation_id=q.operation_id WHERE q.operation_id=NEW.operation_id;
- INSERT INTO canary_alert_outbox(id,audit_id,severity,state,created_at) VALUES('manual-gate-alert:'||NEW.id,'manual-gate-audit:'||NEW.id,'INFO','PENDING',NEW.checked_at);
  DELETE FROM manual_gate_evidence_scopes WHERE id=NEW.id;
  SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM manual_gate_evidence_complete WHERE id=NEW.id)
  OR EXISTS(SELECT 1 FROM manual_gate_evidence_scopes WHERE hex(id)=hex(NEW.id)) THEN RAISE(ABORT,'manual gate evidence incomplete atomic effect') END;

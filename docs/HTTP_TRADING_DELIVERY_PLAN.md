@@ -7,6 +7,22 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest local M4-B2.1 hardening: `http-m4b21-gate-hardening`, base
+`e23be87b012b0b1ed391d93b5c7e7363b098d527`. Explicitly authorized independent
+review BLOCKED the original head on later-statement completion after injected
+witness FAIL. The new038 correction stages scope/audit/alert BEFORE the parent,
+rejects existing scope/witness adoption, and preserves parent-required closure
++ FK_ON COMMIT rejection even after manual provisional witness completion.
+Only unpublished038/B21 tests plus docs/additive evidence/checksum change;
+001–037/product Go/old evidence stay byte-identical. See
+`HTTP_MANUAL_M4_B21_HARDENING.md`. Full ordinary/focused/build/vet/staticcheck/
+offline PASS; all-B21 race attempted20m TIMEOUT (not PASS), separate new16-case
+race PASS340.040s. Final committed-head review remains pending and is separately
+tracked; neither author result is independent approval.
+Maximum M4_B21_READY_FOR_REVIEW, whole B2/B/M4 incomplete. No B2.2 or downstream,
+production/grant/live/release/remote authority follows. The prior B21 checkpoint
+below is historical and its same-statement proof is superseded, not PASS.
+
 Latest local M4-B2.1 continuation: disconnected DB gate-input evidence on
 `http-m4b21-gate-evidence`, base `59358daaf6ac686bbf01eb032f3a7f877468098a`.
 Additive038 binds original foundation to current durable controls/auth/policy/
