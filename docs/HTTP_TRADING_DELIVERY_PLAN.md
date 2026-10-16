@@ -7,6 +7,15 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest local B3-B2 checkpoint: independent artifact-phase review at `9e089da`
+concluded FAIL solely for late cancellation returning successful historical
+metadata. The minimal helper-only repair checks context around crypto and adds
+three permanent cancellation-point regressions. 001–036 and all SQL guards,
+financial ownership, signer/HTTP/startup/send boundaries remain unchanged.
+Fresh scoped review is pending; B3-C/D remain pending and whole B3 is not READY
+or PASS. Original phase evidence is preserved at its historical snapshot; see
+additive artifact-cancellation-hardening evidence for this review and repair.
+
 Current local B3-B2 continuation at base `0a8978f`: additive 036 exact artifact
 command/attempt/step/lane/audit/alert contract and disconnected SELECT-only
 decrypt/verify history. Original 001–035, old initial-only views and accounting

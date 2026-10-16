@@ -7,6 +7,14 @@ implementation only, not production signing, HTTP wiring or real sending.
 
 ## Ordered work and current checkpoint
 
+Current B3-B2 residual: phase review at `9e089da` concluded FAIL solely for late
+context cancellation returning nonzero SELECT-only history. The minimal local
+repair adds context checks around authenticated crypto and three permanent
+cancellation-point regressions; no schema/guard/financial/signing/send change.
+Fresh scoped review is pending; this is not B3-C authority or whole-B3 PASS.
+See additive `http-manual-m3b3-artifact-cancellation-hardening.json`. The original
+author checkpoint below and phase evidence retain their historical meaning.
+
 Current continuation implements **B3-B2 exact artifact phase only**, based on
 local checkpoint `0a8978f`. Additive 036 introduces one immutable artifact command,
 exact one-way original attempt/step/lane transitions, atomic audit/alert and
@@ -96,7 +104,7 @@ M3-B2 = PASS
 M3-B3 = IN_PROGRESS
 M3-B3-A = FOUNDATION_SCOPE_INDEPENDENT_PASS_AT_FF073F
 M3-B3-B1 = REVIEWED_DURABLE_MARKER_FOUNDATION_NOT_SIGNING_READY
-M3-B3-B2 = AUTHOR_VALIDATED_PENDING_INDEPENDENT_PHASE_REVIEW
+M3-B3-B2 = CANCELLATION_REPAIR_PENDING_FRESH_INDEPENDENT_PHASE_REVIEW
 foundation_review = PASS_AT_FF073F_SCOPE_LIMITED_NOT_WHOLE_B3
 M3-B4 = NOT_STARTED
 M3 overall = INCOMPLETE_NOT_PASS

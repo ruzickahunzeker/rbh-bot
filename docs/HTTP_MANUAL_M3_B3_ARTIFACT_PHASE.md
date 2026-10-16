@@ -5,9 +5,20 @@ Batch base: `0a8978f7f533e59f1fd69555aab5ea8dcfdc92b6`, the local foundation
 review checkpoint. The foundation reviewed at `ff073f` passed only B3-A/B1.
 It is not independent approval of this new phase contract.
 
+Current residual checkpoint: independent phase review of `9e089dabc6f626981a0529b78d8eca885eea56e0`
+concluded **FAIL**, limited to a P2 late-cancellation zero-result defect in the
+SELECT-only history helper. Cancellation during successful authenticated
+decryption returned nonzero metadata; no raw/ciphertext exposure or permission
+bypass was observed, and no SQL integrity finding remained. The local minimal
+repair checks context immediately before and after crypto, adds permanent
+first-key/decrypt/final-key cancellation tests, and leaves 001–036, guards and
+all economic paths unchanged. Fresh scoped review is pending. Original phase
+evidence and its source hashes below remain historical at the original head;
+the additive cancellation-hardening evidence records this review and repair.
+
 ```ini
 M3-B3 = IN_PROGRESS_NOT_READY_FOR_REVIEW_NOT_PASS
-M3-B3-B2 = AUTHOR_VALIDATED_PENDING_INDEPENDENT_PHASE_REVIEW
+M3-B3-B2 = CANCELLATION_REPAIR_PENDING_FRESH_INDEPENDENT_PHASE_REVIEW
 M3-B3-C = NOT_IMPLEMENTED
 M3-B3-D = NOT_COMPLETE
 production_broadcast = NOT_CONNECTED

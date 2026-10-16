@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"reflect"
 	"strings"
@@ -493,6 +494,59 @@ func TestHTTPM3B3ArtifactPhaseHistoryDeniedZeroOutput(t *testing.T) {
 				t.Fatal("denied history leaked/repaired/changed", kind, err)
 			}
 		})
+	}
+}
+
+type artifactHistoryCancelCipher struct {
+	manualartifact.Cipher
+	cancel       context.CancelFunc
+	point        string
+	keyCalls     int
+	decryptCalls int
+}
+
+func (c *artifactHistoryCancelCipher) KeyVersion() string {
+	v := c.Cipher.KeyVersion()
+	c.keyCalls++
+	if (c.point == "first_key" && c.keyCalls == 1) || (c.point == "final_key" && c.keyCalls == 2) {
+		c.cancel()
+	}
+	return v
+}
+
+func (c *artifactHistoryCancelCipher) Decrypt(version string, ciphertext, nonce, aad []byte) ([]byte, error) {
+	raw, err := c.Cipher.Decrypt(version, ciphertext, nonce, aad)
+	c.decryptCalls++
+	if c.point == "decrypt" {
+		c.cancel()
+	}
+	return raw, err
+}
+
+func TestHTTPM3B3ArtifactPhaseHistoryLateCancellationZeroOutput(t *testing.T) {
+	_, s, h, r, scope, _, m, cipher := artifactPhaseFixture(t, "buy")
+	if err := insertArtifactCommand(s, m, "INSERT"); err != nil {
+		t.Fatal(err)
+	}
+	before := admittedDatabaseSnapshot(t, s.db)
+	for _, point := range []string{"first_key", "decrypt", "final_key"} {
+		t.Run(point, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			c := &artifactHistoryCancelCipher{Cipher: cipher, cancel: cancel, point: point}
+			v, err := loadManualSignedArtifactHistory(ctx, s.db, h.identity, r.RequestID, scope, c)
+			if !errors.Is(ctx.Err(), context.Canceled) || !errors.Is(err, context.Canceled) ||
+				v != (manualSignedArtifactHistory{}) || c.decryptCalls != 1 || c.keyCalls != 2 ||
+				admittedDatabaseSnapshot(t, s.db) != before {
+				t.Fatal("late cancellation returned history or changed durable state", point, err, c.keyCalls, c.decryptCalls)
+			}
+		})
+	}
+	// A later independent history inspection still verifies the exact artifact;
+	// cancellation did not repair, discard or replace any durable identity.
+	v, err := loadManualSignedArtifactHistory(context.Background(), s.db, h.identity, r.RequestID, scope, cipher)
+	if err != nil || v.OperationID != m.operation || v.ExecutionAuthorized || v.SigningAuthorized || v.SendAuthorized || admittedDatabaseSnapshot(t, s.db) != before {
+		t.Fatal("cancelled inspection changed subsequent history", err)
 	}
 }
 

@@ -70,7 +70,15 @@ func loadManualSignedArtifactHistory(ctx context.Context, q queryRow, id Identit
 	if err != nil {
 		return zero, err
 	}
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
 	verified, err := manualartifact.Open(v, f, cipher)
+	// The synchronous cipher has no context parameter. Cancellation during
+	// authenticated verification must still suppress the historical result.
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
 	if err != nil {
 		return zero, err
 	}
