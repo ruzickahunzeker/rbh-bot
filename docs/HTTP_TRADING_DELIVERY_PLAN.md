@@ -7,6 +7,22 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest local M4-B2.1 independent review receipt: fresh review PASS at exact
+`eec705473517b591d5502f556685ee2ea9318f58` after the originalP2 blocker was
+fixed. Separate docs/evidence-only `http-m4b21-review-receipt` preserves the
+reviewer's report verbatim; this is NOT formal closeout. Delivery checkpoint
+remains M4_B21_READY_FOR_REVIEW; independent review PASS, formal closeout
+NOT_STARTED. Independent storage3/API11 ordinary plus all16 fault scenarios
+PASS0.555s/63.898s; two fresh adversarial overlay groups race PASS52.348s;
+reviewed175 manifest/source4/log10/mapping12 PASS. Author full ordinary PASS;
+combined all11 race TIMEOUT is explicitly retained, separate new16 race PASS,
+not a full-repository/all11-single-run race claim. See
+`HTTP_MANUAL_M4_B21_REVIEW.md` and additive independent-review evidence.
+All code/tests/schema and original author evidence stay byte-identical to the
+reviewed head. Whole B2/B/M4 incomplete; B2.2 and downstream NOT_ENTERED.
+No milestone self-PASS, permission, production wiring/send/grant/live/release
+or remote operation follows. Older checkpoints and their hashes are historical.
+
 Latest local M4-B2.1 hardening: `http-m4b21-gate-hardening`, base
 `e23be87b012b0b1ed391d93b5c7e7363b098d527`. Explicitly authorized independent
 review BLOCKED the original head on later-statement completion after injected
