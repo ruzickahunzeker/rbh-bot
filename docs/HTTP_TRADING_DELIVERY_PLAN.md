@@ -7,6 +7,15 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Current local B3-C continuation at base `bec9ee0`: private disconnected local
+orchestration with fresh controls/TTL/evidence and a second writer fence across
+one trusted synchronous signer/cipher/outcome. Original 001–036, accounting and
+HTTP/config/startup remain unchanged. Retained marker/artifact calls are history
+only, never resumed signer ownership. Author validation complete; independent
+B3-C review NOT performed, B3-D incomplete, whole B3 not READY/PASS. See
+`HTTP_MANUAL_M3_B3_LOCAL_ORCHESTRATION.md`. No production key/query/grant/send,
+live/release change or remote action follows.
+
 Latest local B3-B2 checkpoint: fresh independent artifact-phase review PASS at
 `43bda02c746b89dc8a8831184704b213f1c35b64`, scope limited to the exact encrypted
 artifact contract and SELECT-only history. Prior cancellation P2 is CLOSED.

@@ -7,6 +7,14 @@ implementation only, not production signing, HTTP wiring or real sending.
 
 ## Ordered work and current checkpoint
 
+Current B3-C continuation at local base `bec9ee0`: disconnected synchronous
+local signer adapter and private two-writer-fence orchestration reuse original
+nonce/marker/artifact contracts. No schema, HTTP/config/startup, production
+key/query/grant or send change. Author validation is complete; independent
+orchestration review NOT performed. B3-D remains incomplete, whole B3 not READY
+or PASS. See `HTTP_MANUAL_M3_B3_LOCAL_ORCHESTRATION.md`. Earlier NOT_IMPLEMENTED
+records describe their reviewed snapshots, not this unreviewed continuation.
+
 Current B3-B2 checkpoint: fresh independent review **scope-limited PASS** at
 `43bda02c746b89dc8a8831184704b213f1c35b64`. Prior cancellation P2 is closed;
 independent original probes/permanent regression and selected race PASS.
