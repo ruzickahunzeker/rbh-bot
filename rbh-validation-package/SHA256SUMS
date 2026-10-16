@@ -162,3 +162,4 @@ fe0716f3d6389c4244479dd3ecf5bb475874c8c96b456e3655432559a0dccfd5  evidence/http-
 85b601ded60fe40140766e5a72f64860df532e05e201236cd99a0a3df7f11da3  evidence/http-manual-m3b3-artifact-cancellation-hardening.json
 ffe4af2161ed3a1cb8fb7a9e0ed2f4d1f1358e0f499508a628b3481305420855  evidence/http-manual-m3b3-artifact-phase-review.json
 26ae6368803f5b1705881ed0d673556b9748988d7cc41ee9bd568b50548350d6  evidence/http-manual-m3b3-local-orchestration.json
+25a85e2bef7761c65f3b7654410d743daa2c263a8969c79d3e96e1d039aac412  evidence/http-manual-m3b3-local-orchestration-review.json

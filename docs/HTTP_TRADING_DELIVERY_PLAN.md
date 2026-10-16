@@ -7,6 +7,14 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest local B3-C checkpoint: independent read-only review PASS at
+`ce9f46a08b1e1403171ad9f603937f98640508d4`; ordinary 20.074s, selected race
+54.798s and 25 original probe cases PASS. All 164 reviewed manifest entries and
+six source hashes verified. Additive orchestration-review evidence records this
+C-only verdict and the accepted pre-COMMIT freshness/historical metadata boundary.
+Whole B3 is still not READY/PASS. Next is local B3-D cumulative tests/evidence,
+not B4, production key/query/signing/send, live/grant or remote operations.
+
 Current local B3-C continuation at base `bec9ee0`: private disconnected local
 orchestration with fresh controls/TTL/evidence and a second writer fence across
 one trusted synchronous signer/cipher/outcome. Original 001–036, accounting and

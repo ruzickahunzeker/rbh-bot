@@ -7,6 +7,15 @@ implementation only, not production signing, HTTP wiring or real sending.
 
 ## Ordered work and current checkpoint
 
+Latest B3-C checkpoint: independent read-only review PASS at
+`ce9f46a08b1e1403171ad9f603937f98640508d4`, limited to disconnected local
+orchestration. No product or schema change is made by this checkpoint. Freshness
+is checked immediately before outcome COMMIT; valid committed false-permission
+metadata remains readable after expiry, not a continuously validated action.
+Whole B3 is not READY/PASS; B3-D cumulative acceptance is the next local stage.
+See additive `http-manual-m3b3-local-orchestration-review.json`. Earlier pending
+review/NOT_IMPLEMENTED records retain their historical snapshot meaning.
+
 Current B3-C continuation at local base `bec9ee0`: disconnected synchronous
 local signer adapter and private two-writer-fence orchestration reuse original
 nonce/marker/artifact contracts. No schema, HTTP/config/startup, production

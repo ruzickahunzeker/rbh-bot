@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "scope": "M3_B3_C_INDEPENDENT_REVIEW_CHECKPOINT_ONLY_NOT_WHOLE_B3_CLOSEOUT",
+  "branch": "http-m3b3-controlled-local-signing",
+  "implementation_base": "bec9ee02c6bf32e2e76e3d1158b82f87c717f889",
+  "reviewed_head": "ce9f46a08b1e1403171ad9f603937f98640508d4",
+  "independent_review_conclusion": "PASS",
+  "M3_B3_C": "INDEPENDENT_SCOPE_PASS",
+  "M3_B3_D": "NOT_COMPLETE",
+  "M3_B3": "IN_PROGRESS_NOT_READY_FOR_REVIEW_NOT_PASS",
+  "review_method": {
+    "reviewer": "m3b3c_independent_review",
+    "method": "SEPARATE_READ_ONLY_AGENT_NO_FORKED_AUTHOR_CONVERSATION_SCOPED_HANDOFF_NOT_BLIND_REVIEW",
+    "fixed_head_clean_start_end": true,
+    "repository_edits": 0,
+    "report_path": "/tmp/rbh-m3b3c-independent-ce9f46a-G8mzLR/REPORT.md",
+    "report_sha256": "0aa9533fe79af0bb40a48c18acffdc597c6f1a00e4b77c1a5e671eb01744a82c",
+    "probe_path": "/tmp/rbh-m3b3c-independent-ce9f46a-G8mzLR/review_overlay_test.go",
+    "probe_sha256": "ab63ce71839acc0fcfe57fab8bbe151a130c6f5a96649e037a6460b55b58211a",
+    "overlay_path": "/tmp/rbh-m3b3c-independent-ce9f46a-G8mzLR/overlay.json",
+    "overlay_sha256": "2fca0f1ddc4a8ba274437c0cd9f1e4e8a9cde9ac7488d29b06b0dfdae30c5ef5",
+    "temporary_artifacts": "HASH_IDENTIFIED_TMP_FILES_NOT_COMMITTED_PERMANENT_REGRESSIONS_OR_PERSISTED_RAW_LOG_CLAIM"
+  },
+  "independent_validation": {
+    "ordinary": {"command": "go test ./internal/tradeapi -run '^(TestHTTPM3B3CLocal|TestUserHTTPTradeHasNoEconomicDependencies)' -count=1 -timeout=5m", "status": "PASS", "tradeapi_seconds": 20.074},
+    "selected_race": {"command": "go test -race ./internal/tradeapi -run '^TestHTTPM3B3CLocal(TwoHandlesOneInvocation|WriterFenceBlocksControlCommit|DeadlineAwaitsSignerAndRetainsAmbiguity)$' -count=1 -v -timeout=4m", "status": "PASS", "tradeapi_seconds": 54.798},
+    "compatibility": {"command": "go test ./internal/manualartifact ./internal/storage ./internal/tradeapi -run '^(TestManualArtifact|TestManualSignedArtifact|TestManualSigning|TestOpenMigrateAndValidateEveryOwner|TestHTTPM3B3ArtifactPhase(HistoryLateCancellationZeroOutput|RetainedCorruptionReopenNoRepair|CryptoRequiredZeroOutput))' -count=1 -timeout=3m", "status": "PASS", "seconds": {"manualartifact": 0.094, "storage": 2.070, "tradeapi": 8.766}},
+    "original_probes": {"command": "go test -overlay=/tmp/rbh-m3b3c-independent-ce9f46a-G8mzLR/overlay.json ./internal/tradeapi -run '^TestReviewC' -count=1 -v -timeout=3m", "status": "PASS", "tests": 9, "cases": 25, "tradeapi_seconds": 11.610},
+    "integrity": "ALL164_MANIFEST_DIGESTS_SIX_SOURCE_HASHES_ELEVEN_MAPPING_DECLARATIONS_DIFFCHECK_AND_FIXED_CLEAN_IDENTITY_PASS",
+    "probe_intermediate_failures": ["BLOB_OWNER_SEED_REJECTED_BY_TEXT_CHECK_FAIL5_316S_CHANGED_ONLY_DISPOSABLE_PROBE_TO_SHAPE_VALID_WRONG_HASH", "SHORT_ATTESTATION_SEED_REJECTED_BY_LENGTH64_CHECK_FAIL11_730S_CHANGED_ONLY_PROBE_TO64_ZERO_DIGEST"],
+    "scope": "OFFLINE_EPHEMERAL_TEST_CRYPTO_CONTROLLED_SQLITE_NO_REAL_KEYS_RPC_OR_SENDS",
+    "not_run": ["INDEPENDENT_FULL_REPOSITORY_ORDINARY", "INDEPENDENT_ALL_C_RACE", "INDEPENDENT_FULL_REPOSITORY_RACE", "CI", "INDEPENDENT_BUILD_VET_STATICCHECK", "POWER_LOSS", "REAL_CHAIN"]
+  },
+  "accepted_commit_boundary": {
+    "freshness": "TRUSTED_CURRENT_TIME_TTL_AND_EVIDENCE_CHECK_IMMEDIATELY_BEFORE_OUTCOME_COMMIT",
+    "post_valid_commit_expiry_or_reversal": "AUTHENTICATED_METADATA_MAY_RETURN_ALL_PERMISSIONS_FALSE_NO_NEW_ACTION_OR_CONTINUOUS_OUTPUT_TIME_VALIDATION_CLAIM",
+    "cancellation": "POST_COMMIT_CONTEXT_CANCELLATION_RETURNS_ZERO_THEN_LATER_EXACT_HISTORY_ONLY",
+    "documentation": "CLARIFICATION_OF_INDEPENDENTLY_ACCEPTED_COMMIT_BOUNDARY_NOT_PRODUCT_OR_TTL_SEMANTICS_CHANGE"
+  },
+  "boundaries": {
+    "M1": "PASS_UNCHANGED", "M2": "PASS_UNCHANGED", "M3_B1": "PASS_UNCHANGED", "M3_B2": "PASS_UNCHANGED",
+    "C04": "PASS_UNCHANGED", "C05": "PASS_UNCHANGED", "C07": "PASS_UNCHANGED", "C08": "PASS_UNCHANGED",
+    "deadline_capability": "APPLICATION_TTL_ONLY", "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED", "controlled_canary_authorization": "NOT_GRANTED", "live": false, "release_ready": false,
+    "checkpoint_product_schema_test_changes": 0,
+    "remote_operations": false, "whole_B3_closeout": false,
+    "next": "LOCAL_B3_D_CUMULATIVE_TESTS_EVIDENCE_ONLY_NO_B4_OR_PRODUCTION_SIGN_SEND"
+  }
+}

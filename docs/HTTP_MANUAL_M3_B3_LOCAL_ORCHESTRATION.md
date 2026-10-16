@@ -6,7 +6,7 @@ artifact-phase review checkpoint. Subsequent continuation authorizes this
 controlled-local implementation, not production signing or send composition.
 
 ```ini
-M3-B3-C = IMPLEMENTED_AUTHOR_VALIDATED_PENDING_INDEPENDENT_REVIEW
+M3-B3-C = INDEPENDENT_SCOPE_PASS_AT_CE9F46A
 M3-B3-D = NOT_COMPLETE
 M3-B3 = IN_PROGRESS_NOT_READY_FOR_REVIEW_NOT_PASS
 M3 overall = INCOMPLETE_NOT_PASS
@@ -15,6 +15,13 @@ controlled_canary_authorization = NOT_GRANTED
 live = false
 release_ready = false
 ```
+
+Independent B3-C review **PASS** at
+`ce9f46a08b1e1403171ad9f603937f98640508d4`, limited to this disconnected
+orchestration stage. Independent all-C ordinary, selected race and 25 original
+probe cases passed. See additive local-orchestration-review evidence. Original
+author evidence below retains its historical pending-review/source-hash meaning;
+this checkpoint does not close whole B3 or authorize production signing/send.
 
 ## Composition and input
 
@@ -64,7 +71,10 @@ already-resolved percentage SELL; APPLICATION_TTL_ONLY, contract_deadline=false.
 7. After crypto, fresh controls, claim, accounting, time and evidence are checked
    again. Additive 036's existing command performs exact original attempt/step/
    lane/audit/alert effects atomically. Historical decrypt/verify plus final
-   cancellation/time/TTL/evidence checks must pass before commit/output.
+   cancellation/time/TTL/evidence checks must pass immediately before outcome
+   COMMIT. A valid committed artifact is historical metadata: later TTL/clock
+   changes do not create fresh permission or invalidate identity inspection.
+   Cancellation before returning a result is still checked separately.
 
 The per-call clock rejects zero/out-of-range times and ANY reversed sample,
 even if a later sample recovers. `now == expires_at` rejects; authorization
@@ -123,9 +133,9 @@ same durable artifact without another signer call or DB mutation. No busy timeou
 production behavior or acceptance of unexplained outcomes is relaxed.
 
 Author commands/results, intermediate failures and source hashes are recorded
-in additive `evidence/http-manual-m3b3-local-orchestration.json`. Stage-specific
-independent review has NOT been performed; prior artifact/foundation PASS is
-not orchestration approval. B3-D cumulative acceptance remains incomplete.
+in additive `evidence/http-manual-m3b3-local-orchestration.json`. Its original
+NOT_PERFORMED verdict is historical; the new review evidence records independent
+C-only PASS, not reused artifact/foundation approval. B3-D remains incomplete.
 No whole-B3 READY/PASS, B4/M4/M5/W4-D/W5 or production-health claim follows.
 
 All ten C tests plus the HTTP no-economic-dependency test pass on final source
