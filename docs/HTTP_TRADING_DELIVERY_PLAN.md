@@ -7,7 +7,17 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
-Latest local B3-B2 checkpoint: independent artifact-phase review at `9e089da`
+Latest local B3-B2 checkpoint: fresh independent artifact-phase review PASS at
+`43bda02c746b89dc8a8831184704b213f1c35b64`, scope limited to the exact encrypted
+artifact contract and SELECT-only history. Prior cancellation P2 is CLOSED.
+Independent ordinary probes (3.642s), selected race (43.361s), all 162 reviewed
+manifest entries and five repaired source hashes PASS. This docs/evidence-only
+checkpoint preserves historical FAIL/author checks and adds no product change.
+Whole B3 remains IN_PROGRESS_NOT_READY_NOT_PASS; B3-C local signer orchestration
+and B3-D acceptance remain pending. No signer/API/startup/send/grant/live/remote
+operation follows. See additive artifact-phase-review evidence.
+
+Historical local B3-B2 residual: independent artifact-phase review at `9e089da`
 concluded FAIL solely for late cancellation returning successful historical
 metadata. The minimal helper-only repair checks context around crypto and adds
 three permanent cancellation-point regressions. 001–036 and all SQL guards,
