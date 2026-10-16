@@ -7,6 +7,23 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest local M4-B2.1 formal closeout: independent review PASS at
+`eec705473517b591d5502f556685ee2ea9318f58`, verbatim receipt recorded at
+`1b5d30e5a54848f2aae11d6dc2c418e16cc54914`, now closed on separate
+docs/evidence-only `http-m4b21-gate-closeout`. M4-B2.1 = PASS;
+checkpoint M4_B21_PASS; formal closeout COMPLETE_LOCAL_ONLY. This closes only
+disconnected DB observation, not trusted-clock/binary/RPC/crypto verification,
+current gate/PASS snapshot, permit, runtime writer or send capability. Original
+P2 failure and combined20m race TIMEOUT remain attributed, not relabelled PASS.
+Independent storage3/API11/all16 fault cases and two race probe groups passed;
+author full ordinary plus separate16-case race passed, not full-repository race.
+See `HTTP_MANUAL_M4_B21_CLOSEOUT.md` and additive joint-review evidence.
+All reviewed code/tests/001–038/prior evidence/review report remain unchanged;
+manifest176+1=177. Whole B2/B/M4 remain incomplete; B2.2/B2.3/B3/B4/C/D/M5
+NOT_STARTED. Next candidate is separately scoped/authorized B2.2 design only.
+No permission, production/HTTP wiring, grant, live/release, remote operation or
+later implementation follows. Prior checkpoints/hashes remain historical.
+
 Latest local M4-B2.1 independent review receipt: fresh review PASS at exact
 `eec705473517b591d5502f556685ee2ea9318f58` after the originalP2 blocker was
 fixed. Separate docs/evidence-only `http-m4b21-review-receipt` preserves the
@@ -659,7 +676,7 @@ M2_READY_FOR_REVIEW pending fresh independent review, not PASS or M3.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3/M4-A/M4-B1 controlled-local PASS/local closeout; M4_B21_READY_FOR_REVIEW (author only); whole B2/B/M4 incomplete; B2.2/B2.3/B3/B4/C/D/M5 NOT_STARTED; no production signing/send/live permission |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3/M4-A/M4-B1/M4-B2.1 controlled-local PASS/local closeout; B21 DB evidence only; whole B2/B/M4 incomplete; B2.2/B2.3/B3/B4/C/D/M5 NOT_STARTED; no production signing/send/live permission |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |
