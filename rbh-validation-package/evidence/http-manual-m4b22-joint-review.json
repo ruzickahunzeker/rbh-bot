@@ -1,0 +1,216 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_MANUAL_M4_B22_PRIVATE_NON_AUTHORIZING_RUNTIME_VERIFIER_FORMAL_CLOSEOUT_ONLY",
+  "branch": "http-m4b22-verifier-closeout",
+  "closeout_base": "3def1aa185d2c193f066952954c8394db0b7ad00",
+  "reviewed_implementation": "3def1aa185d2c193f066952954c8394db0b7ad00",
+  "original_blocked_implementation": "04112980feee6f69ec936f5c9eab72b8dbb03425",
+  "accepted_design_checkpoint": "c5c67ce74450d00600700b14f747e29397d987b2",
+  "branch_creation": "EXACT_REVIEWED_HEAD_AHEAD0_BEHIND0_CLEAN_LOCAL_ONLY",
+  "authorization_boundary": "EXPLICIT_SEPARATE_USER_DOCS_EVIDENCE_FORMAL_CLOSEOUT_AFTER_FRESH_INDEPENDENT_PASS_NO_RUNTIME_OR_DOWNSTREAM_AUTHORIZATION",
+  "M4_B22": "PASS",
+  "checkpoint": "M4_B22_PASS",
+  "independent_review_conclusion": "PASS",
+  "formal_closeout": "COMPLETE_LOCAL_ONLY",
+  "M4_B2": "INCOMPLETE_NOT_READY_NOT_PASS",
+  "M4_B": "INCOMPLETE_NOT_READY_NOT_PASS",
+  "M4": "INCOMPLETE_NOT_PASS",
+  "accepted_scope": {
+    "capability": "PRIVATE_DISCONNECTED_MANUAL_RUNTIME_VERIFIER_CAPTURE_NOT_PERMISSION",
+    "migration": "039_manual_submission_clock.sql_APPEND_ONLY_CLOCK_EVENTS_PLUS_DERIVED_COMPLETE_STATE",
+    "clock": "BOUNDED_TRUSTED_WALL_ERROR_MONOTONIC_PROVIDER_SESSION_DURABLE_FLOOR_TERMINAL_LATCH_EXACT_ATOMIC_AUDIT_ALERT",
+    "running_identity": "LINUX_PINNED_PROC_SELF_EXE_EXECUTING_INODE_CLEAN_VCS_METADATA_AND_TRUSTED_IMMUTABLE_MANIFEST_NO_REPLACEABLE_PATHNAME_FALLBACK",
+    "source": "ORIGINAL_COMPLETE_SIGNED_PREBROADCAST_MANUAL_FOUNDATION_FACTS_CONTRACT_ARTIFACT_CONTROLS_AUTH_EPOCH_POLICY_ALLOWLIST_ACTIVE_RESERVED_ACCOUNTING_CONSERVATION_EXPECTED_SUBMISSION_OWNER",
+    "artifact": "UNCHANGED_EXACT_HISTORY_AND_FULL_FACTS_AAD_AUTHENTICATION_DECRYPT_ONLY_NO_RAW_BUFFER_ESCAPE",
+    "observer": "FIXED_READ_ONLY_CHAIN4663_NETWORK_CHECKPOINT_ORIGINAL_QUOTE_CANONICAL_HEADER_HASH_PINNED_CODE_LOCAL_HASH_NO_FALLBACK_REQUOTE_OR_SEND",
+    "final_fence": "PREPARE_BOUNDED_EXTERNAL_READS_OUTSIDE_WRITER_FINAL_DB_PROCESS_ARTIFACT_TIME_SOURCE_RECHECK_SAME_METADATA_TRANSACTION",
+    "candidate": "PRIVATE_TRANSIENT_VERIFIED_RUNTIME_CANDIDATE_NOT_PERMISSION_SNAPSHOT_ONLY_FRESH_GATE_REQUIRED",
+    "action_flags": {
+      "execution": false,
+      "signing": false,
+      "send": false,
+      "replay": false
+    },
+    "original038": "UNCHANGED_DB_EVIDENCE_NOT_PERMISSION_FALSE_EXTERNAL_PROOF_AND_ACTION_FLAGS",
+    "public_HTTP_config_startup_economic_caller": false,
+    "new_financial_state_nonce_usage_authorization_or_expiry_window": false
+  },
+  "review": {
+    "reviewer": "m4b22_hardening_fresh_review",
+    "not_blind": true,
+    "report": "docs/HTTP_MANUAL_M4_B22_REVIEW.md",
+    "report_sha256": "bdbf8f1957cd02fe8b7f3a47e4f98b10c8dc03e7e77ab1157a5dcba42c0e169f",
+    "report_attribution": "VERBATIM_AUTHORIZED_INDEPENDENT_REVIEW_FINAL_REPORT",
+    "focused_ordinary": {
+      "status": "PASS",
+      "command": "go test -p 1 ./internal/storage ./internal/chainquery ./internal/tradeapi -run '^(TestManualRuntimeClock|TestHTTPM4B22|TestHTTPM4B21NoGuardOpeningAndNoRuntimeCaller$|TestHTTPM3B4ProductionGraphRemainsDisconnected$)' -count=1 -v -timeout=5m -json",
+      "package_seconds": {
+        "github.com/ruzickahunzeker/rbh-bot/internal/storage": 0.173,
+        "github.com/ruzickahunzeker/rbh-bot/internal/chainquery": 0.126,
+        "github.com/ruzickahunzeker/rbh-bot/internal/tradeapi": 66.681
+      },
+      "top_level_tests": [
+        "TestHTTPM3B4ProductionGraphRemainsDisconnected",
+        "TestHTTPM4B21NoGuardOpeningAndNoRuntimeCaller",
+        "TestHTTPM4B22CaptureAuditFaultRollbackAndCancellation",
+        "TestHTTPM4B22ClockActualProcessCrashWindows",
+        "TestHTTPM4B22ClockBoundsReversalLatchAndRestart",
+        "TestHTTPM4B22ClockDirectSQLCanonicalAndGenerationFailClosed",
+        "TestHTTPM4B22ClockDirectSQLImmutableAuditAndLatch",
+        "TestHTTPM4B22ClockDriftDurableLatchAndRestart",
+        "TestHTTPM4B22ClockDriftRecoveryIsSticky",
+        "TestHTTPM4B22ClockTwoHandleConservationAndNoLatestFallback",
+        "TestHTTPM4B22ClockWitnessFaultCannotRepairAcrossStatements",
+        "TestHTTPM4B22FaultLatchAuditUnavailableFailClosedAndPrimitiveFault",
+        "TestHTTPM4B22MeasuredAdapterRejectsCopiedConfigAndMissingRPC",
+        "TestHTTPM4B22PrivateDependenciesAndOriginalGuards",
+        "TestHTTPM4B22RPCDriftTTLAndFinalFence",
+        "TestHTTPM4B22ReadOnlyRuntimeRPCAnchorsAndDenials",
+        "TestHTTPM4B22RunningImageReplacementSameRevision",
+        "TestHTTPM4B22RuntimeRPCConstructorNoNetworkOrUserFallback",
+        "TestHTTPM4B22StopPriorityAndDurableSourceDenial",
+        "TestHTTPM4B22ThreeSidesFreshDuplicateAndReopen",
+        "TestHTTPM4B22UncertaintyLeaseAuthNanosecondBoundaries",
+        "TestHTTPM4B22WriterBarrierStopAndLeaseCannotCommitInsideFence",
+        "TestManualRuntimeClockUpgradeFrom038AtomicNoRepair"
+      ],
+      "counts": {
+        "total": 23,
+        "B22_mappings": 21,
+        "compatibility": 2,
+        "storage": 1,
+        "RPC": 2,
+        "API": 20
+      }
+    },
+    "new_hardening_race": {
+      "status": "PASS",
+      "command": "go test -race ./internal/tradeapi -run '^TestHTTPM4B22(ClockDrift|RunningImage)' -count=1 -v -timeout=5m -json",
+      "package_seconds": {
+        "github.com/ruzickahunzeker/rbh-bot/internal/tradeapi": 111.209
+      },
+      "top_level_tests": [
+        "TestHTTPM4B22ClockDriftDurableLatchAndRestart",
+        "TestHTTPM4B22ClockDriftRecoveryIsSticky",
+        "TestHTTPM4B22RunningImageReplacementSameRevision"
+      ],
+      "qualification": "THREE_NEW_TESTS_NOT_ALL_B22_OR_REPOSITORY_RACE_CHILD_IMAGE_FIXTURE_ORDINARY_BUILD_PARENT_RACE_INSTRUMENTED"
+    },
+    "old_code_negative_control": {
+      "status": "EXPECTED_FAIL",
+      "seconds": 0.964,
+      "reason": "ORIGINAL_ADAPTER_ACCEPTS_REUSED_DELETED_IMAGE_PATHNAME_MANIFEST_SAME_CLEAN_VCS_REVISION",
+      "qualification": "EXACT_OLD_CODE_OVERLAY_TEMP_FIXTURE_NO_REPOSITORY_MUTATION_NOT_NEW_CODE_FAILURE"
+    },
+    "vet": "PASS_INTERNAL_TRADEAPI_CHAINQUERY_STORAGE",
+    "gofmt_whitespace": "PASS",
+    "reported_integrity": {
+      "reviewed_manifest": 180,
+      "source_document_hashes": 6,
+      "author_temporary_asset_hashes": 25,
+      "focused_mappings": 23,
+      "new_race_mappings": 3,
+      "selected_race_mappings": 6,
+      "full_ordinary_top_level_mappings": 601
+    },
+    "blocker_closure": [
+      {
+        "id": "B22-R1",
+        "status": "CLOSED_AT_REVIEWED_HEAD",
+        "proof": "PINNED_RUNNING_IMAGE_HANDLE_RENAME_REPLACEMENT_UNLINK_PATH_REUSE_ORIGINAL_MANIFEST_RETAINED_REPLACEMENT_MANIFEST_REJECT_OLD_CODE_DISCRIMINATING_NEGATIVE_CONTROL"
+      },
+      {
+        "id": "B22-R2",
+        "status": "CLOSED_AT_REVIEWED_HEAD",
+        "proof": "PROVIDER_SESSION_NONNEGATIVE_BACKWARDS_TICKS_STICKY_RECOVERED_SAMPLES_DURABLE_FAULT_EXACT_AUDIT_ALERT_BEFORE_RPC_AND_FINAL_WRITER_SQLITE_REOPEN"
+      }
+    ],
+    "remaining_blockers": [],
+    "temporary_logs": {
+      "directory": "/tmp/rbh-m4b22-independent-kCOCRk",
+      "shipped": false,
+      "sha256": {
+        "focused.jsonl": "43cb195a073a74666448d28f1fd0590dd5a1781686cdc06631006057d29a549e",
+        "new-hardening-race.jsonl": "61197c3ecf635d0de5941cbe8681c3a0418736c59f2061f51fd0d800b8c5ab38",
+        "old-code-negative-control.log": "cd640c076fed3c878b28ab6a122e84e7dadcc8e93e7f94fe835c74271a31b07a",
+        "vet.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "validation_attribution": {
+    "author_evidence": "rbh-validation-package/evidence/http-manual-m4b22-runtime-hardening.json",
+    "author_evidence_sha256": "e708930cbf195c2063cc61823e9e1f09a85b88f8d1b148e12abdf3af24a584fb",
+    "original_author_evidence": "rbh-validation-package/evidence/http-manual-m4b22-runtime-verifier.json",
+    "original_author_evidence_sha256": "71a595463b094c749fe829fea3ebddb7c617a8644fbb7aa9cd133bae76edc5d9",
+    "author_full_ordinary": "PASS_API498_303S_FINAL_PRODUCT_SOURCE_BEFORE_ONLY_IMAGE_FIXTURE_STRENGTHENING_NOT_FINAL_TEST_SOURCE_OR_INDEPENDENT_RUN",
+    "author_first_selected6_race": "PASS287_078S_BEFORE_ONLY_IMAGE_FIXTURE_STRENGTHENING",
+    "author_final_focused": "PASS_ALL21_B22_PLUS2_COMPATIBILITY_API98_388S_FINAL_PRODUCT_TEST_SOURCE",
+    "author_final_new3_race": "PASS165_609S_FINAL_PRODUCT_TEST_SOURCE_NOT_FULL_B22_OR_REPOSITORY_RACE",
+    "historical_failures": "INITIAL_AUDIT_COUNT_FIXTURE_ASSERTION_LOCAL_SOCKET_DENIAL_WEAKER_OLD_CODE_CONTROL_RETAINED_NOT_RELABELLED_PASS",
+    "closeout_checks": "REVIEWED_HEAD_AND_CLEAN_BASE_HASH_REPORT_LOG_EVENT_COUNTS_TEST_MAPPING_ATTRIBUTION_ALL_OLD_FILE_AND_MANIFEST_PRESERVATION_PACKAGE_CHECKER_WHITESPACE",
+    "runtime_test_rerun_in_closeout": false,
+    "not_claimed": [
+      "FULL_REPOSITORY_RACE",
+      "INDEPENDENT_FULL_REPOSITORY_RERUN",
+      "REMOTE_CI",
+      "REAL_CHAIN",
+      "POWER_LOSS",
+      "PRODUCTION_ATTESTATION_OR_COMPOSITION",
+      "ACTION_PERMISSION",
+      "WHOLE_B2_B_OR_M4_PASS"
+    ]
+  },
+  "closeout_document_sha256": {
+    "docs/HTTP_MANUAL_M4_B22_CLOSEOUT.md": "d9702c50a47b890bb75ee216765429689477a78dc115b2bbef2ff9cc17f0cd90",
+    "docs/HTTP_MANUAL_M4_B22_REVIEW.md": "bdbf8f1957cd02fe8b7f3a47e4f98b10c8dc03e7e77ab1157a5dcba42c0e169f",
+    "docs/HTTP_TRADING_DELIVERY_PLAN.md": "00dae9b7a98a47bf1b93e873c15fdba4da6e417ae86e3cb7c79e796afaa948be"
+  },
+  "preservation": {
+    "all_other_base_files_identical": 549,
+    "all_code_tests_schema001_to039_prior_evidence_author_docs": "BYTE_IDENTICAL_TO_REVIEWED_HEAD",
+    "changed_paths": [
+      "docs/HTTP_MANUAL_M4_B22_CLOSEOUT.md",
+      "docs/HTTP_MANUAL_M4_B22_REVIEW.md",
+      "docs/HTTP_TRADING_DELIVERY_PLAN.md",
+      "rbh-validation-package/evidence/http-manual-m4b22-joint-review.json",
+      "rbh-validation-package/SHA256SUMS"
+    ],
+    "manifest": "180_PRIOR_LINES_PRESERVED_PLUS_ONE_ADDITIVE_CLOSEOUT_ENTRY181",
+    "historical_READY_NOT_PERFORMED_BLOCKED_and_hashes": "NOT_REWRITTEN_OR_RELABELED"
+  },
+  "accepted_limits": [
+    "LINUX_PROCFS_PINNED_IMAGE_ONLY_UNSUPPORTED_UNAVAILABLE_FAIL_CLOSED_NO_PATHNAME_FALLBACK",
+    "TRUSTED_FIXTURE_MANIFEST_TIME_NOT_AUTHENTICATED_PRODUCTION_MANIFEST_OR_REMOTE_HARDWARE_ATTESTATION",
+    "EXACT_IMAGE_SOURCE_COMPILED_WITH_MINIMAL_DOMAIN_STUBS_CHILD_ORDINARY_PARENT_RACE_NOT_PRODUCTION_DEPLOYMENT",
+    "CLOCK_DETECTION_TO_LATCH_COMMIT_CRASH_WINDOW_NO_PRECOMMIT_DURABILITY_CLAIM",
+    "POSTCOMMIT_RESPONSE_CANCELLATION_DOES_NOT_UNCOMMIT_METADATA",
+    "READ_ONLY_CHAIN_ANCHOR_NOT_DB_CHAIN_ATOMICITY_OR_QUORUM_FUTURE_ACTION_NEEDS_FRESH_OWN_WRITER_GATE",
+    "INTACT_FK_ON_SCHEMA_TRUSTED_COMPOSITION_NOT_HOSTILE_ROOT_GUARD_REWRITE_OR_POWER_LOSS_PROOF",
+    "FIXTURE_SIGN_DECRYPT_RPC_ACTIVITY_NOT_ZERO_NEW_ECONOMIC_PATH_STRUCTURALLY_UNREACHABLE_NOT_TELEMETRY",
+    "TEMP_RAW_LOGS_NOT_SHIPPED_MAY_DISAPPEAR_PERMANENT_REPORT_AND_HASH_ATTRIBUTION_RETAINED"
+  ],
+  "boundaries": {
+    "M1": "PASS_UNCHANGED",
+    "M2": "PASS_UNCHANGED",
+    "M3": "PASS_UNCHANGED",
+    "M4_A": "PASS_UNCHANGED",
+    "M4_B1": "PASS_UNCHANGED",
+    "M4_B21": "PASS_UNCHANGED",
+    "C04": "PASS_UNCHANGED",
+    "C05": "PASS_UNCHANGED",
+    "C07": "PASS_UNCHANGED",
+    "C08": "PASS_UNCHANGED",
+    "chain": "ROBINHOOD4663_PONS_V2_CURVE_NATIVE_QUOTE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "closeout_code_schema_tests_HTTP_startup_runtime_changes": 0,
+    "closeout_sign_decrypt_permit_PASS_snapshot_submit_replay_send_nonce_accounting_actions": 0,
+    "B23_B3_B4_C_D_M5_W4_D_W5_other_chains_protocols": "NOT_ENTERED",
+    "remote_operations": false
+  },
+  "next_boundary": "SEPARATELY_SCOPED_AND_AUTHORIZED_B23_NOT_RUNTIME_PERMISSION_OR_IMPLEMENTATION_AUTHORITY_FROM_B22_CLOSEOUT"
+}
