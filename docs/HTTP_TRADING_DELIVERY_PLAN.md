@@ -7,6 +7,26 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest local M4-B2.2 implementation: `http-m4b22-runtime-verifier`, base
+`c5c67ce74450d00600700b14f747e29397d987b2`, following explicit option2 scope
+acceptance. Additive039 implements an append-only clock ledger/derived state
+with atomic audit/alert; the private disconnected verifier checks original
+artifact, bounded trusted time, measured process/expected owner, durable DB
+sources and fixed read-only RPC anchors, then rechecks on its metadata writer.
+It returns a transient candidate, never action permission. Original038 remains
+unchanged DB evidence, and all execution/signing/send/replay flags stay false.
+See `HTTP_MANUAL_M4_B22_RUNTIME_VERIFIER.md` and additive implementation evidence
+for final author validation, precise test attribution and trusted-fixture limits.
+Author validation COMPLETE: full ordinary PASS (API511.876s, all18 new mapped
+tests), selected race storage1/RPC2/API10 PASS (API551.451s, not all15 or full
+repository race), build/vet/staticcheck/offline/gofmt/preservation PASS.
+Checkpoint M4_B22_READY_FOR_REVIEW; independent B22 review NOT_PERFORMED,
+not authorized by prior B21 review consent.
+M1/M2/M3/M4-A/B1/B21 remain PASS; whole B2/B/M4 incomplete, B2.3 and downstream
+NOT_STARTED. No public/HTTP/config/startup/economic caller, real provider/grant,
+permit/PASS snapshot, send, live/release or remote operation. Older design/status
+and hashes below remain historical checkpoints, not current implementation state.
+
 Latest local M4-B2.2 design: docs-only `http-m4b22-gate-design`, base
 `094053090d6dbe85b9469da58a54d1de94431b14`. Proposed scope is a disconnected
 non-authorizing MANUAL runtime verifier/capture, not permit or send wiring.
@@ -690,7 +710,7 @@ M2_READY_FOR_REVIEW pending fresh independent review, not PASS or M3.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3/M4-A/M4-B1/B21 controlled-local PASS; B22 design ready for acceptance, implementation NOT_STARTED; whole B2/B/M4 incomplete; B2.3/B3/B4/C/D/M5 NOT_STARTED; no production signing/send/live permission |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3/M4-A/M4-B1/B21 controlled-local PASS; B22 private verifier M4_B22_READY_FOR_REVIEW, author validation complete; independent B22 review NOT_PERFORMED; whole B2/B/M4 incomplete; B2.3/B3/B4/C/D/M5 NOT_STARTED; no production signing/send/live permission |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |

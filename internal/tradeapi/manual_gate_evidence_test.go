@@ -462,6 +462,12 @@ func TestHTTPM4B21NoGuardOpeningAndNoRuntimeCaller(t *testing.T) {
 			}
 			for _, name := range []string{"manual_submission_gate_evidence", "manual_gate_evidence_scopes", "manual_gate_evidence_complete"} {
 				if strings.Contains(string(raw), name) {
+					// Separately scoped B2.2 adds exactly one private metadata-only
+					// capture wrapper, still unreachable from HTTP/startup/economics.
+					// Its dedicated dependency test verifies this exact exception.
+					if filepath.Base(path) == "manual_runtime_verifier.go" {
+						continue
+					}
 					t.Errorf("gate evidence wired into product %s", path)
 				}
 			}

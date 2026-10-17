@@ -1,0 +1,446 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_MANUAL_M4_B22_PRIVATE_RUNTIME_VERIFIER_NOT_PERMISSION",
+  "branch": "http-m4b22-runtime-verifier",
+  "implementation_base": "c5c67ce74450d00600700b14f747e29397d987b2",
+  "scope_acceptance": "USER_OPTION_2_ADDITIVE039_AND_DISCONNECTED_NON_AUTHORIZING_VERIFIER_ONLY",
+  "M4_B21": "PASS_UNCHANGED",
+  "M4_B22": "READY_FOR_REVIEW",
+  "checkpoint": "M4_B22_READY_FOR_REVIEW",
+  "independent_M4_B22_review": "NOT_PERFORMED",
+  "M4_B2": "INCOMPLETE_NOT_READY_NOT_PASS",
+  "M4_B": "INCOMPLETE_NOT_READY_NOT_PASS",
+  "M4": "INCOMPLETE_NOT_PASS",
+  "data_model": {
+    "migration": "039_manual_submission_clock.sql",
+    "logical_state_representation": "APPEND_ONLY_manual_gate_clock_events_PLUS_LATEST_COMPLETE_manual_gate_clock_state_VIEW_NOT_SECOND_ECONOMIC_STATE_MACHINE",
+    "state_fields": [
+      "chain_id",
+      "environment",
+      "generation",
+      "high_water_at",
+      "fault_latched",
+      "fault_reason",
+      "fault_at",
+      "updated_at"
+    ],
+    "generation": "INIT_1_THEN_EXACT_PLUS_1_NONDECREASING_PARSED_WALL_HIGH_WATER_NO_OVERFLOW",
+    "fault": "PRESERVE_COMMITTED_FLOOR_TERMINAL_LATCH_NO_RESET_DELETE_REPLACE_REINIT_OR_LATEST_CORRUPTION_FALLBACK",
+    "atomic_witnesses": "EXACT_AUTOMATIC_AUDIT_ALERT_BEFORE_PARENT_EVENT_SCOPE_WITH_DEFERRED_EVENT_AND_EMPTY_TARGET_FKS",
+    "interrupted_FAIL": "RETAINED_PROVISIONAL_SCOPE_CANNOT_ADOPT_PARENT_OR_COMMIT_EVEN_AFTER_LATER_WITNESS_REPAIR_ROLLBACK_REQUIRED",
+    "observation": "UNCHANGED038_DB_EVIDENCE_NOT_PERMISSION_ALL_ACTION_AND_EXTERNAL_PROOF_FLAGS_FALSE",
+    "capture": "NEXT_CLOCK_EVENT_AND_ORIGINAL038_OBSERVATION_ON_SAME_METADATA_ONLY_WRITER",
+    "candidate": "PRIVATE_TRANSIENT_VERIFIED_RUNTIME_CANDIDATE_NOT_PERMISSION_SNAPSHOT_ONLY_FRESH_GATE_REQUIRED_NO_RAW_OR_CIPHERTEXT",
+    "action_flags": {
+      "execution": false,
+      "signing": false,
+      "send": false,
+      "replay": false
+    },
+    "old_schema_guard_exceptions": 0
+  },
+  "verification_contract": {
+    "order": "STOP_FIRST_OWNED_TIME_MEASURED_PROCESS_ORIGINAL_DURABLE_SOURCE_ARTIFACT_READ_SNAPSHOT_RELEASE_BOUNDED_RPC_FINAL_BEGIN_IMMEDIATE_RECHECK_METADATA_CAPTURE",
+    "source": "ORIGINAL038_COMPLETE_FOUNDATION_CONTRACT_FACTS_DURABLE_CONTROL_AUTH_EPOCH_POLICY_ALLOWLIST_ACTIVE_RESERVED_TYPED_USAGE_CONSERVATION_SUBMISSION_OWNER_LEASE",
+    "identity": "OPERATION_REQUEST_STEP_ATTEMPT_RESERVATION_WALLET_CHAIN_ENVIRONMENT_BUILD_RELEASE_DEPLOYMENT_POLICY_QUOTE_EXPIRY_NONCE_FEE_ZERO_TIP_EXACT_ORIGINAL_BINDING",
+    "clock": "CANONICAL_WALL_BOUNDED_MAX_ERROR_STABLE_PROVIDER_SESSION_MONOTONIC_TICKS_DURABLE_FLOOR_LATCH_LOWER_GE_SOURCE_STAMPS_UPPER_STRICTLY_LT_TTL_AUTH_LEASE",
+    "process": "OWNED_IMMUTABLE_MANIFEST_EXPECTED_PROFILE_VS_MEASUREMENT_NOT_DB_OR_WORKING_TREE_HEAD_ECHO",
+    "measured_adapter": "REAL_EXECUTABLE_SHA256_CLEAN_VCS_BUILD_METADATA_BOUNDED_READ_CONTEXT_CHECKS_REJECT_MISSING_DIRTY_OR_MISMATCH_NO_PRODUCTION_MANIFEST_LOADER",
+    "positive_identity_and_time": "EXPLICITLY_TRUSTED_LOCAL_HARNESS_PROVIDERS_NOT_EXTERNAL_OR_PRODUCTION_ATTESTATION",
+    "artifact": "UNCHANGED_ORIGINAL_HISTORY_VERIFIER_FULL_FACTS_MANUAL_AAD_AUTHENTICATION_DECRYPT_ONLY_INITIAL_AND_FINAL_NO_LEGACY_FALLBACK_NO_ENCRYPT_OR_SIGN",
+    "RPC": "CHAIN4663_IMMUTABLE_NETWORK_CHECKPOINT_ORIGINAL_CANONICAL_QUOTE_LATEST_ANCHOR_HASH_PINNED_CODE_LOCAL_KECCAK_AND_NUMBERED_HEADER_CHAIN_RECHECK",
+    "RPC_methods": [
+      "eth_chainId",
+      "eth_getBlockByNumber",
+      "eth_getCode"
+    ],
+    "final_check": "CALLER_OWNED_WRITER_SELECT_CRYPTO_ONLY_NO_BEGIN_COMMIT_RPC_FULL_CURRENT_SOURCE_AND_INITIAL_GENERATION_MATCH_PROCESS_AND_TIME_AFTER_CRYPTO",
+    "duplicate": "EVERY_CAPTURE_FRESH_TIME_IDENTITY_CRYPTO_RPC_DB_CHECKS_EXISTING_EXACT038_ID_IS_ONLY_METADATA_NOT_CACHED_PERMISSION",
+    "latch_persistence": "BOUNDED_WITHOUT_CANCEL_TRANSACTION_AFTER_CAPTURE_CLEANUP_FAILURE_MARKS_VERIFIER_UNHEALTHY_NO_DURABLE_CLAIM_BEFORE_LATCH_COMMIT",
+    "cancellation": "ZERO_CANDIDATE_EXPLICIT_ERRORS_ROLLBACK_POSTCOMMIT_CANCEL_SUPPRESSES_RESPONSE_WITHOUT_CLAIMING_ROLLBACK",
+    "future_B23": "SEPARATE_AUTHORIZATION_FRESH_PREPARE_AND_FINAL_RECHECK_ON_ITS_OWN_WRITER_NO_NESTED_CAPTURE_OR_CANDIDATE_REUSE"
+  },
+  "test_mapping": {
+    "clock_exact_audit_alert_immutability_terminal_latch_delivery": "TestHTTPM4B22ClockDirectSQLImmutableAuditAndLatch",
+    "clock_four_insert_modes_canonical_types_encoding_generation_overflow": "TestHTTPM4B22ClockDirectSQLCanonicalAndGenerationFailClosed",
+    "clock_audit_alert_ABORT_IGNORE_FAIL_four_insert_modes_later_repair_no_commit": "TestHTTPM4B22ClockWitnessFaultCannotRepairAcrossStatements",
+    "clock_eight_contenders_two_handles_one_generation_no_latest_fallback": "TestHTTPM4B22ClockTwoHandleConservationAndNoLatestFallback",
+    "actual_process_exit77_before_writer_before_commit_after_commit_reopen": "TestHTTPM4B22ClockActualProcessCrashWindows",
+    "three_sides_exact_facts_fresh_duplicate_and_actual_close_reopen": "TestHTTPM4B22ThreeSidesFreshDuplicateAndReopen",
+    "stop_first_owned_dependencies_zero_on_stop_durable_source_and_owner_denial": "TestHTTPM4B22StopPriorityAndDurableSourceDenial",
+    "RPC_source_control_drift_TTL_after_RPC_and_crypto_final_fence": "TestHTTPM4B22RPCDriftTTLAndFinalFence",
+    "bounded_uncertainty_sticky_reversal_provider_session_drift_floor_latch_restart": "TestHTTPM4B22ClockBoundsReversalLatchAndRestart",
+    "capture_clock_and_observation_audit_fault_rollback_cancel_decrypt_failure": "TestHTTPM4B22CaptureAuditFaultRollbackAndCancellation",
+    "private_unwired_graph_no_economic_dependency_unchanged_closed_guards": "TestHTTPM4B22PrivateDependenciesAndOriginalGuards",
+    "real_two_handle_writer_barrier_competing_stop_and_lease_commit_blocked_next_capture_denied": "TestHTTPM4B22WriterBarrierStopAndLeaseCannotCommitInsideFence",
+    "uncertainty_lower_source_upper_TTL_auth_lease_whole_fractional_minus1_equal_plus1ns": "TestHTTPM4B22UncertaintyLeaseAuthNanosecondBoundaries",
+    "failed_latch_audit_unhealthy_primitive_panic_malformed_error_bound_cancel": "TestHTTPM4B22FaultLatchAuditUnavailableFailClosedAndPrimitiveFault",
+    "real_measured_adapter_missing_metadata_config_copy_RPC_missing_profile_mismatch": "TestHTTPM4B22MeasuredAdapterRejectsCopiedConfigAndMissingRPC",
+    "controlled_read_only_RPC_identity_reorg_checkpoint_code_malformed_timeout": "TestHTTPM4B22ReadOnlyRuntimeRPCAnchorsAndDenials",
+    "RPC_constructor_no_IO_profile_and_user_fallback_denial": "TestHTTPM4B22RuntimeRPCConstructorNoNetworkOrUserFallback",
+    "upgrade038_to039_atomic_journal_failure_all_prior_objects_exact_no_repair": "TestManualRuntimeClockUpgradeFrom038AtomicNoRepair"
+  },
+  "author_validation": {
+    "status": "COMPLETE",
+    "environment": "PATH=/tmp/rbh-go-toolchain/bin:$PATH GOCACHE=/tmp/rbh-go-build-cache GOMODCACHE=/tmp/rbh-go-mod-cache GOPROXY=off STATICCHECK_CACHE=/tmp/rbh-staticcheck-cache",
+    "attribution": "AUTHOR_SELF_CHECK_NOT_INDEPENDENT_REVIEW_NOT_REMOTE_CI",
+    "final_results": {
+      "focused": {
+        "status": "PASS",
+        "command": "go test -p 1 ./internal/storage ./internal/tradeapi -run '^(TestManualRuntimeClock|TestHTTPM4B22|TestHTTPM4B21NoGuardOpeningAndNoRuntimeCaller$|TestHTTPM3B4ProductionGraphRemainsDisconnected$)' -count=1 -v -timeout=5m",
+        "top_level_tests": {
+          "storage": 1,
+          "API_B22": 15,
+          "API_existing_compatibility": 2
+        },
+        "seconds": {
+          "storage": 0.182,
+          "tradeapi": 86.923
+        },
+        "log": "focused-final.log",
+        "final_product_test_source": true
+      },
+      "full_repository_ordinary": {
+        "status": "PASS",
+        "command": "go test -p 1 ./... -count=1 -timeout=25m -json",
+        "package_seconds": {
+          "github.com/ruzickahunzeker/rbh-bot/cmd/chain-baseline": 0.022,
+          "github.com/ruzickahunzeker/rbh-bot/cmd/classify-pons-curve": 0.007,
+          "github.com/ruzickahunzeker/rbh-bot/cmd/replay-fixtures": 0.008,
+          "github.com/ruzickahunzeker/rbh-bot/internal/app": 0.252,
+          "github.com/ruzickahunzeker/rbh-bot/internal/bot": 0.225,
+          "github.com/ruzickahunzeker/rbh-bot/internal/chainquery": 1.487,
+          "github.com/ruzickahunzeker/rbh-bot/internal/config": 0.005,
+          "github.com/ruzickahunzeker/rbh-bot/internal/feed": 0.484,
+          "github.com/ruzickahunzeker/rbh-bot/internal/health": 0.022,
+          "github.com/ruzickahunzeker/rbh-bot/internal/ipc": 0.045,
+          "github.com/ruzickahunzeker/rbh-bot/internal/manualartifact": 0.109,
+          "github.com/ruzickahunzeker/rbh-bot/internal/manualnonce": 0.021,
+          "github.com/ruzickahunzeker/rbh-bot/internal/manualrisk": 0.017,
+          "github.com/ruzickahunzeker/rbh-bot/internal/model": 0.003,
+          "github.com/ruzickahunzeker/rbh-bot/internal/sdkcompat": 0.064,
+          "github.com/ruzickahunzeker/rbh-bot/internal/storage": 20.815,
+          "github.com/ruzickahunzeker/rbh-bot/internal/trade": 245.021,
+          "github.com/ruzickahunzeker/rbh-bot/internal/tradeapi": 511.876
+        },
+        "new_mapped_top_level_tests": [
+          "TestHTTPM4B22CaptureAuditFaultRollbackAndCancellation",
+          "TestHTTPM4B22ClockActualProcessCrashWindows",
+          "TestHTTPM4B22ClockBoundsReversalLatchAndRestart",
+          "TestHTTPM4B22ClockDirectSQLCanonicalAndGenerationFailClosed",
+          "TestHTTPM4B22ClockDirectSQLImmutableAuditAndLatch",
+          "TestHTTPM4B22ClockTwoHandleConservationAndNoLatestFallback",
+          "TestHTTPM4B22ClockWitnessFaultCannotRepairAcrossStatements",
+          "TestHTTPM4B22FaultLatchAuditUnavailableFailClosedAndPrimitiveFault",
+          "TestHTTPM4B22MeasuredAdapterRejectsCopiedConfigAndMissingRPC",
+          "TestHTTPM4B22PrivateDependenciesAndOriginalGuards",
+          "TestHTTPM4B22RPCDriftTTLAndFinalFence",
+          "TestHTTPM4B22ReadOnlyRuntimeRPCAnchorsAndDenials",
+          "TestHTTPM4B22RuntimeRPCConstructorNoNetworkOrUserFallback",
+          "TestHTTPM4B22StopPriorityAndDurableSourceDenial",
+          "TestHTTPM4B22ThreeSidesFreshDuplicateAndReopen",
+          "TestHTTPM4B22UncertaintyLeaseAuthNanosecondBoundaries",
+          "TestHTTPM4B22WriterBarrierStopAndLeaseCannotCommitInsideFence",
+          "TestManualRuntimeClockUpgradeFrom038AtomicNoRepair"
+        ],
+        "API_top_level_PASS": 337,
+        "qualification": "PACKAGES_WITH_NO_TESTS_REPORTED_SKIP_NOT_MISSING_RESULTS",
+        "log": "full-ordinary.jsonl",
+        "final_product_test_source": true
+      },
+      "selected_race": {
+        "status": "PASS",
+        "command": "go test -race -p 1 ./internal/storage ./internal/chainquery ./internal/tradeapi -run '^(TestManualRuntimeClock|TestHTTPM4B22(ClockDirectSQL|ClockWitness|ClockTwoHandle|ClockActualProcess|ClockBounds|WriterBarrier|FaultLatch|ReadOnlyRuntimeRPC|RuntimeRPCConstructor|MeasuredAdapter|ThreeSides))' -count=1 -v -timeout=15m -json",
+        "package_seconds": {
+          "github.com/ruzickahunzeker/rbh-bot/internal/storage": 11.748,
+          "github.com/ruzickahunzeker/rbh-bot/internal/chainquery": 1.53,
+          "github.com/ruzickahunzeker/rbh-bot/internal/tradeapi": 551.451
+        },
+        "new_mapped_top_level_tests": [
+          "TestHTTPM4B22ClockActualProcessCrashWindows",
+          "TestHTTPM4B22ClockBoundsReversalLatchAndRestart",
+          "TestHTTPM4B22ClockDirectSQLCanonicalAndGenerationFailClosed",
+          "TestHTTPM4B22ClockDirectSQLImmutableAuditAndLatch",
+          "TestHTTPM4B22ClockTwoHandleConservationAndNoLatestFallback",
+          "TestHTTPM4B22ClockWitnessFaultCannotRepairAcrossStatements",
+          "TestHTTPM4B22FaultLatchAuditUnavailableFailClosedAndPrimitiveFault",
+          "TestHTTPM4B22MeasuredAdapterRejectsCopiedConfigAndMissingRPC",
+          "TestHTTPM4B22ReadOnlyRuntimeRPCAnchorsAndDenials",
+          "TestHTTPM4B22RuntimeRPCConstructorNoNetworkOrUserFallback",
+          "TestHTTPM4B22ThreeSidesFreshDuplicateAndReopen",
+          "TestHTTPM4B22WriterBarrierStopAndLeaseCannotCommitInsideFence",
+          "TestManualRuntimeClockUpgradeFrom038AtomicNoRepair"
+        ],
+        "top_level_counts": {
+          "storage": 1,
+          "chainquery": 2,
+          "tradeapi": 10
+        },
+        "qualification": "TEN_OF_FIFTEEN_B22_API_TESTS_NOT_ALL_B22_OR_FULL_REPOSITORY_RACE",
+        "log": "selected-race.jsonl",
+        "final_product_test_source": true
+      },
+      "build_vet_staticcheck": {
+        "status": "PASS",
+        "commands": [
+          "go build ./...",
+          "go vet ./...",
+          "/tmp/rbh-bin/staticcheck ./..."
+        ],
+        "logs": [
+          "build-final.log",
+          "vet-final.log",
+          "staticcheck-complete.log"
+        ],
+        "output": "EMPTY_SUCCESS_LOGS",
+        "final_product_test_source": true
+      },
+      "offline": {
+        "status": "PASS",
+        "cwd": "rbh-validation-package",
+        "commands": [
+          "python3 scripts/verify_curve_expected.py",
+          "python3 scripts/verify_offline.py --output /tmp/rbh-m4b22-author-u1nSRR/offline-correct-directory.json"
+        ],
+        "curve_fixtures": 5,
+        "reference_tests": 39,
+        "sum_test_duration_ms": 2220.244,
+        "logs": [
+          "curve-correct-directory.log",
+          "offline-correct-directory.log",
+          "offline-correct-directory.json"
+        ],
+        "qualification": "OFFLINE_REFERENCE_MODELS_NOT_REAL_CHAIN"
+      },
+      "local_test_socket_permission": "APPROVED_CONTROLLED_LOOPBACK_UDS_FIXTURES_ONLY_NO_REAL_CHAIN_KEY_GRANT_SEND",
+      "integrity": {
+        "status": "PASS",
+        "protected_old_product_schema_evidence_design_files_identical": 261,
+        "new_test_mappings": 18,
+        "source_document_hashes": 15,
+        "old_manifest_lines_preserved": 178,
+        "expected_package_checker_entries": 179,
+        "gofmt_diff_check": "PASS",
+        "qualification": "AUTHOR_NOT_INDEPENDENT_REVIEW"
+      }
+    },
+    "intermediate_outcomes": [
+      {
+        "log": "compile-initial.log",
+        "status": "FAIL",
+        "reason": "UNUSED_TIME_IMPORT",
+        "final_source": false
+      },
+      {
+        "log": "compile-corrected.log",
+        "status": "PASS_COMPILE_ONLY",
+        "final_source": false
+      },
+      {
+        "log": "first-positive.log",
+        "status": "PASS",
+        "reason": "INITIAL_UPGRADE_AND_THREE_SIDES_ONLY_UPGRADE_TEST_LATER_RENAMED_FROM039_TO038",
+        "final_source": false
+      },
+      {
+        "log": "focused-runtime.log",
+        "status": "FAIL",
+        "reason": "RESTART_FLOOR_REVERSAL_MASKED_BEFORE_DURABLE_LATCH",
+        "final_source": false
+      },
+      {
+        "log": "clock-corrected.log",
+        "status": "FAIL",
+        "reason": "FIRST_REORDER_STILL_LEFT_CONTROL_TIMESTAMP_BEFORE_FLOOR",
+        "final_source": false
+      },
+      {
+        "log": "clock-floor-final.log",
+        "status": "PASS",
+        "reason": "FLOOR_NOW_BEFORE_CONTROL_TIMESTAMP_STOP_REMAINS_FIRST",
+        "final_source": false
+      },
+      {
+        "log": "clock-complete-initial.log",
+        "status": "FAIL",
+        "reason": "UNUSED_TEST_IMPORT",
+        "final_source": false
+      },
+      {
+        "log": "clock-complete.log",
+        "status": "FAIL",
+        "reason": "TEST_WRONGLY_EXPECTED_RETAINED_SCOPE_AFTER_IGNORE_POSTCLOSE_ACTUALLY_ABORTS_ASSERTION_CORRECTED",
+        "final_source": false
+      },
+      {
+        "log": "focused-complete.log",
+        "status": "PASS",
+        "final_source": false
+      },
+      {
+        "log": "focused-expanded.log",
+        "status": "PASS",
+        "final_source": false
+      },
+      {
+        "log": "rpc-initial.log",
+        "status": "SANDBOX_SOCKET_DENIAL",
+        "reason": "LOCAL_LOOPBACK_LISTEN_NOT_PERMITTED_BEFORE_ESCALATION",
+        "final_source": false
+      },
+      {
+        "log": "rpc-loopback.log",
+        "status": "FAIL",
+        "reason": "TWO_UNSUPPORTED_FIXTURE_FAULT_NAMES_RETURNED_NORMAL_RPC_REPLACED_WITH_EXISTING_BAD_ID_DUPLICATE_ENVELOPE",
+        "final_source": false
+      },
+      {
+        "log": "rpc-final.log",
+        "status": "PASS",
+        "seconds": 0.095,
+        "qualification": "BEFORE_LAST_PROFILE_ID_SOURCE_VALIDATION_FINAL_RPC_RETESTED_IN_ORDINARY_AND_SELECTED_RACE",
+        "final_source": false
+      },
+      {
+        "log": "staticcheck.log",
+        "status": "FAIL",
+        "reason": "DISCONNECTED_MEASUREMENT_RPC_ADAPTERS_UNUSED_ADDED_REAL_NEGATIVE_TESTS_NOT_PRODUCTION_WIRING",
+        "final_source": false
+      },
+      {
+        "log": "staticcheck-final.log",
+        "status": "PASS",
+        "qualification": "BEFORE_LAST_PANIC_PROFILE_ID_CHANGES_SUPERSEDED_BY_STATICCHECK_COMPLETE",
+        "final_source": false
+      },
+      {
+        "status": "COMMAND_FAILED_BEFORE_SCRIPT_EXECUTION",
+        "reason": "FINAL_OFFLINE_RERUN_WRONG_CWD_REPO_ROOT_NO_SCRIPTS_DIRECTORY_CORRECTED_VALIDATION_PACKAGE_RERUN_PASS",
+        "evidence_location": "LOCAL_TOOL_TRANSCRIPT_ERRORS_STDERR_NOT_REDIRECTED",
+        "logs": [
+          "curve-final.log",
+          "offline-final.log"
+        ],
+        "qualification": "EMPTY_FILES_NOT_SUCCESS_EVIDENCE"
+      }
+    ],
+    "temporary_logs": {
+      "directory": "/tmp/rbh-m4b22-author-u1nSRR",
+      "shipped": false,
+      "sha256": {
+        "build-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "clock-complete-initial.log": "3dcbaa3c0505737c155f5a69062c61536d1d8d09b90aedc27a90adc0a0c1c5aa",
+        "clock-complete.log": "d109815c01d6a9c4a99043ca49a71708ae9e762bc937f3c417e8e0aaa41bf94b",
+        "clock-corrected.log": "8eeacf5ff9d35dd0559e46652888138f827d090e98313e55b90e6b3e8f4ebe88",
+        "clock-floor-final.log": "f9623df1a3ff009ca85fb632ff7aed41a729c1d05e82db571bc606a454c4690a",
+        "compile-corrected.log": "fd96b415a28320b874a54dda79b15debc7b271fc5bc06304360755a00519ffb1",
+        "compile-initial.log": "97ad496bfc44eebdcbdf6db366fbad45a32f565b3d7a441e98b1d672dfba7710",
+        "curve-correct-directory.log": "2bfa5c70dd592eb53aa3feac3a35fe12b4dd08a32e9c4943048a0fc332c20697",
+        "curve-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "curve.log": "2bfa5c70dd592eb53aa3feac3a35fe12b4dd08a32e9c4943048a0fc332c20697",
+        "first-positive.log": "0e0ac217ac608214f5f22c26f46b7c837f236594a0a9242209754d46cd46e7a7",
+        "focused-complete.log": "145cb6c4cd46dbc48e1b67bed9f1f8c59f717a2230e8d81209e6641124fd093b",
+        "focused-expanded.log": "6c9226cf2334b70b5656a816af0539c2725cd87c417901d0d3ab85f53b5ab705",
+        "focused-final.log": "8e935209e92952a803f37f288009533945b9aab33057392de257642b3604c341",
+        "focused-runtime.log": "a033f7796ffcceedd4b7eac1e22333ee16f9e5a5ffada552d5fa56fbdb0d29b4",
+        "full-ordinary.jsonl": "3f4aa69b25e6b1ac239e598e5ee4bd6980ae384d702c61e472f7dffdb533717f",
+        "offline-correct-directory.json": "0d9ab638526e0273141c86d684b7d8656a49c0dae72a74925004a559be4ec0b2",
+        "offline-correct-directory.log": "ee95ff422ad1f256e7ace8a6e2d0a0d2c7f6f938d059a51c791d852b9d5736fb",
+        "offline-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "offline-results.json": "a2d18c57d8c9db002a62bc8d8c25aef35077cb146f3c68344b92d5e3cd53bccb",
+        "offline-results.log": "1e4d5468e30b23a51302beea0faebcaa203a8de3efe044a3b0f349624c0494af",
+        "offline.log": "68d6de923e31b1c22764174e8b1d80b97d955c6924f70e243755c0029ff23a20",
+        "rpc-final.log": "67ee161c7d11af063154cac34cb756129d9bccae47d9944790390cd95df04404",
+        "rpc-initial.log": "f508548be94ba35275e73fa5baa1bd963f373e11a19c77c1bc47d23f4144e067",
+        "rpc-loopback.log": "7356dd13f867568823e7797fedb4ac2cde635d070f1d5fa726720ca997927b46",
+        "selected-race.jsonl": "ee034e392a3fe3c044e0c49885ea5a1aad2a22d8a0a4fc9f3944e925c8ef360b",
+        "staticcheck-complete.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "staticcheck-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "staticcheck.log": "b0956b7faf187adf8a1e507b097fa30553a0461ed3383b1b8b2794b851b0373c",
+        "storage.log": "bd3939dcb31821241e367cab8f971fd5a0200e9d364aefc6b0add12ff63c0307",
+        "vet-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "vet.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "not_claimed": [
+      "INDEPENDENT_REVIEW",
+      "FULL_REPOSITORY_RACE",
+      "ALL_15_B22_API_RACE",
+      "REMOTE_CI",
+      "REAL_CHAIN",
+      "PRODUCTION_TIME_OR_POSITIVE_PROCESS_ATTESTATION",
+      "POWER_LOSS",
+      "DB_CHAIN_ATOMICITY",
+      "ACTION_AUTHORIZATION",
+      "WHOLE_B2_B_M4_READINESS_OR_PASS"
+    ]
+  },
+  "source_sha256": {
+    "internal/storage/migrations/trade/039_manual_submission_clock.sql": "96319ba32674729499b2503188fd4fe3ac72bf0433e9e37bcb3599d06d227dc3",
+    "internal/chainquery/submission_runtime.go": "5b0953dbb471f8fba694f7141809d7a80498e8c7013ca0102a7651b18fabd689",
+    "internal/tradeapi/manual_runtime_clock.go": "f809962105699d8ed73da4992c6fea5ba9cbe31398102aae5f11efe0512a8983",
+    "internal/tradeapi/manual_runtime_identity.go": "56f504e5645e6b6679526621c9b9a839f1cb6fdb10c23ac3b9a8158584aa3efd",
+    "internal/tradeapi/manual_runtime_inputs.go": "5be3d842d13b67c1938aba0b780fa1632b2df8d8a8aa1e4b5a1a71f76e4b62c8",
+    "internal/tradeapi/manual_runtime_verifier.go": "7cc94a127437bc8a5a5657fc3ceb96129f6c8030689b4bcfc84f88216976f8ba",
+    "internal/storage/manual_runtime_clock_upgrade_test.go": "e3ac80d938b302a2abde88d124e51b95451e22611393d4976b56c1c3b69644d8",
+    "internal/chainquery/submission_runtime_test.go": "da759f1c559f7dbcf56e5d355966faaeb82373486464312f5a117b29f272b906",
+    "internal/tradeapi/manual_runtime_clock_test.go": "83807e5fd4ef9474544055f7a7d92ebe0b8893b7ed982f8ab609ead155aa2380",
+    "internal/tradeapi/manual_runtime_verifier_test.go": "9c0b5a2d0cc1b845c0791dc3d14cd864c37b99524669a546ec32fcf63ccd6361",
+    "internal/storage/database_test.go": "3483110b11e69c18b1938b25b0b82b46368fd74f41754a2a5a52c296a14a71c3",
+    "internal/tradeapi/manual_artifact_facts_test.go": "999189a6cf363ca02673403bd3d8d17d975be5617c2b59037017215f839218ab",
+    "internal/tradeapi/manual_gate_evidence_test.go": "6ca4649d1d5f12c8bec4ec5364f130ba92c8e1d567c2d203846deb42d3dc4193",
+    "docs/HTTP_MANUAL_M4_B22_RUNTIME_VERIFIER.md": "9820892356789a94854f952ff470c8f876fcb7d6be9ea2210c3423719c1675ca",
+    "docs/HTTP_TRADING_DELIVERY_PLAN.md": "7f2f2bfded69331fe1dfbac6bcca60386444b786af4c67ed5809a7d704e09cd6"
+  },
+  "preservation": {
+    "migrations001_to038_existing_product_Go_old_evidence_and_accepted_design": "BYTE_IDENTICAL",
+    "three_old_test_edits": "TRADE_MIGRATION_COUNT37_TO38_SCHEMA38_TO39_EXACT_PRIVATE_CAPTURE_FILE_EXCEPTION_TO_B21_STATIC_REFERENCE_TEST",
+    "static_test_exception": "EXPLICIT_ONLY_manual_runtime_verifier.go_NEW_B22_DEPENDENCY_TEST_REQUIRES_PRIVATE_UNWIRED_AND_NO_ECONOMIC_PATH_NOT_SCHEMA_GUARD_EXCEPTION",
+    "delivery_plan": "PREPEND_CURRENT_IMPLEMENTATION_CHECKPOINT_AND_UPDATE_CURRENT_QUEUE_PRESERVE_HISTORICAL_TEXT_AND_HASH_MEANING",
+    "manifest": "PRESERVE_ALL178_OLD_LINES_APPEND_ONE_NEW_IMPLEMENTATION_EVIDENCE"
+  },
+  "limitations": [
+    "TRUSTED_IN_PROCESS_TIME_IDENTITY_DECRYPT_OBSERVER_COMPOSITION_BOUNDARY_NOT_ARBITRARY_HOSTILE_INTERFACE_IMPLEMENTATION",
+    "POSITIVE_TIME_PROCESS_SAMPLES_EXPLICIT_TRUSTED_FAKES_REAL_ADAPTER_REJECT_TEST_NOT_PRODUCTION_ATTESTATION",
+    "DB_JSON_OBSERVATION_OR_VERIFIED_LABEL_NEVER_PROVES_EXTERNAL_CHECKS_OR_GRANTS_PERMISSION",
+    "CLOCK_FAULT_DETECTION_AND_LATCH_COMMIT_HAVE_UNAVOIDABLE_PROCESS_CRASH_WINDOW_NO_DURABILITY_CLAIM_BEFORE_COMMIT",
+    "CANCELLATION_AFTER_METADATA_COMMIT_SUPPRESSES_RESPONSE_DOES_NOT_UNCOMMIT",
+    "READ_ONLY_CHAIN_OBSERVATION_NOT_QUORUM_OR_DB_CHAIN_ATOMICITY_FUTURE_SEND_REQUIRES_FRESH_GATE",
+    "FK_ON_INTACT_SCHEMA_NOT_HOSTILE_SCHEMA_REWRITE_OR_FK_OFF",
+    "CONTROLLED_FIXTURES_USE_EPHEMERAL_SIGNATURES_DECRYPT_AND_LOOPBACK_RPC_THESE_ARE_NOT_ZERO_CALL_CLAIMS",
+    "NO_REAL_TIME_KEY_MANIFEST_RPC_PROVIDER_OR_HTTP_STARTUP_ECONOMIC_CALLER_WIRED",
+    "SIGNED_PREBROADCAST_ONLY_NO_UNKNOWN_REPLAY_OR_PROPAGATED_RECOVERY_REDEFINITION",
+    "LOCAL_PROCESS_EXIT_AND_REOPEN_NOT_POWER_LOSS_NOT_REMOTE_DEPLOYMENT"
+  ],
+  "boundaries": {
+    "M1": "PASS_UNCHANGED",
+    "M2": "PASS_UNCHANGED",
+    "M3": "PASS_UNCHANGED",
+    "M4_A": "PASS_UNCHANGED",
+    "M4_B1": "PASS_UNCHANGED",
+    "M4_B21": "PASS_UNCHANGED",
+    "C04": "PASS_UNCHANGED",
+    "C05": "PASS_UNCHANGED",
+    "C07": "PASS_UNCHANGED",
+    "C08": "PASS_UNCHANGED",
+    "chain": "ROBINHOOD4663_PONS_V2_CURVE_NATIVE_QUOTE_ONLY",
+    "sides": [
+      "BUY",
+      "FIXED_SELL",
+      "ALREADY_RESOLVED_PERCENTAGE_SELL"
+    ],
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "prohibited_new_path": "SIGN_ENCRYPT_PERMIT_PASS_SNAPSHOT_SUBMISSION_REPLAY_BROADCAST_SEND_NONCE_ECONOMIC_ACCOUNTING_ACTIONS_STRUCTURALLY_UNREACHABLE_NOT_PRODUCTION_TELEMETRY",
+    "public_HTTP_config_startup_or_economic_caller": false,
+    "recovery_and_W4B_send_intent_semantics": "UNCHANGED",
+    "M4_B23_B3_B4_C_D_M5_W4_D_W5_other_chains_protocols": "NOT_ENTERED",
+    "remote_operations": false,
+    "maximum": "M4_B22_READY_FOR_REVIEW_NO_SELF_PASS_NO_CLOSEOUT_NO_DOWNSTREAM"
+  }
+}
