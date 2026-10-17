@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_MANUAL_M4_B23_PRIVATE_FIRST_PERMIT_DESIGN_PROPOSAL_ONLY",
+  "branch": "http-m4b23-permit-design",
+  "inspected_base": "8c635fc03187f4289b90de7a442692618db5fde9",
+  "branch_creation": "EXACT_LOCAL_CLEAN_CLOSEOUT_HEAD_AHEAD0_BEHIND0",
+  "M4_B22": "PASS_UNCHANGED",
+  "M4_B23_scope": "PROPOSED_FOR_ACCEPTANCE",
+  "checkpoint": "M4_B23_DESIGN_READY_FOR_ACCEPTANCE",
+  "implementation": "NOT_STARTED",
+  "independent_review": "NOT_PERFORMED",
+  "M4_B2": "INCOMPLETE_NOT_READY_NOT_PASS",
+  "M4_B": "INCOMPLETE_NOT_READY_NOT_PASS",
+  "M4": "INCOMPLETE_NOT_PASS",
+  "proposal": {
+    "scope": "PRIVATE_FIRST_BROADCAST_GATE_PERMIT_ISSUANCE_METADATA_ONLY_NO_CONSUMER",
+    "migration040": "PROPOSED_ONLY_NOT_CREATED_OR_RESERVED",
+    "reuse": "EXISTING_OPERATION_STEP_ATTEMPT_GATE_SNAPSHOT_AND_SEND_PERMIT_PLUS_EXACT_MANUAL_SOURCE_BINDING_OVERLAY_NOT_SECOND_ECONOMIC_STATE_MACHINE",
+    "writer": "FRESH_B22_PREPARE_OUTSIDE_WRITER_CALL_FINALCHECK_ON_OWN_BEGIN_IMMEDIATE_NOT_CAPTURE_OR_PERSISTED_CANDIDATE_AS_AUTHORITY",
+    "atomic": "ORIGINAL_SOURCE_CLOCK_EVENT_FIRST_SNAPSHOT_PERMIT_EXACT_AUDIT_ALERT_NO_USABLE_PARTIAL_HISTORY_OR_LATER_STATEMENT_REPAIR",
+    "expiry": "CANONICAL_ABSOLUTE_ONCE_MIN_ORIGINAL_TTL_AUTH_LEASE_AND_OWNED_BOUNDED_VERIFICATION_WINDOW_NO_CLIENT_DEFAULT_OR_RESTART_REFRESH",
+    "duplicate": "ONE_FIRST_PER_ATTEMPT_NO_NEW_WINDOW_OR_ACCOUNTING_CONSUMPTION_CONFLICT_ON_CHANGED_BINDING",
+    "guard_change_requires_separate_acceptance": "ONLY_EXACT_MANUAL_PERMIT_FIRST_PASS_INSERT_EXCEPTIONS_AND_EXPLICIT_MANUAL_CONSUMPTION_MUTATION_DENY_NO_ARM_STAYS_CLOSED",
+    "schema_proof_limit": "DB_COMPLETE_METADATA_NEVER_ATTESTS_EXTERNAL_CLOCK_BINARY_RPC_CRYPTO_OR_CURRENT_ACTION_AUTHORIZATION",
+    "UNKNOWN_REPLAY_consumption_send_outcome": "NOT_IN_PROPOSED_IMPLEMENTATION_SCOPE_REQUIRE_LATER_SEPARATE_CONTRACT"
+  },
+  "required_matrix_not_executed": [
+    "THREE_SIDES_EXACT_IDENTITY",
+    "FRESH_CLOCK_PROCESS_RPC_CRYPTO_SOURCE",
+    "TTL_AUTH_LEASE_PERMIT_NANOSECOND_UNCERTAINTY",
+    "STOP_REVOKE_SOURCE_OWNER_FINAL_WRITER_BARRIERS",
+    "DUPLICATE_CONCURRENCY_ONE_FIRST_NO_REFRESH",
+    "ACTUAL_CRASH_RESTART",
+    "DIRECT_SQL_TYPE_ALIAS_ROWID_CONFLICT_UPSERT_MULTIROW",
+    "AUDIT_ALERT_ABORT_IGNORE_FAIL_LATER_REPAIR_COMMIT",
+    "PURPOSE_PHASE_CONSUMPTION_DENY",
+    "MIGRATION_ATOMICITY_LEGACY_PRESERVATION",
+    "NO_ECONOMIC_OR_PUBLIC_CALLER"
+  ],
+  "design_traceability": {
+    "existing_MANUAL_no_arm_no_permit_no_PASS": {
+      "path": "internal/storage/migrations/trade/018_manual_risk_units.sql",
+      "sha256": "2863b944c60d9bccaad999c9d89ac9f5ec201f634cb1dabba1e1865b7bbb53dd"
+    },
+    "existing_snapshot_permit_constraints": {
+      "path": "internal/storage/migrations/trade/008_controlled_canary_runtime.sql",
+      "sha256": "6ef850d32306c67747e67b457e9668901c63c88fe4d8d9adf9bb0e9969aba6de"
+    },
+    "runtime_prepare_finalCheck_capture_separation": {
+      "path": "internal/tradeapi/manual_runtime_verifier.go",
+      "sha256": "7cc94a127437bc8a5a5657fc3ceb96129f6c8030689b4bcfc84f88216976f8ba"
+    },
+    "current_source": {
+      "path": "internal/storage/migrations/trade/038_manual_submission_gate_evidence.sql",
+      "sha256": "38e4757268855105b38feab7b1f2691bb11bb2ac56f62055f2cf2d358ef08710"
+    },
+    "clock_metadata": {
+      "path": "internal/storage/migrations/trade/039_manual_submission_clock.sql",
+      "sha256": "96319ba32674729499b2503188fd4fe3ac72bf0433e9e37bcb3599d06d227dc3"
+    },
+    "B22_closeout": {
+      "path": "docs/HTTP_MANUAL_M4_B22_CLOSEOUT.md",
+      "sha256": "d9702c50a47b890bb75ee216765429689477a78dc115b2bbef2ff9cc17f0cd90"
+    },
+    "M4_scope": {
+      "path": "docs/HTTP_MANUAL_SUBMISSION_SCOPE.md",
+      "sha256": "e488fd2d811e04180cfa997161463d9bf802112a33c4c8229f99141d06f50bc3"
+    }
+  },
+  "source_document_sha256": {
+    "docs/HTTP_MANUAL_M4_B23_PERMIT_DESIGN.md": "2ac7e95a9e7de89fd4c3759b4f68a78b60f28b1693b080f675f2e62e0bb44108",
+    "docs/HTTP_TRADING_DELIVERY_PLAN.md": "ed8a9f1406a4ddef24b303c98bfb3b54b21e05f7c3c99720b8d8532ad39c4375"
+  },
+  "validation": {
+    "scope": "DESIGN_TRACEABILITY_HASH_JSON_MANIFEST_PRIOR_FILE_PRESERVATION_WHITESPACE_ONLY",
+    "runtime_tests_executed": false,
+    "proposed_test_matrix_executed": false,
+    "product_schema_test_changes": 0,
+    "expected_manifest_entries": 182,
+    "prior_manifest_entries_preserved": 181,
+    "not_claimed": [
+      "DESIGN_ACCEPTED",
+      "IMPLEMENTATION_APPROVED",
+      "INDEPENDENT_REVIEW",
+      "RUNTIME_PROOF",
+      "REAL_GRANT",
+      "REMOTE_CI",
+      "B23_OR_B2_OR_M4_PASS"
+    ]
+  },
+  "preservation": {
+    "all_prior_code_tests_migrations001_to039_evidence_design_review_closeout_docs": "BYTE_IDENTICAL",
+    "allowed_existing_edits": [
+      "docs/HTTP_TRADING_DELIVERY_PLAN.md",
+      "rbh-validation-package/SHA256SUMS"
+    ],
+    "manifest": "ALL181_PRIOR_LINES_PRESERVED_PLUS_ONE_DESIGN_EVIDENCE"
+  },
+  "boundaries": {
+    "M1": "PASS_UNCHANGED",
+    "M2": "PASS_UNCHANGED",
+    "M3": "PASS_UNCHANGED",
+    "M4_A": "PASS_UNCHANGED",
+    "M4_B1": "PASS_UNCHANGED",
+    "M4_B21": "PASS_UNCHANGED",
+    "M4_B22": "PASS_UNCHANGED",
+    "C04": "PASS_UNCHANGED",
+    "C05": "PASS_UNCHANGED",
+    "C07": "PASS_UNCHANGED",
+    "C08": "PASS_UNCHANGED",
+    "chain": "ROBINHOOD4663_PONS_V2_CURVE_NATIVE_QUOTE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "remote_operations": false,
+    "other_chain_protocol_downstream": "NOT_ENTERED",
+    "new_runtime_action_calls": 0
+  },
+  "next_required_decision": "EXPLICIT_ACCEPTANCE_OF_NARROWED_FIRST_BROADCAST_ISSUANCE_ONLY_B23_SCOPE_AND_PRECISE_ADDITIVE_GUARD_EXCEPTION_BEFORE_IMPLEMENTATION"
+}
