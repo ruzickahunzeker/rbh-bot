@@ -2,10 +2,6 @@ package tradeapi
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"io"
-	"os"
 	"runtime/debug"
 )
 
@@ -44,27 +40,13 @@ func (m manualMeasuredRuntimeIdentity) identify(ctx context.Context) (manualRunt
 	if !manualHex(revision, 40, 64) || modified != "false" {
 		return zero, rejectManualInput("RUNTIME_BUILD_UNMEASURED_OR_DIRTY")
 	}
-	path, err := os.Executable()
+	imageHash, err := manualRunningImageHash(ctx)
 	if err != nil {
 		return zero, err
-	}
-	f, err := os.Open(path)
-	if err != nil {
-		return zero, err
-	}
-	defer f.Close()
-	state, err := f.Stat()
-	if err != nil || !state.Mode().IsRegular() || state.Size() > 512<<20 {
-		return zero, ErrInvalid
-	}
-	digest := sha256.New()
-	n, err := io.Copy(digest, io.LimitReader(f, (512<<20)+1))
-	if err != nil || n > 512<<20 || ctx.Err() != nil {
-		return zero, ErrInvalid
 	}
 	p := m.manifest
 	p.scope.BuildSHA = revision
-	p.binaryHash = hex.EncodeToString(digest.Sum(nil))
+	p.binaryHash = imageHash
 	p.dirty = false
 	if p.scope.BuildSHA != m.manifest.scope.BuildSHA || p.binaryHash != m.manifest.binaryHash || runtimeManifestDigest(p) != m.manifest.manifestHash {
 		return zero, rejectManualInput("RUNTIME_BINARY_MANIFEST_MISMATCH")

@@ -7,6 +7,24 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest local M4-B2.2 hardening: `http-m4b22-runtime-hardening`, base
+`04112980feee6f69ec936f5c9eab72b8dbb03425`. Independent review BLOCKED the
+original head on replaceable executable-path measurement and missing direct
+provider/session/backwards-tick evidence. The adapter now measures the Linux
+running inode via `/proc/self/exe`, with no pathname fallback; new controlled
+tests cover same-clean-revision binary replacement and sticky drift/latch both
+before RPC and inside the final writer, including actual SQLite reopen.
+See `HTTP_MANUAL_M4_B22_HARDENING.md` and additive hardening evidence for final
+author results and exact limits. Author validation COMPLETE: full ordinary PASS
+(API498.303s, before image-test strengthening only); final all-B22 focused PASS
+(API98.388s), final new3 race PASS165.609s; prior selected6 race PASS287.078s,
+build/vet/staticcheck/offline/hash checks PASS. No full-repository race claimed.
+Checkpoint M4_B22_READY_FOR_REVIEW; fresh hardening
+independent review NOT_PERFORMED, original review remains BLOCKED historically.
+All migrations001–039/old tests/old evidence stay unchanged. No B2.3 or later
+stage, action permission, public/startup/economic wiring, grant/live/release or
+remote operation follows. Older checkpoints and hashes remain historical.
+
 Latest local M4-B2.2 implementation: `http-m4b22-runtime-verifier`, base
 `c5c67ce74450d00600700b14f747e29397d987b2`, following explicit option2 scope
 acceptance. Additive039 implements an append-only clock ledger/derived state
@@ -710,7 +728,7 @@ M2_READY_FOR_REVIEW pending fresh independent review, not PASS or M3.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3/M4-A/M4-B1/B21 controlled-local PASS; B22 private verifier M4_B22_READY_FOR_REVIEW, author validation complete; independent B22 review NOT_PERFORMED; whole B2/B/M4 incomplete; B2.3/B3/B4/C/D/M5 NOT_STARTED; no production signing/send/live permission |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3/M4-A/M4-B1/B21 controlled-local PASS; original B22 review BLOCKED; minimal running-image/clock-evidence hardening, maximum M4_B22_READY_FOR_REVIEW pending fresh review; whole B2/B/M4 incomplete; B2.3/B3/B4/C/D/M5 NOT_STARTED; no production signing/send/live permission |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |

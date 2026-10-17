@@ -1,0 +1,372 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_MANUAL_M4_B22_RUNNING_IMAGE_AND_CLOCK_DRIFT_HARDENING_ONLY",
+  "branch": "http-m4b22-runtime-hardening",
+  "implementation_base": "04112980feee6f69ec936f5c9eab72b8dbb03425",
+  "M4_B22": "READY_FOR_REVIEW",
+  "checkpoint_maximum": "M4_B22_READY_FOR_REVIEW",
+  "review_state": "BLOCKED_PENDING_FRESH_REVIEW",
+  "fresh_hardening_independent_review": "NOT_PERFORMED",
+  "original_review_receipt": {
+    "reviewed_head": "04112980feee6f69ec936f5c9eab72b8dbb03425",
+    "conclusion": "BLOCKED",
+    "reported_blockers": [
+      {
+        "id": "B22-R1",
+        "classification": "PRODUCTION_HELPER_PLUS_TEST_EVIDENCE",
+        "file": "internal/tradeapi/manual_runtime_identity.go",
+        "reason": "OS_EXECUTABLE_PATH_REPLACEMENT_WITH_SAME_CLEAN_VCS_REVISION_CAN_HASH_NON_RUNNING_IMAGE"
+      },
+      {
+        "id": "B22-R2",
+        "classification": "TEST_EVIDENCE_GAP_NO_CLOCK_PRODUCTION_DEFECT_DEMONSTRATED",
+        "file": "rbh-validation-package/evidence/http-manual-m4b22-runtime-verifier.json",
+        "reason": "PROVIDER_SESSION_DRIFT_AND_BACKWARDS_MONOTONIC_TICKS_NOT_DIRECTLY_TESTED_BY_ORIGINAL_MAPPING"
+      }
+    ],
+    "reported_checks": {
+      "focused_ordinary_seconds": {
+        "storage": 0.172,
+        "chainquery": 0.096,
+        "tradeapi": 41.79
+      },
+      "manifest_entries": 179,
+      "source_document_hashes": 15,
+      "original_ordinary_new_mappings": 18,
+      "original_selected_race_new_mappings": 13,
+      "status": "CHECKS_PASS_BUT_BLOCKERS_REMAINED"
+    },
+    "attribution": "RECEIPT_OF_PREVIOUS_EXPLICITLY_AUTHORIZED_INDEPENDENT_REVIEW_NOT_NEW_HARDENING_REVIEW"
+  },
+  "minimal_changes": {
+    "identity": "REUSE_CLEAN_VCS_AND_IMMUTABLE_MANIFEST_COMPARE_HASH_PINNED_PROC_SELF_EXE_RUNNING_LINUX_INODE_NOT_REPLACEABLE_PATHNAME",
+    "unavailable_or_unsupported": "FAIL_CLOSED_NO_PATHNAME_OR_DB_CONFIG_FALLBACK",
+    "image_read": "PRIVATE_REGULAR_NONEMPTY_MAX512MIB_HANDLE_BOUND_SIZE_AND_CONTEXT_RECHECK_NO_KEYS_OR_PROVIDERS",
+    "clock": "NO_PRODUCTION_CLOCK_CHANGE_SEQUENCE_DRIVEN_TRUSTED_SAMPLES_ONLY",
+    "old_evidence": "PRESERVED_HISTORICAL_ORIGINAL_PROVIDER_SESSION_MAPPING_SUPERSEDED_NOT_RETROACTIVELY_PROVEN",
+    "source_file_boundary": "ONLY_OLD_PRODUCT_CHANGE_manual_runtime_identity.go_PLUS_NEW_PRIVATE_IMAGE_HELPER_NO_OTHER_OLD_CODE_TEST_SCHEMA_CHANGE",
+    "image_path_reuse_proof": "LINUX_RENAME_UPDATES_PROC_PATH_UNLINK_REUSE_REPORTED_DELETED_IMAGE_NAME_SAME_CLEAN_REVISION_ORIGINAL_ADAPTER_ACCEPTS_FIXED_ADAPTER_REJECTS"
+  },
+  "test_mapping": {
+    "same_clean_revision_actual_executable_rename_replace_unlink_replacement_manifest_rejected_original_image_manifest_retained_nil_cancel_rejected": "TestHTTPM4B22RunningImageReplacementSameRevision",
+    "provider_session_or_positive_tick_regression_sticky_despite_recovered_sample_no_further_provider_call": "TestHTTPM4B22ClockDriftRecoveryIsSticky",
+    "three_drifts_before_RPC_and_in_final_writer_zero_candidate_observation_economic_effect_exact_fault_audit_alert_actual_reopen_recovered_time_still_rejected": "TestHTTPM4B22ClockDriftDurableLatchAndRestart"
+  },
+  "superseded_original_mapping": {
+    "evidence": "evidence/http-manual-m4b22-runtime-verifier.json",
+    "original_key": "bounded_uncertainty_sticky_reversal_provider_session_drift_floor_latch_restart",
+    "original_test": "TestHTTPM4B22ClockBoundsReversalLatchAndRestart",
+    "correction": "ORIGINAL_TEST_PROVES_BOUNDARIES_UNCERTAINTY_WALL_REVERSAL_FLOOR_RESTART_ONLY_PROVIDER_SESSION_AND_MONOTONIC_DRIFT_PROVEN_BY_THE_TWO_NEW_NAMED_CLOCK_TESTS_IN_THIS_SLICE"
+  },
+  "author_validation": {
+    "status": "COMPLETE",
+    "environment": "PATH=/tmp/rbh-go-toolchain/bin:$PATH GOCACHE=/tmp/rbh-go-build-cache GOMODCACHE=/tmp/rbh-go-mod-cache GOPROXY=off STATICCHECK_CACHE=/tmp/rbh-staticcheck-cache",
+    "attribution": "AUTHOR_SELF_CHECK_NOT_FRESH_INDEPENDENT_REVIEW_OR_REMOTE_CI",
+    "final_results": {
+      "full_repository_ordinary": {
+        "status": "PASS",
+        "command": "go test -p 1 ./... -count=1 -timeout=25m -json",
+        "package_seconds": {
+          "github.com/ruzickahunzeker/rbh-bot/cmd/chain-baseline": 0.099,
+          "github.com/ruzickahunzeker/rbh-bot/cmd/classify-pons-curve": 0.044,
+          "github.com/ruzickahunzeker/rbh-bot/cmd/replay-fixtures": 0.043,
+          "github.com/ruzickahunzeker/rbh-bot/internal/app": 0.902,
+          "github.com/ruzickahunzeker/rbh-bot/internal/bot": 0.266,
+          "github.com/ruzickahunzeker/rbh-bot/internal/chainquery": 2.246,
+          "github.com/ruzickahunzeker/rbh-bot/internal/config": 0.038,
+          "github.com/ruzickahunzeker/rbh-bot/internal/feed": 0.693,
+          "github.com/ruzickahunzeker/rbh-bot/internal/health": 0.02,
+          "github.com/ruzickahunzeker/rbh-bot/internal/ipc": 0.026,
+          "github.com/ruzickahunzeker/rbh-bot/internal/manualartifact": 0.116,
+          "github.com/ruzickahunzeker/rbh-bot/internal/manualnonce": 0.006,
+          "github.com/ruzickahunzeker/rbh-bot/internal/manualrisk": 0.006,
+          "github.com/ruzickahunzeker/rbh-bot/internal/model": 0.041,
+          "github.com/ruzickahunzeker/rbh-bot/internal/sdkcompat": 0.044,
+          "github.com/ruzickahunzeker/rbh-bot/internal/storage": 18.079,
+          "github.com/ruzickahunzeker/rbh-bot/internal/trade": 216.316,
+          "github.com/ruzickahunzeker/rbh-bot/internal/tradeapi": 498.303
+        },
+        "top_level_tests": 601,
+        "API_top_level_tests": 340,
+        "all_B22_mapped_top_level_tests": 21,
+        "final_product_source": true,
+        "final_test_source": false,
+        "qualification": "BEFORE_ONLY_IMAGE_FIXTURE_STRENGTHENING_ALL_OTHER_TESTS_FINAL_SUBSEQUENT_FOCUSED_AND_NEW_RACE_COVER_FINAL_TEST_SOURCE",
+        "log": "full-ordinary.jsonl"
+      },
+      "focused_final": {
+        "status": "PASS",
+        "command": "go test -p 1 ./internal/storage ./internal/chainquery ./internal/tradeapi -run '^(TestManualRuntimeClock|TestHTTPM4B22|TestHTTPM4B21NoGuardOpeningAndNoRuntimeCaller$|TestHTTPM3B4ProductionGraphRemainsDisconnected$)' -count=1 -v -timeout=5m -json",
+        "package_seconds": {
+          "github.com/ruzickahunzeker/rbh-bot/internal/storage": 0.481,
+          "github.com/ruzickahunzeker/rbh-bot/internal/chainquery": 0.128,
+          "github.com/ruzickahunzeker/rbh-bot/internal/tradeapi": 98.388
+        },
+        "top_level_tests": [
+          "TestHTTPM3B4ProductionGraphRemainsDisconnected",
+          "TestHTTPM4B21NoGuardOpeningAndNoRuntimeCaller",
+          "TestHTTPM4B22CaptureAuditFaultRollbackAndCancellation",
+          "TestHTTPM4B22ClockActualProcessCrashWindows",
+          "TestHTTPM4B22ClockBoundsReversalLatchAndRestart",
+          "TestHTTPM4B22ClockDirectSQLCanonicalAndGenerationFailClosed",
+          "TestHTTPM4B22ClockDirectSQLImmutableAuditAndLatch",
+          "TestHTTPM4B22ClockDriftDurableLatchAndRestart",
+          "TestHTTPM4B22ClockDriftRecoveryIsSticky",
+          "TestHTTPM4B22ClockTwoHandleConservationAndNoLatestFallback",
+          "TestHTTPM4B22ClockWitnessFaultCannotRepairAcrossStatements",
+          "TestHTTPM4B22FaultLatchAuditUnavailableFailClosedAndPrimitiveFault",
+          "TestHTTPM4B22MeasuredAdapterRejectsCopiedConfigAndMissingRPC",
+          "TestHTTPM4B22PrivateDependenciesAndOriginalGuards",
+          "TestHTTPM4B22RPCDriftTTLAndFinalFence",
+          "TestHTTPM4B22ReadOnlyRuntimeRPCAnchorsAndDenials",
+          "TestHTTPM4B22RunningImageReplacementSameRevision",
+          "TestHTTPM4B22RuntimeRPCConstructorNoNetworkOrUserFallback",
+          "TestHTTPM4B22StopPriorityAndDurableSourceDenial",
+          "TestHTTPM4B22ThreeSidesFreshDuplicateAndReopen",
+          "TestHTTPM4B22UncertaintyLeaseAuthNanosecondBoundaries",
+          "TestHTTPM4B22WriterBarrierStopAndLeaseCannotCommitInsideFence",
+          "TestManualRuntimeClockUpgradeFrom038AtomicNoRepair"
+        ],
+        "counts": {
+          "storage": 1,
+          "RPC": 2,
+          "API_B22": 18,
+          "API_compatibility": 2,
+          "all_B22_mappings": 21
+        },
+        "final_product_test_source": true,
+        "log": "focused-authorized-final.jsonl"
+      },
+      "new_hardening_final_race": {
+        "status": "PASS",
+        "command": "go test -race ./internal/tradeapi -run '^TestHTTPM4B22(ClockDrift|RunningImage)' -count=1 -v -timeout=5m -json",
+        "package_seconds": {
+          "github.com/ruzickahunzeker/rbh-bot/internal/tradeapi": 165.609
+        },
+        "top_level_tests": [
+          "TestHTTPM4B22ClockDriftDurableLatchAndRestart",
+          "TestHTTPM4B22ClockDriftRecoveryIsSticky",
+          "TestHTTPM4B22RunningImageReplacementSameRevision"
+        ],
+        "final_product_test_source": true,
+        "qualification": "THREE_NEW_API_TESTS_NOT_ALL_B22_OR_REPOSITORY_RACE_PROBE_CHILD_COMPILED_ORDINARY_EXACT_HELPER_SOURCE_PARENT_TEST_IS_RACE_INSTRUMENTED",
+        "log": "hardening-final-race.jsonl"
+      },
+      "selected_compatibility_race": {
+        "status": "PASS",
+        "command": "go test -race -p 1 ./internal/tradeapi -run '^TestHTTPM4B22(ClockDrift|RunningImage|WriterBarrier|MeasuredAdapter|PrivateDependencies)' -count=1 -v -timeout=8m -json",
+        "package_seconds": {
+          "github.com/ruzickahunzeker/rbh-bot/internal/tradeapi": 287.078
+        },
+        "top_level_tests": [
+          "TestHTTPM4B22ClockDriftDurableLatchAndRestart",
+          "TestHTTPM4B22ClockDriftRecoveryIsSticky",
+          "TestHTTPM4B22MeasuredAdapterRejectsCopiedConfigAndMissingRPC",
+          "TestHTTPM4B22PrivateDependenciesAndOriginalGuards",
+          "TestHTTPM4B22RunningImageReplacementSameRevision",
+          "TestHTTPM4B22WriterBarrierStopAndLeaseCannotCommitInsideFence"
+        ],
+        "final_product_source": true,
+        "final_test_source": false,
+        "qualification": "BEFORE_ONLY_IMAGE_FIXTURE_STRENGTHENING_FINAL_THREE_RETESTED_ABOVE_NOT_FULL_B22_RACE",
+        "log": "selected-race.jsonl"
+      },
+      "strong_image_single_race": {
+        "status": "PASS",
+        "command": "go test -race ./internal/tradeapi -run '^TestHTTPM4B22RunningImageReplacementSameRevision$' -count=1 -v -timeout=3m",
+        "seconds": 1.958,
+        "log": "image-strengthened-race.log",
+        "final_product_test_source": true
+      },
+      "negative_old_code_control": {
+        "status": "EXPECTED_FAIL",
+        "command": "go test -overlay /tmp/rbh-m4b22-hardening-9HHrz9/negative-strong-overlay.json ./internal/tradeapi -run '^TestHTTPM4B22RunningImageReplacementSameRevision$' -count=1 -v -timeout=2m",
+        "seconds": 0.712,
+        "reason": "ORIGINAL_ADAPTER_ACCEPTED_REUSED_DELETED_IMAGE_PATHNAME_MANIFEST",
+        "qualification": "TEMPORARY_TEST_OVERLAY_COMPILES_ORIGINAL_IDENTITY_SOURCE_IN_DISPOSABLE_FIXTURE_NO_REPOSITORY_EDIT_NOT_A_FAILURE_OF_FINAL_CODE_OR_INDEPENDENT_REVIEW",
+        "log": "negative-old-path-strengthened.log"
+      },
+      "build_vet_staticcheck": {
+        "status": "PASS",
+        "commands": [
+          "go build ./...",
+          "go vet ./...",
+          "/tmp/rbh-bin/staticcheck ./..."
+        ],
+        "logs": [
+          "build.log",
+          "vet-final.log",
+          "staticcheck-final.log"
+        ],
+        "output": "EMPTY_SUCCESS_LOGS",
+        "final_product_source": true,
+        "final_test_source_vet_staticcheck": true
+      },
+      "offline": {
+        "status": "PASS",
+        "cwd": "rbh-validation-package",
+        "commands": [
+          "python3 scripts/verify_curve_expected.py",
+          "python3 scripts/verify_offline.py --output /tmp/rbh-m4b22-hardening-9HHrz9/offline-results.json"
+        ],
+        "curve_fixtures": 5,
+        "reference_models": 39,
+        "sum_test_duration_ms": 3731.455,
+        "qualification": "OFFLINE_MODELS_NO_REAL_CHAIN"
+      },
+      "local_socket_permission": "APPROVED_EXISTING_CONTROLLED_LOOPBACK_UDS_ONLY_NO_REAL_CHAIN_OR_KEY_GRANT_SEND",
+      "integrity": {
+        "status": "PASS",
+        "intended_changed_paths": 8,
+        "all_other_base_files_identical": 543,
+        "source_doc_hashes": 6,
+        "new_test_mappings": 3,
+        "all_original_B22_mappings_retained": 18,
+        "manifest_old_entries": 179,
+        "manifest_final_entries": 180,
+        "gofmt_whitespace": "PASS",
+        "qualification": "AUTHOR_NOT_FRESH_INDEPENDENT_REVIEW"
+      }
+    },
+    "intermediate_outcomes": [
+      {
+        "log": "focused-initial.log",
+        "status": "FAIL",
+        "reason": "NEW_TEST_EXPECTED_WHOLE_AUDIT_ALERT_TABLE_COUNT2_DESPITE_OTHER_FIXTURE_ROWS_CHANGED_TO_EXACT_PLUS1_AGAINST_CAPTURED_BASELINE_NO_PRODUCTION_FIX",
+        "final_source": false
+      },
+      {
+        "log": "focused-corrected.log",
+        "status": "PASS",
+        "seconds": 2.082,
+        "qualification": "BEFORE_ADDITION_OF_FINAL_WRITER_DRIFT_CASES_NOT_FINAL_SOURCE"
+      },
+      {
+        "log": "focused-final.log",
+        "status": "PARTIAL_API_STORAGE_PASS_RPC_SANDBOX_DENIED_OVERALL_EXIT1",
+        "reason": "CONTROLLED_LOOPBACK_LISTEN_DENIED_CHAINQUERY_RERUN_WITH_LOCAL_FIXTURE_PERMISSION",
+        "final_product_test_source": true
+      },
+      {
+        "log": "rpc-authorized.log",
+        "status": "PASS",
+        "seconds": 0.195,
+        "qualification": "CONTROLLED_LOOPBACK_PERMISSIONED_RERUN_NO_SOURCE_CHANGE_FINAL_FULL_FOCUSED_RETESTED_ABOVE"
+      },
+      {
+        "log": "negative-old-path.log",
+        "status": "EXPECTED_FAIL_BUT_NOT_SUFFICIENT_REPLACEMENT_PROOF",
+        "seconds": 0.37,
+        "reason": "ORIGINAL_ADAPTER_FOLLOWED_RENAMED_RUNNING_PATH_THEN_FAILED_WHEN_REMOVED_NOT_INCORRECT_ACCEPTANCE",
+        "correction": "STRENGTHEN_TEST_TO_REUSE_ACTUAL_DELETED_IMAGE_PATHNAME_AND_PROVE_OLD_ACCEPT_NEW_REJECT"
+      },
+      {
+        "log": "vet.log",
+        "status": "PASS",
+        "qualification": "BEFORE_IMAGE_FIXTURE_STRENGTHENING_SUPERSEDED_BY_VET_FINAL"
+      },
+      {
+        "log": "staticcheck.log",
+        "status": "PASS",
+        "qualification": "BEFORE_IMAGE_FIXTURE_STRENGTHENING_SUPERSEDED_BY_STATICCHECK_FINAL"
+      }
+    ],
+    "temporary_logs": {
+      "directory": "/tmp/rbh-m4b22-hardening-9HHrz9",
+      "shipped": false,
+      "sha256": {
+        "build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "curve.log": "2bfa5c70dd592eb53aa3feac3a35fe12b4dd08a32e9c4943048a0fc332c20697",
+        "focused-authorized-final.jsonl": "cfcc0301cfae3ade1e72f3f4410f505d5035f4fc7c2362de6204b94334fca68c",
+        "focused-corrected.log": "217ac6b10739668c9a829a93d84412b8d3acc089906dd66588970023d6c4a1ad",
+        "focused-final.log": "20a008885bb8479dbe15499917f8614188dce59217bcecc43f8849c5f3a2c886",
+        "focused-initial.log": "1e0c4f3f69d3efcdddd8c6b6a96cc3f1a490970d5499bc8ce16965c1dd029058",
+        "full-ordinary.jsonl": "f31fcd05fa480587b0956d983dcd8963db5966493139f3bc702955745c1e869e",
+        "hardening-final-race.jsonl": "614ce933827308496dd617747076dcae5dbca63b05215db417af4d3a02e29bc5",
+        "image-strengthened-race.log": "90ff44df6d71482a28ac38a1c068cb6af603bce89a96f511325a5eeb76565831",
+        "negative-old-path-strengthened.log": "de736d42b035ce2c1c54702a42ae89762aa5032bf1cb17a0e03a5bd6167fc03e",
+        "negative-old-path.log": "e7b7efaf600ac62b7811cfe11f79f4b50fc40b06c45c782a4b9768e1571f3491",
+        "negative-overlay.json": "16e696ea48fa2073caa5b4e333e5f498b7ec2c58dc6a70e62cf151f3c3a00f3e",
+        "negative-strong-overlay.json": "8e7d7d63e655a9652c05b3202d3e357685613213db7fd57b7b83f47c1958a477",
+        "negative_image_test.go": "82ff543e66a14c98833b28e37672445293ab5d23b7cc3dcf805aa5819fe75473",
+        "negative_strong_image_test.go": "f2fc8054a66aed0d83de17304ab83649692ca251f242a68511a0ebb184cc9bd2",
+        "offline-results.json": "f14b41e68619438b2579dd363181b81fca99ee7cf30cb54bab38203500cca866",
+        "offline-results.log": "e13fc6091bbd1f6540049b209df956ccc1951c980013b55363ae2e53dc415e4a",
+        "offline.log": "599f237f0b11249553e8ef10b8c416c5460bc4199609ea2c3e0abbb8271b8425",
+        "old_identity.go": "56f504e5645e6b6679526621c9b9a839f1cb6fdb10c23ac3b9a8158584aa3efd",
+        "rpc-authorized.log": "4327401623dcf3a2d4ae4f03df99a8841a74438f39fdc427e2bc8a5e76c24501",
+        "selected-race.jsonl": "40366824199f4d269f6c336cf668d9dff6da74ae57eca43f8cb321d8d7cdff4f",
+        "staticcheck-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "staticcheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "vet-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "vet.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "not_claimed": [
+      "FRESH_INDEPENDENT_REVIEW",
+      "FULL_REPOSITORY_RACE",
+      "ALL_B22_API_RACE",
+      "REMOTE_CI",
+      "PRODUCTION_MANIFEST_AUTHENTICATION_OR_DEPLOYMENT",
+      "HARDWARE_REMOTE_ATTESTATION",
+      "REAL_CHAIN",
+      "REAL_AUTHORIZATION",
+      "LIVE",
+      "WHOLE_B2_B_M4_PASS"
+    ]
+  },
+  "source_sha256": {
+    "internal/tradeapi/manual_runtime_identity.go": "efb0c2d183f58af67d0c4eb34f5a1a42795b042c6f2f85e3c8df3093854cf5f5",
+    "internal/tradeapi/manual_runtime_image.go": "ff7a1c41ee636e55a8137555bbff466b842c05e1cdab7f48279469a3858ef41a",
+    "internal/tradeapi/manual_runtime_image_test.go": "a5e6e840d302c43599b053c7e1f6fc79b717c25f6de313e807a4ceb71449f201",
+    "internal/tradeapi/manual_runtime_drift_test.go": "81d0d88fadd84575eb586fc44f4d5931b29007d2b92dcd5087169b59f7c3541f",
+    "docs/HTTP_MANUAL_M4_B22_HARDENING.md": "42fa4401a6fd8b0782e497958030405f39c644f06459f96ba4e6ab6b1463302c",
+    "docs/HTTP_TRADING_DELIVERY_PLAN.md": "5602139bf56f917568f350e6ddbbecdb355133ece154d66ea23a8113917809d5"
+  },
+  "preservation": {
+    "all_other_base_files": "BYTE_IDENTICAL_EXCEPT_CURRENT_DELIVERY_PLAN_AND_APPEND_ONLY_MANIFEST",
+    "migrations001_to039_old_tests_clock_verifier_RPC_artifact_accounting_and_prior_evidence": "BYTE_IDENTICAL",
+    "manifest": "ALL179_OLD_LINES_PRESERVED_APPEND_ONE_NEW_EVIDENCE_EXPECTED180",
+    "old_implementation_docs_and_evidence": "HISTORICAL_HASH_AND_STATUS_NOT_REWRITTEN",
+    "delivery_plan": "PREPEND_CURRENT_HARDENING_CHECKPOINT_UPDATE_CURRENT_QUEUE_KEEP_HISTORY"
+  },
+  "limitations": [
+    "SUPPORTED_PINNED_IMAGE_PRIMITIVE_LINUX_PROC_SELF_EXE_ONLY_OTHER_PLATFORMS_FAIL_CLOSED_NOT_PORTABLE_PATHNAME_MEASUREMENT",
+    "SAME_REVISION_REPLACEMENT_TEST_COMPILES_EXACT_PRODUCTION_IDENTITY_HELPER_SOURCE_WITH_MINIMAL_DOMAIN_STUBS_IN_DISPOSABLE_CLEAN_GIT_FIXTURE_NO_REAL_APPLICATION_DEPLOYMENT",
+    "TRUSTED_FIXTURE_MANIFEST_NOT_AUTHENTICATED_PRODUCTION_MANIFEST_LOADER_OR_REMOTE_ATTESTATION",
+    "DRIFT_FIXTURES_ARE_EXPLICIT_TRUSTED_SAMPLE_SEQUENCES_NOT_REAL_TIME_ATTESTATION",
+    "READ_ONLY_FIXTURE_RPC_COUNTS0_BEFORE_RPC_AND1_AT_FINAL_WRITER_NOT_FALSE_ZERO_RPC_CLAIM",
+    "FIXTURE_SIGNATURE_DECRYPT_ACTIVITY_NOT_ZERO_NEW_ECONOMIC_PATH_UNREACHABILITY_IS_STRUCTURAL_PROOF_NOT_PRODUCTION_TELEMETRY",
+    "ORIGINAL_CLOCK_LATCH_CRASH_WINDOW_LIMITATIONS_REMAIN_NO_POWER_LOSS_OR_DB_CHAIN_ATOMICITY_CLAIM",
+    "IMAGE_PROBE_CHILD_NOT_BUILT_WITH_RACE_PARENT_SUITE_RACE_INSTRUMENTED_NO_CHILD_RACE_CLAIM",
+    "FULL_ORDINARY_AND_INITIAL_SELECTED_RACE_PRECEDE_ONLY_LAST_IMAGE_TEST_STRENGTHENING_FINAL_ALL_B22_FOCUSED_AND_NEW3_RACE_COVER_CURRENT_TEST_SOURCE"
+  ],
+  "boundaries": {
+    "M1": "PASS_UNCHANGED",
+    "M2": "PASS_UNCHANGED",
+    "M3": "PASS_UNCHANGED",
+    "M4_A": "PASS_UNCHANGED",
+    "M4_B1": "PASS_UNCHANGED",
+    "M4_B21": "PASS_UNCHANGED",
+    "C04": "PASS_UNCHANGED",
+    "C05": "PASS_UNCHANGED",
+    "C07": "PASS_UNCHANGED",
+    "C08": "PASS_UNCHANGED",
+    "M4_B2": "INCOMPLETE_NOT_READY_NOT_PASS",
+    "M4_B": "INCOMPLETE_NOT_READY_NOT_PASS",
+    "M4": "INCOMPLETE_NOT_PASS",
+    "chain": "ROBINHOOD4663_PONS_V2_CURVE_NATIVE_QUOTE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "new_path_sign_encrypt_permit_PASS_submit_replay_broadcast_send_nonce_economic_action": "STRUCTURALLY_UNREACHABLE_NOT_PRODUCTION_TELEMETRY",
+    "public_HTTP_config_startup_or_economic_caller": false,
+    "M4_B23_B3_B4_C_D_M5_W4_D_W5_other_chains_protocols": "NOT_ENTERED",
+    "remote_operations": false,
+    "maximum": "M4_B22_READY_FOR_REVIEW_NO_SELF_PASS_CLOSEOUT_OR_DOWNSTREAM"
+  },
+  "checkpoint": "M4_B22_READY_FOR_REVIEW"
+}
