@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_MANUAL_M4_B23_PRIVATE_FIRST_BROADCAST_PERMIT_ISSUANCE_IMPLEMENTATION_ONLY",
+  "branch": "http-m4b23-first-permit",
+  "implementation_base": "2a238fc9a1bb7547153fda43086e8724b6b1fb75",
+  "accepted_design": "docs/HTTP_MANUAL_M4_B23_PERMIT_DESIGN.md",
+  "M4_B22": "PASS_UNCHANGED",
+  "M4_B23": "READY_FOR_REVIEW",
+  "checkpoint": "M4_B23_READY_FOR_REVIEW",
+  "independent_M4_B23_review": "NOT_PERFORMED",
+  "M4_B2": "INCOMPLETE_NOT_READY_NOT_PASS",
+  "M4_B": "INCOMPLETE_NOT_READY_NOT_PASS",
+  "M4": "INCOMPLETE_NOT_PASS",
+  "scope_acceptance": {
+    "scope": "PRIVATE_FIRST_BROADCAST_PERMIT_ISSUANCE_ONLY",
+    "consume": false,
+    "send": false,
+    "replay": false,
+    "migration040": true
+  },
+  "implementation": {
+    "migration": "040_manual_first_broadcast_permit.sql",
+    "table": "manual_first_broadcast_issuances",
+    "atomic": "FRESH_PREPARE_FINALCHECK_CLOCK_EVENT_ISSUANCE_SNAPSHOT_PERMIT_AUDIT_ALERT_SAME_WRITER",
+    "identity": "OPERATION_ATTEMPT_AUTH_EPOCH_SOURCE_PROCESS_OBSERVATION_CLOCK_ARTIFACT_TX_ISSUED_EXPIRES",
+    "expiry": "ABSOLUTE_ONCE_MIN_OPERATION_AUTH_LEASE_LOCAL_WINDOW",
+    "duplicate": "FRESH_RECHECK_EXACT_EXISTING_IDENTITY_NO_NEW_CLOCK_AUDIT_SNAPSHOT_PERMIT_OR_WINDOW",
+    "guards": "EXACT_MANUAL_PERMIT_AND_PASS_EXCEPTION_COMPLETE_ISSUANCE_REQUIRED_MANUAL_CONSUME_DENY",
+    "consumer": "NONE"
+  },
+  "test_mapping": {
+    "upgrade_039_to040_atomic_idempotent": "TestManualFirstBroadcastUpgradeFrom039AtomicNoRepair",
+    "artifact_mismatch_zero_metadata": "TestHTTPM4B23FirstBroadcastRejectsArtifactMismatch",
+    "consume_replay_disabled_direct_sql": "TestHTTPM4B23ConsumeAndReplayRemainDisabled",
+    "fresh_first_metadata_only_zero_submission": "TestHTTPM4B23FreshFirstBroadcastPermitIsMetadataOnly",
+    "duplicate_no_refresh": "TestHTTPM4B23DuplicateFirstPermitDoesNotMintWindow",
+    "audit_failure_full_rollback": "TestHTTPM4B23AuditFailureRollsBackEntireIssuance"
+  },
+  "author_validation": {
+    "status": "COMPLETE",
+    "attribution": "AUTHOR_NOT_INDEPENDENT_REVIEW_NOT_REMOTE_CI",
+    "focused": {
+      "status": "PASS",
+      "command": "go test ./internal/storage ./internal/tradeapi -run 'TestManualFirstBroadcast|TestHTTPM4B23|TestManual.*UpgradeFrom0(36|37|38|39)' -count=1 -timeout=12m",
+      "storage_seconds": 2.13,
+      "tradeapi_seconds": 7.492,
+      "top_level_tests": 6,
+      "log": "/tmp/b23-final-focused.log"
+    },
+    "new_race": {
+      "status": "PASS",
+      "command": "go test -race ./internal/tradeapi -run '^TestHTTPM4B23' -count=1 -timeout=12m",
+      "seconds": 129.361,
+      "top_level_tests": 5,
+      "log": "/tmp/b23-new-race-final.log"
+    },
+    "full_ordinary_loopback": {
+      "status": "PASS",
+      "command": "go test -p 1 ./... -count=1 -timeout=25m",
+      "package_seconds": {
+        "trade": 230.125,
+        "tradeapi": 121.815,
+        "storage": 15.621
+      },
+      "permission": "APPROVED_CONTROLLED_LOOPBACK_UNIX_SOCKET_FIXTURES_NO_REAL_CHAIN",
+      "log": "/tmp/b23-full-escalated.log"
+    },
+    "build_vet_staticcheck": {
+      "status": "PASS",
+      "commands": [
+        "go vet ./...",
+        "/tmp/rbh-bin/staticcheck ./..."
+      ],
+      "logs": [
+        "/tmp/b23-vet-final.log",
+        "/tmp/b23-staticcheck-final.log"
+      ]
+    },
+    "gofmt_diff": "PASS",
+    "package_checker": "PASS_182_BASE_ENTRIES_BEFORE_ADDITIVE_IMPLEMENTATION_EVIDENCE"
+  },
+  "intermediate_outcomes": [
+    {
+      "log": "/tmp/b23-full-final.log",
+      "status": "ENVIRONMENT_FAIL_NOT_LOGIC",
+      "reason": "SANDBOX_LOOPBACK_UNIX_SOCKET_DENIED_AND_DISK_FULL_DURING_LINK_SQLITE_TMP",
+      "not_claimed": "PASS"
+    },
+    {
+      "log": "/tmp/b23-full-escalated.log",
+      "status": "PASS",
+      "correction": "CONTROLLED_SOCKET_PERMISSIONED_RERUN"
+    }
+  ],
+  "source_sha256": {
+    "internal/storage/migrations/trade/040_manual_first_broadcast_permit.sql": "2cd79440aa645b6772e826a7229b07a63737a70b3686c303bc4f44e8569c80d9",
+    "internal/tradeapi/manual_first_broadcast.go": "b8bf3cfdba4974295bb0a6e9d6ab132122b6397a75c51e474e3e5afffa490c9f",
+    "internal/tradeapi/manual_first_broadcast_test.go": "7a0ecfe6693860c11039da496f20a1f08377340093c0b18f7b540a736c1c80ec",
+    "internal/storage/manual_first_broadcast_upgrade_test.go": "4ee21958ac2d1b7c66e682dd2d92c2dcac4e85e3617b11610cdd85799ed996a2",
+    "internal/tradeapi/manual_runtime_inputs.go": "b68a30af0417a4b708de57884af7139cc4247a18e996be2eb5d231fa9f33d7ce",
+    "internal/storage/database_test.go": "fa704bbea89dc292a7705c437c9c2c22f80e639fe2a184ccd3e2de535e0797a1",
+    "internal/tradeapi/manual_artifact_facts_test.go": "1349b4e4af13e34e8adc3fbc1e6949ced6f5f50c45850e14d4a135756cf7bce1",
+    "internal/storage/manual_gate_evidence_upgrade_test.go": "5f11fa2f8c8f918506c35d7eeca5c342b1f6a6c1bde4ad783877bd78a093cec7",
+    "internal/storage/manual_runtime_clock_upgrade_test.go": "6f3745a95ae629fad40200890a832e1d64de5903a74c81c9698392cb3704d9fb",
+    "internal/storage/manual_submission_foundation_upgrade_test.go": "1b4df433c574097abf73b50c12c9f78fe1526edae2f3882a3d5b69708f0e3a6d",
+    "docs/HTTP_MANUAL_M4_B23_FIRST_PERMIT.md": "22b20d7856903b5d3bf07e8dded216a6a4d6441d35ae384ff29cfbfaaa153d49",
+    "docs/HTTP_TRADING_DELIVERY_PLAN.md": "3e8832eeea3daa1b7215e16878aa519658df09aa8be7f8bb2c3c31cf07de0155"
+  },
+  "temporary_log_sha256": {
+    "/tmp/b23-final-focused.log": "87d7d301c4de0c0328889a4578e73b9051d050f51a42928f80d3158f85ced46b",
+    "/tmp/b23-new-race-final.log": "d66ef54056e091818d91aa3d38bcbed2d5045172d8c6cba9955a1bccdf1843ce",
+    "/tmp/b23-full-escalated.log": "170ab084bc4404212809cfba33ebb7f0da151451dc69ef40d86d3b61ac5a438a",
+    "/tmp/b23-vet-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/b23-staticcheck-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/b23-check.log": "77b3d58eb2e674dd50728515145d7378cbfc135eb79186c308cb1aec8a8da8f5"
+  },
+  "preservation": {
+    "migrations001_to039_old_product_code_old_evidence_design_closeout": "BYTE_IDENTICAL_EXCEPT_DECLARED_SCHEMA_CHECKPOINT_AND_UPGRADE_TEST_EXPECTATION_CHANGES",
+    "changed_paths": [
+      "internal/storage/migrations/trade/040_manual_first_broadcast_permit.sql",
+      "internal/tradeapi/manual_first_broadcast.go",
+      "internal/tradeapi/manual_first_broadcast_test.go",
+      "internal/storage/manual_first_broadcast_upgrade_test.go",
+      "internal/tradeapi/manual_runtime_inputs.go",
+      "internal/storage/database_test.go",
+      "internal/tradeapi/manual_artifact_facts_test.go",
+      "internal/storage/manual_gate_evidence_upgrade_test.go",
+      "internal/storage/manual_runtime_clock_upgrade_test.go",
+      "internal/storage/manual_submission_foundation_upgrade_test.go",
+      "docs/HTTP_MANUAL_M4_B23_FIRST_PERMIT.md",
+      "docs/HTTP_TRADING_DELIVERY_PLAN.md",
+      "rbh-validation-package/evidence/http-manual-m4b23-first-permit.json",
+      "rbh-validation-package/SHA256SUMS"
+    ],
+    "prior_design": "UNCHANGED",
+    "manifest": "ALL182_PRIOR_LINES_PRESERVED_PLUS_ONE_ADDITIVE_IMPLEMENTATION_EVIDENCE"
+  },
+  "limitations": [
+    "NO_CONSUME_SEND_REPLAY_SUBMISSION_TRANSPORT_SIGNER_NONCE_ALLOCATION_OR_PUBLIC_CALLER",
+    "DB_ISSUANCE_METADATA_NOT_EXTERNAL_RUNTIME_PROOF_CONSUMER_MUST_FRESH_CHECK",
+    "TRUSTED_B22_COMPOSITION_AND_LINUX_RUNNING_IMAGE_LIMITS_REMAIN",
+    "NO_FULL_REPOSITORY_RACE_B23_SELECTED_RACE_ONLY",
+    "LOOPBACK_FIXTURES_NOT_REAL_CHAIN_OR_LIVE",
+    "TEMP_LOGS_NOT_SHIPPED"
+  ],
+  "boundaries": {
+    "M1": "PASS_UNCHANGED",
+    "M2": "PASS_UNCHANGED",
+    "M3": "PASS_UNCHANGED",
+    "M4_A": "PASS_UNCHANGED",
+    "M4_B1": "PASS_UNCHANGED",
+    "M4_B21": "PASS_UNCHANGED",
+    "M4_B22": "PASS_UNCHANGED",
+    "C04": "PASS_UNCHANGED",
+    "C05": "PASS_UNCHANGED",
+    "C07": "PASS_UNCHANGED",
+    "C08": "PASS_UNCHANGED",
+    "chain": "ROBINHOOD4663_PONS_V2_CURVE_NATIVE_QUOTE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "B23_B3_B4_C_D_M5_W4_D_W5": "NOT_ENTERED",
+    "remote_operations": false
+  },
+  "maximum": "M4_B23_READY_FOR_REVIEW_NO_SELF_PASS_NO_CLOSEOUT"
+}

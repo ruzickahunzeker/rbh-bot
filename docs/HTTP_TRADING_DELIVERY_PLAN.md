@@ -7,6 +7,19 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Latest local M4-B2.3 implementation: `http-m4b23-first-permit`, base
+`2a238fc9a1bb7547153fda43086e8724b6b1fb75`. Accepted scope is implemented only
+through private FIRST_BROADCAST permit issuance metadata: additive040, fresh B22
+prepare/finalCheck, immutable issuance/source binding, exact snapshot/permit/
+audit/alert atomicity, duplicate no-refresh and consume/replay deny. No signer,
+consume, replay, submission, transport, HTTP/startup caller or authorization
+grant. Author focused B23/storage upgrade PASS, selected B23 race PASS, full
+ordinary loopback-enabled repository PASS, vet/staticcheck/gofmt/checksum PASS.
+Maximum `M4_B23_READY_FOR_REVIEW`; independent B23 review NOT_PERFORMED. See
+`HTTP_MANUAL_M4_B23_FIRST_PERMIT.md` and additive implementation evidence.
+Whole B2/B/M4 incomplete; B2.4/downstream NOT_STARTED. No live/release/remote
+action follows. Older design/status/hash snapshots remain historical.
+
 Latest local M4-B2.3 proposal: docs-only `http-m4b23-permit-design`, base
 `8c635fc03187f4289b90de7a442692618db5fde9`. Proposed scope is private controlled
 FIRST_BROADCAST gate/permit issuance only, not consumption/send/replay or a

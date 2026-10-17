@@ -54,6 +54,9 @@ func (p manualRuntimeProfile) valid() bool {
 }
 
 type manualRuntimeProjection struct {
+	Control struct {
+		UpdatedAt string `json:"updated_at"`
+	} `json:"control"`
 	Foundation struct {
 		Facts     manualartifact.Facts    `json:"facts"`
 		Contract  ManualExecutionContract `json:"contract"`
