@@ -12,9 +12,10 @@ M4-B1 = PASS
 M4-B2.1 = PASS
 M4-B2.2 = PASS
 M4-B2.3 scope = ACCEPTED
-M4-B2.3 = READY_FOR_REVIEW
-checkpoint = M4_B23_READY_FOR_REVIEW
-independent_M4_B23_review = NOT_PERFORMED
+M4-B2.3 = PASS
+checkpoint = M4_B23_PASS
+independent_M4_B23_review = PASS
+formal_closeout = COMPLETE_LOCAL_ONLY
 M4-B2 = INCOMPLETE_NOT_READY_NOT_PASS
 M4-B = INCOMPLETE_NOT_READY_NOT_PASS
 M4 = INCOMPLETE_NOT_PASS
@@ -87,5 +88,5 @@ The initial full ordinary run without fixture permission failed only on sandbox
 network/socket restrictions and was retained as environment evidence. No real
 chain, key, authorization, production transport or live action was used.
 
-Maximum state is `M4_B23_READY_FOR_REVIEW`; independent review has not run and
-this implementation must not be marked PASS or closed out by the author.
+Maximum state is `M4_B23_PASS` after the independent review and this formal
+closeout. No consume/send/replay or production authorization follows.
