@@ -57,7 +57,7 @@ func TestManualFirstBroadcastUpgradeFrom039AtomicNoRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 	var version, issuance, permits, snapshots int
-	if err = d.db.QueryRow(`SELECT MAX(version),(SELECT COUNT(*) FROM manual_first_broadcast_issuances),(SELECT COUNT(*) FROM canary_send_permits),(SELECT COUNT(*) FROM canary_runtime_gate_snapshots) FROM schema_migrations`).Scan(&version, &issuance, &permits, &snapshots); err != nil || version != 40 || issuance != 0 || permits != 0 || snapshots != 0 {
+	if err = d.db.QueryRow(`SELECT MAX(version),(SELECT COUNT(*) FROM manual_first_broadcast_issuances),(SELECT COUNT(*) FROM canary_send_permits),(SELECT COUNT(*) FROM canary_runtime_gate_snapshots) FROM schema_migrations`).Scan(&version, &issuance, &permits, &snapshots); err != nil || version != 41 || issuance != 0 || permits != 0 || snapshots != 0 {
 		t.Fatal(version, issuance, permits, snapshots, err)
 	}
 	var after string
@@ -68,6 +68,6 @@ func TestManualFirstBroadcastUpgradeFrom039AtomicNoRepair(t *testing.T) {
 		t.Fatal("040 did not add schema")
 	}
 	if err = d.Migrate(ctx); err != nil {
-		t.Fatal("040 not idempotent", err)
+		t.Fatal("041 not idempotent", err)
 	}
 }

@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "scope": "HTTP_MANUAL_M4_B23_PRIVATE_FIRST_BROADCAST_PERMIT_ISSUANCE_IMPLEMENTATION_ONLY",
-  "branch": "http-m4b23-first-permit",
-  "implementation_base": "2a238fc9a1bb7547153fda43086e8724b6b1fb75",
+  "branch": "http-m4b23-first-permit-hardening",
+  "implementation_base": "60d516a95fc5a55c44aafdde314f0284b8319d39",
   "accepted_design": "docs/HTTP_MANUAL_M4_B23_PERMIT_DESIGN.md",
   "M4_B22": "PASS_UNCHANGED",
   "M4_B23": "READY_FOR_REVIEW",
@@ -19,22 +19,26 @@
     "migration040": true
   },
   "implementation": {
-    "migration": "040_manual_first_broadcast_permit.sql",
+    "migration": "040_manual_first_broadcast_permit.sql + 041_manual_first_broadcast_scope.sql",
     "table": "manual_first_broadcast_issuances",
     "atomic": "FRESH_PREPARE_FINALCHECK_CLOCK_EVENT_ISSUANCE_SNAPSHOT_PERMIT_AUDIT_ALERT_SAME_WRITER",
     "identity": "OPERATION_ATTEMPT_AUTH_EPOCH_SOURCE_PROCESS_OBSERVATION_CLOCK_ARTIFACT_TX_ISSUED_EXPIRES",
     "expiry": "ABSOLUTE_ONCE_MIN_OPERATION_AUTH_LEASE_LOCAL_WINDOW",
     "duplicate": "FRESH_RECHECK_EXACT_EXISTING_IDENTITY_NO_NEW_CLOCK_AUDIT_SNAPSHOT_PERMIT_OR_WINDOW",
-    "guards": "EXACT_MANUAL_PERMIT_AND_PASS_EXCEPTION_COMPLETE_ISSUANCE_REQUIRED_MANUAL_CONSUME_DENY",
+    "guards": "DEFERRED_ISSUANCE_PERMIT_SNAPSHOT_SCOPE_EXACT_IDS_DIRECT_SQL_ORPHAN_REJECTED_MANUAL_CONSUME_DENY",
     "consumer": "NONE"
   },
   "test_mapping": {
-    "upgrade_039_to040_atomic_idempotent": "TestManualFirstBroadcastUpgradeFrom039AtomicNoRepair",
+    "upgrade_039_to041_atomic_idempotent": "TestManualFirstBroadcastUpgradeFrom039AtomicNoRepair",
     "artifact_mismatch_zero_metadata": "TestHTTPM4B23FirstBroadcastRejectsArtifactMismatch",
     "consume_replay_disabled_direct_sql": "TestHTTPM4B23ConsumeAndReplayRemainDisabled",
     "fresh_first_metadata_only_zero_submission": "TestHTTPM4B23FreshFirstBroadcastPermitIsMetadataOnly",
     "duplicate_no_refresh": "TestHTTPM4B23DuplicateFirstPermitDoesNotMintWindow",
     "audit_failure_full_rollback": "TestHTTPM4B23AuditFailureRollsBackEntireIssuance"
+    ,"direct_sql_scope_orphan_and_later_adoption_rejected": "TestHTTPM4B23DirectSQLIssuanceRequiresScopeAndCannotBeAdopted"
+    ,"scope_closes_only_exact_witnesses": "TestHTTPM4B23ScopeClosesOnlyWithExactWitnesses"
+    ,"wrong_scope_witness_identity_rejected": "TestHTTPM4B23WrongScopeWitnessIdentityRejected"
+    ,"non_manual_first_broadcast_unchanged": "TestManualB23ScopeDoesNotConstrainNonManualFirstBroadcast"
   },
   "author_validation": {
     "status": "COMPLETE",
@@ -44,7 +48,7 @@
       "command": "go test ./internal/storage ./internal/tradeapi -run 'TestManualFirstBroadcast|TestHTTPM4B23|TestManual.*UpgradeFrom0(36|37|38|39)' -count=1 -timeout=12m",
       "storage_seconds": 2.13,
       "tradeapi_seconds": 7.492,
-      "top_level_tests": 6,
+      "top_level_tests": 9,
       "log": "/tmp/b23-final-focused.log"
     },
     "new_race": {
@@ -94,16 +98,19 @@
   ],
   "source_sha256": {
     "internal/storage/migrations/trade/040_manual_first_broadcast_permit.sql": "2cd79440aa645b6772e826a7229b07a63737a70b3686c303bc4f44e8569c80d9",
-    "internal/tradeapi/manual_first_broadcast.go": "b8bf3cfdba4974295bb0a6e9d6ab132122b6397a75c51e474e3e5afffa490c9f",
+    "internal/storage/migrations/trade/041_manual_first_broadcast_scope.sql": "9e6f92470e2dce900d23f0efa8f2e15a57f9d706441f9f1bad7efc3932f95c7a",
+    "internal/tradeapi/manual_first_broadcast.go": "d465784a303e075bbdd20e77ba5ed41df427edfda1e1d70aeae661c41e77fe9e",
     "internal/tradeapi/manual_first_broadcast_test.go": "7a0ecfe6693860c11039da496f20a1f08377340093c0b18f7b540a736c1c80ec",
-    "internal/storage/manual_first_broadcast_upgrade_test.go": "4ee21958ac2d1b7c66e682dd2d92c2dcac4e85e3617b11610cdd85799ed996a2",
+    "internal/tradeapi/manual_first_broadcast_hardening_test.go": "24d20b115bf10a31189dacc1e6abe1051d877db4526af5aa467ddeaa79661839",
+    "internal/storage/manual_first_broadcast_upgrade_test.go": "bda6f866db9e2146a6dfcc05074c459c4e91c75bbba0983397c01582cb7d22c3",
+    "internal/storage/manual_risk_units_test.go": "d817a402bfe2563655dcafc06c12e5ca174964390a8dd5b7317e706bd636b4cf",
     "internal/tradeapi/manual_runtime_inputs.go": "b68a30af0417a4b708de57884af7139cc4247a18e996be2eb5d231fa9f33d7ce",
-    "internal/storage/database_test.go": "fa704bbea89dc292a7705c437c9c2c22f80e639fe2a184ccd3e2de535e0797a1",
-    "internal/tradeapi/manual_artifact_facts_test.go": "1349b4e4af13e34e8adc3fbc1e6949ced6f5f50c45850e14d4a135756cf7bce1",
+    "internal/storage/database_test.go": "22357b1bcfb9e39b5aacb64a3b60f6bc76ba33bd53a8aebe8226e4ffe5953f30",
+    "internal/tradeapi/manual_artifact_facts_test.go": "bef2c1884a8e16f4a0d1891f591a066c10c52ff205493e5838cf2a174898d470",
     "internal/storage/manual_gate_evidence_upgrade_test.go": "5f11fa2f8c8f918506c35d7eeca5c342b1f6a6c1bde4ad783877bd78a093cec7",
     "internal/storage/manual_runtime_clock_upgrade_test.go": "6f3745a95ae629fad40200890a832e1d64de5903a74c81c9698392cb3704d9fb",
     "internal/storage/manual_submission_foundation_upgrade_test.go": "1b4df433c574097abf73b50c12c9f78fe1526edae2f3882a3d5b69708f0e3a6d",
-    "docs/HTTP_MANUAL_M4_B23_FIRST_PERMIT.md": "22b20d7856903b5d3bf07e8dded216a6a4d6441d35ae384ff29cfbfaaa153d49",
+    "docs/HTTP_MANUAL_M4_B23_FIRST_PERMIT.md": "00a81f20610e03246cd09967f6a860b45682230bd2a8b34b0977a07158e42545",
     "docs/HTTP_TRADING_DELIVERY_PLAN.md": "3e8832eeea3daa1b7215e16878aa519658df09aa8be7f8bb2c3c31cf07de0155"
   },
   "temporary_log_sha256": {

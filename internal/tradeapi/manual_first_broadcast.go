@@ -109,6 +109,11 @@ func (i *manualFirstBroadcastIssuer) issue(ctx context.Context, id Identity, req
 		return permit, err
 	}
 	issuanceID := "manual-first-permit:" + attemptID
+	snapshotID := "manual-first-gate:" + attemptID
+	permitID := issuanceID
+	if _, err = conn.ExecContext(ctx, `INSERT INTO manual_first_broadcast_scopes(issuance_id,attempt_id,source_hash,permit_id,snapshot_id) VALUES(?,?,?,?,?)`, issuanceID, attemptID, g.sourceHash, permitID, snapshotID); err != nil {
+		return permit, err
+	}
 	if _, err = conn.ExecContext(ctx, `INSERT INTO manual_first_broadcast_issuances(id,operation_id,attempt_id,authorization_id,authorization_epoch,source_json,source_hash,process_hash,observation_hash,clock_generation,artifact_hash,tx_hash,issued_at,expires_at,state) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, issuanceID, f.OperationID, attemptID, f.AuthorizationID, f.AuthorizationEpoch, g.source, g.sourceHash, hash([]byte(encode(i.verifier.profile.process))), p.observation.Digest(), g.clock.generation+1, artifactHash, txHash, issued.Format(time.RFC3339Nano), expires.Format(time.RFC3339Nano), "ISSUED"); err != nil {
 		return permit, err
 	}
@@ -117,11 +122,9 @@ func (i *manualFirstBroadcastIssuer) issue(ctx context.Context, id Identity, req
 	if parseErr != nil {
 		controlUpdated = checked
 	}
-	snapshotID := "manual-first-gate:" + attemptID
 	if _, err = conn.ExecContext(ctx, `INSERT INTO canary_runtime_gate_snapshots(id,operation_id,attempt_id,stage,authorization_id,authorization_epoch,build_sha,release_id,deployment_id,policy_version,policy_hash,gate_evidence_set_hash,emergency_stop_revision,decision,reason_code,checked_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, snapshotID, f.OperationID, attemptID, "FIRST_BROADCAST", f.AuthorizationID, f.AuthorizationEpoch, strings.ToLower(f.BuildSHA), f.ReleaseID, f.DeploymentID, f.PolicyVersion, strings.ToLower(f.PolicyHash), strings.ToLower(f.GateEvidenceSetHash), controlUpdated.UnixNano(), "PASS", "CANARY_GATE_PASS", checked.Format(time.RFC3339Nano)); err != nil {
 		return permit, err
 	}
-	permitID := "manual-first-permit:" + attemptID
 	if _, err = conn.ExecContext(ctx, `INSERT INTO canary_send_permits(id,operation_id,attempt_id,authorization_id,authorization_epoch,purpose,artifact_hash,tx_hash,query_evidence_hash,queried_at,state,issued_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?, ?,?)`, permitID, f.OperationID, attemptID, f.AuthorizationID, f.AuthorizationEpoch, "FIRST_BROADCAST", artifactHash, txHash, nil, nil, "ISSUED", checked.Format(time.RFC3339Nano), expires.Format(time.RFC3339Nano)); err != nil {
 		return permit, err
 	}

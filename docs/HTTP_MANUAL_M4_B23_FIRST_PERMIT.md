@@ -1,7 +1,7 @@
 # MANUAL M4-B2.3 — private FIRST_BROADCAST permit issuance
 
-Branch: `http-m4b23-first-permit`.
-Base: `2a238fc9a1bb7547153fda43086e8724b6b1fb75` (accepted B23 design).
+Branch: `http-m4b23-first-permit-hardening`.
+Base: `60d516a95fc5a55c44aafdde314f0284b8319d39` (B23 implementation head).
 
 ```ini
 M1 = PASS
@@ -50,6 +50,14 @@ MANUAL permits. Existing non-MANUAL canary behavior is unchanged.
 
 ## Durable identity and atomicity
 
+Hardening migration041 adds a deferred, one-transaction issuance scope bound
+to the deterministic issuance, FIRST_BROADCAST permit and PASS gate snapshot
+IDs. Direct SQL issuance without that scope is rejected; a scope/issuance
+transaction without both witnesses fails at commit and cannot be adopted by a
+later permit or snapshot. Scope close is guarded by exact operation, attempt,
+authorization epoch, artifact, expiry, build/release/deployment, policy,
+evidence and checked-at identity. Migration040 is unchanged.
+
 Issuance binds operation/attempt/authorization ID+epoch, original source JSON
 and hash, process hash, runtime observation digest, clock generation, exact raw
 artifact hash, tx hash, issued_at/expires_at, and state=ISSUED. The same writer
@@ -67,7 +75,8 @@ semantics remain unchanged. `contract_deadline=false` remains unchanged.
 
 ## Tests and author validation
 
-Focused tests cover migration039->040 upgrade/idempotence, artifact mismatch,
+Focused tests cover migration039->041 upgrade/idempotence, direct-SQL scope/orphan
+and later-adoption rejection, deterministic witness identity, artifact mismatch,
 fresh metadata-only issuance, duplicate no-refresh, audit failure rollback and
 consume/replay disabled. Controlled fixtures assert no transaction submission and
 no new signing state. Full ordinary repository regression passed under approved

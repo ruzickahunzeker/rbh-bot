@@ -90,6 +90,19 @@ func metadataCount(t *testing.T, db *sql.DB, table string) int {
 	return n
 }
 
+func TestManualB23ScopeDoesNotConstrainNonManualFirstBroadcast(t *testing.T) {
+	d := metadataDB(t)
+	insertMetadataAuth(t, d.db, "generic-auth", 1)
+	if _, err := d.db.Exec(`INSERT INTO operations(id,chain_id,wallet_id,idempotency_key,request_fingerprint,kind,status,created_at) VALUES('generic-op',4663,'generic-wallet','generic-key','generic-fingerprint','swap','prepared',?);
+INSERT INTO execution_steps(id,operation_id,step_index,kind,status) VALUES('generic-step','generic-op',0,'curve_swap','prepared');
+INSERT INTO transaction_attempts(id,step_id,nonce,status,created_at) VALUES('generic-attempt','generic-step','1','prepared',?)`, metadataStamp, metadataStamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.db.Exec(`INSERT INTO canary_send_permits(id,operation_id,attempt_id,authorization_id,authorization_epoch,purpose,artifact_hash,tx_hash,state,issued_at,expires_at) VALUES('generic-first-permit','generic-op','generic-attempt','generic-auth',1,'FIRST_BROADCAST',?,?, 'ISSUED',?,?)`, strings.Repeat("c", 64), "0x"+strings.Repeat("d", 64), metadataStamp, "2026-10-10T01:00:00Z"); err != nil {
+		t.Fatalf("non-MANUAL FIRST_BROADCAST was constrained by B2.3: %v", err)
+	}
+}
+
 func TestManualB1PolicyAndAuthorizationUnitImmutableAudit(t *testing.T) {
 	d := metadataDB(t)
 	hash := insertMetadataPolicy(t, d.db)
