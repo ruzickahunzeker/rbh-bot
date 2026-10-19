@@ -106,6 +106,8 @@
     "internal/storage/manual_first_broadcast_upgrade_test.go": "bda6f866db9e2146a6dfcc05074c459c4e91c75bbba0983397c01582cb7d22c3",
     "internal/storage/manual_risk_units_test.go": "d817a402bfe2563655dcafc06c12e5ca174964390a8dd5b7317e706bd636b4cf",
     "internal/tradeapi/manual_runtime_inputs.go": "b68a30af0417a4b708de57884af7139cc4247a18e996be2eb5d231fa9f33d7ce",
+    "internal/tradeapi/manual_runtime_verifier_test.go": "fc09fee0e70a228bc5974ca7f96cff36eab6823d5409e648465d3a539eb4f8a7",
+    "internal/tradeapi/manual_submission_foundation_test.go": "04d75aebf87c66ccf3fa22ce835f230469fa16c47733dc8cf0efd994de4c9bb4",
     "internal/storage/database_test.go": "22357b1bcfb9e39b5aacb64a3b60f6bc76ba33bd53a8aebe8226e4ffe5953f30",
     "internal/tradeapi/manual_artifact_facts_test.go": "bef2c1884a8e16f4a0d1891f591a066c10c52ff205493e5838cf2a174898d470",
     "internal/storage/manual_gate_evidence_upgrade_test.go": "5f11fa2f8c8f918506c35d7eeca5c342b1f6a6c1bde4ad783877bd78a093cec7",

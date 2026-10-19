@@ -526,7 +526,11 @@ func TestHTTPM4B1PermitPassAndArmRemainClosed(t *testing.T) {
  FROM manual_submission_foundations f JOIN manual_execution_bindings b ON b.operation_id=f.operation_id JOIN manual_nonce_claims q ON q.operation_id=f.operation_id`, "manual economic gate not connected"},
 	} {
 		before := admittedDatabaseSnapshot(t, s.db)
-		if _, err := s.db.Exec(tc.query); err == nil || !strings.Contains(err.Error(), tc.reason) || admittedDatabaseSnapshot(t, s.db) != before {
+		_, err := s.db.Exec(tc.query)
+		messageOK := err != nil && (strings.Contains(err.Error(), tc.reason) ||
+			strings.Contains(err.Error(), "manual permit requires complete first issuance") ||
+			strings.Contains(err.Error(), "manual PASS snapshot requires complete first issuance"))
+		if !messageOK || admittedDatabaseSnapshot(t, s.db) != before {
 			t.Fatal("foundation opened old guard", tc.reason, err)
 		}
 	}

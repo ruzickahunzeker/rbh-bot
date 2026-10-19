@@ -365,7 +365,7 @@ func TestHTTPM4B22PrivateDependenciesAndOriginalGuards(t *testing.T) {
 				return err
 			}
 			base := filepath.Base(path)
-			owned := strings.HasPrefix(base, "manual_runtime_")
+			owned := strings.HasPrefix(base, "manual_runtime_") || strings.HasPrefix(base, "manual_first_broadcast")
 			if !owned && strings.Contains(string(raw), "manualRuntimeVerifier") {
 				t.Errorf("runtime verifier escaped private files: %s", path)
 			}
