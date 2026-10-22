@@ -696,12 +696,16 @@ func TestHTTPC3B4TenThousandMixedTwoHandleConservation(t *testing.T) {
 			}
 		}(worker)
 	}
-	for i := 0; i < 10000; i++ {
+	totalRequests := 10000
+	if raceEnabled {
+		totalRequests = 1000
+	}
+	for i := 0; i < totalRequests; i++ {
 		jobs <- i
 	}
 	close(jobs)
 	wg.Wait()
-	if accepted.Load() != 7 || deduped.Load() == 0 || rejected.Load() == 0 || accepted.Load()+deduped.Load()+rejected.Load() != 10000 || unexplained.Load() != 0 {
+	if accepted.Load() != 7 || deduped.Load() == 0 || rejected.Load() == 0 || accepted.Load()+deduped.Load()+rejected.Load() != int64(totalRequests) || unexplained.Load() != 0 {
 		t.Fatal("mixed request conservation", accepted.Load(), deduped.Load(), rejected.Load(), unexplained.Load())
 	}
 	var durable, countUsage, countOps, countReservations, overcommit int64
