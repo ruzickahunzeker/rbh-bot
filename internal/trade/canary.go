@@ -61,6 +61,11 @@ func (s *Store) AdmitControlledCanary(ctx context.Context, r CanaryRequest, now 
 	defer tx.Rollback()
 	stamp := now.UTC().Format(time.RFC3339Nano)
 	controlReason := canaryControlReason(ctx, tx, r.PolicyVersion)
+	if controlReason == "" {
+		// Apply source-mode isolation before generic historical dedupe too.
+		// An old MANUAL rejection must not become a positive DEDUPED response.
+		controlReason = canarySourceModeReason(ctx, tx, r.OperationID)
+	}
 	var existingID, existingFingerprint, existingReason string
 	err = tx.QueryRowContext(ctx, `SELECT id,request_fingerprint,reason_code FROM canary_admission_decisions WHERE request_id=?`, r.RequestID).Scan(&existingID, &existingFingerprint, &existingReason)
 	if err == nil {
@@ -173,6 +178,26 @@ func canaryControlReason(ctx context.Context, tx *sql.Tx, version uint64) string
 	}
 	if current != version {
 		return "POLICY_VERSION_MISMATCH"
+	}
+	// The legacy path cannot interpret opt-in MANUAL typed history through its
+	// raw cross-token/window sums. No historic row is guessed into a unit.
+	var typed int
+	if tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM manual_reservation_units`).Scan(&typed) != nil {
+		return "ACCOUNTING_MODE_UNAVAILABLE"
+	}
+	if typed != 0 {
+		return "TYPED_ACCOUNTING_REQUIRES_MANUAL_PATH"
+	}
+	return ""
+}
+
+func canarySourceModeReason(ctx context.Context, tx *sql.Tx, operation string) string {
+	var manual int
+	if tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM manual_http_order_sources WHERE operation_id=?`, operation).Scan(&manual) != nil {
+		return "DURABLE_SOURCE_UNAVAILABLE"
+	}
+	if manual != 0 {
+		return "MANUAL_ATOMIC_PATH_REQUIRED"
 	}
 	return ""
 }

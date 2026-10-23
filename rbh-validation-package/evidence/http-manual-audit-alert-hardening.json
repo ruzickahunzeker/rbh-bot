@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "slice": "HTTP_MANUAL_M2_AUDIT_ALERT_IDENTITY_HARDENING",
+  "branch": "http-m2-audit-alert-hardening",
+  "implementation_base": "3be7a805e693f7973d9224aaf7fd812003a7e911",
+  "preceding_review": {
+    "full_M2_review": "BLOCKED_REVIEWER_TOOLING_INTERRUPTION_NO_COMPLETED_FULL_VERDICT",
+    "alert_audit_static_subreview": "FAIL",
+    "reviewed_head": "3be7a805e693f7973d9224aaf7fd812003a7e911",
+    "subreview_runtime_reproduction": false,
+    "blockers": ["ALERT_AUDIT_ID_ROWID_CONFLICT_VICTIM_LOSS", "COMPOSED_AUDIT_ROWID_RECONSTRUCTION_AND_PARTIAL_HISTORY_VERIFICATION"],
+    "new_runtime_reproduction": "AUTHOR_ONLY_PERMANENT_DISPOSABLE_PREDECESSOR_023_TESTS_NOT_RELABELLED_INDEPENDENT"
+  },
+  "M1": "PASS_UNCHANGED",
+  "M2": "READY_FOR_REVIEW",
+  "fresh_independent_review": "NOT_PERFORMED",
+  "semantics": {
+    "migration": "NEW_ADDITIVE_MIGRATION_FILE_024_LANDED_001_THROUGH_023_FILES_UNCHANGED",
+    "schema_change": "SEVEN_NEW_M2_GUARDS_NEW_EXACT_AUDIT_VIEW_TRANSACTIONAL_RECREATE_EXISTING_INTEGRITY_VIEW_RETAINING_022_NEGATIVE_RESERVATION_LANE_CHECKS",
+    "production_Go_writer": "UNCHANGED_SAME_STRICT_VIEW_NAME_SAME_NO_PERMISSION_API",
+    "alert_victim_keys": ["id", "audit_id", "rowid"],
+    "audit_victim_keys": ["id", "rowid"],
+    "recursion": "OFF_AND_ON_PROTECTION_NOT_DEPENDENT_ON_DELETE_TRIGGER_RECURSION",
+    "foreign_keys": "ON_GUARD_INDEPENDENT_OF_AUDIT_CHILD_REFERENCE_EXISTENCE",
+    "audit_exactness": "ALL_ORIGINAL_FIELDS_ATTEMPT_NULL_BYTE_EXACT_ORIGINAL_JSON_NO_EXTRA_KEYS_REORDER_OR_WHITESPACE_NO_BINDING_EVENT_ALIASES",
+    "first_bind_atomicity": "CANONICAL_ALERT_AFTER_INSERT_CHECKS_EXACT_EFFECT_INSIDE_ORIGINAL_STATEMENT_PREEXISTING_ALIAS_DENIES_GO_AND_DIRECT_SQL_WITHOUT_PARTIAL_EFFECTS_OR_AFTER_BINDING_TRIGGER_ORDER_ASSUMPTION",
+    "duplicate": "HISTORICAL_ONLY_VALID_HISTORY_NO_PERMISSION_INVALID_HISTORY_ZERO_RESULT_EXECUTION_BINDING_INCOMPLETE_NO_REPAIR_TTL_OR_BUDGET_REFRESH",
+    "delivery": "ALERT_STATE_DELIVERED_AT_UPDATES_ALLOWED_ID_AUDIT_ID_SEVERITY_CREATED_AT_ROWID_IMMUTABLE_FOR_RELEVANT_HISTORY",
+    "upgrade": "INSTALL_GUARDS_AND_STRICT_VIEW_PRESERVE_MISSING_CHANGED_AND_ALTERNATE_ID_HISTORY_NO_AUTO_CLEANUP_RELEASE_RECONSTRUCTION",
+    "missing_schema": "OPERATIONAL_UNAVAILABILITY_ZERO_RESULT_NO_COMMITTED_BINDING_EFFECTS",
+    "migration_failure": "GUARDS_VIEWS_JOURNAL_ROLL_BACK_TOGETHER_RETRY_IDEMPOTENT",
+    "rowid_sentinel": "UNSPECIFIED_NEW_ROWID_MINUS_ONE_MAY_CONSERVATIVELY_REJECT_IF_PROTECTED_ROW_EXPLICITLY_MINUS_ONE_EXPLICIT_NONCONFLICTING_POSITIVE_ROWID_WORKS",
+    "retrospective_limit": "EXACT_IDENTICAL_BYTES_RECONSTRUCTED_BEFORE_UPGRADE_ARE_NOT_CRYPTOGRAPHICALLY_DISTINGUISHABLE_NO_PROVENANCE_CLAIM"
+  },
+  "test_mapping": {
+    "nine_key_rowid_conflicts_FK_on_recursion_off_on_snapshot_reopen": "TestHTTPM2AuditAlertUniqueConflictGuardsAndRestart",
+    "six_023_alert_negative_controls_retained_024_upgrade_no_repair": "TestHTTPM2AuditAlert023NegativeControlAndRetainedUpgrade",
+    "023_composed_attempt_extra_json_whitespace_reordered_json_alias_including_NULL_old_verifier_accepts_024_denies": "TestHTTPM2AuditExactHistoryUpgradeRejectsWithoutRepair",
+    "no_child_fk_audit_still_protected_and_retained_alternate_alert_guarded": "TestHTTPM2AuditOrphanedHistoryAndRetainedAlertProtected",
+    "normal_delivery_and_unrelated_legacy_writes_duplicate_no_consumption": "TestHTTPM2AuditAlertDeliveryAndLegacyCompatibility",
+    "alert_field_and_extra_audit_alias_identity_rejection": "TestHTTPM2AuditIdentityFieldsAndAliasesRejected",
+    "eight_specific_guard_denials_two_sqlite_handles_no_consumption_reopen": "TestHTTPM2AuditTwoHandleConflictNoConsumption",
+    "mixed_statement_delivery_effect_rollback": "TestHTTPM2AuditAlertMultirowAtomicRollback",
+    "protected_audit_negative_rowid_conservative_insert_limit": "TestHTTPM2AuditNegativeRowidConservativeInsertion",
+    "first_and_duplicate_missing_exact_schema_fail_operationally_without_effects": "TestHTTPM2AuditMissingExactViewFailsClosed",
+    "migration_conflict_atomic_rollback_then_retry_idempotency": "TestHTTPM2AuditMigrationRollbackAndRetry",
+    "prebinding_alias_go_direct_sql_atomic_denial": "TestHTTPM2AuditPrebindingAliasRejectsAtomicClaim",
+    "actual_embedded_023_to_024_legacy_frozen_metadata_journal_guards": "TestManualBindingAuditUpgradeFrom023PreservesLegacy",
+    "unchanged_disconnected_writer_closed_guards": "TestHTTPM2DependencyGraphAndClosedGuards"
+  },
+  "validation": {
+    "author_only": true,
+    "intermediate_not_final_results": {
+      "first_full_ordinary": "PASS_BEFORE_FINAL_ALIAS_AND_ATOMIC_EFFECT_CHANGES_NOT_FINAL_SOURCE_EVIDENCE",
+      "later_pre_final_full_ordinary": "FAIL_NEW_ALIAS_CASE_RUN_BEGAN_BEFORE_SOURCES_FROZEN_NOT_RELABELLED_PASS_FINAL_SOURCE_FULL_RERUN_REQUIRED",
+      "pre_final_M2_race": "PASS_TRADEAPI_470_991S_STORAGE_7_584S_BEFORE_FINAL_ALIAS_EFFECT_CHANGES_NOT_FINAL_SOURCE_PASS",
+      "pre_NULL_safe_validation": "ORDINARY_FULL_PASS_TRADE_122_607S_TRADEAPI_128_825S_STORAGE_7_519S_FOCUSED_PASS_TRADEAPI_54_213S_STORAGE_1_021S_M2_RACE_PASS_TRADEAPI_526_010S_STORAGE_12_089S_BEFORE_NULL_ALIAS_FIX_NOT_FINAL_SOURCE_EVIDENCE"
+    },
+    "focused_ordinary_final": {
+      "command": "go test -p 1 ./internal/tradeapi ./internal/storage -run '^(TestHTTPM2|TestManualExecutionBindingUpgrade|TestManualBindingReferenceUpgrade|TestManualBindingAuditUpgrade|TestOpenMigrate)' -count=1 -timeout=5m",
+      "status": "PASS",
+      "M2_named_tests": 42,
+      "binding_upgrades": 4,
+      "package_seconds": {"tradeapi": 36.007, "storage": 0.563}
+    },
+    "full_ordinary_final": {
+      "command": "go test -p 1 ./... -count=1 -timeout=15m",
+      "status": "PASS",
+      "package_seconds": {"trade": 108.135, "tradeapi": 129.405, "storage": 9.122},
+      "scope": "CONTROLLED_LOOPBACK_UDS_FIXTURES_ONLY_NO_REAL_CHAIN_NETWORK"
+    },
+    "all_M2_race_final": {
+      "command": "go test -race -p 1 ./internal/tradeapi ./internal/storage -run '^(TestHTTPM2|TestManualExecutionBindingUpgrade|TestManualBindingReferenceUpgrade|TestManualBindingAuditUpgrade)' -count=1 -timeout=20m",
+      "status": "PASS",
+      "M2_named_tests": 42,
+      "binding_upgrades": 4,
+      "package_seconds": {"tradeapi": 482.100, "storage": 7.549}
+    },
+    "audit_hardening_three_run_race_final": {
+      "command": "go test -race -p 1 ./internal/tradeapi ./internal/storage -run '^(TestHTTPM2Audit(TwoHandleConflictNoConsumption|ExactHistoryUpgradeRejectsWithoutRepair|PrebindingAliasRejectsAtomicClaim)|TestManualBindingAuditUpgrade)' -count=3 -timeout=15m",
+      "status": "PASS",
+      "audit_named_tests": 3,
+      "package_seconds": {"tradeapi": 103.475, "storage": 6.233},
+      "scope": "THREE_CRITICAL_AUDIT_CONCURRENCY_HISTORY_ATOMICITY_TESTS_PLUS_023_TO_024_UPGRADE_REPEATED_THREE_TIMES_ALL_TWELVE_AUDIT_TESTS_RUN_ONCE_IN_ALL_M2_RACE_NOT_FULL_REPOSITORY_RACE"
+    },
+    "selected_compatibility_race_final": {
+      "command": "go test -race -p 1 ./internal/tradeapi -run '^(TestHTTPM1(ExactAdmittedParametersAndNoWrites|FullBudgetEqualityDoesNotConsumeAgain|HardeningPublicLateCancellationPreservesCause)|TestHTTPC3B3Atomic(DedupeConflictAndCorruptCompleteHistory|LifetimeBudgetEqualityPlusOneAndReleasedHistory)|TestHTTPC3C(OnePostBuyFixedPercentageSellAndHistoricalQueries|ResponseLossAfterCommitExactRetryNoSecondConsumption|NoGrantPermitOrSigningDependencyAndNoArmGuardRetained))$' -count=1 -timeout=10m",
+      "status": "PASS",
+      "matched_named_tests": 8,
+      "tradeapi_seconds": 72.269
+    },
+    "selected_W4C_reopen_race_final": {
+      "command": "go test -race -p 1 ./internal/trade -run '^TestW4CProductionLifecycleSQLiteReopen$' -count=1 -timeout=10m",
+      "status": "PASS",
+      "trade_seconds": 17.401,
+      "scope": "LEGACY_UPGRADE_COMPATIBILITY_NOT_RECOVERY_SERVICE_HEALTH"
+    },
+    "full_repository_race": "NOT_RERUN_NO_PASS_CLAIM_HISTORICAL_M2_TIMEOUTS_RETAINED_NO_CAUSE_INFERRED",
+    "build": {"command": "go build ./...", "status": "PASS"},
+    "vet": {"command": "go vet ./...", "status": "PASS"},
+    "staticcheck": {"command": "staticcheck ./...", "status": "PASS"},
+    "offline_model": "PASS_39_TESTS_TEMP_REPORT_OLD_REPORT_UNCHANGED",
+    "offline_curve": "PASS_5_FIXTURE_EVENTS",
+    "format_diff": "PASS_GO_FMT_AND_DIFF_CHECK",
+    "manifest": "PASS_142_ENTRIES_SIX_SOURCE_HASHES_FOURTEEN_TEST_MAPPINGS",
+    "GitHub_CI": "NOT_RUN_NO_REMOTE_ACTIVITY"
+  },
+  "source_sha256": {
+    "internal/storage/migrations/trade/024_manual_binding_audit_alert_integrity.sql": "4c176f197b2fe33ede3d2fa9e5facb93daf4fc205278b4bd8baafd5fe4c9477f",
+    "internal/tradeapi/manual_execution_binding_audit_test.go": "643c3358b6ea8bc8d57b4f2e14bf978f18277f516992986bd9bd7142cb8b56dc",
+    "internal/tradeapi/manual_execution_binding_test.go": "67c28d8787d677c50a1a0be894111591c5fdeb3de347803c806a664f1c811426",
+    "internal/tradeapi/manual_execution_binding_residual_test.go": "e5502ad861ebd8b95c852d58f49399c7f7db067a32e74855014be2488ed4eb46",
+    "internal/storage/database_test.go": "331cac4f25f48589cf31fa52ad9caffd4bd807275e59919bf653ce6ec0745c80",
+    "internal/tradeapi/manual_execution_binding.go": "0c702ebf05cadb5f382a1f8e265063144ca2b95555219133f516139e44d1ab61"
+  },
+  "boundaries": {
+    "historical_evidence": "PRESERVED_UNCHANGED_ADDITIVE_RECORD_ONLY",
+    "shared_owner_limit": "STATIC_SUBREVIEW_NOTED_SIMILAR_020_PATTERN_M2_SPECIFIC_FIX_DOES_NOT_MODIFY_OR_RECERTIFY_CLOSED_C3_OR_ALL_SHARED_AUDIT_ALERT_OWNERS",
+    "fixtures": "ONLY_DISPOSABLE_024_OBJECTS_JOURNAL_REMOVED_ACTUAL_022_VIEW_RESTORED_NO_PREDECESSOR_GUARD_OR_FK_REMOVAL_FOR_023_NEGATIVE_CONTROLS",
+    "fault_scope": "SQLITE_STATEMENT_AND_MIGRATION_ROLLBACK_FILE_CLOSE_REOPEN_NOT_OS_POWER_LOSS_PROOF",
+    "prohibited_path_evidence": "UNCHANGED_DISCONNECTED_WRITER_AST_CLOSED_GUARDS_AND_EMPTY_HARNESS_ECONOMIC_TABLES_NOT_PRODUCTION_TELEMETRY",
+    "chain": "ROBINHOOD_4663_PONS_V2_CURVE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "HTTP_config_startup_economic_wiring": false,
+    "signer_submission_broadcaster_rpc_new_nonce_attempt_artifact_permit_grant": "NOT_CONNECTED_OR_CREATED_BY_THIS_SLICE",
+    "closed_guards": "NO_ARM_NO_PERMIT_NO_PASS_RETAINED",
+    "M3_M4_M5_W4_D_W5_other_chains": "NOT_ENTERED",
+    "remote_operations": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}

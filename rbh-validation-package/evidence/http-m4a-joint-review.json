@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_MANUAL_M4_A_PRIVATE_READ_ONLY_ARTIFACT_METADATA_FORMAL_CLOSEOUT_ONLY",
+  "reviewed_commit_sha": "32a5fd6d0855b99a2151bedbc87c3adfe2f75594",
+  "reviewed_commit_is_remote_main": false,
+  "implementation_base": "1b6b528fea77b57f94f8bd1b964a425e17192ff5",
+  "closeout_branch": "http-m4a-artifact-closeout",
+  "closeout_initial_ahead_behind": "0/0_AGAINST_EXACT_REVIEWED_COMMIT",
+  "review_conclusion": "PASS",
+  "review_state": "PASS",
+  "M4_A": "PASS",
+  "formal_closeout": "COMPLETE_LOCAL_ONLY",
+  "M4": "INCOMPLETE_NOT_PASS",
+  "independent_reviewer": {
+    "type": "SEPARATE_NON_AUTHOR_READ_ONLY_REVIEWER_AGENT",
+    "task": "http_m4a_independent_review",
+    "explicit_user_authorization": true,
+    "author_conversation_forked": true,
+    "blind_review_claimed": false,
+    "author_results_relabelled_independent": false,
+    "repository_modified": false,
+    "start_end_HEAD_branch_exact_worktree_clean": true,
+    "findings": []
+  },
+  "reviewed_invariants": [
+    "EXACT_DURABLE_MANUAL_TEXT_OWNERSHIP_FULL_BYTE_ALIAS_AND_LEGACY_SOURCE_DENIAL_BEFORE_DECRYPT",
+    "ONE_SELECT_ONLY_SNAPSHOT_ORIGINAL_COMMAND_BINDING_NONCE_ACCOUNTING_AUDIT_AND_036_SIGNED_PHASE_COMPLETENESS",
+    "MANUAL_V1_FULL_FACTS_AAD_NO_LEGACY_KEY_FORMAT_FALLBACK_OR_REPAIR",
+    "UNCHANGED_ORIGINAL_OWNER_AMOUNT_MINIMUM_CALLDATA_FEE_ZERO_TIP_NONCE_POLICY_QUOTE_HASH_EXPIRY_AUTH_DEPLOYMENT",
+    "DETACHED_METADATA_NO_RAW_CIPHERTEXT_ENCRYPTION_NONCE_MARKER_OWNER_OR_PERMIT",
+    "SNAPSHOT_ONLY_FRESH_GATE_REQUIRED_ALL_ACTION_PERMISSIONS_FALSE_NOT_TTL_OR_AUTH_GATE",
+    "UNSIGNED_MARKER_SUBMISSION_RECEIPT_EFFECT_PHASES_FAIL_CLOSED_036_NOT_WIDENED",
+    "CANCEL_PANIC_CRYPTO_ERROR_ZERO_OUTPUT_SANITIZED_FAILURE_OWNED_BUFFER_CLEARING_ONLY",
+    "NO_WRITES_REPAIR_SIGN_OBSERVE_ENCRYPT_SEND_PERMIT_NONCE_BUDGET_RECHARGE_RELEASE_OR_NEW_WINDOW",
+    "NO_EXTERNAL_PRODUCT_CALLER_HTTP_CONFIG_STARTUP_TRANSPORT_OR_ECONOMIC_DEPENDENCY"
+  ],
+  "independent_validation": {
+    "workdir": "/root/http/rbh-bot",
+    "environment": "PATH=/tmp/rbh-go-toolchain/bin:$PATH GOCACHE=/tmp/rbh-go-build-cache GOMODCACHE=/tmp/rbh-go-mod-cache GOPROXY=off",
+    "focused_ordinary": {
+      "command": "go test ./internal/tradeapi -run '^TestHTTPM4A' -count=1 -v -timeout=5m",
+      "status": "PASS", "top_level_tests": 9, "seconds": 8.568
+    },
+    "focused_single_race": {
+      "command": "go test -race -p 1 ./internal/tradeapi -run '^TestHTTPM4A' -count=1 -v -timeout=8m",
+      "status": "PASS", "top_level_tests": 9, "seconds": 194.272,
+      "qualification": "M4_A_ONLY_NOT_FULL_REPOSITORY_RACE_OR_REPEATED_RACE"
+    },
+    "fresh_overlay_probes": {
+      "command": "go test -overlay /tmp/rbh-m4a-independent-GciIhK/overlay.json ./internal/tradeapi -run '^TestIndependentM4A' -count=1 -v -timeout=4m",
+      "status": "PASS", "top_level_tests": 2, "cases": 7, "seconds": 3.162,
+      "coverage": "EXACT_NONCE_ZERO_2POW63_2POW64MINUS2_DETACHED_FACTS_FALSE_PERMISSION_BLOB_SOURCE_MISSING_ARTIFACT_RECEIPT_POSITION_PHASE_REJECTION",
+      "corruption_fixtures": "DISPOSABLE_GUARDS_FK_RESTORED_BEFORE_READ_NOT_PROOF_INSERTS_ARE_ALLOWED"
+    },
+    "integrity": {
+      "package_checker": "PASS_170_ENTRIES_AT_REVIEWED_HEAD",
+      "prior_manifest_lines_preserved": 169,
+      "source_document_hashes": 7,
+      "named_test_mappings": 9,
+      "prior_product_tests_migrations_evidence_preserved": true,
+      "author_two_JSONL_hashes_and_nine_M4_A_PASS_events_zero_FAIL_each": true,
+      "diff_check_HEAD_clean_tree": "PASS"
+    },
+    "not_independently_run": ["FULL_REPOSITORY_ORDINARY", "FULL_REPOSITORY_RACE", "BUILD", "VET", "STATICCHECK", "REMOTE_CI", "REAL_CHAIN", "POWER_LOSS"],
+    "author_validation": "SEPARATE_UNCHANGED_AUTHOR_EVIDENCE_NOT_RELABELLED_INDEPENDENT",
+    "intermediate_failures": "NONE_REPORTED_BY_REVIEWER_AUTHOR_FIXTURE_FAILURES_REMAIN_IN_ORIGINAL_EVIDENCE"
+  },
+  "temporary_reviewer_artifacts": {
+    "directory": "/tmp/rbh-m4a-independent-GciIhK",
+    "sha256": {
+      "review.md": "7d018b588dc3f7d6d84396a3acbd3d1429e7b5ca00361b92c1a20aab6c5f7d44",
+      "probe_test.go": "2d02b43bb148c99402b0ecb39d885fcbce945d00bfb9455dfe20b9de27474f63",
+      "overlay.json": "894847e2f5df1cc3743510c04692093ed07a25ae38029fd82fb0e51b53e39c6b"
+    },
+    "raw_reviewer_test_logs_separately_archived": false,
+    "permanent_reviewer_tests_added": false,
+    "availability": "TEMPORARY_NOT_COMMITTED_NOT_GUARANTEED_AFTER_CLEANUP_RESTART"
+  },
+  "historical_preservation": {
+    "author_evidence": "evidence/http-manual-m4a-artifact-handoff.json",
+    "author_evidence_sha256": "d310db619036f4f7977f59f7784ced7bd1549dc5b0ef2ccf7b4cfb13ea14cc50",
+    "all_prior_evidence_scope_implementation_docs_product_tests_migrations_unchanged": true,
+    "prior_READY_NOT_PERFORMED_and_hashes": "HISTORICAL_REVIEWED_HEAD_SNAPSHOTS_NOT_REWRITTEN",
+    "author_delivery_plan_hash": "REVIEWED_HEAD_SNAPSHOT_CLOSEOUT_ONLY_PREPENDS_CURRENT_CHECKPOINT_AND_UPDATES_QUEUE"
+  },
+  "limitations": [
+    "M4_A_ONLY_NOT_WHOLE_M4_PASS_OR_PRODUCTION_PERMISSION",
+    "SNAPSHOT_MAY_BE_STALE_FUTURE_FRESH_ACTION_GATES_REQUIRED",
+    "TRUSTED_SYNCHRONOUS_CIPHER_NORMAL_FK_ON_REVIEWED_SCHEMA_NOT_HOSTILE_SCHEMA_REWRITING",
+    "OWNED_BUFFER_CLEARING_NOT_GO_LIBRARY_SECURE_ERASURE_OR_FORCED_PREEMPTION",
+    "OFFLINE_FIXTURE_SIGNATURES_ZERO_ACTION_COUNTS_APPLY_TO_READER_NOT_ALL_SETUP",
+    "NO_FULL_SUITE_BUILD_VET_STATICCHECK_RERUN_BY_REVIEWER_OR_DOCS_ONLY_CLOSEOUT",
+    "TEMPORARY_REPORT_PROBES_ONLY_NO_SEPARATE_DURABLE_RAW_REVIEWER_LOG_ARCHIVE"
+  ],
+  "preserved_state": {
+    "M1": "PASS", "M2": "PASS", "M3": "PASS",
+    "M4_A": "PASS", "M4": "INCOMPLETE_NOT_PASS", "M4_B": "NOT_STARTED", "M4_C": "NOT_STARTED", "M4_D": "NOT_STARTED", "M5": "NOT_STARTED",
+    "C04": "PASS", "C05": "PASS", "C07": "PASS", "C08": "PASS",
+    "chain": "ROBINHOOD4663_PONS_V2_CURVE_NATIVE_QUOTE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY", "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED", "controlled_canary_authorization": "NOT_GRANTED", "live": false, "release_ready": false,
+    "product_tests_schema_HTTP_config_startup_changes_by_closeout": 0,
+    "signing_query_key_grant_submission_replay_raw_send_permit_mainnet_nonce_actions_by_closeout": 0,
+    "W4_D_W5_other_chains": "NOT_ENTERED"
+  },
+  "closeout_validation": "DOCS_JSON_ATTRIBUTION_TEMP_REPORT_HASHES_PRIOR_CONTENT_PRESERVATION_MANIFEST171_EXACT_DIFF_ONLY_NO_RUNTIME_RERUN",
+  "delivery": "LOCAL_ONLY_NO_FETCH_PUSH_PR_MERGE",
+  "next_action": "SEPARATELY_AUTHORIZED_M4_B_DETAILED_ADDITIVE_CONTRACT_NOT_OPENED_BY_CLOSEOUT"
+}

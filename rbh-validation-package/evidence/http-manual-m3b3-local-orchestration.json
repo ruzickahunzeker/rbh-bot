@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "scope": "M3_B3_C_DISCONNECTED_CONTROLLED_LOCAL_SIGNING_ORCHESTRATION_ONLY",
+  "branch": "http-m3b3-controlled-local-signing",
+  "implementation_base": "bec9ee02c6bf32e2e76e3d1158b82f87c717f889",
+  "M3_B3_C": "IMPLEMENTED_AUTHOR_VALIDATED_PENDING_INDEPENDENT_REVIEW",
+  "independent_orchestration_review": "NOT_PERFORMED_PRIOR_ARTIFACT_FOUNDATION_APPROVAL_NOT_REUSED",
+  "M3_B3_D": "NOT_COMPLETE",
+  "M3_B3": "IN_PROGRESS_NOT_READY_FOR_REVIEW_NOT_PASS",
+  "implementation": {
+    "composition": "PRIVATE_WRITER_NO_CONSTRUCTOR_HTTP_CONFIG_STARTUP_CALLER_KEY_LOADER_OR_PRODUCTION_ADAPTER",
+    "adapter": "STRUCTURAL_EXISTING_LOCAL_SIGNER_COMPATIBLE_SYNCHRONOUS_EXACT_VERIFY_ENCRYPT_NO_DB_NETWORK_OR_RAW_OUTPUT",
+    "input": "ORIGINAL_DURABLE_REQUEST_AND_OPERATOR_SCOPE_ONLY_NO_CALLER_TRANSACTION_NONCE_OWNER_HASH_OR_EXPIRY",
+    "gate": "EMERGENCY_STOP_FIRST_FRESH_AUTH_EPOCH_DEPLOYMENT_POLICY_ATTESTATIONS_ALLOWLISTS_ORIGINAL_CLAIM_RISK_USAGE_AND_CONSERVED_ALLOWANCE",
+    "query": "CONTROLLED_LOCAL_BOUNDED_OUTSIDE_WRITER_SAME_ORIGINAL_NONCE_CHAIN_RUNTIME_CANONICAL_FACTS_OBSERVED_AFTER_READ_NO_PRODUCTION_BACKEND",
+    "first_writer": "BEGIN_IMMEDIATE_FRESH_AUTHORITATIVE_GATE_ONE_RANDOM32BYTE_OWNER_EXACT_MARKER_AUDIT_ALERT_AND_TIME_EVIDENCE_COMMIT",
+    "second_writer": "BEGIN_IMMEDIATE_REPEAT_ALL_GATES_EXACT_IN_MEMORY_FIRST_CALL_OWNER_NEVER_RESUME_FROM_HISTORY_HOLD_THROUGH_SIGN_CIPHER_ARTIFACT_OUTCOME",
+    "immediate_invocation": "ADDRESS_AND_UNSIGNED_TRANSACTION_CHECKS_THEN_FENCED_WRITER_FRESHNESS_CALLBACK_IMMEDIATELY_BEFORE_ONE_SYNCHRONOUS_SIGNER_CALL",
+    "outcome": "EXACT_VERIFICATION_AES_GCM_METADATA_EXISTING036_COMMAND_ATOMIC_ATTEMPT_STEP_LANE_AUDIT_ALERT_AUTHENTICATED_HISTORY_FINAL_TIME_CHECK_COMMIT_METADATA_ONLY",
+    "time": "STICKY_PER_CALL_ZERO_OUT_OF_RANGE_REVERSAL_REJECTION_ORIGINAL_ABSOLUTE_TTL_EQUALITY_FAIL_AUTH_EXPIRY_AND_QUERY_AGE_RECHECK",
+    "ambiguity": "MARKER_COMMIT_IS_DURABLE_SIGNING_AMBIGUITY_NOT_PROOF_OF_SIGN_OR_BROADCAST_ANY_LATER_FAILURE_NO_NEW_SIGN_RELEASE_REBUILD_OR_NONCE",
+    "history": "RETAINED_RAW_ROWS_BLOCK_RETRY_EVEN_INCOMPLETE_COMPLETE_ARTIFACT_DECRYPT_VERIFY_METADATA_ONLY_COMPLETE_MARKER_AMBIGUITY_NO_OBSERVER_SIGNER_OR_CLOCK",
+    "timeout": "ONE_SECOND_CHILD_CONTEXT_SYNCHRONOUS_TRUSTED_LOCAL_CRYPTO_WAIT_FOR_RETURN_NO_ORPHAN_GOROUTINE_REJECT_LATE_OUTPUT",
+    "unchanged": "001_TO036_EXISTING_GUARDS_PRIMITIVES_ACCOUNTING_NONCE_EXPIRY_AUTH_WINDOWS_QUOTE_AMOUNT_PERCENT_RESOLUTION_FEE_ZERO_TIP_HTTP_CONFIG_STARTUP",
+    "financial_owner": "ORIGINAL_OPERATION_STEP_ATTEMPT_LANE_RESERVATION_AND_CONSUMED_LIFETIME_ALLOWANCE_NO_SECOND_LEDGER_OR_CHARGE"
+  },
+  "test_mapping": {
+    "BUY_fixedSELL_resolvedSELL_one_local_signature_exact_artifact_real_reopen_stop_revoke_frozen_history_no_clock_observer_signer": "TestHTTPM3B3CLocalExactSignHistoryAndReopen",
+    "stop_over_clock_scope_faults_revoke_deployment_expiry_equality_zero_reversed_clock_wrong_signer_nonce_runtime_stale_query_frozen_risk_usage_zero_calls": "TestHTTPM3B3CLocalGateDenialsZeroSigning",
+    "nine_marker_fence_sign_artifact_faults_response_loss_real_reopen_exact_zero_or_one_calls_no_resign": "TestHTTPM3B3CLocalFaultsNeverResign",
+    "six_contenders_two_handles_one_first_result_one_sign_only_explicit_SQLITE_BUSY_zero_rejection_six_later_history_retries_unchanged_DB": "TestHTTPM3B3CLocalTwoHandlesOneInvocation",
+    "sign_error_panic_wrong_transaction_cipher_error_cancel_post_sign_expiry_clock_reversal_evidence_age_no_artifact_ambiguity_retained_no_second_sign": "TestHTTPM3B3CLocalPostInvocationFailureFrozen",
+    "separate_SQLite_handle_stop_revoke_and_TTL_before_marker_or_final_fence_zero_signer_calls": "TestHTTPM3B3CLocalControlChangesBeforeFinalFence",
+    "actual_other_goroutine_connection_stop_revoke_UPDATE_during_sign_and_pre_commit_SQLITE_BUSY_same_UPDATE_succeeds_after_commit": "TestHTTPM3B3CLocalWriterFenceBlocksControlCommit",
+    "one_second_deadline_waits_synchronous_signer_exit_marker_retained_no_artifact_or_resign": "TestHTTPM3B3CLocalDeadlineAwaitsSignerAndRetainsAmbiguity",
+    "before_sign_after_sign_pre_insert_post_insert_pre_commit_now_equals_expiry_zero_result_exact_invocation_count_rollback_and_no_retry_window": "TestHTTPM3B3CLocalBoundaryExpiryNeverReturnsArtifact",
+    "no_private_writer_composition_outside_new_file_no_submission_broadcaster_network_key_loader_nonce_allocator": "TestHTTPM3B3CLocalCompositionDisconnected",
+    "existing_HTTP_source_no_economic_calls_or_trade_backend_dependency": "TestUserHTTPTradeHasNoEconomicDependencies"
+  },
+  "author_validation": {
+    "environment": "OFFLINE_CACHED_GO_GOPROXY_OFF_SQLITE_CONTROLLED_OBSERVER_AND_EPHEMERAL_TEST_KEY_ONLY",
+    "intermediate_failures": [
+      "INITIAL_TEST_STORAGE_OPEN_USED_WRONG_SIGNATURE_COMPILE_FAIL_FIXED_TEST_TO_EXISTING_CONTEXT_OWNER_PATH_SIGNATURE",
+      "TEST_CONTROL_MUTATION_REUSED_SINGLE_OCCUPIED_POOL_CONNECTION_AFTER_MARKER_COMMIT_TIMEOUT300_021S_FIXED_FIXTURE_TO_SECOND_REAL_SQLITE_HANDLE_NO_PRODUCT_RELAXATION",
+      "FIRST_ALL_C_RACE_FAIL444_600S_PARALLEL_TEST_EXPECTED_ALL_CONTENDERS_NIL_ERROR_SIGNER_CALLS_REMAINED1_ERROR_NOT_YET_CLASSIFIED",
+      "DIAGNOSTIC_PARALLEL_RACE_SINGLE_PASS16_506S_THREE_RUNS_FAIL45_660S_REPRODUCED_TWO_SQLITE_BUSY_REJECTIONS_WITH_ONE_SIGN_NOT_LOST_OR_DUPLICATE_ECONOMIC_ACTION"
+    ],
+    "contention_contract": "ONLY_ERRORS_AS_SQLITE_CODE5_WITH_ZERO_RESULT_IS_EXPECTED_FAIL_CLOSED_OTHER_ERRORS_FAIL_NO_RUNTIME_RETRY_OR_BUSY_TIMEOUT_CHANGE_ONE_FIRST_RESULT_ONE_SIGN_AND_SIX_SERIAL_HISTORY_RETRIES_REQUIRED",
+    "earlier_cumulative_ordinary": {
+      "command": "go test -p 1 ./internal/manualsign ./internal/manualartifact ./internal/storage ./internal/tradeapi -run '^(TestManualArtifact|TestManualSignedArtifact|TestManualSigning|TestHTTPM3B3|TestUserHTTPTradeHasNoEconomicDependencies|TestOpenMigrateAndValidateEveryOwner)' -count=1 -timeout=8m",
+      "status": "PASS", "seconds": {"manualartifact": 0.031, "storage": 0.705, "tradeapi": 61.800},
+      "qualification": "BEFORE_LATER_TEST_ONLY_EXPIRY_AND_CONTENTION_ASSERTIONS_AND_FINAL_SMALL_STOP_CLOCK_PRIORITY_CHANGE_NOT_FINAL_SOURCE_CERTIFICATION"
+    },
+    "separate_boundary_expiry_ordinary": {"command": "go test ./internal/tradeapi -run '^TestHTTPM3B3CLocalBoundaryExpiryNeverReturnsArtifact$' -count=1 -timeout=3m", "status": "PASS", "tradeapi_seconds": 2.397},
+    "all_C_ordinary_after_contention_test_fix": {"command": "go test ./internal/tradeapi -run '^(TestHTTPM3B3CLocal|TestUserHTTPTradeHasNoEconomicDependencies)' -count=1 -timeout=5m", "status": "PASS", "tradeapi_seconds": 19.607, "qualification": "BEFORE_FINAL_STOP_CLOCK_PRIORITY_AND_FAULT_CALL_COUNT_ASSERTIONS"},
+    "all_C_single_race": {
+      "command": "go test -race -p 1 ./internal/tradeapi -run '^TestHTTPM3B3CLocal' -count=1 -v -timeout=12m",
+      "status": "PASS", "tradeapi_seconds": 450.009, "tests": 10,
+      "writer_source_sha256": "26a8d55e2e35463dc64317037717262a8b83c5d529eec43f4288e0abc4279899",
+      "test_source_sha256": "4d93ef702c9efdd06a4c39721e081bd302ca151733d5b0035941bd7c8d81ba97",
+      "qualification": "PRE_FINAL_SMALL_STOP_VS_INVALID_CLOCK_PRIORITY_CHANGE_AND_STRONGER_FAULT_COUNT_ASSERTIONS_NOT_FULL_REPOSITORY_RACE_OR_FINAL_ALL_C_SOURCE_RACE"
+    },
+    "final_all_C_ordinary": {
+      "command": "go test ./internal/tradeapi -run '^(TestHTTPM3B3CLocal|TestUserHTTPTradeHasNoEconomicDependencies)' -count=1 -timeout=5m",
+      "status": "PASS", "tradeapi_seconds": 19.827, "tests": 11
+    },
+    "final_affected_race": {
+      "command": "go test -race ./internal/tradeapi -run '^TestHTTPM3B3CLocal(GateDenialsZeroSigning|FaultsNeverResign|TwoHandlesOneInvocation)$' -count=1 -v -timeout=6m",
+      "status": "PASS", "tradeapi_seconds": 200.937, "tests": 3,
+      "observed_contention": "ONE_CODE5_ZERO_RESULT_REJECTION_ONE_FIRST_RESULT_ONE_SIGN_UNEXPLAINED_OUTCOMES0_SUBSEQUENT_HISTORY_RETRIES_PASS",
+      "qualification": "FINAL_SOURCE_AFFECTED_GATE_FAULT_CONCURRENCY_TESTS_ONLY_NOT_ALL_C_OR_FULL_REPOSITORY_RACE"
+    },
+    "final_build_vet_staticcheck": {"commands": ["go build ./...", "go vet ./...", "STATICCHECK_CACHE=/tmp/rbh-staticcheck-cache /tmp/rbh-bin/staticcheck ./..."], "status": "PASS"},
+    "final_artifact_storage_compatibility": {"command": "go test ./internal/manualartifact ./internal/storage -run '^(TestManualArtifact|TestManualSignedArtifact|TestManualSigning|TestOpenMigrateAndValidateEveryOwner)' -count=1 -timeout=3m", "status": "PASS", "seconds": {"manualartifact": 0.107, "storage": 1.062}},
+    "offline": {"commands": ["python3 scripts/check_package.py", "python3 scripts/verify_curve_expected.py", "python3 scripts/verify_offline.py --output /tmp/m3b3c-offline-results.json"], "status": "PASS", "reviewed_manifest_entries_before_this_addition": 163, "curve_fixtures": 5, "reference_model_tests": 39, "model_seconds": 2.480, "qualification": "OFFLINE_REFERENCE_MODEL_AND_FIXTURES_NOT_REAL_CHAIN_CRYPTO_OR_PRODUCTION_INTEGRATION"},
+    "not_run": ["FINAL_FULL_REPOSITORY_ORDINARY", "FINAL_ALL_C_RACE", "FULL_REPOSITORY_RACE", "CI", "INDEPENDENT_ORCHESTRATION_REVIEW", "POWER_LOSS", "REAL_CHAIN"]
+  },
+  "source_sha256": {
+    "internal/manualsign/sign.go": "3f626bb9a62859f27543ac40911205d99e8ce73935b9385a1f554a39c6655dd8",
+    "internal/tradeapi/manual_local_signing.go": "98881ff85da6086c1e0ffbdea38ae658f2b2381de5a1d57e6d06954e0975ff7f",
+    "internal/tradeapi/manual_local_signing_test.go": "8dd7369acd9f0e667faa77da128eeff440fc5899015b6d669e3e77b743875702",
+    "docs/HTTP_MANUAL_M3_B3_LOCAL_ORCHESTRATION.md": "36d6e42b3ff2de2be7ddb8fdc09d14d62fc74e128065713265f22454229c1fec",
+    "docs/HTTP_MANUAL_M3_B3_SIGNING.md": "b3fca9979c9c0bcfda74193cc6398696a92b1d6162fd9cf2b98808ff6f3d086a",
+    "docs/HTTP_TRADING_DELIVERY_PLAN.md": "71349a7333d3a3d00b51d3a906581d9de46484d015b47a4f5198502d8b5d0261"
+  },
+  "limits": {
+    "clock_and_SQL": "TRUSTED_CONTROLLED_CLOCK_AND_WRITER_METADATA_NOT_INDEPENDENT_DB_TIME_OR_SIGNING_AUTHORITY",
+    "sync_signer": "TRUSTED_IMPLEMENTATION_MUST_BE_BOUNDED_NO_FORCIBLE_PREEMPTION_OR_CLAIM_THAT_UNTRUSTED_BLOCKING_SIGNER_CAN_BE_SAFELY_ABANDONED",
+    "memory": "OWNED_RAW_BUFFERS_CLEARED_NO_SECURE_ERASURE_OF_GO_OR_CRYPTO_LIBRARY_COPIES_CLAIM",
+    "schema": "NORMAL_FK_ON_INTACT_REVIEWED_GUARDS_NOT_ARBITRARY_HOSTILE_SCHEMA_OR_FORGED_SCOPE_AUTHORITY",
+    "reopen": "REAL_SQLITE_CLOSE_REOPEN_NOT_OS_POWER_LOSS_PROOF",
+    "prohibited_path_proof": "STATIC_NO_PRODUCTION_COMPOSITION_PLUS_CONTROLLED_FIXTURE_EMPTY_SEND_TABLES_NOT_PRODUCTION_TELEMETRY_OR_NO_CRYPTO_ANYWHERE_CLAIM"
+  },
+  "boundaries": {
+    "M1": "PASS_UNCHANGED", "M2": "PASS_UNCHANGED", "M3_B1": "PASS_UNCHANGED", "M3_B2": "PASS_UNCHANGED",
+    "C04": "PASS_UNCHANGED", "C05": "PASS_UNCHANGED", "C07": "PASS_UNCHANGED", "C08": "PASS_UNCHANGED",
+    "chain": "ROBINHOOD4663_PONS_V2_CURVE_NATIVE_QUOTE_ONLY", "deadline_capability": "APPLICATION_TTL_ONLY", "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED", "controlled_canary_authorization": "NOT_GRANTED", "live": false, "release_ready": false,
+    "local_positive_signer_calls": "EXACTLY1_PER_FRESH_POSITIVE_OPERATION_ONLY_EPHEMERAL_TEST_KEYS",
+    "entry_pre_sign_denials_signer_calls": 0,
+    "production_signer_composition_submission_replay_raw_send_permits_mainnet_new_nonce_actions": 0,
+    "migration_existing_product_HTTP_config_startup_changes": 0,
+    "M3_B4": "NOT_STARTED", "M3_overall": "INCOMPLETE_NOT_PASS", "whole_B3_ready_or_pass": false,
+    "remote_operations": false,
+    "next": "STAGE_SPECIFIC_READ_ONLY_INDEPENDENT_ORCHESTRATION_REVIEW_NO_PRIOR_REVIEWER_AUTHORITY_REUSE_NO_B4_OR_PRODUCTION_SIGN_SEND"
+  }
+}

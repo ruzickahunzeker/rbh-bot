@@ -1,0 +1,436 @@
+openapi: 3.1.0
+info:
+  title: EVM Bot user HTTP trading contract — HTTP-A/B/C1/C2/C3-C
+  version: 0.5.0
+  description: >-
+    Local Unix-domain HTTP contract, execution/submission disabled. Valid new
+    POSTs create immutable rejection records by default, or explicit opt-in
+    MANUAL validation-pending operation identities. Neither is a send queue.
+    Optional C2 internal validation persists immutable block/hash-bound results,
+    not execution admission. Optional default-off C3-C atomic admission reuses
+    existing risk/authorization ledgers; it cannot grant or arm authorization.
+    Admission observations never authorize execution/send. No signing, nonce
+    allocation or sending is reachable.
+    No client-facing dry-run step. Live execution is not implemented here.
+security:
+  - bearerAuth: []
+paths:
+  /v1/trades:
+    post:
+      summary: Record intent with optional validation and admission; never sign or queue sending
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradeRequest'
+      responses:
+        '202':
+          description: Durable MANUAL intent with optional validation/admission observations; never signing/send permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordedOrder'
+        '422':
+          description: TTL expired/unverifiable or validation/admission rejected; intake/validation may already be durable
+          headers:
+            Location:
+              description: Durable request path when intake already succeeded; reuse original idempotency key
+              schema: {type: string}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Unverifiable chain observation; source/resolution may already be durable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Durable SUBMISSION_DISABLED record, or unavailable/stopped admission/API error; committed phases remain queryable
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RejectedRecord'
+                  - $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/trades/by-idempotency-key:
+    get:
+      summary: Retrieve original request after a lost response
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Original caller-scoped intake/rejection, no new TTL or action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeRecord'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/trades/{request_id}:
+    get:
+      summary: Query intake/rejection and historical validation/admission, not transaction outcome
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      responses:
+        '200':
+          description: Caller-scoped historical observations; no RPC, new expiry, execution/send permission or authorization requirement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeRecord'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/trades/{request_id}/events:
+    get:
+      summary: Request-scoped intake/rejection audit only, not recovery service events
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+        - name: after
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 9223372036854775807
+      responses:
+        '200':
+          description: Intake/rejection audit events and durable request-scoped next_cursor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scope:
+                    enum: [API_REJECTION_ONLY, MANUAL_ORDER_INTAKE_ONLY]
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        cursor: {type: integer}
+                        type: {enum: [USER_HTTP_TRADE_REJECTED, MANUAL_HTTP_ORDER_RECORDED]}
+                        reason_code: {enum: [SUBMISSION_DISABLED, VALIDATION_NOT_CONNECTED]}
+                        created_at: {type: string, format: date-time}
+                  next_cursor: {type: integer}
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/capabilities:
+    get:
+      summary: Local API limits and explicitly unconnected execution capabilities
+      responses:
+        '200':
+          description: Not authorization or recovery health; live and send flags false
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/wallets:
+    get:
+      summary: Durable wallet identity in caller scope, no balances
+      responses:
+        '200':
+          description: Caller-scoped wallet ID, chain and address
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/tokens/{address}:
+    get:
+      summary: Read verified native-quote Pons v2 Curve token metadata, not authorization
+      parameters:
+        - $ref: '#/components/parameters/QueryChain'
+        - name: address
+          in: path
+          required: true
+          schema: {type: string, pattern: '^0x[a-fA-F0-9]{40}$'}
+      responses:
+        '200':
+          description: Block/hash bound metadata, route and runtime identities; send_authorized=false
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/wallets/{wallet_id}/balances:
+    get:
+      summary: Read caller-scoped balances and allowance-limited sellable reference
+      parameters:
+        - $ref: '#/components/parameters/QueryChain'
+        - name: wallet_id
+          in: path
+          required: true
+          schema: {type: string}
+        - name: token
+          in: query
+          schema: {type: string, pattern: '^0x[a-fA-F0-9]{40}$'}
+      responses:
+        '200':
+          description: >-
+            Native balance and optional token/allowance at one block/hash;
+            unresolved lane forces sellable/unreserved token reference to zero.
+            available_native=null, not an execution reservation or permission.
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/fees:
+    get:
+      summary: Exact Gwei reference, not total gas budget or fee execution binding
+      parameters:
+        - $ref: '#/components/parameters/QueryChain'
+      responses:
+        '200':
+          description: EIP1559 base/tip/max reference; priority suggestion is not block-pinned
+        default:
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    QueryChain:
+      name: chain
+      in: query
+      required: true
+      schema: {const: robinhood}
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '^[A-Za-z0-9._:-]+$'
+    RequestID:
+      name: request_id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^req_[a-f0-9]{64}$'
+  schemas:
+    Decimal:
+      type: string
+      maxLength: 256
+      pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+      description: No exponent/sign/rounding; positivity and asset precision also validated
+    TradeRequest:
+      type: object
+      additionalProperties: false
+      required: [chain, wallet_id, token, side, slippage_percent]
+      properties:
+        chain: {const: robinhood}
+        wallet_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9._:-]+$'
+        token:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+        side: {enum: [buy, sell]}
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Positive native quantity for buy, token quantity for sell; excludes gas
+        sell_percent:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Sell only; (0,100], at most 2 decimal places
+        slippage_percent:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: At most 2 decimal places; constrained by deployment API policy
+        fee:
+          $ref: '#/components/schemas/Fee'
+        ttl_seconds:
+          type: integer
+          minimum: 1
+          maximum: 86400
+          description: Further constrained by API policy; omitted default binds once
+        min_receive:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Optional positive user output floor, default UNSET; no execution binding yet
+      oneOf:
+        - required: [amount]
+          not: {required: [sell_percent]}
+        - required: [sell_percent]
+          properties:
+            side: {const: sell}
+          not: {required: [amount]}
+    Fee:
+      type: object
+      additionalProperties: false
+      properties:
+        max_gwei:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Positive EIP-1559 max per-gas price in Gwei, max 9 decimal places
+        tip_gwei:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Priority fee included in max_gwei; zero allowed, may not exceed max
+        max_total_native:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Optional positive user gas-budget ceiling, excludes trade input, default UNSET
+      anyOf:
+        - required: [max_gwei]
+        - required: [max_total_native]
+      dependentRequired:
+        tip_gwei: [max_gwei]
+    RejectedRecord:
+      type: object
+      properties:
+        request_id: {type: string}
+        operation_id: {type: 'null'}
+        status: {const: REJECTED}
+        reason_code: {const: SUBMISSION_DISABLED}
+        request:
+          $ref: '#/components/schemas/TradeRequest'
+        api_policy_version: {type: integer}
+        api_policy_hash: {type: string}
+        expires_at: {type: string, format: date-time}
+        created_at: {type: string, format: date-time}
+        deadline_capability: {const: APPLICATION_TTL_ONLY}
+        contract_deadline: {const: false}
+        send_authorized: {const: false}
+        submission_queued: {const: false}
+        duplicate: {type: boolean}
+    TradeRecord:
+      oneOf:
+        - $ref: '#/components/schemas/RejectedRecord'
+        - $ref: '#/components/schemas/RecordedOrder'
+    RecordedOrder:
+      type: object
+      required: [request_id, operation_id, status, reason_code, request, expires_at, created_at, send_authorized, submission_queued]
+      properties:
+        request_id: {type: string}
+        operation_id: {type: string, pattern: '^manual_op_req_[a-f0-9]{64}$'}
+        status: {const: RECORDED}
+        reason_code:
+          const: VALIDATION_NOT_CONNECTED
+          description: Historical C1 intake reason; consult validation/admission overlays, never interpret this field as transaction outcome
+        request:
+          $ref: '#/components/schemas/TradeRequest'
+        api_policy_version: {type: integer}
+        api_policy_hash: {type: string}
+        expires_at: {type: string, format: date-time}
+        created_at: {type: string, format: date-time}
+        deadline_capability: {const: APPLICATION_TTL_ONLY}
+        contract_deadline: {const: false}
+        send_authorized: {const: false}
+        submission_queued: {const: false}
+        duplicate: {type: boolean}
+        validation:
+          $ref: '#/components/schemas/ManualValidation'
+        admission:
+          $ref: '#/components/schemas/ManualAdmission'
+    ManualAdmission:
+      type: object
+      additionalProperties: false
+      required: [status, operation_id, reservation_id, reservation_state, contract_hash, expires_at, admitted_at, execution_authorized, send_authorized]
+      description: >-
+        Durable admission observation, NOT execution/send permission. First
+        committed POST reports ADMITTED_NOT_SIGNED_NOT_SUBMITTED; duplicates
+        and all GETs report HISTORICAL_ADMISSION_NOT_PERMISSION. Intake duplicate
+        does not imply budget was previously consumed. Stop/revoke/expiry do not
+        erase this observation; POST with enabled admission still checks controls.
+      properties:
+        status: {enum: [ADMITTED_NOT_SIGNED_NOT_SUBMITTED, HISTORICAL_ADMISSION_NOT_PERMISSION]}
+        operation_id: {type: string}
+        reservation_id: {type: string}
+        reservation_state: {enum: [reserved, frozen, committed, released]}
+        contract_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        expires_at: {type: string, format: date-time}
+        admitted_at: {type: string, format: date-time}
+        execution_authorized: {const: false}
+        send_authorized: {const: false}
+    ManualValidation:
+      type: object
+      additionalProperties: false
+      required: [status, policy_version, policy_hash, expires_at, result_hash, output, send_authorized]
+      description: Historical immutable validation only, not current readiness or execution permission
+      properties:
+        status: {const: VALIDATED_NOT_AUTHORIZED}
+        policy_version: {type: integer, minimum: 1}
+        policy_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        expires_at: {type: string, format: date-time}
+        result_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        send_authorized: {const: false}
+        output:
+          $ref: '#/components/schemas/ValidationOutput'
+    IntegerUnits:
+      type: string
+      pattern: '^(0|[1-9][0-9]*)$'
+      description: Exact integer smallest units, not a human decimal or float
+    Resolution:
+      type: object
+      required: [token, wallet, side, amount_in, native_balance, token_balance, allowance]
+      properties:
+        token:
+          type: object
+          description: Verified native-quote Pons v2 Curve metadata and identities at the persisted block/hash
+          required: [chain, address, decimals, protocol, curve, factory, runtime_code_hash, curve_runtime_code_hash, quote_asset, block, send_authorized]
+          properties:
+            chain: {const: robinhood}
+            address: {type: string}
+            name: {type: string}
+            symbol: {type: string}
+            decimals: {type: integer, minimum: 0, maximum: 255}
+            protocol: {const: pons_v2_curve}
+            curve: {type: string}
+            factory: {type: string}
+            runtime_code_hash: {type: string}
+            curve_runtime_code_hash: {type: string}
+            quote_asset: {const: native}
+            send_authorized: {const: false}
+            block:
+              type: object
+              required: [number, hash]
+              properties:
+                number: {type: integer, minimum: 1}
+                hash: {type: string, pattern: '^0x[a-f0-9]{64}$'}
+        wallet: {type: string}
+        side: {enum: [buy, sell]}
+        amount_in: {$ref: '#/components/schemas/IntegerUnits'}
+        native_balance: {$ref: '#/components/schemas/IntegerUnits'}
+        token_balance: {$ref: '#/components/schemas/IntegerUnits'}
+        allowance: {$ref: '#/components/schemas/IntegerUnits'}
+        min_receive_units: {$ref: '#/components/schemas/IntegerUnits'}
+    ValidationOutput:
+      type: object
+      additionalProperties: false
+      required: [resolution, quoted_out, minimum_out, quote_spent, to, from, value, data, gas_limit, gas_fee_cap, gas_tip_cap, gas_budget, return_data]
+      properties:
+        resolution: {$ref: '#/components/schemas/Resolution'}
+        quoted_out: {$ref: '#/components/schemas/IntegerUnits'}
+        minimum_out: {$ref: '#/components/schemas/IntegerUnits'}
+        quote_spent: {$ref: '#/components/schemas/IntegerUnits'}
+        to: {type: string}
+        from: {type: string}
+        value: {$ref: '#/components/schemas/IntegerUnits'}
+        data: {type: string, pattern: '^0x[a-f0-9]+$'}
+        gas_limit: {type: integer, minimum: 1}
+        gas_fee_cap: {$ref: '#/components/schemas/IntegerUnits'}
+        gas_tip_cap: {$ref: '#/components/schemas/IntegerUnits'}
+        gas_budget: {$ref: '#/components/schemas/IntegerUnits'}
+        return_data: {type: string, pattern: '^0x[a-f0-9]{64}$'}
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: {type: string}
+            message: {type: string}
+            request_id: {type: string}
+  responses:
+    Error:
+      description: Redacted authentication, validation, conflict or unavailable error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

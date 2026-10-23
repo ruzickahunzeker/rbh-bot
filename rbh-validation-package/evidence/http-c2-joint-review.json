@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_C2_MANUAL_PARAMETER_VALIDATION_LOCAL_CLOSEOUT_ONLY",
+  "reviewed_commit_sha": "e31ff9f6eba752d9c1d26be3e96ff996855f012f",
+  "reviewed_parent_sha": "7a8443bb65ea0e4255d314e01fe8b4b9db871137",
+  "reviewed_commit_is_remote_main": false,
+  "review_conclusion": "PASS",
+  "http_c2_status": "PASS",
+  "formal_closeout": "COMPLETE_LOCAL_ONLY",
+  "closeout_branch": "http-c2-validation-closeout",
+  "independent_reviewer": {
+    "type": "SEPARATE_REVIEWER_AGENT",
+    "task": "http_c2_independent_review",
+    "author_conversation_context_forked": false,
+    "reviewer_modified_files": false,
+    "blockers": []
+  },
+  "historical_implementation_evidence": {
+    "path": "evidence/http-manual-parameter-validation.json",
+    "sha256": "df07b7999b836134ba660fe687fbf3cb29d5e3ae58bd42aefb3a12935b82adc4",
+    "preserved_unchanged": true,
+    "historical_implementation_status": "HTTP_C2_READY_FOR_REVIEW",
+    "historical_independent_review": "NOT_PERFORMED"
+  },
+  "reviewed_invariants": [
+    "APPLICATION_TTL_ONLY_CONTRACT_DEADLINE_FALSE",
+    "IMMUTABLE_SOURCE_POLICY_WALLET_PROTOCOL_RUNTIME_BLOCK_HASH_EXPIRY_BINDING",
+    "RESOLUTION_PERSISTED_BEFORE_INTERNAL_QUOTE_ESTIMATE_SIMULATION",
+    "DUPLICATE_RETRY_RESTART_REUSE_DURABLE_UNITS_AND_EXPIRY",
+    "QUOTE_ESTIMATE_SIMULATION_PRE_POST_TTL_FAIL_CLOSED",
+    "OBSERVATION_PREINSERT_PRECOMMIT_TTL_AND_ATOMIC_ROLLBACK",
+    "EXACT_DECIMAL_FEE_TIP_GAS_MINIMUM_OUTPUT_AND_CALLDATA_VALIDATION",
+    "PARTIAL_SPEND_BUY_REJECTED_NO_ABSOLUTE_PROTECTION_OVERCLAIM",
+    "OBSERVATION_IMMUTABILITY_AND_ATOMIC_LIFECYCLE_AUDIT_OUTBOX",
+    "CONCURRENT_WINNER_REUSE_EXACTLY_ONCE_DURABLE_RESULT",
+    "MANUAL_VALIDATION_STATES_EXCLUDED_FROM_LEGACY_EXECUTION_CANDIDATE",
+    "DEFAULT_OFF_SCOPED_PRIVATE_AUTHENTICATED_UDS_ONLY",
+    "NO_SIGNER_SEND_NONCE_RESERVATION_PERMIT_OR_AUTHORIZATION_ACTIONS"
+  ],
+  "independent_validation": {
+    "affected_race": {
+      "command": "go test -race ./internal/tradeapi ./internal/chainquery ./internal/app ./internal/config ./internal/storage -count=1 -timeout=5m",
+      "status": "PASS",
+      "package_seconds": {"tradeapi": "62.146", "chainquery": "3.838", "app": "2.467", "config": "1.019", "storage": "7.338"},
+      "initial_sandbox_socket_denial": "RESOLVED_BY_LOCAL_CONTROLLED_FIXTURE_PERMISSION_RERUN"
+    },
+    "build": {"command": "go build ./...", "status": "PASS"},
+    "vet": {
+      "command": "go vet ./internal/tradeapi ./internal/chainquery ./internal/app ./internal/config ./internal/storage",
+      "status": "PASS"
+    },
+    "evidence_test_mapping": "PASS_16_TESTS",
+    "implementation_evidence_sha256": "MATCH",
+    "openapi_paths": 9,
+    "openapi_local_references": 52,
+    "openapi_invalid_references": 0,
+    "diff_gofmt": "PASS",
+    "old_migrations_changed": 0,
+    "full_repository_ordinary_tests": "NOT_RERUN_BY_INDEPENDENT_REVIEWER",
+    "full_repository_race": "NOT_RERUN_BY_INDEPENDENT_REVIEWER",
+    "staticcheck": "NOT_RERUN_BY_INDEPENDENT_REVIEWER",
+    "offline_reference_model": "NOT_RERUN_BY_INDEPENDENT_REVIEWER",
+    "github_ci": "NOT_REQUESTED_NOT_RUN",
+    "real_chain_rpc": "NOT_USED"
+  },
+  "prohibited_paths": {
+    "new_api_signer_calls": 0,
+    "new_api_submission_calls": 0,
+    "new_api_raw_send_calls": 0,
+    "new_api_nonce_allocation_calls": 0,
+    "new_api_reservation_writes": 0,
+    "new_api_permit_writes": 0,
+    "new_api_authorization_writes": 0,
+    "new_api_mainnet_calls": 0,
+    "proof_scope": "New API/validator dependency graph and reviewed tests, not whole-service zero-signing or production end-to-end trading."
+  },
+  "preserved_state": {
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "existing_gate_status_changes": 0,
+    "parent_c1_status_changes": 0
+  },
+  "delivery": "LOCAL_ONLY_NO_GITHUB_PUSH_PR_OR_MERGE",
+  "runtime_stage_label": "HTTP_C2_READY_FOR_REVIEW_UNCHANGED_HISTORICAL_IMPLEMENTATION_LABEL",
+  "next_action": "HTTP_C3_SCOPE_FREEZE_ONLY_NOT_IMPLEMENTATION_AUTHORIZATION",
+  "not_authorized": ["C3_IMPLEMENTATION", "SIGNING", "SENDING", "LIVE", "AUTHORIZATION_GRANT", "REMOTE_PUSH_PR_OR_MERGE"]
+}

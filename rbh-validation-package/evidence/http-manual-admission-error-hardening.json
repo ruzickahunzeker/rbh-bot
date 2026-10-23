@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "slice": "HTTP_C3_C_OPERATIONAL_ERROR_HARDENING",
+  "branch": "http-c3c-operational-error-hardening",
+  "implementation_base": "e3b1c504ed4d9bc17468e6c03b17d74c60a581a5",
+  "HTTP_C3_C": "READY_FOR_REVIEW",
+  "fresh_independent_review": "PENDING",
+  "previous_review": {
+    "reviewed_head": "e3b1c504ed4d9bc17468e6c03b17d74c60a581a5",
+    "conclusion": "FAIL",
+    "reviewer": "http_c3c_independent_review",
+    "author_context_fork": "NONE",
+    "blocker": "OPERATIONAL_VERIFICATION_FAILURE_WRAPPED_AS_ADMISSION_REJECTION_HTTP_422_INSTEAD_OF_SANITIZED_503",
+    "reproduction_scope": "COMMITTED_FIXTURE_COMMAND_LOADED_THEN_CONTEXT_CANCELED_ACTUAL_VERIFIER_AND_HTTP_ERROR_MAPPER_NOT_END_TO_END_TIMED_HTTP",
+    "economic_safety_failure": "NOT_FOUND",
+    "focused_ordinary": "PASS_tradeapi_3.280s_app_0.121s_config_0.003s",
+    "focused_race": "PASS_tradeapi_51.647s_app_3.102s_config_1.018s",
+    "baseline_negative_paths": "PASS_tradeapi_7.790s",
+    "late_cancellation_probe": "FAIL_actual_422_MANUAL_ADMISSION_REJECTED_expected_503_API_UNAVAILABLE"
+  },
+  "repair": {
+    "classification": "VERIFIED_ABSENT_OR_INVALID_INPUT_TYPED_REJECTION_OPERATIONAL_READ_FAILURE_PRESERVES_CAUSE",
+    "coverage": "CANONICAL_CONTRACT_POLICY_GATE_AUTHORIZATION_USAGE_EXPOSURE_WRITER_CONNECTION_AND_FINAL_GATE_READ",
+    "HTTP": "EXISTING_ERROR_MAPPER_RETURNS_SANITIZED_503_API_UNAVAILABLE_NO_INTERNAL_MESSAGE",
+    "unchanged": "SCHEMA_LEDGER_RISK_LIMITS_TTL_GATES_ATOMIC_COMMIT_RULES_LEGACY_SEND_AMBIGUITY",
+    "shared_helper_change": "MANUAL_VALIDATION_POLICY_GATE_READ_PRESERVES_OPERATIONAL_CAUSE_MISSING_OR_INVALID_GATE_STILL_REJECTED",
+    "historical_author_and_closed_gate_evidence": "PRESERVED_UNCHANGED"
+  },
+  "test_mapping": {
+    "each_command_and_usage_query_cancel_deadline_closed_db_sql_fault_sanitized_503_unchanged_allowance": "TestHTTPC3CHardeningEveryHistoricalReadPreservesOperationalError",
+    "original_reviewer_loaded_command_then_cancellation_regression": "TestHTTPC3CHardeningVerifierCancellationRegression",
+    "control_auth_unit_and_exposure_operational_failure_propagation": "TestHTTPC3CHardeningAdmissionInputsAndExposureOperationalErrors",
+    "verified_invalid_or_absent_data_still_typed_HTTP_422": "TestHTTPC3CHardeningVerifiedRejectionsRemainTyped",
+    "after_command_and_before_commit_fault_rollback_and_original_key_retry": "TestHTTPC3CHardeningWriterOperationalFaultRollsBack"
+  },
+  "validation": {
+    "final_focused_ordinary": {
+      "command": "go test ./internal/tradeapi -run '^TestHTTPC3CHardening' -count=1 -timeout=3m",
+      "status": "PASS",
+      "tradeapi_seconds": 1.446
+    },
+    "final_full_ordinary": {
+      "command": "go test ./... -count=1 -timeout=15m",
+      "status": "PASS",
+      "package_seconds": {"trade": 122.126, "tradeapi": 83.840, "storage": 10.355, "app": 0.301, "config": 0.028}
+    },
+    "focused_C3_C_and_baseline_negative_race": {
+      "command": "go test -race ./internal/tradeapi ./internal/app ./internal/config -run '^(TestHTTPC3C|TestUserTradeAPIStartup|TestUserHTTPTradeHasNoEconomicDependencies|TestHTTPC3B3Atomic(DedupeConflictAndCorruptCompleteHistory|StatementFaultWindowsRollbackEveryHalf|DirectSQLHalfAndMutationBypassRejected|LifetimeBudgetEqualityPlusOneAndReleasedHistory|CommitWindowControlWriterCannotInterleave|CanceledCommitAndConnectionControls))' -count=1 -timeout=8m",
+      "status": "PASS",
+      "package_seconds": {"tradeapi": 249.065, "app": 3.119, "config": 1.072},
+      "selection": "FOCUSED_NOT_FULL_REPOSITORY_RACE_STARTED_BEFORE_ADDITIONAL_WRITER_FAULT_TEST_FINAL_THREE_RUN_COVERS_ALL_NEW_TESTS"
+    },
+    "final_hardening_three_run_race": {
+      "command": "go test -race ./internal/tradeapi -run '^TestHTTPC3CHardening' -count=3 -timeout=4m",
+      "status": "PASS",
+      "tradeapi_seconds": 129.352
+    },
+    "author_rerun_of_original_reviewer_overlay": {
+      "command": "go test -overlay=/tmp/rbh-c3c-independent-review.AC8m21/overlay.json ./internal/tradeapi -run '^TestIndependentC3C' -count=1 -timeout=2m -v",
+      "status": "PASS",
+      "tradeapi_seconds": 1.045,
+      "selection": "CANCELLATION_MISSING_COMMAND_MISSING_AUDIT_OTHER_RELEASED_HISTORY_CORRUPTION",
+      "independence": "AUTHOR_RERUN_NOT_FRESH_INDEPENDENT_REVIEW"
+    },
+    "build": "PASS",
+    "final_vet_staticcheck": "PASS",
+    "gofmt_diff": "PASS",
+    "manifest": "PASS_134_ENTRIES_SOURCE_HASHES_AND_FIVE_NAMED_TESTS_MATCH",
+    "offline_reference_model": "PASS_39_MODEL_TESTS_TEMP_OUTPUT_HISTORICAL_REPORT_UNCHANGED",
+    "curve_expected_offline": "PASS_5_FIXTURE_EVENTS",
+    "initial_rounds": "COMPILE_ERROR_FIXED_INITIAL_FAULT_MATRIX_FAILED_SHARED_GATE_READ_FIXED_INTERRUPTED_PRE_FIX_REGRESSION_NOT_COUNTED_AS_PASS",
+    "local_socket_scope": "DISPOSABLE_UDS_LOOPBACK_CONTROLLED_FIXTURES_ONLY_NO_REAL_CHAIN_RPC",
+    "GitHub_CI": "NOT_RUN_NO_REMOTE_ACTIVITY",
+    "full_repository_race": "NOT_RUN_NOT_CLAIMED"
+  },
+  "source_sha256": {
+    "internal/tradeapi/manual_verification_error.go": "4ae46a9e8084a182122fff1d417f0039cd3e6f6a1d55e79980527849431051b6",
+    "internal/tradeapi/manual_operational_error_test.go": "9380d7ded6997a065712d299434851d02c1a9fe31e7569ba896109f9c0868479",
+    "internal/tradeapi/manual_admission_inputs.go": "1f212fa639e297c0dfdfe6a3e3db075746404e5fd7a44e24b21ee79e2ed8945e",
+    "internal/tradeapi/manual_atomic_admission.go": "163b36b7f8df75ad3868fa3842b57662f8f724c59365b6663c08f9feda107677",
+    "internal/tradeapi/manual_exposure.go": "0e3e43d1c64a5ae9305abf7b21c321698104e117670d64f7a310db07c3f5f4d3",
+    "internal/tradeapi/manual_validation.go": "a32ad676ae4ff88dc3a386627cf6767d6fdfcbfe26c1db7487e20c25eb7b0b8c"
+  },
+  "boundaries": {
+    "chain": "ROBINHOOD_4663_NATIVE_QUOTE_PONS_V2_CURVE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "new_runtime_checkpoints": false,
+    "new_routes_listeners_migrations": false,
+    "economic_dependencies": "NO_SIGNER_SUBMISSION_SEND_NONCE_ARTIFACT_CREATION_PERMIT_GRANT_DEPENDENCY_ADDED",
+    "economic_rows": "ZERO_IN_CONTROLLED_NEW_HARNESS_NOT_WHOLE_REPOSITORY_TELEMETRY",
+    "fault_coverage": "VERIFIER_ERROR_MAPPER_AND_LOCAL_WRITER_CHECKPOINTS_NOT_END_TO_END_TIMED_HTTP_OR_MAINNET_AVAILABILITY",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "downstream_manual_execution_W4_D_W5_BSC_Flap_Base_Solana": "NOT_ENTERED"
+  }
+}

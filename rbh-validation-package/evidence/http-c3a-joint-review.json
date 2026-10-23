@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_C3_A_MANUAL_EXECUTION_PARAMETER_CONTRACT_LOCAL_CLOSEOUT_ONLY",
+  "reviewed_commit_sha": "a3a5f47b176032f223a9c5db460f309fec06df35",
+  "reviewed_parent_sha": "d89830ae019ebe62b32fdea657289a39831d00fc",
+  "reviewed_commit_is_remote_main": false,
+  "review_conclusion": "PASS",
+  "http_c3a_status": "PASS",
+  "formal_closeout": "COMPLETE_LOCAL_ONLY",
+  "closeout_branch": "http-c3a-contract-closeout",
+  "independent_reviewer": {
+    "type": "SEPARATE_REVIEWER_AGENT",
+    "task": "http_c3a_independent_review",
+    "author_conversation_context_forked": false,
+    "reviewer_modified_files": false,
+    "reviewed_start_and_end_HEAD_exact": true,
+    "reviewed_start_and_end_worktree_clean": true,
+    "blockers": []
+  },
+  "historical_implementation_evidence": {
+    "path": "evidence/http-manual-execution-contract.json",
+    "sha256": "178995503317180058df545b4cded383739b669736c333f3733786619f6f8e81",
+    "preserved_unchanged": true,
+    "historical_implementation_status": "HTTP_C3_A_READY_FOR_REVIEW",
+    "historical_independent_review": "NOT_PERFORMED"
+  },
+  "reviewed_invariants": [
+    "SCOPED_DURABLE_SOURCE_REQUEST_OPERATION_STEP_WALLET_CHAIN_POLICY_QUOTE_RESULT_EXPIRY_BINDING",
+    "SINGLE_SQLITE_READ_SNAPSHOT_ZERO_SQL_WRITES",
+    "EXACT_SAVED_PARAMETERS_NO_COPY_INTENT_NO_RESOLVE_COMPLETE_RPC_REQUOTE_OR_TTL_RESET",
+    "ZERO_TIP_PRESERVED_OPTIONAL_USER_LIMITS_UNSET",
+    "ASSET_QUANTITIES_TYPED_NO_CROSS_ASSET_ADD_OR_VALUATION",
+    "FIXED_SELL_EXACT_CROSS_MULTIPLICATION_NO_PERCENTAGE_REWRITE",
+    "TTL_BOUNDARY_MALFORMED_NONCANONICAL_ZERO_CLOCK_AND_DEPENDENCY_FAILURES_FAIL_CLOSED",
+    "DETACHED_CONTRACT_NEVER_ADMISSION_OR_SEND_PERMISSION",
+    "STOP_NO_AUTH_READ_ALLOWED_SNAPSHOT_DRIFT_GRANTS_NO_AUTHORITY",
+    "REJECTED_INCOMPLETE_REQUESTS_NEVER_REACTIVATED",
+    "NO_ECONOMIC_RPC_HTTP_ROUTE_COMPOSITION_MIGRATION_OR_CLOSED_GATE_CHANGE"
+  ],
+  "independent_validation": {
+    "focused_race": {
+      "command": "go test -race ./internal/tradeapi -run '^(TestHTTPC3A|TestUserHTTPTradeHasNoEconomicDependencies)' -count=1 -timeout=3m",
+      "status": "PASS",
+      "tradeapi_seconds": "31.839"
+    },
+    "C1_C2_regression": {
+      "command": "go test ./internal/tradeapi -run '^TestHTTPC[12]' -count=1 -timeout=3m",
+      "status": "PASS",
+      "tradeapi_seconds": "2.468"
+    },
+    "build": {"command": "go build ./...", "status": "PASS"},
+    "vet": {"command": "go vet ./...", "status": "PASS"},
+    "staticcheck": {"command": "staticcheck ./...", "status": "PASS"},
+    "toolchain": "FIXED_LOCAL_TOOLCHAIN_AND_CACHES_GOPROXY_OFF_GOTOOLCHAIN_LOCAL",
+    "diff_and_gofmt": "PASS",
+    "evidence_test_mapping": "PASS_13_TESTS",
+    "validation_package": "PASS_125_FILES_AT_REVIEWED_BASELINE",
+    "sha256sum_check": "ALL_OK",
+    "full_repository_tests": "NOT_RERUN_BY_INDEPENDENT_REVIEWER",
+    "full_repository_race": "NOT_RERUN_BY_INDEPENDENT_REVIEWER",
+    "real_chain_RPC": "NOT_USED",
+    "economic_admission_or_live_integration": "NOT_PROVEN_NOT_IN_SCOPE"
+  },
+  "prohibited_paths": {
+    "adapter_signer_calls": 0,
+    "adapter_submission_calls": 0,
+    "adapter_raw_send_calls": 0,
+    "adapter_nonce_allocation_calls": 0,
+    "adapter_RPC_calls": 0,
+    "adapter_reservation_usage_authorization_permit_writes": 0,
+    "proof_scope": "Disconnected C3-A reader dependency graph, controlled SQLite tests and reviewed source; not production telemetry or whole-service zero-signing."
+  },
+  "preserved_state": {
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "existing_gate_status_changes": 0,
+    "HTTP_C2_status_changes": 0,
+    "C3_B": "NOT_STARTED",
+    "C3_C": "NOT_STARTED"
+  },
+  "delivery": "LOCAL_ONLY_NO_GITHUB_PUSH_PR_OR_MERGE",
+  "next_action": "C3_B_UNIT_AWARE_RISK_AND_ATOMIC_ADMISSION_DESIGN_NO_ECONOMIC_WIRING",
+  "not_authorized": ["C3_AS_A_WHOLE_PASS", "CLOSED_GATE_SEMANTICS_CHANGE", "SIGNING", "SENDING", "LIVE", "AUTHORIZATION_GRANT", "REMOTE_PUSH_PR_OR_MERGE"]
+}

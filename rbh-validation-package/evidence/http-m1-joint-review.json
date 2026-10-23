@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_MANUAL_M1_DISCONNECTED_READ_ONLY_ADMITTED_INPUT_READER_AND_CANCELLATION_HARDENING_LOCAL_CLOSEOUT_ONLY",
+  "reviewed_commit_sha": "8466c83960f651730c4d7a7c48d6d709ea1c037b",
+  "implementation_base_sha": "708163355be0b05e247d9597ee38951dabe1ed86",
+  "original_implementation_sha": "e0554187ecc5d664a7103f88063f3d526a18a692",
+  "reviewed_commit_is_remote_main": false,
+  "review_conclusion": "PASS",
+  "m1_status": "PASS",
+  "formal_closeout": "COMPLETE_LOCAL_ONLY",
+  "closeout_branch": "http-m1-admitted-input-closeout",
+  "closeout_initial_ahead_behind": "0/0_AGAINST_REVIEWED_HARDENING_HEAD",
+  "independent_reviewer": {
+    "type": "SEPARATE_NON_AUTHOR_REVIEWER_AGENT",
+    "task": "http_m1_independent_review",
+    "user_authorized": true,
+    "initial_author_conversation_context_forked": false,
+    "same_reviewer_rechecked_own_original_failure": true,
+    "hardening_followup_received_scoped_author_handoff": true,
+    "blind_hardening_review_claimed": false,
+    "repository_modified": false,
+    "temporary_probes_outside_repository": true,
+    "start_and_end_HEAD_exact": true,
+    "start_and_end_worktree_clean": true,
+    "blockers": []
+  },
+  "previous_review": {
+    "reviewed_head": "e0554187ecc5d664a7103f88063f3d526a18a692",
+    "conclusion": "FAIL",
+    "blocker": "PUBLIC_LOAD_COMMIT_AUTO_ROLLBACK_RACE_LOST_CONTEXT_CAUSE",
+    "economic_safety_failure": "NOT_FOUND_ZERO_OUTPUT_NO_WRITES_SANITIZED_503_HELD",
+    "closure": "ERR_TX_DONE_AND_CONTEXT_CAUSE_JOINED_OTHER_COMMIT_ERRORS_UNCHANGED_ORIGINAL_PROBE_THREE_RACE_RUNS_PASS"
+  },
+  "historical_author_evidence": [
+    {
+      "path": "evidence/http-manual-admitted-input.json",
+      "sha256": "f968fccfd2521c99c4d78c0037859c5e0a4733dbde178a444bba5c3de00ca081",
+      "preserved_unchanged": true,
+      "historical_status": "READY_FOR_REVIEW",
+      "historical_review": "NOT_PERFORMED_STAGE_SPECIFIC_AUTHORITY_NOT_GRANTED"
+    },
+    {
+      "path": "evidence/http-manual-admitted-input-cancellation-hardening.json",
+      "sha256": "e5571afe0237928145671c3da1740a1a6732e907c4e23de71104a7ad53ce1cd4",
+      "preserved_unchanged": true,
+      "historical_status": "READY_FOR_REVIEW",
+      "historical_fresh_review": "PENDING"
+    }
+  ],
+  "reviewed_invariants": [
+    "ONE_SQLITE_READ_SNAPSHOT_DETACHED_CANDIDATE_NEVER_EXECUTION_SIGN_OR_SEND_PERMISSION",
+    "CANONICAL_COMPLETE_ADMISSION_LEDGER_AND_IMMUTABLE_COMMAND_SOURCE_BINDING",
+    "PRINCIPAL_WALLET_CHAIN_POLICY_GATE_AUTH_EPOCH_ENVIRONMENT_BUILD_RELEASE_DEPLOYMENT_BINDING",
+    "EXACT_BUY_FIXED_SELL_RESOLVED_PERCENTAGE_SELL_ZERO_TIP_CALLDATA_MINIMUM_QUOTE_GAS_FEE_EXPIRY",
+    "ABSOLUTE_EXPIRY_BOUNDARY_AND_FINAL_CLOCK_CHECK_NO_RESTART_OR_DUPLICATE_RENEWAL",
+    "ALREADY_CONSUMED_LIFETIME_USAGE_CONSERVATION_NO_SECOND_BUDGET_CHARGE_AT_CAP_EQUALITY",
+    "INITIAL_RESERVED_AND_RESERVED_USAGE_ONLY_EXISTING_ATTEMPT_OR_BUSY_WALLET_REJECTED",
+    "STOP_PRIORITY_ACTIVE_AUTH_CURRENT_ALLOWLIST_AND_SCOPE_DRIFT_FAIL_CLOSED",
+    "NO_WRITE_REPAIR_REFUND_RELEASE_OR_ECONOMIC_DEPENDENCY",
+    "OPERATIONAL_ERRORS_PRESERVED_SANITIZED_503_INCLUDING_PUBLIC_COMMIT_CANCELLATION_AND_DEADLINE",
+    "HISTORY_SURVIVES_CANDIDATE_DENIAL_NO_RECOVERY_HEALTH_CLAIM",
+    "POST_SNAPSHOT_STOP_DOES_NOT_TURN_CANDIDATE_INTO_PERMISSION_FRESH_READ_REJECTS",
+    "LEGACY_PATH_SCHEMA_HTTP_CONFIG_STARTUP_AND_EXISTING_GUARDS_UNCHANGED"
+  ],
+  "independent_validation": {
+    "toolchain_environment": "PATH=/tmp/rbh-go-toolchain/bin:$PATH GOCACHE=/tmp/rbh-go-build-cache GOMODCACHE=/tmp/rbh-go-mod-cache GOPROXY=off STATICCHECK_CACHE=/tmp/rbh-staticcheck-cache",
+    "all_M1_ordinary": {
+      "command": "go test ./internal/tradeapi -run '^TestHTTPM1' -count=1 -timeout=4m",
+      "status": "PASS", "tests": 15, "tradeapi_seconds": 10.838
+    },
+    "all_M1_race": {
+      "command": "go test -race ./internal/tradeapi -run '^TestHTTPM1' -count=1 -timeout=8m",
+      "status": "PASS", "tests": 15, "tradeapi_seconds": 117.025
+    },
+    "public_hardening_three_run_race": {
+      "command": "go test -race ./internal/tradeapi -run '^TestHTTPM1Hardening' -count=3 -timeout=3m",
+      "status": "PASS", "tradeapi_seconds": 41.579
+    },
+    "original_independent_reproduction": {
+      "command": "go test -race -overlay=/tmp/rbh-m1-review-YCs8qU/overlay.json ./internal/tradeapi -run '^TestIndependentM1PublicQueryOnlyAndLateCancellation$' -count=3 -v -timeout=3m",
+      "status": "PASS", "tradeapi_seconds": 6.288,
+      "coverage": "REAL_CANCEL_SINGLE_CONNECTION_AUTO_ROLLBACK_BARRIER_BOTH_CAUSES_ZERO_OUTPUT_503_QUERY_ONLY_NO_WRITES"
+    },
+    "other_original_independent_probes": {
+      "command": "go test -race -overlay=/tmp/rbh-m1-review-YCs8qU/overlay.json ./internal/tradeapi -run '^TestIndependentM1(CompleteLedgerCorruption|SnapshotDoesNotClaimPermissionAfterStop|BusyWalletPredicates)$' -count=1 -timeout=4m",
+      "status": "PASS", "tradeapi_seconds": 33.662,
+      "coverage": "EIGHT_LEDGER_CORRUPTIONS_FOUR_BUSY_WALLET_PREDICATES_REAL_TWO_HANDLE_STOP_AFTER_SNAPSHOT"
+    },
+    "old_source_negative_control": {
+      "command": "go test -race -overlay=/tmp/rbh-m1-review-YCs8qU/old_reader_overlay.json ./internal/tradeapi -run '^TestHTTPM1Hardening' -count=1 -v -timeout=3m",
+      "status": "EXPECTED_FAIL_BOTH_CANCEL_AND_DEADLINE_CAUSE_LOSS", "tradeapi_seconds": 8.495,
+      "old_reader_source_sha256": "3c4b1026f73f6d5017226db64a4b671f131c21f64d6ead735c81951319d24daa"
+    },
+    "compatibility_race": {
+      "command": "go test -race ./internal/tradeapi ./internal/app ./internal/config -run '^(TestHTTPC3CHardeningVerifierCancellationRegression|TestHTTPC3CHardeningVerifiedRejectionsRemainTyped|TestHTTPC3CHistorySurvivesRealReopenRevokeExpiryAndDisabledComposition|TestHTTPC3B3AtomicLifetimeBudgetEqualityPlusOneAndReleasedHistory|TestUserTradeAPIStartup|TestUserHTTPTradeHasNoEconomicDependencies|TestHTTPC3CAdmissionConfigurationDefaultOffAndFailClosed)' -count=1 -timeout=4m",
+      "status": "PASS", "package_seconds": {"tradeapi": 27.621, "app": 4.907, "config": 1.054}
+    },
+    "focused_vet": "PASS_go_vet_internal_tradeapi",
+    "focused_staticcheck": "PASS_staticcheck_internal_tradeapi",
+    "gofmt_diff": "PASS",
+    "manifest_source_hashes": "PASS_137_ENTRIES_AT_REVIEWED_HEAD",
+    "full_repository_tests_build_vet_staticcheck_offline_model_curve": "AUTHOR_EVIDENCE_ONLY_NOT_INDEPENDENT_RERUN",
+    "full_repository_race": "NOT_RUN_NOT_CLAIMED",
+    "GitHub_CI_real_chain_RPC": "NOT_USED"
+  },
+  "reviewed_source_sha256": {
+    "internal/tradeapi/manual_admitted_input.go": "1bddf4eacc5af2bf7a0b0af6374d8040519a0214956711dd4ece8383d61c9218",
+    "internal/tradeapi/manual_admitted_input_test.go": "7aaa697ff980176af125f312e2d1e641ca7230f02cdd2eca7a72a3b8a93926aa",
+    "internal/tradeapi/manual_admitted_input_cancellation_test.go": "6964688f227326ae2da7f4668ee261e3e8b4221fe9e750135a6c8853925862fd"
+  },
+  "limitations": [
+    "TEMP_REVIEW_OVERLAYS_ARE_NOT_DURABLE_PACKAGE_ASSETS_PUBLIC_REGRESSION_IS_COMMITTED",
+    "NO_END_TO_END_TIMED_HTTP_CANCELLATION_OR_RECOVERY_SERVICE_HEALTH_CLAIM",
+    "NO_PRODUCTION_CALL_COUNT_TELEMETRY_ZERO_ECONOMIC_DEPENDENCIES_IN_REVIEWED_GRAPH_ONLY",
+    "DISPOSABLE_FUTURE_AUTH_CORRUPTION_FIXTURES_DO_NOT_GRANT_REAL_AUTHORIZATION",
+    "READ_SNAPSHOT_IS_NOT_FUTURE_WRITER_CONTROL_FENCE",
+    "NO_DOWNSTREAM_MANUAL_EXECUTION_SIGNING_SUBMISSION_APPROVAL"
+  ],
+  "preserved_state": {
+    "HTTP_C3_B": "PASS", "HTTP_C3_C": "PASS", "M1": "PASS", "M2": "NOT_STARTED",
+    "chain": "ROBINHOOD_4663", "protocol": "PONS_V2_CURVE_NATIVE_QUOTE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY", "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED", "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false, "release_ready": false, "other_closed_gate_status_changes": 0,
+    "M3_M4_M5_W4_D_W5_BSC_Flap_Base_Solana": "NOT_ENTERED"
+  },
+  "delivery": "LOCAL_ONLY_NO_GITHUB_FETCH_PUSH_PR_OR_MERGE",
+  "next_action": "M2_A_READ_ONLY_SCOPE_FREEZE_ONLY_NOT_M2_B_IMPLEMENTATION"
+}

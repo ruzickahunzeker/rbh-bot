@@ -125,6 +125,9 @@ func Run(service config.Service) error {
 		if err := store.RegisterDryRunWallet(ctx, cfg.DryRunWalletID, common.HexToAddress(cfg.DryRunFromAddress)); err != nil {
 			return err
 		}
+		if err := configureUserTradeAPI(server, database, cfg); err != nil {
+			return err
+		}
 		tradeBackend, err = tradecore.DialRPCBackend(ctx, cfg.RPCURL)
 		if err != nil {
 			return err

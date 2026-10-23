@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "scope": "M3_B3_B2_EXACT_ARTIFACT_PHASE_REVIEW_CHECKPOINT_ONLY_NOT_WHOLE_B3_CLOSEOUT",
+  "branch": "http-m3b3-controlled-local-signing",
+  "phase_base": "0a8978f7f533e59f1fd69555aab5ea8dcfdc92b6",
+  "initial_phase_head": "9e089dabc6f626981a0529b78d8eca885eea56e0",
+  "reviewed_head": "43bda02c746b89dc8a8831184704b213f1c35b64",
+  "M3_B3_B2": "INDEPENDENT_SCOPE_PASS_NOT_SIGNING_READY",
+  "independent_phase_review": "PASS",
+  "M3_B3": "IN_PROGRESS_NOT_READY_FOR_REVIEW_NOT_PASS",
+  "prior_review": {
+    "conclusion": "FAIL_P2_LATE_CANCELLATION_HISTORY_ZERO_RESULT_CONTRACT",
+    "repair": "EIGHT_HISTORY_CONTEXT_CHECK_LINES_PLUS_PERMANENT_THREE_POINT_REGRESSION_NO_SCHEMA_CHANGE",
+    "finding_status": "CLOSED_BY_FRESH_REVIEW",
+    "history_preserved": ["http-manual-m3b3-artifact-phase.json", "http-manual-m3b3-artifact-cancellation-hardening.json"],
+    "qualification": "PRIOR_FAIL_AND_AUTHOR_REPRODUCTION_NOT_RELABELLED_PASS_PRIOR_SOURCE_HASHES_ARE_HISTORICAL_SNAPSHOTS"
+  },
+  "review_method": {
+    "reviewer": "m3b3_artifact_independent_review",
+    "independence": "SEPARATE_READ_ONLY_AGENT_NO_FORKED_AUTHOR_CONVERSATION_SCOPED_HANDOFF_WITH_AUTHOR_RESULTS_NOT_BLIND_REVIEW_SAME_REVIEWER_RECHECKED_REPAIR",
+    "fixed_head_clean_start_end": true,
+    "repository_edits": 0,
+    "report_path": "/tmp/m3b3_artifact_cancellation_fresh_review.md",
+    "report_sha256": "20a3f721ad55247aa77a79e964466854303f40ed79839acd44cfdf5d92d1733c",
+    "additional_probe_path": "/tmp/m3b3_cancellation_recheck_test.go",
+    "additional_probe_sha256": "e7cf68eccdd7f0381d0ab74b5de716be5951d4e40fa3df07fc93817483b9974e",
+    "additional_overlay_path": "/tmp/m3b3_cancellation_recheck_overlay.json",
+    "additional_overlay_sha256": "ad7b59b3026378fc9ed72c541095bc8eca845b48742df5b385ddcdbb5b6f9fb1",
+    "historical_report_sha256": "fa2ee3ea31df5c7ace534884de8037bb09801e08907ebb62f7ca1bf9dd6ee98a",
+    "historical_probe_sha256": "d8657d26b16aaac686d70a6d79a6fbf06eaa525c98056df3ea83544e22b3e052",
+    "historical_overlay_sha256": "a4471a3587b900f6b6a38019723bcb1ff21f60dff2e94fb177ee1cd8244c48ac",
+    "temporary_artifacts": "HASH_IDENTIFIED_TMP_REPORTS_AND_PROBES_NOT_COMMITTED_PERMANENT_REGRESSION_OR_PERSISTED_RAW_LOG_CLAIM"
+  },
+  "fresh_independent_validation": {
+    "environment": "OFFLINE_CACHED_GO_GOPROXY_OFF_DISPOSABLE_SQLITE_EPHEMERAL_FIXTURE_CRYPTO_NO_REAL_ENDPOINTS",
+    "ordinary": {
+      "command": "go test -overlay=/tmp/m3b3_independent_overlay.json ./internal/tradeapi -run '^(TestIndependentM3B3|TestHTTPM3B3ArtifactPhaseHistory(LateCancellationZeroOutput|DeniedZeroOutput)$)' -count=1 -timeout=3m",
+      "status": "PASS", "tradeapi_seconds": 3.642,
+      "cases": "UNCHANGED_ORIGINAL_CANCELLATION_REPRODUCER_WITNESS_NO_REPAIR_REOPEN_PERMANENT_LATE_AND_DENIED_HISTORY"
+    },
+    "selected_race": {
+      "command": "go test -race -overlay=/tmp/m3b3_cancellation_recheck_overlay.json ./internal/tradeapi -run '^(TestIndependentM3B3(LateHistoryCancellation|CancelledCryptoFailureZero)|TestHTTPM3B3ArtifactPhaseHistory(LateCancellationZeroOutput|DeniedZeroOutput))$' -count=1 -timeout=4m",
+      "status": "PASS", "tradeapi_seconds": 43.361,
+      "cases": "ORIGINAL_CANCELLATION_PROBE_CANCEL_PLUS_CRYPTO_ERROR_PANIC_AND_BOTH_PERMANENT_HISTORY_TESTS"
+    },
+    "integrity": "162_REVIEWED_MANIFEST_ENTRIES_FIVE_NEW_SOURCE_HASHES_HISTORICAL_REPORT_PROBE_HASHES_DIFF_CHECK_PASS",
+    "static": "CONTEXT_CHECK_IMMEDIATELY_BEFORE_AND_AFTER_OPEN_ZERO_RESULT_AND_CONTEXT_ERROR_BEFORE_SUCCESS_OR_CRYPTO_ERROR_NO_PARTIAL_OUTPUT",
+    "combined_verdict": "UNCHANGED_PHASE_CONTRACT_FROM_FIRST_REVIEW_PLUS_FRESH_MINIMAL_REPAIR_REVIEW_NOT_RERUN_OF_ALL_PHASE_TESTS",
+    "not_run": ["FRESH_FULL_PHASE_SUITE", "FULL_REPOSITORY_ORDINARY", "FULL_REPOSITORY_RACE", "REPEATED_RACE", "CI", "BUILD_VET_STATICCHECK", "OFFLINE_MODEL_CURVE", "REAL_CHAIN", "POWER_LOSS"]
+  },
+  "limits": {
+    "cancellation": "TRUSTED_SYNCHRONOUS_CRYPTO_NOT_PREEMPTED_NO_ATOMIC_CANCELLATION_AFTER_FINAL_CHECK_CLAIM",
+    "schema": "NORMAL_FK_ON_INTACT_REVIEWED_GUARDS_NOT_ARBITRARY_HOSTILE_SCHEMA_OR_FORGED_SCOPE_AUTHORITY",
+    "metadata": "SQL_COMPLETENESS_NOT_CRYPTO_VALIDITY_TIME_METADATA_NOT_WALL_CLOCK_OR_SIGNING_PERMISSION",
+    "history": "AUTHENTICATED_EXACT_IDENTITY_METADATA_ONLY_ALL_PERMISSIONS_FALSE_NO_REPAIR_REENCRYPT_OR_RESIGN",
+    "file_reopen": "NOT_OS_POWER_LOSS_PROOF",
+    "author_results": "SEPARATELY_LABELLED_IN_UNCHANGED_HISTORICAL_PHASE_AND_CANCELLATION_EVIDENCE"
+  },
+  "boundaries": {
+    "M1": "PASS_UNCHANGED", "M2": "PASS_UNCHANGED", "M3_B1": "PASS_UNCHANGED", "M3_B2": "PASS_UNCHANGED",
+    "C04": "PASS_UNCHANGED", "C05": "PASS_UNCHANGED", "C07": "PASS_UNCHANGED", "C08": "PASS_UNCHANGED",
+    "M3_B3_C": "NOT_IMPLEMENTED", "M3_B3_D": "NOT_COMPLETE", "M3_B4": "NOT_STARTED", "M3_overall": "INCOMPLETE_NOT_PASS",
+    "chain": "ROBINHOOD4663_PONS_V2_CURVE_NATIVE_QUOTE_ONLY", "deadline_capability": "APPLICATION_TTL_ONLY", "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED", "controlled_canary_authorization": "NOT_GRANTED", "live": false, "release_ready": false,
+    "checkpoint_product_schema_test_changes": 0,
+    "production_signer_marker_artifact_writer_API_submission_replay_send_permits_mainnet_new_nonce_actions": 0,
+    "proof_scope": "STRUCTURAL_AND_CONTROLLED_LOCAL_FIXTURES_NOT_PRODUCTION_TELEMETRY",
+    "remote_operations": false, "whole_B3_closeout": false,
+    "next": "SEPARATELY_SCOPED_B3_C_FENCED_LOCAL_ORCHESTRATION_NOT_IMPLEMENTED_OR_AUTHORIZED_BY_THIS_CHECKPOINT"
+  }
+}

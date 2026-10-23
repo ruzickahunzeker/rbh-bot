@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_MANUAL_M4_B23_FORMAL_CLOSEOUT_ONLY",
+  "closeout_branch": "http-m4b23-permit-closeout",
+  "reviewed_head": "ed9bf1b564b547ec8c1a38190a09dc7d6e90a178",
+  "independent_review_conclusion": "PASS",
+  "formal_closeout": "COMPLETE_LOCAL_ONLY",
+  "accepted_scope": {
+    "capability": "PRIVATE_FIRST_BROADCAST_PERMIT_ISSUANCE_ONLY",
+    "migration": "040_implementation_plus_041_scope_hardening",
+    "consume": false,
+    "send": false,
+    "replay": false,
+    "non_manual_first_broadcast_preserved": true
+  },
+  "reviewed_invariants": {
+    "deferred_scope_atomicity": "PASS",
+    "direct_sql_orphan_rejection": "PASS",
+    "later_adoption_rejection": "PASS",
+    "exact_artifact_expiry_and_identity_binding": "PASS",
+    "authorization_epoch_and_clock_generation_binding": "PASS",
+    "audit_alert_rollback": "PASS",
+    "duplicate_no_refresh": "PASS",
+    "signer_submission_broadcaster_nonce_calls": 0
+  },
+  "validation": {
+    "focused": "PASS",
+    "race": "PASS",
+    "go_vet": "PASS",
+    "staticcheck": "PASS",
+    "package_checker": "PASS",
+    "sha256sums": "PASS"
+  },
+  "boundaries": {
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "M4_B3_B4_C_D_M5_W4_D_W5": "NOT_ENTERED"
+  }
+}

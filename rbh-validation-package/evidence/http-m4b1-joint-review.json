@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_MANUAL_M4_B1_DISCONNECTED_STRUCTURAL_FOUNDATION_FORMAL_CLOSEOUT_ONLY",
+  "reviewed_commit_sha": "6fa755be25047868e51daddd66672943a91e478b",
+  "reviewed_commit_is_remote_main": false,
+  "implementation_base": "4855d982aca882b9ca2b1eccd965efe725ce2679",
+  "closeout_branch": "http-m4b1-submission-closeout",
+  "closeout_initial_ahead_behind": "0/0_AGAINST_EXACT_REVIEWED_COMMIT",
+  "review_conclusion": "PASS",
+  "review_state": "PASS",
+  "M4_B1": "PASS",
+  "formal_closeout": "COMPLETE_LOCAL_ONLY",
+  "M4_B": "INCOMPLETE_NOT_READY_NOT_PASS",
+  "M4": "INCOMPLETE_NOT_PASS",
+  "independent_reviewer": {
+    "task": "http_m4b1_independent_review",
+    "type": "SEPARATE_NON_AUTHOR_READ_ONLY_REVIEWER_AGENT",
+    "explicit_user_authorization": true,
+    "author_context_and_parent_check_directions_received": true,
+    "blind_review_claimed": false,
+    "repository_modified": false,
+    "start_end_HEAD_branch_exact_worktree_clean": true,
+    "blocking_findings": []
+  },
+  "reviewed_invariants": [
+    "ADDITIVE037_EXACT_ORIGINAL_MANUAL_SIGNED_PREBROADCAST_FACTS_CONTRACT_ARTIFACT_HASHES_TYPED_RISK_AND_ORIGINAL_USAGE",
+    "IMMUTABLE_STRUCTURAL_HISTORY_NOT_CRYPTO_VALIDITY_CURRENT_GATE_PERMISSION_LEDGER_OR_STATE_MACHINE",
+    "FULL_BYTE_SOURCE_IDENTITY_ALIAS_ROWID_IGNORE_REPLACE_VICTIM_ADOPTION_DENIALS",
+    "SAME_STATEMENT_EXACT_AUDIT_ALERT_TRANSIENT_SCOPE_REVIEWED_ABORT_IGNORE_AND_COMMIT_ROLLBACK_MODES",
+    "NO_ORPHAN_SCOPE_COMMIT_REOPEN_OR_RECREATE_MISSING_WITNESSES_LEGITIMATE_OUTBOX_DELIVERY_ALLOWED",
+    "HISTORICAL_STOP_REVOKE_EXPIRY_FROZEN_NO_NEW_NONCE_TTL_EPOCH_BUDGET_OR_RELEASE",
+    "001_TO036_PRODUCT_GO_AND_OLD_EVIDENCE_UNCHANGED_TWO_TEST_SCHEMA_METADATA_EXPECTATIONS_ONLY",
+    "NO_ARM_PERMIT_PASS_SUBMISSION_RECEIPT_EFFECT_OR_RELEASE_GUARD_EXCEPTION",
+    "NO_GO_RUNTIME_WRITER_LOADER_HTTP_CONFIG_STARTUP_OR_ECONOMIC_CAPABILITY"
+  ],
+  "independent_validation": {
+    "workdir": "/root/http/rbh-bot",
+    "environment": "PATH=/tmp/rbh-go-toolchain/bin:$PATH GOCACHE=/tmp/rbh-go-build-cache GOMODCACHE=/tmp/rbh-go-mod-cache GOPROXY=off",
+    "focused_ordinary": {
+      "command": "go test -p 1 ./internal/storage ./internal/tradeapi -run '^(TestManualSubmissionFoundation|TestOpenMigrateAndValidateEveryOwner$|TestHTTPM4B1)' -count=1 -v -timeout=5m -json",
+      "status": "PASS", "top_level_tests": {"storage": 2, "tradeapi": 13},
+      "seconds": {"storage": 0.287, "tradeapi": 21.024}
+    },
+    "selected_single_race": {
+      "command": "go test -race -p 1 ./internal/manualartifact ./internal/storage ./internal/tradeapi -run '^(TestManualArtifact|TestManualSubmissionFoundation|TestOpenMigrateAndValidateEveryOwner$|TestHTTPM4B1|TestHTTPM4A(SnapshotNeverSubstitutesForFreshGate|ReadOnlyDependencyAndMetadataContract)$|TestHTTPM3B3ADisconnectedSourceNoSigningAndNoSchema$|TestUserHTTPTradeHasNoEconomicDependencies$)' -count=1 -v -timeout=15m -json",
+      "status": "PASS", "top_level_tests": {"manualartifact": 6, "storage": 4, "tradeapi": 17},
+      "seconds": {"manualartifact": 1.213, "storage": 8.083, "tradeapi": 498.878},
+      "B1_API_tests": 13,
+      "qualification": "SELECTED_SINGLE_RUN_NOT_FULL_OR_REPEATED_RACE"
+    },
+    "fresh_overlay_probes": {
+      "command": "go test -overlay=/tmp/rbh-m4b1-independent-Sxdlqk/overlay.json ./internal/tradeapi -run '^TestReviewM4B1' -count=1 -v -timeout=3m -json",
+      "status": "PASS", "top_level_groups": 4, "seconds": 4.629,
+      "coverage": "TIME_MINUS1NS_EQUAL_PLUS1NS_OR_FAIL_MULTIROW_ATOMIC_DUPLICATE_UPSERT_REJECTION_BLOB_ALERT_AND_EXPLICIT_CLASSIFICATION_OBSERVATIONS",
+      "probe_revised_after_first_run": false
+    },
+    "integrity": {
+      "reviewed_manifest_entries": 172, "prior_lines_preserved": 171,
+      "source_document_hashes": 9, "mapped_tests": 14, "author_log_hashes": 8,
+      "all14_mapped_author_final_ordinary_race_PASS_events": true,
+      "001_to036_and_old_runtime_product_bytes": "UNCHANGED",
+      "old_test_changes": "EXACT_MIGRATION_COUNT35_TO36_AND_LATEST_SCHEMA36_TO37_ONLY",
+      "diff_check": "PASS"
+    },
+    "independent_failures": [],
+    "author_failures": "RETAINED_IN_UNCHANGED_AUTHOR_EVIDENCE_NOT_RELABELLED_INDEPENDENT",
+    "not_independently_run": ["FULL_REPOSITORY_ORDINARY", "FULL_REPOSITORY_RACE", "BUILD", "VET", "STATICCHECK", "REMOTE_CI", "REAL_CHAIN", "POWER_LOSS"]
+  },
+  "accepted_nonblocking_observations": [
+    {
+      "kind": "BYTE_EQUIVALENT_BLOB_AUDIT_DETAILS_AFTER_OUT_OF_MODEL_CORRUPTION",
+      "path": "internal/storage/migrations/trade/037_manual_submission_foundation.sql",
+      "line": 86,
+      "raw_observation": "IDENTICAL_JSON_BYTES_AS_BLOB_DETAILS_COMPLETE_EQUALS1",
+      "intact_schema": "INITIAL_INSERT_REQUIRES_TEXT_LINE117_AUDIT_UPDATE_REJECTED",
+      "classification": "NONBLOCKING_NO_INTACT_SCHEMA_ALIAS_REPAIR_OWNERSHIP_OR_PERMISSION_PATH",
+      "claim_limit": "NOT_EVERY_EQUIVALENT_SQL_STORAGE_CLASS_CORRUPTION_IS_REJECTED"
+    },
+    {
+      "kind": "NEW_ARBITRARY_RAISE_FAIL_WITNESS_TRIGGER",
+      "raw_observation": "AUDIT_OR_ALERT_FAULT_LEAVES_FOUNDATION1_SCOPE1_COMPLETE0",
+      "intact_schema": "REVIEWED_TRIGGERS_USE_ABORT_NO_PATH_TO_ARBITRARY_INJECTED_FAIL_FOUND",
+      "classification": "NONBLOCKING_OUT_OF_MODEL_SCHEMA_REWRITE_NOT_A_SUCCESSFUL_ROLLBACK_TEST_OR_COMPLETENESS_PERMISSION_BYPASS",
+      "claim_limit": "ATOMICITY_LIMITED_TO_REVIEWED_SCHEMA_FAULT_MODES_NOT_HOSTILE_OR_FUTURE_FAIL_TRIGGERS",
+      "future_writer_requirement": "ROLLBACK_TRANSACTION_ERRORS_REJECT_INCOMPLETE_RETAINED_ROWS_NEVER_TREAT_TABLE_ROW_AS_PERMISSION"
+    }
+  ],
+  "temporary_reviewer_artifacts": {
+    "directory": "/tmp/rbh-m4b1-independent-Sxdlqk",
+    "sha256": {
+      "review.md": "426dbdef5bc7fce41944f160e32e547b06905b356de172ee6bcc638f4efbbab3",
+      "focused.jsonl": "b5ce3d36df25d661ada9b9a00b27e0a2293c7e98d9e5472d26f7b7718cd0b8fc",
+      "race.jsonl": "8f04887fe45751dd76f3a48523972b5e8e67a6dc7a724009d584085ef1e3ca54",
+      "probes.jsonl": "73db0f4e98026ec6935362c5c764684a81be592c543ce4dda0d3118b7be87bfc",
+      "probe_test.go": "0206aff928a2847c3695e10d62ba3377d743e70cbde9ead150043532aba18854",
+      "overlay.json": "48f5451c24e9f4317fe766fd102c11199dfc34a64d60c43dcb6af8886db320a9"
+    },
+    "permanent_reviewer_tests_added": false,
+    "availability": "TEMPORARY_NOT_COMMITTED_NOT_GUARANTEED_AFTER_CLEANUP_RESTART"
+  },
+  "historical_preservation": {
+    "author_evidence": "evidence/http-manual-m4b1-submission-foundation.json",
+    "author_evidence_sha256": "188b4815ae84f99d020145010a5cc165768e85036df36079c2acf304a3023400",
+    "old_product_tests_schema_migrations_evidence_scope_implementation_docs": "BYTE_IDENTICAL_TO_REVIEWED_HEAD",
+    "old_READY_NOT_PERFORMED_and_hashes": "HISTORICAL_SNAPSHOTS_NOT_REWRITTEN",
+    "author_delivery_plan_hash": "REVIEWED_HEAD_SNAPSHOT_ONLY_CLOSEOUT_PREPENDS_CURRENT_STATUS_AND_UPDATES_QUEUE"
+  },
+  "limitations": [
+    "B1_ONLY_INTACT_REVIEWED_FK_ON_SCHEMA_NOT_HOSTILE_SCHEMA_OR_WHOLE_M4_B_PASS",
+    "STRUCTURAL_FOUNDATION_NOT_CRYPTOGRAPHIC_AUTHENTICATION_OR_CURRENT_ACTION_PERMISSION",
+    "TWO_RAW_NONBLOCKING_OBSERVATIONS_PRESERVED_NOT_RELABELED_SUCCESSFUL_ROLLBACK_OR_FIXED",
+    "SYNTHETIC_ARMED_OFFLINE_SETUP_ORIGINAL_NO_ARM_RESTORED_BEFORE_TEST_ACTIONS_NOT_REAL_GRANT",
+    "OFFLINE_SIGNATURES_IN_SETUP_ZERO_ECONOMIC_CAPABILITY_APPLIES_TO_FOUNDATION_NOT_ALL_TESTS",
+    "NO_INDEPENDENT_FULL_SUITE_BUILD_VET_STATICCHECK_CI_REAL_CHAIN_OR_POWER_LOSS_PROOF"
+  ],
+  "preserved_state": {
+    "M1": "PASS", "M2": "PASS", "M3": "PASS", "M4_A": "PASS", "M4_B1": "PASS",
+    "M4_B": "INCOMPLETE_NOT_READY_NOT_PASS", "M4": "INCOMPLETE_NOT_PASS",
+    "M4_B2": "NOT_STARTED", "M4_B3": "NOT_STARTED", "M4_B4": "NOT_STARTED", "M4_C": "NOT_STARTED", "M4_D": "NOT_STARTED", "M5": "NOT_STARTED",
+    "C04": "PASS", "C05": "PASS", "C07": "PASS", "C08": "PASS",
+    "chain": "ROBINHOOD4663_PONS_V2_CURVE_NATIVE_QUOTE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY", "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED", "controlled_canary_authorization": "NOT_GRANTED", "live": false, "release_ready": false,
+    "product_tests_schema_HTTP_config_startup_changes_by_closeout": 0,
+    "sign_query_key_grant_submit_replay_raw_send_permit_nonce_mainnet_economic_actions_by_closeout": 0,
+    "W4_D_W5_other_chains": "NOT_ENTERED"
+  },
+  "closeout_validation": "DOCS_JSON_REPORT_LOG_PROBE_HASH_ATTRIBUTION_PRIOR_CONTENT_PRESERVATION_MANIFEST173_EXACT_FOUR_PATH_DIFF_NO_RUNTIME_RERUN",
+  "closeout_checker_note": "FIRST_CHECKER_EXPECTED_LITERAL_complete=1_BUT_REPORT_SAYS_completeness_is1_PROSE_ONLY_ASSERTION_CORRECTED_AND_FULL_CHECKER_PASSED_NO_PRODUCT_TEST_SCHEMA_OR_REVIEW_FINDING_CHANGE",
+  "delivery": "LOCAL_ONLY_NO_FETCH_PUSH_PR_MERGE",
+  "next_action": "SEPARATELY_AUTHORIZED_M4_B2_DETAILED_GATE_PERMIT_DESIGN_NOT_IMPLEMENTED_OR_OPENED_BY_CLOSEOUT"
+}

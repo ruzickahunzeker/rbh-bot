@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "scope": "M3_B3_A_LOCAL_ARTIFACT_FACTS_VERIFICATION_ENCRYPTION_PRIMITIVES_ONLY_NO_ORCHESTRATOR_SIGNING",
+  "branch": "http-m3b3-controlled-local-signing",
+  "implementation_base": "6c706f411cb3bac95c4425f7e8c33af72381e929",
+  "M1": "PASS_UNCHANGED", "M2": "PASS_UNCHANGED", "M3_B1": "PASS_UNCHANGED", "M3_B2": "PASS_UNCHANGED",
+  "M3_B3": "IN_PROGRESS_NOT_READY_FOR_REVIEW_NOT_PASS",
+  "M3_B3_A": "IMPLEMENTED_AUTHOR_VALIDATED_NOT_INDEPENDENTLY_REVIEWED",
+  "independent_review": "NOT_PERFORMED_NO_PREVIOUS_STAGE_REVIEWER_APPROVAL_REUSED",
+  "implementation": {
+    "new_package": "PURE_FACTS_AND_EXACT_EIP1559_VERIFIER_PLUS_INJECTED_TRUSTED_LOCAL_CIPHER_NO_SIGNER_DB_RPC_CLOCK_ALLOCATION_OR_SEND",
+    "projection": "PACKAGE_PRIVATE_SELECT_ONLY_ORIGINAL_COMPLETE_B2_CLAIM_FACTS_NOT_FRESH_TTL_CONTROL_AUTHORIZATION_GATE",
+    "identity": "EXACT_ORIGINAL_TRANSACTION_NONCE_POLICY_SOURCE_MANUAL_GATE_HASHES_QUOTE_RUNTIME_EXPIRY_CLAIM_OBSERVATION_AUTH_EPOCH_BUILD_RELEASE_DEPLOYMENT_ENVIRONMENT",
+    "AAD": "NEW_EXPLICIT_MANUAL_V1_SUFFIX_ON_LEGACY_IDENTITY_PREFIX_WITH_FULL_CANONICAL_FACTS_SHA256_NO_LEGACY_FORMAT_CHANGE_OR_FALLBACK",
+    "crypto": "REUSE_EXISTING_AES_GCM_CIPHER_VIA_STRUCTURAL_SUBSET_ROUNDTRIP_EXACT_SIGNED_BYTE_VERIFICATION_FIXED_SANITIZED_ZERO_RESULT_ON_ERROR_PANIC_NO_RAW_RESULT",
+    "memory": "OWNED_PLAINTEXT_AND_DECRYPTED_BUFFERS_CLEARED_NO_GO_RUNTIME_LIBRARY_SECURE_ERASURE_CLAIM",
+    "transactions": "DYNAMIC_FEE_TYPE_EMPTY_ACCESS_LIST_CANONICAL_RAW_ONLY_ALL_FIELDS_EXACT_UINT256_GAS_VALUE_OUTLAY_BOUNDED_ZERO_TIP_AND_NONCE_VALID",
+    "historical_projection": "MAY_READ_EXACT_CLAIM_AFTER_EXPIRY_STOP_REVOKE_FROZEN_ACCOUNTING_NEVER_CURRENT_SIGNING_OR_SEND_PERMISSION",
+    "unchanged": "001_TO032_B2_NONCE_WRITER_SHARED_M1_M2_B1_READERS_ACCOUNTING_HTTP_CONFIG_STARTUP_MOD_SUM_ALL_HISTORICAL_EVIDENCE",
+    "not_implemented": "NO_INVOCATION_MARKER_SCHEMA_NO_PHASE_TRANSITION_NO_SIGN_ORCHESTRATOR_NO_DURABLE_ARTIFACT_NO_FRESH_GATE_NO_B3_COMPLETION"
+  },
+  "test_mapping": {
+    "exact_nonce_zero_above_int64_max_minus_one_zero_nonzero_tip_owned_buffers_legacy_AAD_rejected": "TestManualArtifactExactRoundTripNonceTipAndOwnedBuffers",
+    "14_signed_field_type_sender_access_list_substitutions_plus_raw_malformed_unsigned_bounds": "TestManualArtifactRejectsEverySignedFieldSubstitution",
+    "canonical_metadata_uint256_nonce_gas_budget_expiry_deadline_identity_limits_JSON_max_data": "TestManualArtifactRejectsNoncanonicalIdentity",
+    "every_nontransaction_metadata_relabel_even_changed_public_facts_hash_fails_authenticated_AAD": "TestManualArtifactAADAuthenticatesEveryMetadataField",
+    "cipher_error_panic_tamper_nonce_key_version_drift_wrong_key_nil_zero_output_sanitized_errors_buffer_clear": "TestManualArtifactCipherFaultsTamperZeroOutputAndNoLeak",
+    "BUY_fixedSELL_percentSELL_original_claim_all_fields_same_writer_total_changes_unchanged": "TestHTTPM3B3AExactOriginalClaimProjectionNoWrites",
+    "reopen_stop_revoke_frozen_expired_historical_projection_no_new_query_or_effect": "TestHTTPM3B3AProjectionHistoryAfterExpiryRevokeReopen",
+    "unclaimed_wrong_scope_owner_request_cancellation_nil_zero_output_no_writes": "TestHTTPM3B3AProjectionInvalidIdentityAndCancellationZeroOutput",
+    "projection_AST_no_schema_latest32_closed_guard_presence_on_unmodified_fixture": "TestHTTPM3B3ADisconnectedSourceNoSigningAndNoSchema",
+    "existing_HTTP_package_economic_dependency_call_guards_unchanged": "TestUserHTTPTradeHasNoEconomicDependencies"
+  },
+  "author_validation": {
+    "intermediate_failures": ["INITIAL_PROJECTION_GUARD_TEST_USED_BOUND_FIXTURE_WHICH_EXPLICITLY_DROPS_NO_ARM_FOR_FAKE_AUTH_CHANGED_TEST_TO_UNMODIFIED_BASE_FIXTURE_NO_PRODUCT_GUARD_CHANGE_TRADEAPI_FAIL1_534S"],
+    "final_focused_ordinary": {
+      "command": "go test -p 1 ./internal/manualartifact ./internal/tradeapi -run '^(TestManualArtifact|TestHTTPM3B3A|TestUserHTTPTradeHasNoEconomicDependencies)$|^TestManualArtifact|^TestHTTPM3B3A' -count=1 -timeout=5m",
+      "status": "PASS", "manualartifact_seconds":0.046,"tradeapi_seconds":1.460,
+      "package_tests":5,"API_tests":4,"existing_HTTP_guard_tests":1
+    },
+    "final_focused_race_three_runs": {
+      "command": "go test -race -p 1 ./internal/manualartifact ./internal/tradeapi -run '^(TestManualArtifact|TestHTTPM3B3A)' -count=3 -timeout=10m",
+      "status":"PASS","manualartifact_seconds":2.141,"tradeapi_seconds":97.801,"runs":3,"package_tests":5,"API_tests":4
+    },
+    "prior_shared_compatibility_ordinary": {
+      "command": "go test -p 1 ./internal/tradeapi -run '^(TestHTTPM3B2|TestHTTPM1|TestHTTPM2|TestHTTPM3B1)' -count=1 -timeout=10m",
+      "status":"PASS","tradeapi_seconds":163.569,
+      "qualification":"ALL_MATCHING_M1_M2_B1_B2_TESTS_SHARED_SOURCES_UNCHANGED_BEFORE_FINAL_NEW_PRIMITIVE_BOUNDS_FAULT_CASE_ADDITIONS_NOT_FINAL_FULL_REPOSITORY_CLAIM"
+    },
+    "final_build_vet_staticcheck": "PASS_ALL_REPOSITORY_NO_ERRORS",
+    "offline_model_curve":"PASS_39_REFERENCE_MODEL_TESTS_5_CURVE_FIXTURES",
+    "full_repository_tests_race_or_CI":"NOT_RUN_NOT_CLAIMED",
+    "earlier_new_three_run_race":"PASS_MANUALARTIFACT2_131S_TRADEAPI141_526S_INTERMEDIATE_PRIMITIVE_NOT_FINAL_HASH_VALIDATION",
+    "independent_approval":"NOT_PERFORMED_AUTHOR_TESTS_ONLY"
+  },
+  "source_sha256": {
+    "internal/manualartifact/identity.go":"89d1d2f7125af8e44e2625ceda3a84c4b66dcb448410c3d1404a8cfac4a62167",
+    "internal/manualartifact/verify.go":"71ef184033240976c8b8881cc6a69d33669aa4fdb24d65c632b812544b6d3006",
+    "internal/manualartifact/encryption.go":"9648c50e364af447a4adefc6f8808432d020cf025fa4377aaa396f9c233de8a1",
+    "internal/manualartifact/artifact_test.go":"39eb4fc7af79b6dbfb14c8215b262a315d64ad8188b5b0a4ac87d5b3b90a4d04",
+    "internal/tradeapi/manual_artifact_facts.go":"82ce136b8c74945c7ce08c346babdfc9e76ccf298eff07b6c488e3442431e545",
+    "internal/tradeapi/manual_artifact_facts_test.go":"387f8c01fc0beebe51b62b7132e774a43569c79ac87e537b75a691c460b9d4be",
+    "docs/HTTP_MANUAL_M3_B3_SIGNING.md":"ada3d098821d454e5f2c13e42c0829adb215cc14c1ff6622beee91d1f00349b1",
+    "docs/HTTP_TRADING_DELIVERY_PLAN.md":"7ac06acfb041f95ba95103b35cd5bffadc6927e5590a75da208e7a05370e56a7"
+  },
+  "boundaries": {
+    "chain":"ROBINHOOD4663_PONS_V2_CURVE_NATIVE_QUOTE_ONLY",
+    "deadline_capability":"APPLICATION_TTL_ONLY","contract_deadline":false,
+    "production_broadcast":"NOT_CONNECTED","controlled_canary_authorization":"NOT_GRANTED","live":false,"release_ready":false,
+    "production_signer_calls_new_nonce_allocations_durable_artifacts_submissions_replay_raw_send_real_RPC_mainnet_grant_actions":0,
+    "test_only_signatures":"EPHEMERAL_LOCAL_KEYS_EXISTING_LOCAL_SIGNER_NO_REAL_WALLET_OR_NETWORK_NO_PRODUCTION_TELEMETRY_CLAIM",
+    "compiled_dependencies":"PREEXISTING_SDK_ETHCLIENT_NOT_CLAIMED_ABSENT_NEW_PRIMITIVE_PRODUCTION_IMPORTS_TYPES_COMMON_MANUALNONCE_ONLY",
+    "schema_migration_changes":0,"HTTP_config_startup_changes":0,"closeout":false,"remote_operations":false,
+    "next_action":"B3_B_ADDITIVE_EXACT_DURABLE_INVOCATION_AUDIT_MODEL_BEFORE_B3_C_FENCED_LOCAL_SIGNING_NOT_B4_OR_SEND"
+  }
+}

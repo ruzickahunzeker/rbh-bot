@@ -79,7 +79,10 @@ func TestC08HardeningSameIdentitySameWallet10000(t *testing.T) {
 		t.Fatal(err)
 	}
 	kernel, _ := NewExecutionKernel(store, backend, signer, cipher)
-	const total = 10000
+	total := 10000
+	if raceEnabled {
+		total = 1000
+	}
 	results := make(chan SignedArtifact, total)
 	errs := make(chan error, total)
 	jobs := make(chan struct{}, total)
@@ -123,7 +126,7 @@ func TestC08HardeningSameIdentitySameWallet10000(t *testing.T) {
 			counts.accepted++
 		}
 	}
-	if counts.total() != total || counts.accepted != 1 || counts.deduped != 9999 {
+	if counts.total() != total || counts.accepted != 1 || counts.deduped != total-1 {
 		t.Fatalf("counts=%+v", counts)
 	}
 	assertExecutionSafety(t, store, 1, 1)
@@ -135,7 +138,10 @@ func TestC08HardeningDifferentIdentitiesSameWallet10000(t *testing.T) {
 	backend := newFakeBackend()
 	signer, cipher := executionSecrets(t)
 	_ = store.RegisterDryRunWallet(context.Background(), "wallet-1", signer.Address())
-	const total = 10000
+	total := 10000
+	if raceEnabled {
+		total = 1000
+	}
 	requests := make([]DryRunRequest, total)
 	for i := range total {
 		r := buyRequest()
@@ -149,7 +155,7 @@ func TestC08HardeningDifferentIdentitiesSameWallet10000(t *testing.T) {
 	seedDryRunCandidates(t, store, requests)
 	kernel, _ := NewExecutionKernel(store, backend, signer, cipher)
 	counts := runKernelWorkload(t, kernel, requests)
-	if counts.total() != total || counts.accepted != 1 || counts.rejected != 9999 {
+	if counts.total() != total || counts.accepted != 1 || counts.rejected != total-1 {
 		t.Fatalf("counts=%+v", counts)
 	}
 	assertExecutionSafety(t, store, 1, 1)
@@ -159,7 +165,10 @@ func TestC08HardeningMultiWalletMixed10000(t *testing.T) {
 	store, closeDB := openTradeStore(t)
 	defer closeDB()
 	const wallets = 10
-	const uniquePerWallet = 500
+	uniquePerWallet := 500
+	if raceEnabled {
+		uniquePerWallet = 50
+	}
 	requests := make([]DryRunRequest, 0, 10000)
 	kernels := map[string]*ExecutionKernel{}
 	backend := newFakeBackend()

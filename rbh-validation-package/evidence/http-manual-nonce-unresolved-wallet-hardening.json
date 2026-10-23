@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "scope": "M3_B2_ATTEMPT_FREE_UNRESOLVED_WALLET_FIRST_CLAIM_EXCLUSIVITY_ONLY_LOCAL",
+  "branch": "http-m3b2-unresolved-step-hardening",
+  "implementation_base": "3d8c016274e7f767982338fa77401708087ec0bd",
+  "previous_independent_review": {
+    "reviewer": "http_m3b2_accounting_final_review",
+    "reviewed_head": "3d8c016274e7f767982338fa77401708087ec0bd",
+    "conclusion": "FAIL",
+    "finding": "NORMAL_SQL_MATCHING_BLOB_STEP_OR_PARENT_OPERATION_WALLET_UNRESOLVED_WORK_WITHOUT_ATTEMPT_PERMITTED_FIRST_CLAIM_AND_SIX_DIRECT_SQL_VARIANTS",
+    "reachability": "MAIN_STEP_OPERATION_CASES_ALL_GUARDS_AND_FOREIGN_KEYS_INTACT_NO_SIGN_OR_SEND_PERMISSION",
+    "accounting_031": "PASS_16_STATE_CARTESIAN_BEFORE_AFTER_REOPEN_32_READS_6_MALFORMED_BEFORE_AFTER_REOPEN_12_READS_NULL_CONSTRAINT_CONTROLS",
+    "ordinary_permanent": "PASS_35_B2_9_STORAGE_3_PURE_56_390S_0_645S_0_005S",
+    "combined_overlay": "FAIL_14_537S_NEW_STEP_EXCLUSIVITY_OLD_BYTE_REFERENCE_ACCOUNTING_PROBES_PASS",
+    "focused_matrix_sql": "FAIL_6_361S_MAIN_BLOB_AND_RETAINED_REFERENCE_CASES_PLUS6_SQL_VARIANTS",
+    "selected_race": "STOPPED_EXIT130_PURE_1_022S_STORAGE_14_341S_PASS_TRADEAPI_INCOMPLETE_NOT_PASS",
+    "primary_reproduction": "FAIL_6_DIRECT_SQL_VARIANTS_2_091S",
+    "temporary_report": "/tmp/m3b2-independent031.OewIJA/REVIEW.md",
+    "temporary_report_sha256": "a47d855f4a980807ac0c2340706751c4e442b0af40b77b255b6007f20b64880a",
+    "overlay_source_sha256": "940f3c86e359715f7fc8b6776d227f5f1e44136a1a0ab5e5427f4c8866725a0b",
+    "raw_logs": "TOOL_SESSION_OUTPUTS_NOT_FILESYSTEM_PERSISTED_TEMPORARY_PROBES_NOT_PERMANENT_TESTS"
+  },
+  "M1": "PASS_UNCHANGED",
+  "M2": "PASS_UNCHANGED",
+  "M3_B1": "PASS_UNCHANGED",
+  "M3_B2": "M3_B2_READY_FOR_REVIEW",
+  "independent_review": "PENDING_FIXED_COMMIT_FRESH_REVIEW_NOT_AUTHOR_PASS",
+  "implementation": {
+    "migration": "ADDITIVE_032_001_TO_031_BYTE_IDENTICAL_NO_DATA_MUTATION",
+    "view": "DENIAL_ONLY_FULL_BYTE_WALLET_IDENTITY_LEFT_JOIN_OPERATION_PRESERVES_ATTEMPT_FREE_ORPHAN_BLOB_REFERENCE_WITNESSES",
+    "scope": "FIRST_CLAIM_ONLY_ORIGINAL_HISTORICAL_FALSE_PERMISSION_VERIFICATION_AND_PUBLIC_CLAIM_COMPLETENESS_UNCHANGED",
+    "checks": "B2_PRIVATE_READ_BEFORE_OBSERVER_SERIALIZED_WRITER_BEFORE_LOADER_SQL_BEFORE_AFTER_INSERT_SAME_VIEW",
+    "malformed_status": "RELEVANT_NON_TEXT_OR_EMBEDDED_NUL_DENIED_NOT_COERCED",
+    "compatibility": "UNRELATED_WALLET_ACTIVE_WORK_AND_SAME_WALLET_NONACTIVE_METADATA_NOT_GLOBALLY_BLOCKED_VALID_FROZEN_HISTORY_NO_OBSERVER_NO_REFRESH",
+    "rollback": "LATE_METADATA_WITNESS_AFTER_OBSERVATION_REJECTS_LATE_STATEMENT_WITNESS_ROLLS_BACK_PROVISIONAL_CLAIM_EFFECTS",
+    "upgrade": "REAL031_SCHEMA_FORCED_LATE032_JOURNAL_FAILURE_ROLLS_BACK_VIEW_AND_TRIGGERS_RETRY_IDEMPOTENT_LEGACY_UNCHANGED",
+    "unchanged": "SHARED_B1_M1_M2_READERS_HISTORY_ACCOUNTING_CHECKER_FINANCIAL_PHASES_NONCE_ALGORITHM_CONTROLS_TTL_AUTHORIZATION_HTTP_CONFIG_STARTUP_SUBMISSION_SEND"
+  },
+  "test_mapping": {
+    "step_parent_operation_BLOB_wallet_missing_BLOB_parent_ref_zero_observer_30_SQL_denials_before_after_reopen": "TestHTTPM3B2UnresolvedWalletBeforeQuerySQLAndReopen",
+    "post_observation_and_late_statement_witness_zero_output_atomic_claim_rollback": "TestHTTPM3B2UnresolvedWalletAppearsAfterObservation",
+    "unrelated_active_wallet_nonactive_same_wallet_original_frozen_history_false_permissions_no_query_reopen": "TestHTTPM3B2UnresolvedWalletScopeAndHistoricalOnly",
+    "all8_active_statuses_plus_BLOB_NUL_state_denied_before_query_direct_SQL": "TestHTTPM3B2UnresolvedWalletEveryActiveState",
+    "real031_to032_late_journal_fault_atomic_retry_no_repair_no_allocation": "TestManualNonceUnresolvedWalletUpgradeFrom031AtomicAndNoRepair",
+    "late_context_cancel_deadline_preserve_ErrTxDone_no_observer_no_effects_next_claim_usable": "TestHTTPM3B2PublicLateReadCancellationPreservesCause",
+    "original_control_commit_window": "TestHTTPM3B2ControlRaceBeforeWriterRejectsAndCommitWindowFences",
+    "original_two_handle_concurrent_claim": "TestHTTPM3B2TwoHandleConcurrentClaims",
+    "original_one_nonce_no_second_accounting_duplicate": "TestHTTPM3B2ExactClaimNoSecondAccountingAndDuplicate",
+    "closed_dependency_guards": "TestHTTPM3B2ClosedDependenciesAndGuards"
+  },
+  "validation": {
+    "author_only": true,
+    "intermediate_failures": [
+      "FIRST_CUMULATIVE_ORDINARY_FAIL_91_766S_NEW_CHECK_AFTER_LOADER_FINAL_CLOCK_CAUSED_LATE_CANCELLATION_TO_LOSE_ERR_TX_DONE_MOVED_CHECK_BEFORE_LOADER_ORIGINAL_TEST_UNCHANGED",
+      "INITIAL032_UPGRADE_HALF_SCHEMA_INTROSPECTION_NAMED_NONEXISTENT031_VIEW_FIXED_TO_ACTUAL032_VIEW_AND_BOTH_TRIGGERS_BEFORE_FINAL_TESTS",
+      "FIRST_FULL_ORDINARY_AND_NEW3_RUN_RACE_STARTED_BEFORE_QUERY_PLACEMENT_FIX_INTERMEDIATE_SOURCE_NOT_CLAIMED_FINAL_FIXED_SOURCE_VALIDATION"
+    ],
+    "new_and_late_cancel_final_ordinary": "PASS_19_597S_4_NEW_API_TESTS_PLUS_ORIGINAL_LATE_CANCEL",
+    "cumulative_final_ordinary": {
+      "command": "go test -p 1 ./internal/manualnonce ./internal/storage ./internal/tradeapi -run '^(TestManualNonce|TestHTTPM3B2)' -count=1 -timeout=10m",
+      "status": "PASS",
+      "named_tests": {"B2":39,"storage_nonce":10,"pure":3},
+      "package_seconds": {"manualnonce":0.015,"storage":1.471,"tradeapi":122.319}
+    },
+    "prior_overlay_author_regression_final": {
+      "command": "go test -p 1 -overlay /tmp/m3b2-independent031.OewIJA/overlay.json ./internal/tradeapi -run '^TestIndependent' -count=1 -timeout=10m",
+      "status": "PASS",
+      "tradeapi_seconds": 56.016,
+      "qualification": "PREVIOUS_REVIEWER_PROBES_AUTHOR_RERUN_NOT_FRESH_INDEPENDENT_APPROVAL"
+    },
+    "intermediate_full_ordinary": {
+      "command": "go test -p 1 ./... -count=1 -timeout=20m",
+      "status": "FAIL_OLD_QUERY_AFTER_FINAL_CLOCK_LATE_CANCELLATION_ONLY_NOT_FINAL_SOURCE_PASS",
+      "package_seconds": {"storage":11.935,"trade":260.961,"tradeapi":283.236},
+      "qualification": "STARTED_BEFORE_FINAL_CHECK_PLACEMENT_CODE_ADJUSTMENT_OLD_TEST_BINARY_OTHER_UNCHANGED_PACKAGES_PASSED_NOT_RELABELED_FULL_PASS"
+    },
+    "intermediate_new_repeat_race": {
+      "command": "go test -race -p 1 ./internal/storage ./internal/tradeapi -run '^(TestManualNonceUnresolvedWallet|TestHTTPM3B2UnresolvedWallet)' -count=3 -timeout=15m",
+      "status": "PASS_INTERMEDIATE_QUERY_PLACEMENT_NOT_FINAL_COMMIT_PROOF",
+      "storage_seconds":25.811,"tradeapi_seconds":597.424,"runs":3,
+      "qualification": "NEW_WALLET_REGRESSIONS_ONLY_NO_LATE_CANCELLATION_TEST_SELECTED_FINAL_SOURCE_RACE_SEPARATE"
+    },
+    "final_tradeapi_full_ordinary": {
+      "command": "go test -p 1 ./internal/tradeapi -count=1 -timeout=20m",
+      "status": "PASS", "tradeapi_seconds":237.504,
+      "network": "CONTROLLED_LOCAL_LOOPBACK_ONLY_GOPROXY_OFF_NO_REAL_CHAIN"
+    },
+    "full_final_source_repository_ordinary_single_run": "NOT_RUN_NOT_CLAIMED_FINAL_AFFECTED_PACKAGE_AND_CUMULATIVE_SUITE_SEPARATE",
+    "focused_final_race": {
+      "command": "go test -race -p 1 ./internal/storage ./internal/tradeapi -run '^(TestManualNonceUnresolvedWallet|TestHTTPM3B2UnresolvedWallet|TestHTTPM3B2PublicLateReadCancellationPreservesCause)' -count=1 -timeout=15m",
+      "status": "PASS", "storage_seconds":5.189,"tradeapi_seconds":189.525,
+      "storage_named_tests":1,"tradeapi_named_tests":5,"runs":1
+    },
+    "final_build_vet_staticcheck": "PASS_ALL_THREE",
+    "offline_model_curve": "PASS_39_REFERENCE_MODEL_TESTS_5_CURVE_FIXTURES",
+    "full39_B2_race_current_head": "NOT_RUN_NOT_CLAIMED",
+    "full_repository_race": "NOT_RUN_NOT_CLAIMED",
+    "GitHub_CI": "NOT_RUN_NO_REMOTE_OPERATIONS"
+  },
+  "source_sha256": {
+    "internal/tradeapi/manual_nonce_claim.go": "d2f407700697c440ec7d56afb33bb004be33966942af9bd3ff656f471908ce89",
+    "internal/tradeapi/manual_nonce_unresolved_wallet_test.go": "3464f58c8360d68891165bff2e746c2d1283d08ff1d9c08abb7c9e2fa2f12a8f",
+    "internal/storage/database_test.go": "88142656dab0a448f088fb2833be10afc9bce7a575560cbc16622ce81c8660c5",
+    "internal/storage/manual_nonce_unresolved_wallet_upgrade_test.go": "dbbcd8447a6fe6f6f45f8309c63cdec48c79c4024b507c887f769982f62c043d",
+    "internal/storage/migrations/trade/032_manual_nonce_unresolved_wallet.sql": "f28700aa2a5681131d7abe5f77c38b3c5226b59678a37e634965da6ddb0d84a2",
+    "docs/HTTP_MANUAL_NONCE_LIFECYCLE.md": "5b3e01b4fe932a4646cb506af0ae363e2ac20c801744d166cdf12619b3c6d7a5",
+    "docs/HTTP_TRADING_DELIVERY_PLAN.md": "eecc031cb8fd36bf4f47781d93c1e07916ef3a93928d83bd9018f666c556607c"
+  },
+  "boundaries": {
+    "chain": "ROBINHOOD4663_PONS_V2_CURVE_NATIVE_QUOTE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "new_signer_cipher_artifact_submission_replay_send_real_RPC_mainnet_grant_actions": 0,
+    "proof_scope": "LOCAL_STRUCTURAL_AND_DISPOSABLE_SQLITE_NOT_PRODUCTION_TELEMETRY_OR_POWER_LOSS",
+    "compiled_dependencies": "PREEXISTING_TRANSITIVE_SDK_ETHCLIENT_NOT_CLAIMED_ABSENT",
+    "historical_evidence": "PREEXISTING_EVIDENCE_UNCHANGED_SOURCE_HASHES_ARE_REVIEWED_HEAD_SNAPSHOTS",
+    "B3_B4_M4_M5_W4_D_W5": "NOT_ENTERED",
+    "closeout": false,
+    "remote_operations": false,
+    "next_action": "FIXED_COMMIT_FRESH_INDEPENDENT_REVIEW_CONDITIONAL_DOCS_CLOSEOUT_ONLY_IF_PASS"
+  }
+}

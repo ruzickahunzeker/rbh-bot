@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_MANUAL_M4_B1_DISCONNECTED_STRUCTURAL_DURABLE_FOUNDATION_ONLY_NO_GATE_PERMIT_SUBMISSION_OR_SEND",
+  "branch": "http-m4b1-submission-foundation",
+  "implementation_base": "4855d982aca882b9ca2b1eccd965efe725ce2679",
+  "M4_A": "PASS_UNCHANGED",
+  "M4_B1": "READY_FOR_REVIEW",
+  "checkpoint": "M4_B1_READY_FOR_REVIEW",
+  "M4_B": "INCOMPLETE_NOT_READY_NOT_PASS",
+  "M4": "INCOMPLETE_NOT_PASS",
+  "independent_M4_B1_review": "NOT_PERFORMED",
+  "data_model": {
+    "migration": "037_manual_submission_foundation.sql",
+    "durable_table": "manual_submission_foundations(operation_id,binding_json,binding_hash,created_at)",
+    "source_projection": "UNCHANGED036_COMPLETE_SIGNED_PREBROADCAST_PLUS_EXACT_MANUAL_OWNERSHIP_NO_LEGACY_SOURCE_COLLISIONS_OR_ALIAS_ADOPTION",
+    "bound_data": "FULL_ORIGINAL_FACTS_CONTRACT_FACTS_ENVELOPE_RAW_TX_HASHES_KEY_COMPLETION_RESERVATION_TYPED_INPUT_GAS_UNIT_AND_ORIGINAL_OPERATION_USAGE",
+    "historical_metadata": "NOT_CURRENT_TTL_AUTH_GATE_OR_CRYPTOGRAPHIC_VALIDITY_NOT_AN_EXECUTION_STATE_MACHINE_OR_FINANCIAL_OWNER",
+    "flags": "EXECUTION_SIGNING_SEND_REPLAY_AUTHORIZED_ALL_FALSE",
+    "created_at": "CANONICAL_ABSOLUTE_AT_OR_AFTER_ORIGINAL_ARTIFACT_COMPLETION_NO_CLOCK_OR_NEW_EXPIRY_WINDOW",
+    "atomic_effects": "ONE_FOUNDATION_ONE_AUDIT_ONE_ALERT_TRANSIENT_SCOPE_EMPTY_ON_SUCCESS",
+    "witness_scope": "SAME_STATEMENT_ONLY_DEFERRED_FK_NO_REOPEN_OR_ORPHAN_COMMIT",
+    "no_repair": "MISSING_CORRUPT_WITNESSES_RETAINED_NO_RECREATION_ADOPTION_OR_REPLACE",
+    "old_guard_exceptions": 0,
+    "Go_runtime_writer_loader_or_production_caller": false
+  },
+  "test_mapping": {
+    "three_sides_original_identity_no_economic_mutation_and_real_reopen": "TestHTTPM4B1ExactThreeSidesReopenNoEconomicMutation",
+    "33_projection_overrides_self_rehashed_all_insert_modes_invalid_types_time_identity": "TestHTTPM4B1ExactProjectionRejectsCallerOverrides",
+    "marker_source_TEXT_BLOB_collision_and_unsupported_submission_denied": "TestHTTPM4B1UnsignedMarkerAndLegacySourcesRejected",
+    "audit_alert_abort_ignore_atomicity_under_all_insert_modes": "TestHTTPM4B1WitnessFailuresRollbackAllVerbs",
+    "duplicate_replacement_rowid_victims_immutability_and_legitimate_delivery": "TestHTTPM4B1DuplicateIdentityVictimsAndDelivery",
+    "missing_BLOB_history_reopen_exact_witness_no_recreation_or_alert_UPDATE_adoption": "TestHTTPM4B1MissingWitnessCannotRepairOrAdopt",
+    "reserved_audit_namespace_preseed_and_deferred_orphan_scope_denial": "TestHTTPM4B1PreseedNamespaceAndOrphanScopeRejected",
+    "eight_contestants_two_SQLite_handles_exactly_one_foundation_no_accounting_mutation": "TestHTTPM4B1ConcurrentDistinctHandlesExactlyOneFoundation",
+    "stopped_revoked_expired_frozen_history_never_current_permission_or_release": "TestHTTPM4B1HistoricalMetadataNeverCurrentGate",
+    "no_old_drop_alter_guard_or_downstream_insert_exception": "TestHTTPM4B1MigrationHasNoOldGuardExceptions",
+    "explicit_no_arm_no_permit_no_PASS_original_rejection": "TestHTTPM4B1PermitPassAndArmRemainClosed",
+    "real_FK_COMMIT_failure_complete_precommit_then_rollback_and_reopen": "TestHTTPM4B1ActualCommitFailureAndRollback",
+    "structural_tampered_ciphertext_metadata_never_substitutes_M4A_crypto_validation": "TestHTTPM4B1SQLCompletenessIsNotCryptographicPermission",
+    "upgrade036_late_journal_failure_atomic_idempotent_no_repair_old_guards_exact": "TestManualSubmissionFoundationUpgradeFrom036AtomicNoRepair"
+  },
+  "author_validation": {
+    "environment": "PATH=/tmp/rbh-go-toolchain/bin:$PATH GOCACHE=/tmp/rbh-go-build-cache GOMODCACHE=/tmp/rbh-go-mod-cache GOPROXY=off",
+    "focused": {
+      "command": "go test -p 1 ./internal/storage ./internal/tradeapi -run '^(TestManualSubmissionFoundation|TestOpenMigrateAndValidateEveryOwner$|TestHTTPM4B1)' -count=1 -v -timeout=5m",
+      "status": "PASS", "API_top_level_tests": 13, "storage_top_level_tests": 2,
+      "seconds": {"storage": 0.280, "tradeapi": 19.905},
+      "final_B1_migration_and_new_test_source": true,
+      "qualification": "BEFORE_OLD_STATIC_SCHEMA_CHECKPOINT_METADATA_SYNC_TARGETED_B1_SOURCE_UNCHANGED_FINAL_FULL_RUN_COVERS_FINAL_REPOSITORY_SOURCE"
+    },
+    "full_repository_ordinary": {
+      "status": "PASS", "command": "go test -p 1 ./... -count=1 -timeout=20m -json",
+      "seconds": {"app": 0.172, "storage": 10.720, "trade": 156.863, "tradeapi": 321.406},
+      "M4_B1_API_top_level_tests": 13, "M4_A_API_top_level_tests": 9,
+      "final_repository_product_test_source": true,
+      "local_test_network_permission": "APPROVED_EXISTING_CONTROLLED_LOOPBACK_UDS_FIXTURES_ONLY_NO_REAL_KEY_CHAIN_GRANT_SEND"
+    },
+    "schema_checkpoint_regression": {
+      "command": "go test ./internal/tradeapi -run '^TestHTTPM3B3ADisconnectedSourceNoSigningAndNoSchema$' -count=1 -v -timeout=1m",
+      "status": "PASS", "seconds": 0.182,
+      "qualification": "ONLY_METADATA_EXPECTATION36_TO37_CHANGED_ALL_OLD_PROHIBITED_DEPENDENCY_AND_CLOSED_GUARD_ASSERTIONS_RETAINED"
+    },
+    "selected_single_race": {
+      "status": "PASS",
+      "command": "go test -race -p 1 ./internal/manualartifact ./internal/storage ./internal/tradeapi -run '^(TestManualArtifact|TestManualSubmissionFoundation|TestOpenMigrateAndValidateEveryOwner$|TestHTTPM4B1|TestHTTPM4A(SnapshotNeverSubstitutesForFreshGate|ReadOnlyDependencyAndMetadataContract)$|TestHTTPM3B3ADisconnectedSourceNoSigningAndNoSchema$|TestUserHTTPTradeHasNoEconomicDependencies$)' -count=1 -v -timeout=15m -json",
+      "top_level_tests": {"manualartifact": 6, "storage": 4, "tradeapi": 17},
+      "seconds": {"manualartifact": 1.203, "storage": 8.186, "tradeapi": 498.535},
+      "M4_B1_API_top_level_tests": 13,
+      "final_repository_product_test_source": true,
+      "qualification": "SELECTED_SINGLE_RACE_NOT_WHOLE_REPOSITORY_OR_REPEATED_RACE"
+    },
+    "build_vet_staticcheck": {"status": "PASS", "commands": ["go build ./...", "go vet ./...", "/tmp/rbh-bin/staticcheck ./..."], "output": "EMPTY_SUCCESS_LOGS"},
+    "offline": {
+      "commands": ["python3 scripts/verify_curve_expected.py", "python3 scripts/verify_offline.py --output /tmp/rbh-m4b1-author-bNV261/offline-results.json"],
+      "status": "PASS", "curve_fixtures": 5, "reference_tests": 39, "reference_seconds": 2.977,
+      "qualification": "OFFLINE_MODELS_NOT_REAL_CHAIN"
+    },
+    "intermediate_runs": [
+      {"stage": "INITIAL10_API_TESTS_BEFORE_STRONGER_COVERAGE", "status": "PASS", "seconds": 17.982, "log": "TOOL_SESSION4919_NOT_PERSISTED", "final_source": false},
+      {"stage": "TWELVE_API_TESTS_FIRST_STRONGER_FIXTURE_RUN", "status": "FAIL", "seconds": 19.122, "log": "focused.log", "reason": "REUSED_OFFLINE_SETUP_DROPPED_NO_ARM_NEW_TEST_EXPECTED_IT_PRESENT"},
+      {"stage": "TWELVE_API_TESTS_WITH_NO_ARM_RESTORED", "status": "FAIL", "seconds": 19.369, "log": "focused-final.log", "reason": "EXACT_AUDIT_RECREATION_PROBE_JOINED_CORRUPTED_BLOB_FOUNDATION_AND_INSERTED_ZERO_ROWS_NOT_A_SUCCESSFUL_REPAIR"},
+      {"stage": "FIRST_FULL_REPOSITORY_BEFORE_LATEST_SCHEMA_METADATA_SYNC", "status": "FAIL", "API_seconds": 325.485, "log": "full-ordinary.jsonl", "M4_B1_API_top_level_PASS": 13, "sole_failed_test": "TestHTTPM3B3ADisconnectedSourceNoSigningAndNoSchema", "reason": "OLD_STATIC_TEST_EXPECTED_LATEST_SCHEMA36_ACTUAL037_ONLY_EXPECTATION_SYNCHRONIZED_NO_DEPENDENCY_OR_CLOSED_GUARD_ASSERTION_REMOVED"}
+    ],
+    "fixture_corrections": "RESTORE_EXACT_ORIGINAL018_NO_ARM_BEFORE_B1_ACTIONS_AND_ATTEMPT_EXACT_WITNESS_FROM_ORIGINAL_NONCE_BINDING_NOT_CORRUPT_FOUNDATION_NO_OLD_PRODUCT_OR_ASSERTION_WEAKENING",
+    "author_self_check_hardening": "NEW037_ALERT_NAMESPACE_UPDATE_ADOPTION_GUARD_ADDED_BEFORE_FINAL_SOURCE_TESTS_NOT_A_CHANGE_TO_PRIOR_LANDED_IMPLEMENTATION",
+    "final_integrity": {
+      "status": "PASS",
+      "package_checker_entries": 172,
+      "old_manifest_lines_preserved": 171,
+      "source_document_hashes": 9,
+      "temporary_log_hashes": 8,
+      "test_mappings": 14,
+      "B1_API_tests_plus_upgrade_in_final_ordinary_and_race": "PASS",
+      "old_tracked_bytes": "PRESERVED_EXCEPT_PLAN_MANIFEST_AND_TWO_EXACT_TEST_METADATA_EXPECTATION_REPLACEMENTS",
+      "migrations001_to036_and_existing_product_Go": "BYTE_IDENTICAL",
+      "gofmt": "PASS",
+      "qualification": "AUTHOR_CHECKS_NOT_INDEPENDENT_REVIEW"
+    },
+    "temporary_logs": {"directory": "/tmp/rbh-m4b1-author-bNV261", "shipped": false, "sha256": {
+      "focused.log": "93c459ac77838e16da36bb9a06857ea45266ec3297603fcec8fa8241157d0c28",
+      "focused-final.log": "519cf51ea34f45d9d3d9a53f88ee1eb5e578e925770d0cf625017c8808e64a9c",
+      "focused-complete.log": "4dcdc8fcdef1d0d2a41ec52819f63fdc890c9b682fd56e99f8e7708036ce0a92",
+      "checkpoint-regression.log": "485aea01484ebd95faabc7d84fae9e8d1ebe5879695f795248146a558f8efecc",
+      "full-ordinary.jsonl": "72617dfa980424cba44e71412f4923efa26b0980fd7c94e9b8fcfbcdf09e35f3",
+      "full-ordinary-final.jsonl": "2c6a32f899818f2ea0638b305918ac7f7f129762e4de367671f023a516058525",
+      "selected-race.jsonl": "87ea4570c32a603f75f79ea04858d4be93ff3363c15b341a1c6e889bae851941",
+      "offline-results.json": "d3c8309013650806d49e13e825e6bce89fb8834bed5dcd9595b93a6eec097557"
+    }},
+    "not_claimed": ["INDEPENDENT_REVIEW", "REMOTE_CI", "FULL_REPOSITORY_RACE", "POWER_LOSS", "REAL_CHAIN", "M4_B_OR_M4_PASS"]
+  },
+  "source_sha256": {
+    "internal/storage/migrations/trade/037_manual_submission_foundation.sql": "3d826692f6d148c6e50b40aa33e6c6bc6c27b820a627335bdb32f9cc1b215c0d",
+    "internal/tradeapi/manual_submission_foundation_test.go": "78094784f47da5cb434f8016f17964b657551aeea96a0f4292e7d4e45d8b2b63",
+    "internal/storage/manual_submission_foundation_upgrade_test.go": "71a97365575260740f2a57a70add49a8179d2a13edb8fb340c56c0f0083c592f",
+    "internal/storage/database_test.go": "5928a99c6f36ed24a1ef36239911eec2de82045db37cd66597ea08c512970678",
+    "internal/tradeapi/manual_artifact_facts_test.go": "b32a4fde9147b0c993a6f4b05f6f81fd6d80bd9d947b0313a66c50125220d429",
+    "internal/tradeapi/manual_submission_artifact.go": "6938d86d4673ba56c12e5a0ad111974e383aaab7b604c153e24ebe1626795e29",
+    "internal/tradeapi/manual_signed_artifact.go": "07ae59002f76d997595014002b99ab97495b6bab21d4308ab941ebd31fb448ee",
+    "docs/HTTP_MANUAL_M4_B1_FOUNDATION.md": "5f1a9c1563549b7bd2803dca050bf2421ccf28c4077b05d930b7e56046e93bb8",
+    "docs/HTTP_TRADING_DELIVERY_PLAN.md": "104c623fc243b8b06e2f0bd968108bd2c78d47fe66320012e3c896740481a3bf"
+  },
+  "preservation": {
+    "migrations001_to036": "BYTE_IDENTICAL",
+    "existing_product_and_evidence": "BYTE_IDENTICAL",
+    "existing_test_change": "DATABASE_TRADE_MIGRATION_COUNT35_TO36_AND_ARTIFACT_STATIC_LATEST_SCHEMA36_TO37_ONLY_014_ABSENT_ALL_ECONOMIC_ASSERTIONS_RETAINED",
+    "existing_doc_change": "DELIVERY_PLAN_CURRENT_CHECKPOINT_QUEUE_ONLY",
+    "old_171_manifest_entries": "PRESERVED_ONE_ADDITIVE_EVIDENCE_ENTRY"
+  },
+  "limits": [
+    "B1_STRUCTURAL_HISTORY_ONLY_NOT_CURRENT_ACTION_GATE_OR_CRYPTOGRAPHIC_PROOF",
+    "SIGNED_PREBROADCAST_ONLY_036_NOT_WIDENED_FUTURE_PHASES_NEED_SEPARATE_CONTRACT",
+    "OFFLINE_SETUP_SYNTHETIC_ARMED_GRANT_NO_ARM_EXACTLY_RESTORED_BEFORE_TEST_ACTIONS_NOT_PRODUCTION_ARMING_PROOF",
+    "CORRUPTION_FIXTURES_RESTORE_GUARDS_FK_NOT_PERMISSION_TO_SEED_INTACT_SCHEMA",
+    "POSITIVE_SETUP_EPHEMERAL_SIGNATURES_ZERO_ECONOMIC_CAPABILITY_APPLIES_TO_FOUNDATION_NOT_ALL_TESTS",
+    "SQL_HASHES_DO_NOT_AUTHENTICATE_CIPHERTEXT_FUTURE_ACTION_MUST_USE_AUTHENTICATED_ARTIFACT_AND_FRESH_GATES",
+    "REAL_CLOSE_REOPEN_AND_DEFERRED_COMMIT_FAILURE_NOT_POWER_LOSS"
+  ],
+  "boundaries": {
+    "M1": "PASS_UNCHANGED", "M2": "PASS_UNCHANGED", "M3": "PASS_UNCHANGED", "M4_A": "PASS_UNCHANGED",
+    "C04": "PASS_UNCHANGED", "C05": "PASS_UNCHANGED", "C07": "PASS_UNCHANGED", "C08": "PASS_UNCHANGED",
+    "chain": "ROBINHOOD4663_PONS_V2_CURVE_NATIVE_QUOTE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY", "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED", "controlled_canary_authorization": "NOT_GRANTED", "live": false, "release_ready": false,
+    "foundation_sign_decrypt_encrypt_observe_submit_replay_raw_send_permit_nonce_financial_actions": 0,
+    "production_HTTP_config_startup_existing_runtime_Go_changes": 0,
+    "M4_B2_B3_B4_C_D_M5_W4_D_W5_other_chains": "NOT_ENTERED",
+    "remote_operations": false,
+    "maximum": "M4_B1_READY_FOR_REVIEW_NOT_WHOLE_M4_B_NO_SELF_PASS_CLOSEOUT_OR_LATER_SLICE"
+  }
+}

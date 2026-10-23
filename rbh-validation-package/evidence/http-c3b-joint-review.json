@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_C3_B_DISCONNECTED_MANUAL_ATOMIC_ADMISSION_B1_B4_LOCAL_CLOSEOUT_ONLY",
+  "reviewed_commit_sha": "02eb0494fae28da3e88f095c73ffc4f07820986e",
+  "implementation_base_sha": "a6922fdcd159e8ef41e6f67f1926743c4423beb6",
+  "reviewed_commit_is_remote_main": false,
+  "review_conclusion": "PASS",
+  "http_c3b_status": "PASS",
+  "formal_closeout": "COMPLETE_LOCAL_ONLY",
+  "closeout_branch": "http-c3b-admission-closeout",
+  "closeout_initial_ahead_behind": "0/0_AGAINST_REVIEWED_IMPLEMENTATION_HEAD",
+  "independent_reviewer": {
+    "type": "SEPARATE_NON_AUTHOR_REVIEWER_AGENT",
+    "task": "http_c3b_independent_review",
+    "user_authorized": true,
+    "author_conversation_context_forked": true,
+    "fork_turns": "all",
+    "fresh_no_author_context": false,
+    "reviewer_modified_files": false,
+    "reviewed_start_and_end_HEAD_exact": true,
+    "reviewed_start_and_end_worktree_clean": true,
+    "blockers": []
+  },
+  "historical_implementation_evidence": {
+    "path": "evidence/http-manual-atomic-admission.json",
+    "sha256": "6e074a813b4cd735fe495cc997cdd7dcbdbb9e0b0faaa844995de06791695647",
+    "preserved_unchanged": true,
+    "historical_implementation_status": "READY_FOR_REVIEW",
+    "historical_independent_review": "NOT_PERFORMED",
+    "author_full_repository_race": "PASS_HISTORICAL_AUTHOR_VALIDATION_NOT_INDEPENDENT_RERUN"
+  },
+  "reviewed_invariants": [
+    "ONE_COMMAND_EXISTING_RESERVATION_USAGE_DECISION_LIFECYCLE_AUDIT_OUTBOX_ATOMIC_NO_SECOND_MONETARY_LEDGER",
+    "COMPLETE_IDENTITY_JOIN_REJECTS_SQL_HALVES_OR_IGNORE_SKIPPED_CONSTITUENTS_AND_MUTATION_DELETE_REPLACE",
+    "OWNER_ROLLBACK_ALL_CONSTITUENTS_AFTER_FAULT_NO_PROVISIONAL_SUCCESS_BEFORE_COMMIT",
+    "OWNED_CONNECTION_FK_FULL_WAL_BUSY_TIMEOUT_BEGIN_IMMEDIATE_STOP_FIRST",
+    "SAME_TRANSACTION_FINAL_CONTROL_GATE_AUTH_TIME_AND_REAL_WRITER_COMMIT_BARRIER",
+    "CANONICAL_GO_HASH_VERIFICATION_REQUIRED_SQL_SOURCE_EQUALITY_NOT_CRYPTO_PROOF",
+    "EXACT_UNIT_NATIVE_BUY_TOKEN_SELL_GAS_OUTLAY_AND_LEGACY_ACCOUNTING_ISOLATION",
+    "ONE_ACTIVE_WALLET_LANE_SOURCE_POLICY_AUTH_EPOCH_DEPLOYMENT_GATE_AND_ABSOLUTE_EXPIRY_BINDING",
+    "ALL_USAGE_STATES_CONSUME_LIFETIME_ALLOWANCE_NO_RELEASE_REFUND_OR_RESTART_RESET",
+    "DUPLICATE_HISTORY_NOT_PERMISSION_NO_NEW_EXPIRY_BUDGET_OR_ECONOMIC_DECISION",
+    "CORRUPT_INCOMPLETE_HISTORY_REJECTS_WITHOUT_REPAIR",
+    "MANUAL_LIFECYCLE_EXCLUDED_FROM_LEGACY_EXECUTION_QUEUE",
+    "NO_ARM_NO_PERMIT_NO_PASS_SNAPSHOT_GUARDS_RETAINED",
+    "MIGRATIONS_BEFORE_020_UNCHANGED_AT_IMPLEMENTATION_BASE",
+    "TEN_THOUSAND_TWO_HANDLE_MIXED_REQUEST_AND_DURABLE_USAGE_CONSERVATION_NO_UNEXPLAINED_ACCEPT_OR_OVERCOMMIT",
+    "DISCONNECTED_WRITER_NO_HTTP_EXECUTION_SIGNER_SUBMISSION_NONCE_ARTIFACT_PERMIT_NETWORK_COMPOSITION"
+  ],
+  "independent_validation": {
+    "toolchain": "EXISTING_LOCAL_TOOLCHAIN_AND_CACHES_PATH_RBH_GO_TOOLCHAIN_GOCACHE_RBH_GO_BUILD_CACHE_GOMODCACHE_RBH_GO_MOD_CACHE",
+    "C3_B_ordinary": {
+      "command": "go test ./internal/tradeapi ./internal/storage ./internal/manualrisk -run '^(TestHTTPC3B|TestManualSQL|TestManualRisk)' -count=1 -timeout=8m",
+      "status": "PASS",
+      "tradeapi_seconds": 29.190,
+      "manualrisk_seconds": 0.009,
+      "storage_selection": "NO_TESTS_TO_RUN_NOT_STORAGE_MATH_PROOF"
+    },
+    "ten_thousand_verbose_ordinary": {
+      "command": "go test ./internal/tradeapi -run '^TestHTTPC3B4TenThousand' -count=1 -timeout=5m -v",
+      "test": "TestHTTPC3B4TenThousandMixedTwoHandleConservation",
+      "status": "PASS",
+      "tradeapi_seconds": 29.248,
+      "requests": 10000,
+      "accepted": 7,
+      "deduped": 1868,
+      "rejected": 8125,
+      "unexplained_accept": 0,
+      "reservation_overcommit": 0,
+      "aggregate_usage": "EQUAL_COMPLETE_DURABLE_OPERATION_ROWS_PER_EXACT_DECLARED_UNIT",
+      "dedupe_reject_counts": "SCHEDULING_DEPENDENT_LOCAL_HARNESS_NOT_PRODUCTION_TELEMETRY",
+      "race_mode": false
+    },
+    "focused_atomic_schema_race": {
+      "command": "go test -race ./internal/tradeapi ./internal/storage -run '^(TestHTTPC3B3Atomic|TestHTTPC3B3FoundationLegacy|TestManualSchema)' -count=1 -timeout=5m",
+      "status": "PASS",
+      "tradeapi_seconds": 118.194,
+      "storage_seconds": 3.579,
+      "includes_ten_thousand": false
+    },
+    "storage_manualrisk_full_tests": {
+      "command": "go test ./internal/manualrisk ./internal/storage -run '^(TestManualSchema|TestOpenMigrateAndValidateEveryOwner|Test)' -count=1 -timeout=3m",
+      "selection": "TEST_ALTERNATIVE_MATCHES_ALL_REGULAR_TESTS_IN_THESE_PACKAGES",
+      "status": "PASS",
+      "storage_seconds": 8.086,
+      "manualrisk_seconds": 0.017
+    },
+    "C07_W1_W2_trade_regression": {
+      "command": "go test ./internal/trade -run '^(TestCanaryEmergencyStop|TestCanaryMissingControl|TestCanaryDurableSource|TestCanaryAdmissionAudit|TestCanaryRestart|TestCanaryRiskAccounting|TestCanaryAdmissionFaults|TestCanarySchema|TestRuntimeAuthorizationMonotonicIdentityAndBudget|TestRuntimeGateSnapshotIsImmutable|TestSendPermitsArePurposeBoundAndOneShot|TestControlledCanaryAllFiveGatesAndPermitSeparation|TestImmediatePreSendRereadsEmergencyAndAuthorization|TestReleasedOrCommittedC07ReservationCannotAdvance|TestImmediatePreSendFinalTransactionRecheck|TestRuntimeBudgetConcurrent)' -count=1 -timeout=5m",
+      "status": "PASS",
+      "trade_seconds": 3.372
+    },
+    "validation_package": {
+      "command": "python3 scripts/check_package.py",
+      "working_directory": "rbh-validation-package",
+      "status": "PASS",
+      "entries_at_reviewed_implementation": 131
+    },
+    "source_hashes_diff_and_clean_fixed_HEAD": "PASS",
+    "interrupted_overbroad_race_selection": "EXIT_130_STOPPED_NOT_COUNTED_AS_PASS",
+    "full_repository_tests": "NOT_RERUN_BY_INDEPENDENT_REVIEWER",
+    "full_repository_race": "NOT_RERUN_BY_INDEPENDENT_REVIEWER",
+    "build_vet_staticcheck": "AUTHOR_VALIDATION_ONLY_NOT_REPORTED_AS_INDEPENDENT_RERUN",
+    "github_ci": "NOT_REQUESTED_NOT_RUN",
+    "real_chain_rpc": "NOT_USED"
+  },
+  "prohibited_paths": {
+    "HTTP_admission_route": "NOT_CONNECTED",
+    "signer": "NO_DEPENDENCY_IN_NEW_COMPOSITION",
+    "SubmissionService": "NO_DEPENDENCY_IN_NEW_COMPOSITION",
+    "SendRawTransaction": "NO_DEPENDENCY_IN_NEW_COMPOSITION",
+    "nonce_allocator": "NO_DEPENDENCY_IN_NEW_COMPOSITION",
+    "transaction_attempts_submissions_execution_lanes_reservations_permits_snapshots_in_new_harness": "EMPTY",
+    "authorization_grant": "NO_PRODUCTION_GRANT_NO_ARM_GUARD_RETAINED",
+    "fixture_authorization": "DISPOSABLE_SQLITE_DUMMY_IDENTITIES_NO_ARM_REMOVED_ONLY_IN_POSITIVE_TEST_FIXTURES",
+    "mainnet": "NOT_USED",
+    "proof_scope": "Reviewed disconnected writer graph, schema and local harness output tables; not whole-service fake signer counts or production telemetry."
+  },
+  "limitations": [
+    "NOT_A_BLIND_OR_NO_AUTHOR_CONTEXT_REVIEW",
+    "PER_TRANSPORT_REQUEST_DURABLE_DEDUPE_REJECTION_METRICS_NOT_IMPLEMENTED_NOT_CLAIMED",
+    "NO_CURRENT_CHAIN_FRESHNESS_OR_RECOVERY_SERVICE_HEALTH_PROOF",
+    "NO_C3_C_HTTP_COMPOSITION_OR_MANUAL_SIGNING_SUBMISSION_ADAPTATION_APPROVAL",
+    "NO_REAL_OPERATOR_AUTHORIZATION_OR_LIVE_INTEGRATION"
+  ],
+  "preserved_state": {
+    "chain": "ROBINHOOD_4663",
+    "protocol": "PONS_V2_CURVE_NATIVE_QUOTE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "existing_gate_status_changes": 0,
+    "C3_C": "NOT_STARTED",
+    "W4_D_W5_BSC_Flap_Base_Solana": "NOT_ENTERED"
+  },
+  "delivery": "LOCAL_ONLY_NO_GITHUB_FETCH_PUSH_PR_OR_MERGE",
+  "next_action": "SEPARATELY_SCOPED_C3_C_DEFAULT_OFF_HTTP_ADMISSION_PLAN_NOT_IMPLEMENTATION_AUTHORIZATION",
+  "not_authorized": [
+    "C3_AS_A_WHOLE_PASS",
+    "C3_C_IMPLEMENTATION",
+    "MANUAL_EXECUTION_SIGNING_SUBMISSION_ADAPTATION",
+    "CLOSED_GATE_SEMANTICS_CHANGE",
+    "SIGNING",
+    "SENDING",
+    "LIVE",
+    "AUTHORIZATION_GRANT",
+    "REAL_CHAIN_RPC",
+    "REMOTE_PUSH_PR_OR_MERGE"
+  ]
+}

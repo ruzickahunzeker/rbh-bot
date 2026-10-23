@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "slice": "HTTP_MANUAL_M2_DURABLE_EXECUTION_BINDING",
+  "branch": "http-m2-durable-execution-binding",
+  "implementation_base": "20695c5de5f7beb99ef6346d4d21a061cf1d5b72",
+  "M1": "PASS_UNCHANGED",
+  "M2": "READY_FOR_REVIEW",
+  "independent_review": "NOT_PERFORMED_STAGE_SPECIFIC_AUTHORITY_NOT_GRANTED",
+  "semantics": {
+    "first_result": "BOUND_NOT_SIGNED_NOT_PERMISSION",
+    "duplicate_result": "HISTORICAL_EXECUTION_BINDING_NOT_PERMISSION",
+    "permissions": "EXECUTION_AND_SEND_ALWAYS_FALSE",
+    "source": "RELOAD_ORIGINAL_CANONICAL_COMMAND_NOT_M1_CALLER_SNAPSHOT",
+    "lifecycle": "EXISTING_OPERATION_AND_VALIDATION_ADMISSION_FACT_RETAINED_NEW_EXECUTION_STEP_INDEX_1_NO_SECOND_STATE_MACHINE",
+    "step": "MANUAL_TRADE_EXECUTION_MANUAL_EXECUTION_BOUND_EXACT_CANONICAL_CONTRACT_JSON",
+    "lane": "EXISTING_WALLET_LANE_RESERVED_NULL_NONCE_NO_SECOND_FINANCIAL_RESERVATION",
+    "binding": "IMMUTABLE_22_FIELD_OPERATION_REQUEST_STEPS_WALLET_CHAIN_CONTRACT_POLICY_QUOTE_EXPIRY_AUTH_EPOCH_GATE_DEPLOYMENT_SCOPE_TIME",
+    "atomicity": "BINDING_STEP_LANE_AUDIT_ALERT_ONE_STATEMENT_AND_SAME_BEGIN_IMMEDIATE_WRITER_TRANSACTION",
+    "controls": "STOP_FIRST_FINAL_CONTROL_AUTH_GATES_RESERVATION_AND_TIME_SAME_WRITER_BEFORE_COMMIT",
+    "budget": "VERIFY_ORIGINAL_C3_B_USAGE_NO_SECOND_CHARGE_FULL_CAP_EQUALITY_ACCEPTED",
+    "expiry": "ORIGINAL_ABSOLUTE_EXPIRY_EQUALITY_FAIL_CLOSED_NO_DUPLICATE_RESTART_RENEWAL",
+    "duplicate_after_expiry_revoke": "HISTORY_ONLY_NO_PERMISSION_NO_WRITE_ENTRY_STOP_STILL_DENIES",
+    "partial_or_corrupt": "REJECT_WITHOUT_REPAIR",
+    "downstream": "NO_NONCE_ATTEMPT_ARTIFACT_PERMIT_PASS_SIGNING_OR_SENDING_NO_AUTO_RELEASE"
+  },
+  "test_mapping": {
+    "exact_buy_fixed_sell_resolved_percentage_sell_saved_json_and_22_fields": "TestHTTPM2ExactBindingClaimAndHistoryNoPermission",
+    "full_budget_equality_no_charge_idle_lane_reuse": "TestHTTPM2FullBudgetEqualityAndIdleLaneReuse",
+    "stop_revoke_scope_risk_usage_and_expiry_equality_plus_one_ns_denials": "TestHTTPM2ControlsIdentityAndTTLFailClosed",
+    "three_go_checkpoint_failures_zero_result_whole_database_rollback_retry": "TestHTTPM2FaultWindowsRollbackAllEffects",
+    "direct_sql_success_and_step_lane_audit_alert_insert_failure_ignore_half_rollback": "TestHTTPM2DirectSQLAtomicAuditAndForcedHalfRollback",
+    "all_22_binding_fields_update_delete_replace_no_nonce_attempt_bypass": "TestHTTPM2SchemaRejectsBypassMutationAndReplacement",
+    "missing_control_gate_runtime_allowlist_malformed_noncanonical_missing_expiry": "TestHTTPM2MissingControlsMalformedSourceFailWithoutRepair",
+    "authorization_expiry_entry_and_both_final_gates_independent_of_intent": "TestHTTPM2AuthorizationExpiryIndependentFinalGate",
+    "legacy_step_attempt_financial_reservation_cannot_adopt_bound_operation": "TestHTTPM2SchemaRejectsAdoptingLegacyStepAttemptReservation",
+    "actual_file_close_reopen_two_handle_16_history_reads_unchanged": "TestHTTPM2RealRestartAndTwoHandleConcurrentDedupe",
+    "two_handle_12_initial_duplicates_exactly_one_binding_response_loss": "TestHTTPM2InitialConcurrentContestAndResponseLoss",
+    "ast_no_economic_calls_closed_guards_retained": "TestHTTPM2DependencyGraphAndClosedGuards",
+    "real_second_handle_stop_revoke_writer_busy_at_binding_commit_barrier": "TestHTTPM2CommitWindowControlWriterCannotInterleave",
+    "late_ttl_equality_reversal_actual_cancel_and_deadline_whole_rollback": "TestHTTPM2FinalClockAndCancellationRollback",
+    "already_bound_wallet_12_distinct_operation_admission_binding_denials_two_handles": "TestHTTPM2DistinctOperationCannotShareBoundWallet",
+    "expired_revoked_frozen_duplicate_history_no_renewal_stop_priority": "TestHTTPM2DuplicateAfterExpiryRevokeIsOnlyHistory",
+    "corrupt_partial_binding_no_repair_closed_canceled_db_unsafe_pragmas": "TestHTTPM2CorruptBindingNoRepairAndOperationalFailures",
+    "actual_predecessor_020_upgrade_idempotency_legacy_rows_and_all_guards": "TestManualExecutionBindingUpgradeFrom020PreservesDurableRows"
+  },
+  "validation": {
+    "focused_ordinary": {
+      "command": "go test ./internal/tradeapi ./internal/storage -run '^(TestHTTPM2|TestManualExecutionBindingUpgrade)' -count=1 -timeout=5m",
+      "status": "PASS",
+      "package_seconds": {"tradeapi": 20.193, "storage": 0.239}
+    },
+    "full_ordinary": {
+      "command": "go test ./... -count=1 -timeout=15m",
+      "status": "PASS",
+      "package_seconds": {"trade": 207.718, "tradeapi": 205.226, "storage": 13.280, "app": 0.149},
+      "scope": "OFFLINE_CONTROLLED_UDS_LOOPBACK_FIXTURES_ONLY"
+    },
+    "M2_three_run_race": {
+      "command": "go test -race ./internal/tradeapi ./internal/storage -run '^(TestHTTPM2|TestManualExecutionBindingUpgrade)' -count=3 -timeout=30m -v",
+      "status": "PASS",
+      "package_seconds": {"tradeapi": 747.703, "storage": 14.156},
+      "selection": "ALL_17_M2_TESTS_AND_STORAGE_UPGRADE_THREE_CONSECUTIVE_RUNS_EXACT_FINAL_SOURCE_NOT_FULL_REPOSITORY_RACE"
+    },
+    "initial_M2_three_run_race": {
+      "command": "go test -race ./internal/tradeapi ./internal/storage -run '^(TestHTTPM2|TestManualExecutionBindingUpgrade)' -count=3 -timeout=15m",
+      "status": "TIMEOUT_NOT_A_PASS",
+      "tradeapi_seconds": 900.971,
+      "stack": "TestHTTPM2InitialConcurrentContestAndResponseLoss_INITIALIZING_DISPOSABLE_FIXTURE_DATABASE_MIGRATION_018_MANUAL_RISK_UNITS",
+      "observation": "NO_DATA_RACE_REPORTED_IN_RETURNED_OUTPUT_FULL_AND_FOCUSED_RACE_RAN_CONCURRENTLY_RETRY_WITH_LARGER_BUDGET_NOT_A_CODE_FIX"
+    },
+    "selected_M1_C3_B_C3_C_compatibility_race": {
+      "command": "go test -race ./internal/tradeapi -run '^(TestHTTPM1(ExactAdmittedParametersAndNoWrites|FullBudgetEqualityDoesNotConsumeAgain|CommitCancellation)|TestHTTPC3B3Atomic(DedupeConflictAndCorruptCompleteHistory|LifetimeBudgetEqualityPlusOneAndReleasedHistory)|TestHTTPC3C(OnePostBuyFixedPercentageSellAndHistoricalQueries|ResponseLossAfterCommitExactRetryNoSecondConsumption|NoGrantPermitOrSigningDependencyAndNoArmGuardRetained))' -count=1 -timeout=15m",
+      "status": "PASS",
+      "tradeapi_seconds": 49.595,
+      "matched_named_tests": 7,
+      "selection_note": "THE_COMMIT_CANCELLATION_REGEX_ALTERNATIVE_MATCHED_NO_TEST_PUBLIC_LATE_CANCELLATION_IS_ACTUALLY_VALIDATED_SEPARATELY_BELOW"
+    },
+    "M1_public_late_cancellation_compatibility_race": {
+      "command": "go test -race ./internal/tradeapi -run '^TestHTTPM1HardeningPublicLateCancellationPreservesCause$' -count=1 -timeout=5m",
+      "status": "PASS",
+      "tradeapi_seconds": 12.965,
+      "scope": "ORIGINAL_M1_HARDENING_REAL_PUBLIC_CANCEL_DEADLINE_BARRIER_ZERO_OUTPUT_NO_WRITES_CAUSE_PRESERVATION"
+    },
+    "full_repository_race": {
+      "command": "go test -race ./... -count=1 -timeout=25m",
+      "status": "TIMEOUT_NOT_A_PASS",
+      "exit_code": 1,
+      "trade_seconds": 1500.309,
+      "tradeapi_seconds": 1500.637,
+      "trade_timeout_stack": "TestW4CProductionLifecycleSQLiteReopen_BROADCAST_UNKNOWN_SUBTEST_INITIALIZING_LEGACY_SQLITE_MIGRATION_013",
+      "tradeapi_timeout_stack": "TestHTTPC3B4TenThousandMixedTwoHandleConservation_RUNNING_11M33S_WAITING_OR_WRITING_ON_TWO_SQLITE_HANDLES",
+      "observation": "NO_DATA_RACE_REPORTED_IN_RETURNED_TIMEOUT_OUTPUT_NO_FULL_REPOSITORY_RACE_PASS_CLAIM"
+    },
+    "build": {"command": "go build ./...", "status": "PASS"},
+    "vet": {"command": "go vet ./...", "status": "PASS"},
+    "staticcheck": {"command": "staticcheck ./...", "status": "PASS"},
+    "gofmt_diff": "PASS",
+    "manifest": "PASS_139_ENTRIES_SOURCE_HASHES_AND_18_NAMED_TESTS_MATCH",
+    "offline_reference_model": "PASS_39_MODEL_TESTS_TEMP_OUTPUT_HISTORICAL_REPORT_UNCHANGED",
+    "curve_expected_offline": "PASS_5_FIXTURE_EVENTS",
+    "initial_rounds": "FOCUSED_TESTS_PASSED_BEFORE_FULL_BUILD_FOUND_TEST_ONLY_SCOPE_HELPER_REFERENCE_FIXED_TO_PRODUCTION_TYPE_CONSTRUCTION_FULL_RERUN_PASSED_FIXTURE_COLUMN_LISTS_AND_EXPECTED_UNSAFE_PRAGMA_REJECTION_FIXED_NO_FAILED_RUN_CLAIMED_PASS",
+    "GitHub_CI": "NOT_RUN_NO_REMOTE_ACTIVITY"
+  },
+  "source_sha256": {
+    "internal/storage/migrations/trade/021_manual_execution_binding.sql": "ef34432eed679f234490723cce919fe9409eeec02feddd35106dc522bd3ca870",
+    "internal/tradeapi/manual_execution_binding.go": "dc1012fd6b191c7f075fd55f387e5c5172395c560444c7262d06d15f27fa71d8",
+    "internal/tradeapi/manual_execution_binding_test.go": "ef5320dcc376b611fb8ef5956a890c33aeff072dda9f5fc11b1aee4700a8274e",
+    "internal/tradeapi/manual_admitted_input.go": "b1a0a2b7109ac5d458ffcb1ea809ce1dfa50096c16631a598bfd8ad5fabe8f0f",
+    "internal/storage/database_test.go": "bba0edffb852b7c930ec61b3e193a47b0f0c2b35b3d0719c5e6478316def3e6e"
+  },
+  "boundaries": {
+    "chain": "ROBINHOOD_4663_PONS_V2_CURVE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "additive_migration": "021_ONLY_001_THROUGH_020_UNCHANGED",
+    "HTTP_config_startup_wiring": false,
+    "economic_dependencies": "NO_SIGNER_SUBMISSION_BROADCAST_RPC_NONCE_ARTIFACT_PERMIT_OR_GRANT_DEPENDENCY",
+    "prohibited_calls": "ZERO_BY_DISCONNECTED_WRITER_GRAPH_NOT_PRODUCTION_TELEMETRY",
+    "economic_rows": "ZERO_IN_NORMAL_BINDING_RESTART_DEDUPE_AND_FAULT_HARNESS_LEGACY_ADOPTION_AND_UPGRADE_FIXTURES_INTENTIONALLY_HAVE_INERT_METADATA_ROWS_NO_REAL_NONCE_ALLOCATION",
+    "budget_and_financial_reservation": "OWNED_BY_ORIGINAL_C3_B_NO_SECOND_CHARGE_OR_LEDGER",
+    "schema_time_limit": "SCHEMA_CHECKS_RECORDED_TIME_RELATIONSHIPS_NOT_PRIVILEGED_SQL_CALLER_CURRENT_CLOCK_AUTHENTICATION",
+    "fault_scope": "TRANSACTION_CHECKPOINT_ROLLBACK_NOT_OS_POWER_LOSS_PROOF",
+    "control_barrier_scope": "NO_MUTABLE_WRITER_INTERLEAVE_BEFORE_THIS_COMMIT_NOT_FUTURE_SIGN_SEND_PERMISSION",
+    "distinct_operation_scope": "REAL_ADMISSION_EXCLUSIVITY_SECOND_OPERATION_DENIED_NOT_TWO_VALID_ADMISSIONS_SAME_BUSY_WALLET",
+    "fixture_guard_removal": "DISPOSABLE_TEST_ONLY_NO_REAL_AUTHORIZATION_NO_LANDED_MIGRATION_CHANGE",
+    "historical_evidence": "PRESERVED_UNCHANGED_ADDITIVE_EVIDENCE_ONLY",
+    "M3_M4_M5_W4_D_W5_BSC_Flap_Base_Solana": "NOT_ENTERED",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}

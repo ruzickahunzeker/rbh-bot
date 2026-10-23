@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "slice": "HTTP_MANUAL_M2_REFERENCE_INTEGRITY_HARDENING",
+  "branch": "http-m2-binding-integrity-hardening",
+  "implementation_base": "46270e8195eb76758bf978e36bb28d40b4835d06",
+  "previous_independent_review": {
+    "reviewed_head": "46270e8195eb76758bf978e36bb28d40b4835d06",
+    "reviewed_base": "20695c5de5f7beb99ef6346d4d21a061cf1d5b72",
+    "conclusion": "FAIL",
+    "blockers": ["FINANCIAL_RESERVATION_STEP_ALIAS", "NONCEFUL_WALLET_LANE_STEP_ALIAS"],
+    "reproduction": "FOUR_INSERT_UPDATE_REJECTION_PROBES_FAILED_IN_ISOLATED_REVIEW_COPY_WRITES_SUCCEEDED_WITH_FOREIGN_KEYS_ON_NO_GUARD_REMOVAL_AND_SURVIVED_REOPEN",
+    "green_tests_do_not_close_blockers": true
+  },
+  "M1": "PASS_UNCHANGED",
+  "M2": "READY_FOR_REVIEW",
+  "fresh_independent_review": "NOT_PERFORMED",
+  "semantics": {
+    "migration": "ADDITIVE_022_ONLY_001_THROUGH_021_UNCHANGED",
+    "financial_reference": "BOUND_OPERATION_OR_ANY_OWNED_STEP_FORBIDS_SECOND_EXECUTION_FINANCIAL_LEDGER",
+    "lane_reference": "EXACT_BOUND_OPERATION_EXECUTION_STEP_WALLET_ADDRESS_RESERVED_NULL_NONCE_NULL_FREEZE_OR_REJECT",
+    "write_coverage": "INSERT_OR_IGNORE_OR_REPLACE_UPDATE_UPDATE_OR_REPLACE_OLD_AND_NEW_REFERENCE_CONFLICT_VICTIM_AND_DELETE_PROTECTION",
+    "prebinding": "PREEXISTING_LEGACY_VALIDATION_STEP_REFERENCE_DENIES_WRITER_AND_DIRECT_SQL_CLAIM_WITHOUT_EFFECTS",
+    "integrity": "STRICT_VIEW_ADDS_NEGATIVE_RESERVATION_AND_INVALID_LANE_REFERENCE_CHECKS_TO_ORIGINAL_POSITIVE_VIEW",
+    "duplicates": "CORRUPT_HISTORY_ZERO_RESULT_EXECUTION_BINDING_INCOMPLETE_NO_REPAIR_NORMAL_HISTORY_ALWAYS_NO_PERMISSION",
+    "upgrade": "INSTALL_GUARDS_AND_DETECTION_PRESERVE_POLLUTION_NO_AUTO_DELETE_RELEASE_REPAIR",
+    "missing_integrity_schema": "OPERATIONAL_UNAVAILABILITY_ZERO_RESULT_ROLLBACK_NO_REPAIR",
+    "legacy_compatibility": "UNRELATED_LEGACY_WRITES_AND_INITIAL_IDLE_LANE_CLAIM_REMAIN_VALID",
+    "expiry_budget": "ORIGINAL_ABSOLUTE_EXPIRY_PARAMETERS_AND_C3_B_TYPED_BUDGET_UNCHANGED_NO_SECOND_CHARGE",
+    "execution_send_permission": false
+  },
+  "test_mapping": {
+    "financial_insert_ignore_replace_update_and_validation_step_alias_reopen": "TestHTTPM2HardeningFinancialReferenceGuards",
+    "lane_insert_ignore_replace_update_null_nonce_null_operation_wallet_address_reopen": "TestHTTPM2HardeningLaneReferenceGuards",
+    "four_original_defects_negative_control_021_to_022_reopen_no_repair_old_reference_protection": "TestHTTPM2Hardening021PollutionUpgradeRejectsWithoutRepair",
+    "prebinding_validation_step_alias_direct_sql_and_writer_atomic_denial": "TestHTTPM2HardeningPrebindingValidationReferenceDeniesAtomicClaim",
+    "unrelated_legacy_replace_update_idle_claim_duplicate_no_new_consumption": "TestHTTPM2HardeningLegacyCompatibilityAndIdleClaim",
+    "first_binding_and_duplicate_missing_integrity_view_operational_error_rollback": "TestHTTPM2HardeningMissingIntegrityViewFailsClosed",
+    "actual_embedded_predecessor_021_reopen_022_upgrade_idempotency_legacy_freeze_unchanged": "TestManualBindingReferenceUpgradeFrom021PreservesLegacy"
+  },
+  "validation": {
+    "author_only": true,
+    "initial_M2_baseline_regression": "FAILED_OLD_DISPOSABLE_LANE_DELETE_FIXTURE_NOW_BLOCKED_BY_NEW_DELETE_GUARD_TEST_FIXTURE_ADJUSTED_ONLY_NO_PRODUCTION_RELAXATION",
+    "initial_full_ordinary_sandbox": "EXIT_1_CONTROLLED_LOOPBACK_UDS_SOCKET_OPERATION_NOT_PERMITTED_NOT_A_CODE_PASS",
+    "focused_ordinary": {
+      "command": "go test -p 1 ./internal/tradeapi ./internal/storage -run '^(TestHTTPM2|TestManualExecutionBindingUpgrade|TestManualBindingReferenceUpgrade|TestOpenMigrate)' -count=1 -timeout=5m",
+      "status": "PASS",
+      "package_seconds": {"tradeapi": 11.351, "storage": 0.236}
+    },
+    "full_ordinary": {
+      "command": "go test -p 1 ./... -count=1 -timeout=15m",
+      "status": "PASS",
+      "package_seconds": {"trade": 106.985, "tradeapi": 71.115, "storage": 8.480},
+      "scope": "SANDBOX_ESCALATION_FOR_CONTROLLED_LOCAL_LOOPBACK_AND_UDS_ONLY_NO_REAL_CHAIN_NETWORK"
+    },
+    "M2_three_run_race": {
+      "command": "go test -race -p 1 ./internal/tradeapi ./internal/storage -run '^(TestHTTPM2|TestManualExecutionBindingUpgrade|TestManualBindingReferenceUpgrade)' -count=3 -timeout=20m -v",
+      "status": "PASS",
+      "package_seconds": {"tradeapi": 477.145, "storage": 9.674},
+      "selection": "ALL_23_M2_TESTS_AND_BOTH_STORAGE_UPGRADES_THREE_CONSECUTIVE_RUNS_SERIAL_PACKAGE_EXECUTION_NOT_FULL_REPOSITORY_RACE"
+    },
+    "selected_compatibility_race": {
+      "command": "go test -race -p 1 ./internal/tradeapi -run '^(TestHTTPM1(ExactAdmittedParametersAndNoWrites|FullBudgetEqualityDoesNotConsumeAgain|HardeningPublicLateCancellationPreservesCause)|TestHTTPC3B3Atomic(DedupeConflictAndCorruptCompleteHistory|LifetimeBudgetEqualityPlusOneAndReleasedHistory)|TestHTTPC3C(OnePostBuyFixedPercentageSellAndHistoricalQueries|ResponseLossAfterCommitExactRetryNoSecondConsumption|NoGrantPermitOrSigningDependencyAndNoArmGuardRetained))$' -count=1 -timeout=10m -v",
+      "status": "PASS",
+      "tradeapi_seconds": 56.424,
+      "matched_named_tests": 8,
+      "scope": "INCLUDING_REAL_PUBLIC_M1_LATE_CANCELLATION_DEADLINE_CAUSE_REGRESSION_NOT_FULL_REPOSITORY_RACE"
+    },
+    "full_repository_race": {
+      "status": "NOT_RERUN_FOR_HARDENING_NO_PASS_CLAIM",
+      "historical_limitation": "ORIGINAL_M2_FULL_RACE_25M_TRADE_TRADEAPI_TIMEOUTS_RETAINED_IN_ORIGINAL_EVIDENCE_NOT_DIAGNOSED_AS_RESOURCE_CONTENTION_OR_RELABELED_PASS"
+    },
+    "selected_W4C_reopen_race": {
+      "command": "go test -race -p 1 ./internal/trade -run '^TestW4CProductionLifecycleSQLiteReopen$' -count=1 -timeout=10m",
+      "status": "PASS",
+      "trade_seconds": 4.646,
+      "scope": "SELECTED_LEGACY_RECOVERY_UPGRADE_COMPATIBILITY_NOT_RECOVERY_HEALTH_OR_FULL_RACE_CLAIM"
+    },
+    "build": {"command": "go build ./...", "status": "PASS"},
+    "vet": {"command": "go vet ./...", "status": "PASS"},
+    "staticcheck": {"command": "staticcheck ./...", "status": "PASS"},
+    "offline_reference_model": "PASS_39_TESTS_TEMP_REPORT_HISTORICAL_REPORT_UNCHANGED",
+    "curve_expected_offline": "PASS_5_FIXTURE_EVENTS",
+    "manifest": "PASS_140_ENTRIES_FIVE_SOURCE_HASHES_AND_SEVEN_HARDENING_TEST_MAPPINGS",
+    "GitHub_CI": "NOT_RUN_NO_REMOTE_ACTIVITY"
+  },
+  "source_sha256": {
+    "internal/storage/migrations/trade/022_manual_binding_reference_integrity.sql": "f3d59e641fe929acba32a8ad3a3367eced9518616d16e671436b3150ce2a722d",
+    "internal/tradeapi/manual_execution_binding.go": "0c702ebf05cadb5f382a1f8e265063144ca2b95555219133f516139e44d1ab61",
+    "internal/tradeapi/manual_execution_binding_hardening_test.go": "95db0f75e84b6bc8e5a6454bd23e0c97ba5c2db715bec0f3023274d7f6b1ec44",
+    "internal/tradeapi/manual_execution_binding_test.go": "94596d9f0524a801341f9e597107480bfbbb34fda171259f0df61f45c4f7ab51",
+    "internal/storage/database_test.go": "f6d509c8f646ce5e11ea590732ac7aa2d1daf166bbe63c03a805ec2faaeb0b3d"
+  },
+  "boundaries": {
+    "chain": "ROBINHOOD_4663_PONS_V2_CURVE_ONLY",
+    "deadline_capability": "APPLICATION_TTL_ONLY",
+    "contract_deadline": false,
+    "historical_evidence": "PRESERVED_UNCHANGED_ADDITIVE_HARDENING_EVIDENCE_ONLY",
+    "test_negative_control": "REMOVE_ONLY_022_OBJECTS_AND_JOURNAL_IN_DISPOSABLE_FIXTURE_TO_RECONSTRUCT_021_REFERENCE_BOUNDARY_ORIGINAL_001_THROUGH_021_GUARDS_RETAINED",
+    "legacy_rows": "INERT_NONCE_AND_RESERVATION_METADATA_NOT_REAL_SIGNING_OR_ALLOCATION",
+    "fault_scope": "TRANSACTION_ROLLBACK_AND_FILE_CLOSE_REOPEN_NOT_OS_POWER_LOSS_PROOF",
+    "prohibited_paths": "ZERO_BY_DISCONNECTED_WRITER_AND_CONTROLLED_HARNESS_NOT_PRODUCTION_TELEMETRY",
+    "HTTP_config_startup_wiring": false,
+    "signer_submission_broadcast_rpc_nonce_attempt_artifact_permit_grant_dependencies": false,
+    "closed_guards": "NO_ARM_NO_PERMIT_NO_PASS_RETAINED",
+    "M3_M4_M5_W4_D_W5_other_chains": "NOT_ENTERED",
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}
