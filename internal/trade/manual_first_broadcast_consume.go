@@ -18,20 +18,23 @@ func (s *Store) ConsumeManualFirstBroadcastPermit(ctx context.Context, r CanaryG
 		return "", err
 	}
 	defer tx.Rollback()
-	var op, attempt, auth, purpose, storedArtifact, txHash, state, issuedAt, expiresAt string
-	var epoch uint64
-	err = tx.QueryRowContext(ctx, `SELECT operation_id,attempt_id,authorization_id,authorization_epoch,purpose,artifact_hash,tx_hash,state,issued_at,expires_at FROM canary_send_permits WHERE id=?`, permitID).Scan(&op, &attempt, &auth, &epoch, &purpose, &storedArtifact, &txHash, &state, &issuedAt, &expiresAt)
-	if err != nil || op != r.OperationID || attempt != r.AttemptID || auth != r.AuthorizationID || epoch != r.AuthorizationEpoch || purpose != PermitFirstBroadcast || state != "ISSUED" || !strings.EqualFold(storedArtifact, artifactHash) {
-		return "PERMIT_IDENTITY_MISMATCH", ErrCanaryRuntimeRejected
-	}
 	var stopped int
 	var policy uint64
 	var mode, controlUpdated string
 	if err = tx.QueryRowContext(ctx, `SELECT emergency_stopped,policy_version,mode,updated_at FROM canary_control_state WHERE singleton=1 AND chain_id=?`, ChainID).Scan(&stopped, &policy, &mode, &controlUpdated); err != nil {
 		return "CONTROL_STATE_UNAVAILABLE", ErrCanaryRuntimeRejected
 	}
-	if stopped != 0 || mode != CanaryControlled {
+	if stopped != 0 {
 		return "EMERGENCY_STOPPED", ErrCanaryRuntimeRejected
+	}
+	if mode != CanaryControlled {
+		return "CANARY_DISABLED", ErrCanaryRuntimeRejected
+	}
+	var op, attempt, auth, purpose, storedArtifact, txHash, state, issuedAt, expiresAt string
+	var epoch uint64
+	err = tx.QueryRowContext(ctx, `SELECT operation_id,attempt_id,authorization_id,authorization_epoch,purpose,artifact_hash,tx_hash,state,issued_at,expires_at FROM canary_send_permits WHERE id=?`, permitID).Scan(&op, &attempt, &auth, &epoch, &purpose, &storedArtifact, &txHash, &state, &issuedAt, &expiresAt)
+	if err != nil || op != r.OperationID || attempt != r.AttemptID || auth != r.AuthorizationID || epoch != r.AuthorizationEpoch || purpose != PermitFirstBroadcast || state != "ISSUED" || !strings.EqualFold(storedArtifact, artifactHash) {
+		return "PERMIT_IDENTITY_MISMATCH", ErrCanaryRuntimeRejected
 	}
 	if policy != r.PolicyVersion || r.ChainID != ChainID {
 		return "POLICY_OR_CHAIN_MISMATCH", ErrCanaryRuntimeRejected
@@ -54,8 +57,25 @@ func (s *Store) ConsumeManualFirstBroadcastPermit(ctx context.Context, r CanaryG
 	if err = tx.QueryRowContext(ctx, `SELECT manual_time_cmp(?,?),manual_time_cmp(?,?),manual_time_cmp(?,?)`, stamp, expiresAt, stamp, authExpiry, stamp, operationExpiry).Scan(&permitCmp, &authCmp, &operationCmp); err != nil || permitCmp >= 0 || authCmp >= 0 || operationCmp >= 0 {
 		return "PERMIT_EXPIRED", ErrCanaryRuntimeRejected
 	}
+	// Reuse the existing MANUAL signed-phase projection rather than relying
+	// only on the historical ADMITTED/issuance rows. This checks wallet and
+	// allowlists, gate attestations, original artifact/accounting and current
+	// SUBMISSION lease in the same transaction as the metadata consume.
+	var valid int
+	if err = tx.QueryRowContext(ctx, `SELECT 1 FROM manual_first_broadcast_consume_source p
+	 WHERE p.permit_id=? AND p.operation_id=? AND manual_time_cmp(?,p.issued_at)>0
+	 AND NOT EXISTS(SELECT 1 FROM json_each(p.expiries) WHERE manual_time_cmp(?,value)>=0)
+	 AND NOT EXISTS(SELECT 1 FROM json_each(p.not_before) WHERE manual_time_cmp(?,value)<0)`, permitID, op, stamp, stamp, stamp).Scan(&valid); err != nil || valid != 1 {
+		return "MANUAL_SOURCE_INVALID", ErrCanaryRuntimeRejected
+	}
+	if err = s.canaryFault("manual_consume_rechecked"); err != nil {
+		return "CONSUME_INTERRUPTED", err
+	}
 	if _, err = tx.ExecContext(ctx, `INSERT INTO manual_first_broadcast_consume_scopes(permit_id,operation_id,attempt_id,authorization_id,authorization_epoch,artifact_hash,opened_at) VALUES(?,?,?,?,?,?,?)`, permitID, op, attempt, auth, epoch, strings.ToLower(artifactHash), stamp); err != nil {
 		return "CONSUME_SCOPE_FAILED", err
+	}
+	if err = s.canaryFault("manual_consume_scoped"); err != nil {
+		return "CONSUME_INTERRUPTED", err
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE canary_send_permits SET state='CONSUMED',consumed_at=? WHERE id=? AND state='ISSUED'`, stamp, permitID)
 	if err != nil {
@@ -63,6 +83,9 @@ func (s *Store) ConsumeManualFirstBroadcastPermit(ctx context.Context, r CanaryG
 	}
 	if n, _ := result.RowsAffected(); n != 1 {
 		return "PERMIT_ALREADY_CONSUMED", ErrCanaryRuntimeRejected
+	}
+	if err = s.canaryFault("manual_consume_before_commit"); err != nil {
+		return "CONSUME_INTERRUPTED", err
 	}
 	if err = tx.Commit(); err != nil {
 		return "CONSUME_COMMIT_FAILED", err
