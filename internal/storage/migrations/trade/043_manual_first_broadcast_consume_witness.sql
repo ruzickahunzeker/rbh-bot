@@ -2,11 +2,21 @@
 DROP TRIGGER manual_b23_no_permit_consume;
 DROP TRIGGER manual_b24_first_permit_consume_exact;
 DROP TRIGGER manual_b24_first_permit_consume_audit;
+CREATE TABLE manual_first_broadcast_consume_empty(id INTEGER PRIMARY KEY);
+CREATE TRIGGER manual_b24_consume_empty_no_insert BEFORE INSERT ON manual_first_broadcast_consume_empty
+BEGIN SELECT RAISE(ABORT,'manual consume empty target'); END;
+CREATE TRIGGER manual_b24_consume_empty_no_update BEFORE UPDATE ON manual_first_broadcast_consume_empty
+BEGIN SELECT RAISE(ABORT,'manual consume empty target'); END;
+CREATE TRIGGER manual_b24_consume_empty_no_delete BEFORE DELETE ON manual_first_broadcast_consume_empty
+BEGIN SELECT RAISE(ABORT,'manual consume empty target'); END;
 CREATE TABLE manual_first_broadcast_consume_scopes(
  permit_id TEXT NOT NULL PRIMARY KEY REFERENCES canary_send_permits(id) DEFERRABLE INITIALLY DEFERRED,
  operation_id TEXT NOT NULL, attempt_id TEXT NOT NULL, authorization_id TEXT NOT NULL,
- authorization_epoch INTEGER NOT NULL, artifact_hash TEXT NOT NULL, opened_at TEXT NOT NULL
+ authorization_epoch INTEGER NOT NULL, artifact_hash TEXT NOT NULL, opened_at TEXT NOT NULL,
+ empty_ref INTEGER NOT NULL DEFAULT 1 REFERENCES manual_first_broadcast_consume_empty(id) DEFERRABLE INITIALLY DEFERRED
 );
+CREATE TRIGGER manual_b24_consume_scope_no_update BEFORE UPDATE ON manual_first_broadcast_consume_scopes
+BEGIN SELECT RAISE(ABORT,'manual consume scope immutable'); END;
 CREATE TRIGGER manual_b24_consume_scope_exact BEFORE INSERT ON manual_first_broadcast_consume_scopes
 WHEN NOT EXISTS(SELECT 1 FROM manual_first_broadcast_issuances i JOIN canary_send_permits p ON p.id=i.id
  WHERE i.id=NEW.permit_id AND p.state='ISSUED' AND p.operation_id=NEW.operation_id
