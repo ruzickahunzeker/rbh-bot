@@ -92,7 +92,9 @@ func TestManualGateEvidenceUpgradeFrom037AtomicNoRepair(t *testing.T) {
 		}
 	}
 	for name, definition := range old {
-		if name == "manual_b1_no_permit" || name == "manual_b1_no_pass_snapshot" { continue }
+		if name == "manual_b1_no_permit" || name == "manual_b1_no_pass_snapshot" {
+			continue
+		}
 		var actual string
 		if err := d.db.QueryRow(`SELECT sql FROM sqlite_master WHERE name=?`, name).Scan(&actual); err != nil || actual != definition {
 			t.Fatal("038 changed/deleted old schema object", name, err)
