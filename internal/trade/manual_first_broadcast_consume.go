@@ -46,13 +46,16 @@ func (s *Store) ConsumeManualFirstBroadcastPermit(ctx context.Context, r CanaryG
 	}
 	var reservationState, operationExpiry string
 	var reservationPolicy uint64
-	if err = tx.QueryRowContext(ctx, `SELECT rr.state,o.expires_at,rr.policy_version FROM canary_admission_decisions d JOIN canary_risk_reservations rr ON rr.id=d.reservation_id AND rr.operation_id=d.operation_id AND rr.wallet_id=d.wallet_id JOIN operations o ON o.id=d.operation_id WHERE d.operation_id=? AND d.decision='ADMITTED' AND d.wallet_id=?`, op, r.WalletID).Scan(&reservationState, &operationExpiry, &reservationPolicy); err != nil || (reservationState != "reserved" && reservationState != "frozen") || reservationPolicy != r.PolicyVersion {
-		return "C07_ADMISSION_BINDING_INVALID", ErrCanaryRuntimeRejected
+	if err = tx.QueryRowContext(ctx, `SELECT rr.state,o.expires_at,rr.policy_version FROM manual_admission_commands c JOIN manual_execution_bindings b ON b.operation_id=c.operation_id JOIN canary_risk_reservations rr ON rr.id=c.reservation_id AND rr.operation_id=c.operation_id AND rr.wallet_id=b.wallet_id JOIN manual_reservation_units unit ON unit.reservation_id=rr.id AND unit.operation_id=c.operation_id JOIN canary_authorization_operation_usage usage ON usage.operation_id=c.operation_id AND usage.authorization_id=b.authorization_id JOIN operations o ON o.id=c.operation_id WHERE c.operation_id=? AND b.wallet_id=? AND b.authorization_id=? AND b.authorization_epoch=? AND b.policy_version=? AND usage.state='RESERVED'`, op, r.WalletID, auth, epoch, r.PolicyVersion).Scan(&reservationState, &operationExpiry, &reservationPolicy); err != nil || reservationState != "reserved" || reservationPolicy != r.PolicyVersion {
+		return "MANUAL_ADMISSION_BINDING_INVALID", ErrCanaryRuntimeRejected
 	}
 	var permitCmp, authCmp, operationCmp int
 	stamp := now.UTC().Format(time.RFC3339Nano)
 	if err = tx.QueryRowContext(ctx, `SELECT manual_time_cmp(?,?),manual_time_cmp(?,?),manual_time_cmp(?,?)`, stamp, expiresAt, stamp, authExpiry, stamp, operationExpiry).Scan(&permitCmp, &authCmp, &operationCmp); err != nil || permitCmp >= 0 || authCmp >= 0 || operationCmp >= 0 {
 		return "PERMIT_EXPIRED", ErrCanaryRuntimeRejected
+	}
+	if _, err = tx.ExecContext(ctx, `INSERT INTO manual_first_broadcast_consume_scopes(permit_id,operation_id,attempt_id,authorization_id,authorization_epoch,artifact_hash,opened_at) VALUES(?,?,?,?,?,?,?)`, permitID, op, attempt, auth, epoch, strings.ToLower(artifactHash), stamp); err != nil {
+		return "CONSUME_SCOPE_FAILED", err
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE canary_send_permits SET state='CONSUMED',consumed_at=? WHERE id=? AND state='ISSUED'`, stamp, permitID)
 	if err != nil {
