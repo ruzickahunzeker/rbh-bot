@@ -109,6 +109,17 @@
     "conclusion": "SUCCESS",
     "scope": "PREVIOUS_HEAD_ONLY_NOT_THIS_CONTINUATION"
   },
+  "current_head_ci": {
+    "head": "61acfe2b914a8077db649ed7c79060b9f260aede",
+    "run_number": 185,
+    "url": "https://github.com/ruzickahunzeker/rbh-bot/actions/runs/40141813419",
+    "conclusion": "SUCCESS",
+    "jobs": {
+      "go": "SUCCESS",
+      "validation-package": "SUCCESS"
+    },
+    "scope": "CURRENT_HEAD_REMOTE_CI_FULL_GO_TEST_RACE_VET_STATICCHECK_FORMAT_VALIDATION"
+  },
   "source_sha256": {
     "internal/storage/migrations/trade/043_manual_first_broadcast_consume_witness.sql": "a0a59f58a2d0ff8afbf719564e9576b098110bbbf0154f1b9d0c3ae5a33b3926",
     "internal/trade/manual_first_broadcast_consume.go": "cd6d0ed79d730f35c78a31b4e5929531f3d6f0c29552440f8a4604cb7866d9aa",
