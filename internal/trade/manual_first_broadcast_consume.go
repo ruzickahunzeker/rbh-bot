@@ -49,10 +49,12 @@ func (s *Store) ConsumeManualFirstBroadcastPermit(ctx context.Context, r CanaryG
 	if err = tx.QueryRowContext(ctx, `SELECT rr.state,o.expires_at,rr.policy_version FROM canary_admission_decisions d JOIN canary_risk_reservations rr ON rr.id=d.reservation_id AND rr.operation_id=d.operation_id AND rr.wallet_id=d.wallet_id JOIN operations o ON o.id=d.operation_id WHERE d.operation_id=? AND d.decision='ADMITTED' AND d.wallet_id=?`, op, r.WalletID).Scan(&reservationState, &operationExpiry, &reservationPolicy); err != nil || (reservationState != "reserved" && reservationState != "frozen") || reservationPolicy != r.PolicyVersion {
 		return "C07_ADMISSION_BINDING_INVALID", ErrCanaryRuntimeRejected
 	}
-	if now.UTC().Format(time.RFC3339Nano) >= expiresAt || now.UTC().Format(time.RFC3339Nano) >= authExpiry || now.UTC().Format(time.RFC3339Nano) >= operationExpiry {
+	var permitCmp, authCmp, operationCmp int
+	stamp := now.UTC().Format(time.RFC3339Nano)
+	if err = tx.QueryRowContext(ctx, `SELECT manual_time_cmp(?,?),manual_time_cmp(?,?),manual_time_cmp(?,?)`, stamp, expiresAt, stamp, authExpiry, stamp, operationExpiry).Scan(&permitCmp, &authCmp, &operationCmp); err != nil || permitCmp >= 0 || authCmp >= 0 || operationCmp >= 0 {
 		return "PERMIT_EXPIRED", ErrCanaryRuntimeRejected
 	}
-	result, err := tx.ExecContext(ctx, `UPDATE canary_send_permits SET state='CONSUMED',consumed_at=? WHERE id=? AND state='ISSUED'`, now.UTC().Format(time.RFC3339Nano), permitID)
+	result, err := tx.ExecContext(ctx, `UPDATE canary_send_permits SET state='CONSUMED',consumed_at=? WHERE id=? AND state='ISSUED'`, stamp, permitID)
 	if err != nil {
 		return "CONSUME_FAILED", err
 	}
