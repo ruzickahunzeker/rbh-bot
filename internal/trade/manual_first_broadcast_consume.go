@@ -54,6 +54,9 @@ func (s *Store) ConsumeManualFirstBroadcastPermit(ctx context.Context, r CanaryG
 	if err = tx.QueryRowContext(ctx, `SELECT manual_time_cmp(?,?),manual_time_cmp(?,?),manual_time_cmp(?,?)`, stamp, expiresAt, stamp, authExpiry, stamp, operationExpiry).Scan(&permitCmp, &authCmp, &operationCmp); err != nil || permitCmp >= 0 || authCmp >= 0 || operationCmp >= 0 {
 		return "PERMIT_EXPIRED", ErrCanaryRuntimeRejected
 	}
+	if _, err = tx.ExecContext(ctx, `INSERT INTO manual_first_broadcast_consume_scopes(permit_id,operation_id,attempt_id,authorization_id,authorization_epoch,artifact_hash,opened_at) VALUES(?,?,?,?,?,?,?)`, permitID, op, attempt, auth, epoch, strings.ToLower(artifactHash), stamp); err != nil {
+		return "CONSUME_SCOPE_FAILED", err
+	}
 	result, err := tx.ExecContext(ctx, `UPDATE canary_send_permits SET state='CONSUMED',consumed_at=? WHERE id=? AND state='ISSUED'`, stamp, permitID)
 	if err != nil {
 		return "CONSUME_FAILED", err

@@ -1,11 +1,31 @@
 -- M4-B2.4: private, one-shot consumption of an exact MANUAL FIRST_BROADCAST permit.
 -- This does not create a submission, invoke a signer, or connect a broadcaster.
 DROP TRIGGER manual_b23_no_permit_consume_hardened;
+DROP TRIGGER manual_b23_no_permit_consume;
+
+CREATE TABLE manual_first_broadcast_consume_scopes(
+ permit_id TEXT NOT NULL PRIMARY KEY REFERENCES canary_send_permits(id) DEFERRABLE INITIALLY DEFERRED,
+ operation_id TEXT NOT NULL,
+ attempt_id TEXT NOT NULL,
+ authorization_id TEXT NOT NULL,
+ authorization_epoch INTEGER NOT NULL,
+ artifact_hash TEXT NOT NULL,
+ opened_at TEXT NOT NULL
+);
+CREATE TRIGGER manual_b24_consume_scope_exact
+BEFORE INSERT ON manual_first_broadcast_consume_scopes
+WHEN NOT EXISTS(SELECT 1 FROM manual_first_broadcast_issuances i JOIN canary_send_permits p ON p.id=i.id
+ WHERE i.id=NEW.permit_id AND p.state='ISSUED' AND p.operation_id=NEW.operation_id
+ AND p.attempt_id=NEW.attempt_id AND p.authorization_id=NEW.authorization_id
+ AND p.authorization_epoch=NEW.authorization_epoch AND p.artifact_hash=NEW.artifact_hash
+ AND manual_artifact_time_valid(hex(NEW.opened_at),typeof(NEW.opened_at))=1)
+BEGIN SELECT RAISE(ABORT,'manual first broadcast consume scope identity required'); END;
 
 CREATE TRIGGER manual_b24_first_permit_consume_exact
 BEFORE UPDATE OF state ON canary_send_permits
 WHEN EXISTS(SELECT 1 FROM manual_first_broadcast_issuances i WHERE i.id=OLD.id)
- AND (OLD.state!='ISSUED' OR NEW.state!='CONSUMED'
+ AND (NOT EXISTS(SELECT 1 FROM manual_first_broadcast_consume_scopes s WHERE s.permit_id=OLD.id)
+ OR OLD.state!='ISSUED' OR NEW.state!='CONSUMED'
  OR NEW.id!=OLD.id OR NEW.operation_id!=OLD.operation_id OR NEW.attempt_id!=OLD.attempt_id
  OR NEW.authorization_id!=OLD.authorization_id OR NEW.authorization_epoch!=OLD.authorization_epoch
  OR NEW.purpose!='FIRST_BROADCAST' OR NEW.artifact_hash!=OLD.artifact_hash OR NEW.tx_hash!=OLD.tx_hash
@@ -25,3 +45,9 @@ BEGIN
  INSERT INTO canary_alert_outbox(id,audit_id,severity,state,created_at)
  VALUES('manual-first-permit-consumed-alert:'||NEW.id,'manual-first-permit-consumed-audit:'||NEW.id,'INFO','PENDING',NEW.consumed_at);
 END;
+
+CREATE TRIGGER manual_b24_consume_scope_close
+AFTER UPDATE OF state ON canary_send_permits
+WHEN OLD.state='ISSUED' AND NEW.state='CONSUMED'
+ AND EXISTS(SELECT 1 FROM manual_first_broadcast_issuances WHERE id=NEW.id)
+BEGIN DELETE FROM manual_first_broadcast_consume_scopes WHERE permit_id=NEW.id; END;
