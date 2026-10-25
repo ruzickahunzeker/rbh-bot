@@ -180,6 +180,18 @@ func insertManualSubmissionTransitionTx(ctx context.Context, tx *sql.Tx, submiss
 	return err
 }
 
+// DiscardManualFirstInvocation only removes an ephemeral capability. An
+// interrupted coordinator must not leave a callable ticket behind; this never
+// changes durable work, releases accounting, or permits a retry.
+func (s *Store) DiscardManualFirstInvocation(submissionID string) {
+	if s == nil {
+		return
+	}
+	s.manualSendMu.Lock()
+	delete(s.manualSendTickets, submissionID)
+	s.manualSendMu.Unlock()
+}
+
 // WithManualFirstSubmissionOutcome is the sole A1 callback boundary. The
 // committed intent is already an ambiguity boundary: recheck/callback errors
 // become broadcast_unknown, never evidence of non-invocation after restart.

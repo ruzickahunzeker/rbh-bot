@@ -25,6 +25,11 @@ jobs:
       - run: >-
           go test -race -parallel=1 -timeout=25m ./internal/tradeapi
           -run '^TestHTTPM4B24' -count=1
+      - run: >-
+          go test -race -parallel=1 -timeout=20m
+          ./internal/storage ./internal/trade ./internal/tradeapi
+          -run '^(TestManualSubmission|TestManualFirstSubmission|TestControlledSubmission)'
+          -count=1
       - run: go vet ./...
       - run: go install honnef.co/go/tools/cmd/staticcheck@v0.6.1
       - run: staticcheck ./...

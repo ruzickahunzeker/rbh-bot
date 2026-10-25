@@ -17,6 +17,10 @@ type manualSignedArtifactHistory struct {
 }
 
 func loadManualSignedArtifactHistory(ctx context.Context, q queryRow, id Identity, request string, scope manualAdmissionScope, cipher manualartifact.Cipher) (manualSignedArtifactHistory, error) {
+	return loadManualArtifactPhaseHistory(ctx, q, id, request, scope, cipher, false)
+}
+
+func loadManualArtifactPhaseHistory(ctx context.Context, q queryRow, id Identity, request string, scope manualAdmissionScope, cipher manualartifact.Cipher, claimed bool) (manualSignedArtifactHistory, error) {
 	var zero manualSignedArtifactHistory
 	if ctx == nil || q == nil || !scope.valid() {
 		return zero, ErrInvalid
@@ -51,7 +55,11 @@ func loadManualSignedArtifactHistory(ctx context.Context, q queryRow, id Identit
 		return zero, err
 	}
 	var factsRaw, envelopeRaw string
-	if err := q.QueryRowContext(ctx, `SELECT facts_json,envelope_json FROM manual_signed_artifact_complete WHERE operation_id=?`, claim.Operation).Scan(&factsRaw, &envelopeRaw); err != nil {
+	source := "manual_signed_artifact_complete"
+	if claimed {
+		source = "manual_first_submission_signed_artifact_complete"
+	}
+	if err := q.QueryRowContext(ctx, `SELECT facts_json,envelope_json FROM `+source+` WHERE operation_id=?`, claim.Operation).Scan(&factsRaw, &envelopeRaw); err != nil {
 		return zero, err
 	}
 	f, err := manualartifact.Decode(factsRaw)

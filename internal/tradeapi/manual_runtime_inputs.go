@@ -97,6 +97,12 @@ func runtimeStopFirst(ctx context.Context, q queryRow) error {
 // SELECT-only on the caller's current snapshot/writer, not a new admission.
 // Original038 performs complete signed-phase/ownership/accounting validation.
 func loadManualRuntimeGate(ctx context.Context, q queryRow, id Identity, request string, profile manualRuntimeProfile, clock *manualRuntimeClock, sample manualRuntimeSample) (manualRuntimeGate, error) {
+	return loadManualRuntimePhaseGate(ctx, q, id, request, profile, clock, sample, false)
+}
+
+// Claimed work uses a separate complete projection. Never relax the original
+// signed-only projection to admit a consumed or already submitted artifact.
+func loadManualRuntimePhaseGate(ctx context.Context, q queryRow, id Identity, request string, profile manualRuntimeProfile, clock *manualRuntimeClock, sample manualRuntimeSample, claimed bool) (manualRuntimeGate, error) {
 	var g manualRuntimeGate
 	if err := runtimeStopFirst(ctx, q); err != nil {
 		return g, err
@@ -122,14 +128,20 @@ func loadManualRuntimeGate(ctx context.Context, q queryRow, id Identity, request
 	if _, err = readManualControl(ctx, q, lower); err != nil {
 		return g, err
 	}
+	source := "manual_gate_evidence_valid_source"
+	phaseDeadline := ""
+	if claimed {
+		source = "manual_first_submission_phase_source"
+		phaseDeadline = " AND manual_time_cmp(bounds.hi,e.permit_expires_at)<0"
+	}
 	err = q.QueryRowContext(ctx, `WITH bounds AS (SELECT ? AS lo,? AS hi)
- SELECT e.source_json,manual_artifact_bytes_sha256(hex(e.source_json)) FROM manual_gate_evidence_valid_source e,bounds
+ SELECT e.source_json,manual_artifact_bytes_sha256(hex(e.source_json)) FROM `+source+` e,bounds
  WHERE e.operation_id=? AND manual_time_cmp(bounds.hi,e.operation_expires_at)<0
  AND manual_time_cmp(bounds.hi,e.auth_expires_at)<0 AND manual_time_cmp(bounds.hi,e.lease_expires_at)<0
  AND NOT EXISTS(SELECT 1 FROM json_each(json_array(e.foundation_created_at,e.artifact_completed_at,e.control_effective_at,e.control_updated_at,
  e.authorized_at,e.auth_created_at,e.auth_updated_at,e.lease_updated_at,e.policy_created_at,
  json_extract(e.source_json,'$.allowlists.wallet_created_at'),json_extract(e.source_json,'$.allowlists.contract_created_at'),json_extract(e.source_json,'$.allowlists.token_created_at'))) t WHERE manual_time_cmp(bounds.lo,t.value)<0)
- AND NOT EXISTS(SELECT 1 FROM canary_gate_attestations a WHERE manual_artifact_time_valid(hex(a.attested_at),typeof(a.attested_at))!=1 OR manual_time_cmp(bounds.lo,a.attested_at)<0)`,
+ AND NOT EXISTS(SELECT 1 FROM canary_gate_attestations a WHERE manual_artifact_time_valid(hex(a.attested_at),typeof(a.attested_at))!=1 OR manual_time_cmp(bounds.lo,a.attested_at)<0)`+phaseDeadline,
 		lower.UTC().Format(time.RFC3339Nano), upper.UTC().Format(time.RFC3339Nano), "manual_op_"+request).Scan(&g.source, &g.sourceHash)
 	if err != nil {
 		return g, manualVerificationError(err, "RUNTIME_SOURCE_TIME_OR_CONTROL_INVALID")

@@ -2,8 +2,9 @@
 
 Planning baseline: `main@404bbff12826ba8bd6c6552512704b28fb0c9d96`.
 M4-B2.4 is PASS following PR #39 and status sync PR #40.
-This document is a proposed implementation plan, not an implementation,
-independent review, runtime grant or change to earlier accepted semantics.
+Implementation is in progress on the isolated A integration branch. This
+document is not independent approval, a runtime grant, or a change to earlier
+accepted send-intent ambiguity semantics. Target: A_READY_FOR_REVIEW only.
 
 ## Deliverable
 
@@ -24,8 +25,8 @@ No second economic state machine or accounting ledger is introduced. A is a
 delivery grouping; it does not itself close aggregate M4-B2/M4-B/M4 gates.
 Storage/outcome work maps to remaining M4-B contracts; local coordination maps
 to the submission subset of M4-C; cumulative tests contribute to M4-D. These
-are explicit proposed scope mappings, not retroactive PASS or permission from
-the earlier B2.4 metadata-only closeout. This planning batch changes no code.
+are explicit scope mappings, not retroactive PASS or permission from the
+earlier B2.4 metadata-only closeout.
 
 ## Findings that determine the design
 
@@ -86,6 +87,19 @@ remain consistent. Preserve original input/gas units and lifetime authorization
 usage; do not double-charge or refund cumulative authorization admission usage.
 Any known-unsent release requires a precise schema-protected result transaction.
 An unresolved outcome never releases ownership because TTL/auth/stop changed.
+
+The A implementation intentionally **does not release known-unsent work**.
+`known_unsent` retains/freeze-locks the original signed nonce, wallet lane and
+typed reservation with `KNOWN_UNSENT_RETAINED` audit wording. A future explicit
+release contract is required; no legacy accounting release is reused. Successful
+submission retains its reservation pending the separate recovery workstream.
+
+The post-intent invocation also needs an ephemeral one-shot Store ticket minted
+only after the original NULL-to-intent transaction commits. It is burned before
+invocation and discarded when coordination exits. It cannot be reconstructed
+from durable intent or an already consumed permit. This is an additional
+restriction, not a second economic state machine: durable transaction_submissions
+remains authoritative and takeover recovery needs no in-memory ticket.
 
 ## Parallel work packages
 
