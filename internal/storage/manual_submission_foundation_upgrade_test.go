@@ -71,18 +71,17 @@ func TestManualSubmissionFoundationUpgradeFrom036AtomicNoRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 	var oldGuards string
-	guardsQuery := `SELECT json_group_array(json_object('name',name,'sql',sql)) FROM (SELECT name,sql FROM sqlite_master WHERE type IN ('trigger','view') AND name NOT LIKE 'manual_submission_foundation_%' AND name NOT LIKE 'manual_gate_%' AND name NOT LIKE 'manual_first_broadcast_%' AND name NOT LIKE 'manual_b23_%' AND name NOT LIKE 'manual_b24_%' AND name NOT IN ('manual_b1_no_permit','manual_b1_no_pass_snapshot') ORDER BY name)`
+	guardsQuery := `SELECT json_group_array(json_object('name',name,'sql',sql)) FROM (SELECT name,sql FROM sqlite_master WHERE type IN ('trigger','view') AND name NOT LIKE 'manual_submission_foundation_%' ORDER BY name)`
 	if err := d.db.QueryRow(guardsQuery).Scan(&oldGuards); err != nil {
 		t.Fatal(err)
 	}
 	for i := 0; i < 2; i++ {
-		if err := d.Migrate(ctx); err != nil {
-			t.Fatal(err)
-		}
+		migrateTradeThroughTest(t, ctx, d, 37)
 	}
 	if err := d.db.QueryRow(guardsQuery).Scan(&after); err != nil || after != oldGuards {
 		t.Fatal("037 changed an old guard/view", err)
 	}
+	migrateTradeLatestIdempotentTest(t, ctx, d)
 	var versions, retained, foundations, scopes int
 	if err := d.db.QueryRow(`SELECT (SELECT COUNT(*) FROM schema_migrations WHERE version=37),
  (SELECT COUNT(*) FROM canary_runtime_audit WHERE typeof(id)='blob' AND hex(id)='72657461696E6564' AND typeof(event_type)='blob' AND typeof(operation_id)='blob'),

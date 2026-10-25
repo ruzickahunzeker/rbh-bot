@@ -87,19 +87,15 @@ func TestManualRuntimeClockUpgradeFrom038AtomicNoRepair(t *testing.T) {
 	}
 	rows.Close()
 	for i := 0; i < 2; i++ {
-		if err := d.Migrate(ctx); err != nil {
-			t.Fatal(err)
-		}
+		migrateTradeThroughTest(t, ctx, d, 39)
 	}
 	for name, definition := range old {
-		if name == "manual_b1_no_permit" || name == "manual_b1_no_pass_snapshot" {
-			continue
-		}
 		var actual string
 		if err := d.db.QueryRow(`SELECT sql FROM sqlite_master WHERE name=?`, name).Scan(&actual); err != nil || actual != definition {
 			t.Fatal("039 changed/deleted old schema object", name, err)
 		}
 	}
+	migrateTradeLatestIdempotentTest(t, ctx, d)
 	var versions, retained, evidence, scopes, empty int
 	if err := d.db.QueryRow(`SELECT (SELECT COUNT(*) FROM schema_migrations WHERE version=39),
  (SELECT COUNT(*) FROM canary_runtime_audit WHERE typeof(id)='blob' AND hex(id)='72657461696E6564' AND typeof(event_type)='blob' AND typeof(operation_id)='blob'),
