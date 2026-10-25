@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: EVM Bot user HTTP trading contract — HTTP-A/B/C1/C2/C3-C
-  version: 0.5.0
+  version: 0.5.1
   description: >-
     Local Unix-domain HTTP contract, execution/submission disabled. Valid new
     POSTs create immutable rejection records by default, or explicit opt-in
@@ -281,7 +281,10 @@ components:
         tip_gwei: [max_gwei]
     RejectedRecord:
       type: object
+      required: [request_id, status, reason_code, progress, request, expires_at, created_at, send_authorized, submission_queued]
       properties:
+        progress:
+          $ref: '#/components/schemas/TradeProgress'
         request_id: {type: string}
         operation_id: {type: 'null'}
         status: {const: REJECTED}
@@ -303,8 +306,10 @@ components:
         - $ref: '#/components/schemas/RecordedOrder'
     RecordedOrder:
       type: object
-      required: [request_id, operation_id, status, reason_code, request, expires_at, created_at, send_authorized, submission_queued]
+      required: [request_id, operation_id, status, reason_code, progress, request, expires_at, created_at, send_authorized, submission_queued]
       properties:
+        progress:
+          $ref: '#/components/schemas/TradeProgress'
         request_id: {type: string}
         operation_id: {type: string, pattern: '^manual_op_req_[a-f0-9]{64}$'}
         status: {const: RECORDED}
@@ -326,6 +331,14 @@ components:
           $ref: '#/components/schemas/ManualValidation'
         admission:
           $ref: '#/components/schemas/ManualAdmission'
+    TradeProgress:
+      type: object
+      additionalProperties: false
+      required: [stage]
+      description: Read-only durable milestone, not a transaction outcome or execution/send permission
+      properties:
+        stage:
+          enum: [REJECTED, INTAKE_RECORDED, VALIDATION_RECORDED, ADMISSION_RECORDED]
     ManualAdmission:
       type: object
       additionalProperties: false

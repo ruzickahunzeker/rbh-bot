@@ -245,24 +245,20 @@ func (h *API) submit(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else if record.OperationID != nil {
-		// Default-off composition can still return a committed admission's
-		// historical observation; it must not rerun validation or admit anew.
-		history, err := h.store.manualAdmissionHistory(r.Context(), h.identity, record.RequestID)
+		// Default-off composition reads saved validation and admission history
+		// without rerunning validation or minting permission.
+		stored, err := h.store.Get(r.Context(), h.identity, record.RequestID, false)
 		if err != nil {
 			writeError(w, r, err)
 			return
 		}
-		if history != nil {
-			if err = h.returnExistingAdmission(r.Context(), &record); err != nil {
-				writeError(w, r, err)
-				return
-			}
-		}
+		record.Validation, record.Admission = stored.Validation, stored.Admission
 	}
 	status := http.StatusServiceUnavailable
 	if record.OperationID != nil {
 		status = http.StatusAccepted
 	}
+	record.projectProgress()
 	writeJSON(w, status, record)
 }
 

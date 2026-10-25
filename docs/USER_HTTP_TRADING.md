@@ -187,6 +187,17 @@ GET /v1/trades/by-idempotency-key    (Idempotency-Key header)
 GET /v1/trades/{request_id}/events?after=<canonical cursor>
 ```
 
+`POST` and both trade `GET` responses include `progress.stage`, a read-only
+projection of verified durable milestones: `REJECTED`, `INTAKE_RECORDED`,
+`VALIDATION_RECORDED`, or `ADMISSION_RECORDED`. The existing top-level
+`status`/`reason_code` remain historical intake fields. A progress stage is
+not execution authorization, a signed artifact, a submission, receipt or trade
+success. `ADMISSION_RECORDED` only means the existing admission history was
+verified; duplicates and GET return historical observation, never renewed
+permission. The API does not yet project signed/submitted/canonical outcomes;
+those require separately reviewed durable A/B integration. HTTP 202 alone
+does not imply a send or queued transaction.
+
 All require Bearer auth and return only the configured caller/wallet scope.
 Queries return 200 for a stored rejection. Events are explicitly
 API_REJECTION_ONLY, not a receipt/canonical/reorg feed or recovery health claim.

@@ -79,6 +79,7 @@ func (s *Store) RecordManual(ctx context.Context, identity Identity, key string,
 		}
 		prior.Duplicate = true
 		_, err = conn.ExecContext(ctx, "COMMIT")
+		prior.projectProgress()
 		return prior, err
 	}
 	if !errors.Is(err, ErrNotFound) {
@@ -120,5 +121,6 @@ func (s *Store) RecordManual(ctx context.Context, identity Identity, key string,
 		return Record{}, err
 	}
 	_, err = conn.ExecContext(ctx, "COMMIT")
+	record.projectProgress()
 	return record, err
 }
