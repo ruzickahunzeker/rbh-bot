@@ -3,6 +3,7 @@ package tradeapi
 import (
 	"encoding/json"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -78,9 +79,28 @@ func TestHTTPC1ProgressProjectionValidationAndAdmission(t *testing.T) {
 	if !duplicate.Duplicate || duplicate.Admission == nil || duplicate.Admission.Status != "HISTORICAL_ADMISSION_NOT_PERMISSION" || admittedDatabaseSnapshot(t, admittedStore.db) != before {
 		t.Fatal("progress query/duplicate renewed admission or wrote durable state")
 	}
+	disabledAdmission, err := NewWithOptions(admittedStore, admission.identity, testCredential, admission.policy, nil, Options{ManualIntake: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertProgressQueries(t, disabledAdmission, committed, "b2-inputs", "ADMISSION_RECORDED")
+	if admittedDatabaseSnapshot(t, admittedStore.db) != before {
+		t.Fatal("default-off admission history query wrote durable state")
+	}
 	for _, table := range []string{"transaction_attempts", "transaction_submissions", "canary_send_permits", "manual_nonce_claims"} {
 		if count(t, admittedStore.db, table) != 0 {
 			t.Fatalf("HTTP progress created downstream economic work in %s", table)
+		}
+	}
+	// Deliberately corrupt a guarded fixture: progress must not promote a
+	// partial admission ledger into a healthy milestone.
+	if _, err := admittedStore.db.Exec(`DROP TRIGGER manual_b1_no_usage_update; UPDATE canary_authorization_usage SET total_input='0'`); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/v1/trades/" + committed.RequestID, "/v1/trades/by-idempotency-key"} {
+		w := call(disabledAdmission, "GET", path, "b2-inputs", "")
+		if w.Code == 200 || strings.Contains(w.Body.String(), "ADMISSION_RECORDED") {
+			t.Fatal("corrupt admission history became progress", w.Body.String())
 		}
 	}
 }
