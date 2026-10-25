@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_MANUAL_M4_B24_FORMAL_CLOSEOUT_ONLY",
+  "closeout_branch": "http-m4b24-consume-closeout",
+  "reviewed_code_head": "61acfe2b914a8077db649ed7c79060b9f260aede",
+  "final_hardening_head": "aa15f8a98adb03e7d0b4a66934d1f88e5f4b2802",
+  "reviewed_main": "869bdba8d2e6d9fc83933cb423775dfaed51e906",
+  "hardening_pr": 38,
+  "hardening_pr_merged": true,
+  "main_tree_equals_final_hardening_head": true,
+  "after_review_code_changes": 0,
+  "independent_review_conclusion": "PASS",
+  "formal_closeout": "PROPOSED_PENDING_SEPARATE_PR_MERGE",
+  "proposed_checkpoint": "M4_B24_PASS",
+  "accepted_scope": "PRIVATE_FIRST_BROADCAST_PERMIT_CONSUMPTION_METADATA_ONLY",
+  "ci": {
+    "final_head_run": 186,
+    "final_head_conclusion": "SUCCESS",
+    "pr_run": 187,
+    "pr_run_conclusion": "SUCCESS",
+    "pr_go_job": "SUCCESS",
+    "pr_validation_package_job": "SUCCESS"
+  },
+  "invariants": {
+    "current_durable_manual_source_rechecked": "PASS",
+    "atomic_consume_witness_audit_alert": "PASS",
+    "direct_sql_bypass_rejected": "PASS",
+    "duplicate_restart_concurrency_one_shot": "PASS",
+    "stop_revoke_lease_commit_window": "PASS",
+    "audit_alert_failure_rollback": "PASS"
+  },
+  "boundaries": {
+    "production_caller_count": 0,
+    "signer_calls_from_consumer": 0,
+    "SubmissionService_calls_from_consumer": 0,
+    "SendRawTransaction_calls_from_consumer": 0,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "send": false,
+    "replay": false,
+    "live": false,
+    "release_ready": false,
+    "M4_B2_M4_B_M4": "INCOMPLETE",
+    "M4_C_D_M5": "NOT_ENTERED"
+  },
+  "limits": [
+    "Independent review applied to code head 61acfe2; the next commit only updated evidence and checksum.",
+    "Zero prohibited-path counts are structural and test evidence, not production telemetry.",
+    "Formal main status requires merge of this separate docs/evidence closeout PR."
+  ]
+}
