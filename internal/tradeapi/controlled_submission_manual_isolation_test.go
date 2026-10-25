@@ -25,12 +25,13 @@ BEGIN SELECT RAISE(ABORT,'manual authorization arming not implemented'); END`); 
 func seedIsolationLegacyPermit(t *testing.T, f manualB24ConsumeFixture, suffix string, expiry time.Time) string {
 	t.Helper()
 	op, step, attempt, permit := "legacy-op-"+suffix, "legacy-step-"+suffix, "legacy-attempt-"+suffix, "legacy-permit-"+suffix
+	wallet := "legacy-wallet-" + suffix
 	stamp := f.permit.IssuedAt.Format(time.RFC3339Nano)
 	for _, q := range []struct {
 		sql  string
 		args []any
 	}{
-		{`INSERT INTO operations(id,chain_id,wallet_id,idempotency_key,request_fingerprint,kind,status,created_at) VALUES(?,4663,?,?,?,'swap','signed',?)`, []any{op, f.r.WalletID, op, op, stamp}},
+		{`INSERT INTO operations(id,chain_id,wallet_id,idempotency_key,request_fingerprint,kind,status,created_at) VALUES(?,4663,?,?,?,'swap','signed',?)`, []any{op, wallet, op, op, stamp}},
 		{`INSERT INTO execution_steps(id,operation_id,step_index,kind) VALUES(?,?,0,'swap')`, []any{step, op}},
 		{`INSERT INTO transaction_attempts(id,step_id,nonce,tx_hash,status,created_at) VALUES(?,?,'100',?,'signed',?)`, []any{attempt, step, f.permit.TxHash, stamp}},
 		{`INSERT INTO canary_admission_sources VALUES(?,?,?,'PONS_V2_CURVE','BUY',?,?,'curve',?,'1','1','1','1','1',1,0,?,1,?,?,?,?)`, []any{op, f.r.WalletID, "0x0000000000000000000000000000000000000001", "0x0000000000000000000000000000000000000002", "0x0000000000000000000000000000000000000003", f.permit.TxHash, f.r.PolicyVersion, f.permit.TxHash, expiry.Format(time.RFC3339Nano), f.raw, stamp}},
