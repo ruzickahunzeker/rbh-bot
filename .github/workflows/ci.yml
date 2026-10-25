@@ -50,6 +50,10 @@ jobs:
           -run '^TestManualSubmissionExecutor'
           -skip '^TestManualSubmissionExecutor(ExactFirstOnly|OutcomeDistinctions|FaultDoesNotRecreatePermission)$'
           -count=1
+      - run: >-
+          go test -race -parallel=1 -timeout=15m ./internal/tradeapi
+          -run '^(TestHTTPABC|TestHTTPC1Progress|TestManualExecutionSnapshot|TestManualSignedArtifactReadOnlyRecoveryQuery)'
+          -count=1
       - run: go vet ./...
       - run: go install honnef.co/go/tools/cmd/staticcheck@v0.6.1
       - run: staticcheck ./...

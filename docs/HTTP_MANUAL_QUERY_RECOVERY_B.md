@@ -7,10 +7,15 @@ B starts from `main@404bbff12826ba8bd6c6552512704b28fb0c9d96` on
 snapshot and source-aware MANUAL artifact decryption for existing recovery
 queries. This is not a production-send or live authorization.
 
-A's independent review remains pending at `A_READY_FOR_REVIEW`. Its local
-submission migration is `044_manual_first_submission.sql`; B must not reserve
-the same migration number, copy A's unreviewed schema, or claim a submitted
-MANUAL recovery acceptance result before A is reviewed and integrated.
+A's independent read-only review of `c0945ef` concluded PASS for its private
+local-harness scope. A, this B foundation and C1 are now assembled on
+`http-abc-local-integration`; see `HTTP_ABC_INTEGRATION.md` for pinned source
+heads, the shared contract and prepared continuation worktrees. This assembly
+does not grant B independent PASS or complete the recovery acceptance below.
+Migration 044 stays frozen; B owns the next free additive migration (currently
+expected 045) and must validate A-bound provenance rather than latest-attempt
+selection. Current receipt/effect schema guards still need narrow recovery
+transitions; decrypting the original AAD alone does not enable reconciliation.
 
 ## B1: user-visible query and event history
 

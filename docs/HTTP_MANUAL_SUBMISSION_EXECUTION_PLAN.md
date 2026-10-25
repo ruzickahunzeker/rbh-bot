@@ -3,10 +3,13 @@
 Planning baseline: `main@404bbff12826ba8bd6c6552512704b28fb0c9d96`.
 M4-B2.4 is PASS following PR #39 and status sync PR #40.
 Implementation and scoped author validation are complete on the isolated A
-integration branch. Status: A_READY_FOR_REVIEW; independent review has not been
-performed. This document is not independent approval, a runtime grant, or a
-change to earlier accepted send-intent ambiguity semantics. Aggregate command
-failures/timeouts and the precise successful rechecks remain in the evidence.
+integration branch. Independent read-only review of `c0945ef` concluded PASS
+for the frozen local-harness scope; see
+`HTTP_MANUAL_SUBMISSION_EXECUTION_REVIEW.md`. No aggregate M4 gate is closed by
+that conclusion. Original author evidence retains its historical pre-review
+status and failed/timed-out commands. Shared B/C continuation is coordinated
+in `HTTP_ABC_INTEGRATION.md`; real-send authority and the accepted send-intent
+ambiguity semantics are unchanged.
 
 ## Deliverable
 

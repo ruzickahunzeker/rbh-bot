@@ -4,6 +4,12 @@ Branch: `http-c1-trade-progress`, based on `main@404bbff12826ba8bd6c6552512704b2
 Review ceiling: `HTTP_C1_READY_FOR_REVIEW`; this document does not claim
 independent PASS, submission readiness or live authorization.
 
+Integration note: this C1 input is assembled with reviewed A and the B query
+foundation on `http-abc-local-integration`. Both `progress` and optional
+`execution` are retained. See `HTTP_ABC_INTEGRATION.md` for pinned inputs,
+ownership and the C continuation worktree. Neither C1 nor aggregate C acquires
+independent PASS from that assembly.
+
 The existing authenticated `POST /v1/trades`, `GET /v1/trades/{request_id}` and
 `GET /v1/trades/by-idempotency-key` now return `progress.stage`. The stage is
 derived only from already verified durable HTTP intake, C2 validation and C3

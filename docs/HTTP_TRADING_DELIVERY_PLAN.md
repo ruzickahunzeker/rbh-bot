@@ -5,6 +5,15 @@ authorization. The desired outcome is a normal one-request HTTP trading API
 that reuses the completed RBH core. No client-side dry-run/prepare prerequisite;
 internal quote/simulation and security gates remain required.
 
+The current local A/B/C development baseline is assembled on
+`http-abc-local-integration`, code commit
+`3ce8105c7ccc4bb0c307d5c20d945094b14e7e51`. See
+`HTTP_ABC_INTEGRATION.md` for the pinned source commits, coordinator/B/C thread
+links, continuation worktrees, shared Record contract and pending deliverables.
+A's independent PASS at `c0945ef` is recorded separately; B/C and the combined
+integration have no independent PASS. This is a local development handoff,
+not a replacement main/release baseline or production-send authorization.
+
 ## Current checkpoints
 
 Current B2.4 formal closeout (2026-10-25): PR #38 merged hardening head
