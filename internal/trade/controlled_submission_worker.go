@@ -120,8 +120,32 @@ func (w *ControlledSubmissionWorker) Run(ctx context.Context, interval time.Dura
 	}
 }
 
+// controlledLegacySourceSQL admits only an unambiguous legacy owner. Both the
+// durable MANUAL owner and first issuance independently exclude work, even if
+// the other record is missing or a text/blob alias appears in restored data.
+// Arguments are internal SQL expressions, never request values.
+func controlledLegacySourceSQL(operation, attempt string) string {
+	return `typeof(` + operation + `)='text' AND typeof(` + attempt + `)='text'
+ AND (SELECT COUNT(*) FROM canary_admission_sources src WHERE hex(src.operation_id)=hex(` + operation + `))=1
+ AND EXISTS(SELECT 1 FROM canary_admission_sources src WHERE typeof(src.operation_id)='text' AND src.operation_id=` + operation + `)
+ AND EXISTS(SELECT 1 FROM transaction_attempts owner_attempt JOIN execution_steps owner_step ON owner_step.id=owner_attempt.step_id
+   WHERE owner_attempt.id=` + attempt + ` AND owner_step.operation_id=` + operation + `
+   AND NOT EXISTS(SELECT 1 FROM manual_http_order_sources m WHERE hex(m.step_id)=hex(owner_step.id)))
+ AND NOT EXISTS(SELECT 1 FROM manual_http_order_sources m WHERE hex(m.operation_id)=hex(` + operation + `))
+ AND NOT EXISTS(SELECT 1 FROM manual_execution_bindings m WHERE hex(m.operation_id)=hex(` + operation + `))
+ AND NOT EXISTS(SELECT 1 FROM manual_nonce_claims m WHERE hex(m.operation_id)=hex(` + operation + `) OR hex(m.attempt_id)=hex(` + attempt + `))
+ AND NOT EXISTS(SELECT 1 FROM manual_first_broadcast_issuances i WHERE hex(i.operation_id)=hex(` + operation + `) OR hex(i.attempt_id)=hex(` + attempt + `))`
+}
+
+func controlledLegacyPermitSQL() string {
+	return controlledLegacySourceSQL("p.operation_id", "p.attempt_id") + `
+ AND typeof(p.id)='text' AND typeof(p.authorization_id)='text'
+ AND NOT EXISTS(SELECT 1 FROM manual_first_broadcast_issuances i WHERE hex(i.id)=hex(p.id))
+ AND NOT EXISTS(SELECT 1 FROM manual_authorization_units m WHERE hex(m.authorization_id)=hex(p.authorization_id))`
+}
+
 func (s *Store) ListControlledSubmissionWork(ctx context.Context, now time.Time) ([]ControlledSubmissionWork, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT p.id,p.purpose,p.operation_id,p.attempt_id,p.tx_hash,p.artifact_hash,p.authorization_id,p.authorization_epoch,a.policy_version,a.wallet_id,a.environment,a.build_sha,a.release_id,a.deployment_id FROM canary_send_permits p JOIN canary_runtime_authorizations a ON a.id=p.authorization_id AND a.epoch=p.authorization_epoch WHERE p.state='ISSUED' AND p.expires_at>? ORDER BY p.issued_at,p.id`, now.UTC().Format(time.RFC3339Nano))
+	rows, err := s.db.QueryContext(ctx, `SELECT p.id,p.purpose,p.operation_id,p.attempt_id,p.tx_hash,p.artifact_hash,p.authorization_id,p.authorization_epoch,a.policy_version,a.wallet_id,a.environment,a.build_sha,a.release_id,a.deployment_id FROM canary_send_permits p JOIN canary_runtime_authorizations a ON a.id=p.authorization_id AND a.epoch=p.authorization_epoch WHERE p.state='ISSUED' AND p.expires_at>? AND `+controlledLegacyPermitSQL()+` ORDER BY p.issued_at,p.id`, now.UTC().Format(time.RFC3339Nano))
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +170,7 @@ func (s *Store) ExpireControlledSendPermits(ctx context.Context, now time.Time) 
 	}
 	defer tx.Rollback()
 	stamp := now.UTC().Format(time.RFC3339Nano)
-	rows, err := tx.QueryContext(ctx, `SELECT id,operation_id,attempt_id,authorization_id,authorization_epoch FROM canary_send_permits WHERE state='ISSUED' AND expires_at<=? ORDER BY id`, stamp)
+	rows, err := tx.QueryContext(ctx, `SELECT p.id,p.operation_id,p.attempt_id,p.authorization_id,p.authorization_epoch FROM canary_send_permits p WHERE p.state='ISSUED' AND p.expires_at<=? AND `+controlledLegacyPermitSQL()+` ORDER BY p.id`, stamp)
 	if err != nil {
 		return err
 	}
@@ -248,16 +272,18 @@ func (s *Store) RecoverControlledInflight(ctx context.Context, lease SubmissionL
 		return err
 	}
 	stamp := now.UTC().Format(time.RFC3339Nano)
-	if _, err = tx.ExecContext(ctx, `UPDATE transaction_submissions AS sub SET state='known_unsent',failure_class='restart_before_send_intent',failure_detail='broadcaster invocation was durably not started',updated_at=? WHERE sub.state='submitting' AND sub.send_intent_at IS NULL AND sub.created_at<? AND EXISTS(SELECT 1 FROM canary_send_permits p JOIN canary_runtime_authorizations a ON a.id=p.authorization_id AND a.epoch=p.authorization_epoch WHERE p.attempt_id=sub.attempt_id AND p.state='CONSUMED' AND a.environment=?)`, stamp, stamp, lease.Environment); err != nil {
+	legacyAttempts := `SELECT a.id FROM transaction_attempts a JOIN execution_steps s ON s.id=a.step_id WHERE ` + controlledLegacySourceSQL("s.operation_id", "a.id")
+	legacyConsumedPermit := `EXISTS(SELECT 1 FROM canary_send_permits p JOIN canary_runtime_authorizations auth ON auth.id=p.authorization_id AND auth.epoch=p.authorization_epoch WHERE p.attempt_id=sub.attempt_id AND p.state='CONSUMED' AND auth.environment=? AND ` + controlledLegacyPermitSQL() + `)`
+	if _, err = tx.ExecContext(ctx, `UPDATE transaction_submissions AS sub SET state='known_unsent',failure_class='restart_before_send_intent',failure_detail='broadcaster invocation was durably not started',updated_at=? WHERE sub.state='submitting' AND sub.send_intent_at IS NULL AND sub.created_at<? AND `+legacyConsumedPermit, stamp, stamp, lease.Environment); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `UPDATE transaction_submissions AS sub SET state='broadcast_unknown',failure_class='restart_after_send_intent',failure_detail='send outcome was not durably recorded',updated_at=? WHERE sub.state='submitting' AND sub.send_intent_at IS NOT NULL AND sub.created_at<? AND EXISTS(SELECT 1 FROM canary_send_permits p JOIN canary_runtime_authorizations a ON a.id=p.authorization_id AND a.epoch=p.authorization_epoch WHERE p.attempt_id=sub.attempt_id AND p.state='CONSUMED' AND a.environment=?)`, stamp, stamp, lease.Environment); err != nil {
+	if _, err = tx.ExecContext(ctx, `UPDATE transaction_submissions AS sub SET state='broadcast_unknown',failure_class='restart_after_send_intent',failure_detail='send outcome was not durably recorded',updated_at=? WHERE sub.state='submitting' AND sub.send_intent_at IS NOT NULL AND sub.created_at<? AND `+legacyConsumedPermit, stamp, stamp, lease.Environment); err != nil {
 		return err
 	}
 	// Sequence zero is the first-broadcast submission. A later unknown-replay
 	// submission must retain the pre-existing ambiguous freeze even when its own
 	// broadcaster invocation is proven not to have started.
-	firstKnownUnsent := `SELECT s.operation_id FROM execution_steps s JOIN transaction_attempts a ON a.step_id=s.id JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_before_send_intent' AND sub.sequence=0`
+	firstKnownUnsent := `SELECT s.operation_id FROM execution_steps s JOIN transaction_attempts a ON a.step_id=s.id JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_before_send_intent' AND sub.sequence=0 AND ` + controlledLegacySourceSQL("s.operation_id", "a.id")
 	if _, err = tx.ExecContext(ctx, `UPDATE execution_wallet_lanes SET state='idle',operation_id=NULL,step_id=NULL,reserved_nonce=NULL,freeze_reason='known_unsent',updated_at=? WHERE operation_id IN (`+firstKnownUnsent+`)`, stamp); err != nil {
 		return err
 	}
@@ -267,7 +293,7 @@ func (s *Store) RecoverControlledInflight(ctx context.Context, lease SubmissionL
 	if _, err = tx.ExecContext(ctx, `UPDATE canary_risk_reservations SET state='released',updated_at=? WHERE operation_id IN (`+firstKnownUnsent+`) AND state='reserved'`, stamp); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `UPDATE transaction_attempts SET status='known_unsent',updated_at=? WHERE id IN (SELECT sub.attempt_id FROM transaction_submissions sub WHERE sub.failure_class='restart_before_send_intent' AND sub.sequence=0)`, stamp); err != nil {
+	if _, err = tx.ExecContext(ctx, `UPDATE transaction_attempts SET status='known_unsent',updated_at=? WHERE id IN (SELECT sub.attempt_id FROM transaction_submissions sub WHERE sub.failure_class='restart_before_send_intent' AND sub.sequence=0 AND sub.attempt_id IN (`+legacyAttempts+`))`, stamp); err != nil {
 		return err
 	}
 	if _, err = tx.ExecContext(ctx, `UPDATE execution_steps SET status='known_unsent',updated_at=? WHERE operation_id IN (`+firstKnownUnsent+`)`, stamp); err != nil {
@@ -276,16 +302,17 @@ func (s *Store) RecoverControlledInflight(ctx context.Context, lease SubmissionL
 	if _, err = tx.ExecContext(ctx, `UPDATE operations SET status='known_unsent',failure_code='restart_before_send_intent',updated_at=? WHERE id IN (`+firstKnownUnsent+`)`, stamp); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `UPDATE execution_wallet_lanes SET state='frozen',freeze_reason='broadcast_unknown',updated_at=? WHERE operation_id IN (SELECT s.operation_id FROM execution_steps s JOIN transaction_attempts a ON a.step_id=s.id JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_after_send_intent')`, stamp); err != nil {
+	unknown := `SELECT s.operation_id FROM execution_steps s JOIN transaction_attempts a ON a.step_id=s.id JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_after_send_intent' AND ` + controlledLegacySourceSQL("s.operation_id", "a.id")
+	if _, err = tx.ExecContext(ctx, `UPDATE execution_wallet_lanes SET state='frozen',freeze_reason='broadcast_unknown',updated_at=? WHERE operation_id IN (`+unknown+`)`, stamp); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `UPDATE execution_reservations SET status='frozen',updated_at=? WHERE operation_id IN (SELECT s.operation_id FROM execution_steps s JOIN transaction_attempts a ON a.step_id=s.id JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_after_send_intent')`, stamp); err != nil {
+	if _, err = tx.ExecContext(ctx, `UPDATE execution_reservations SET status='frozen',updated_at=? WHERE operation_id IN (`+unknown+`)`, stamp); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `UPDATE canary_risk_reservations SET state='frozen',updated_at=? WHERE operation_id IN (SELECT s.operation_id FROM execution_steps s JOIN transaction_attempts a ON a.step_id=s.id JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_after_send_intent') AND state IN ('reserved','frozen')`, stamp); err != nil {
+	if _, err = tx.ExecContext(ctx, `UPDATE canary_risk_reservations SET state='frozen',updated_at=? WHERE operation_id IN (`+unknown+`) AND state IN ('reserved','frozen')`, stamp); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `UPDATE execution_steps SET status='broadcast_unknown',updated_at=? WHERE id IN (SELECT a.step_id FROM transaction_attempts a JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_after_send_intent')`, stamp); err != nil {
+	if _, err = tx.ExecContext(ctx, `UPDATE execution_steps SET status='broadcast_unknown',updated_at=? WHERE id IN (SELECT a.step_id FROM transaction_attempts a JOIN transaction_submissions sub ON sub.attempt_id=a.id WHERE sub.failure_class='restart_after_send_intent' AND a.id IN (`+legacyAttempts+`))`, stamp); err != nil {
 		return err
 	}
 	return tx.Commit()
