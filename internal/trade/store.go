@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -13,9 +14,11 @@ import (
 )
 
 type Store struct {
-	db           *sql.DB
-	recoveryHook func(string)
-	canaryHook   func(string) error
+	db                *sql.DB
+	recoveryHook      func(string)
+	canaryHook        func(string) error
+	manualSendMu      sync.Mutex
+	manualSendTickets map[string]struct{}
 }
 
 func (s *Store) SetRecoveryHookForTest(h func(string)) { s.recoveryHook = h }
