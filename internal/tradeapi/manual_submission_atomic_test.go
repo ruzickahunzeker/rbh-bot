@@ -342,3 +342,91 @@ func TestManualSubmissionDurableIdentityCannotMutateOrReplay(t *testing.T) {
 		t.Fatal("retained outcome changed", state, err)
 	}
 }
+
+func TestManualSubmissionTwoCoordinatorsOneExactInvocation(t *testing.T) {
+	f := newManualSubmissionFixture(t, "buy")
+	secondDB, err := storage.Open(context.Background(), storage.TradeOwner, f.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer secondDB.Close()
+	secondAPI, err := NewStore(secondDB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondTrade, err := trade.NewStore(secondDB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	profile := f.e.verifier.profile
+	observer := f.e.verifier.observer.(*runtimeTestObserver)
+	secondVerifier := &manualRuntimeVerifier{
+		store: secondAPI, profile: profile,
+		timeSource: &runtimeTestClock{wall: f.permit.IssuedAt.Add(time.Nanosecond)},
+		identity:   &runtimeTestIdentity{process: profile.process},
+		decryptor:  f.e.verifier.decryptor,
+		observer:   &runtimeTestObserver{environment: observer.environment, profile: observer.profile},
+	}
+	secondFake := &manualFakeFirstTransport{result: manualTransportResult{txHash: f.permit.TxHash}}
+	second := &manualSubmissionExecutor{verifier: secondVerifier, store: secondTrade, transport: secondFake, timeout: time.Second}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	ready, release := make(chan struct{}, 2), make(chan struct{})
+	for _, v := range []*manualRuntimeVerifier{f.e.verifier, secondVerifier} {
+		first := true
+		v.checkpoint = func(stage string) error {
+			if stage == "after_observation" && first {
+				first = false
+				ready <- struct{}{}
+				select {
+				case <-release:
+					return nil
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}
+			return nil
+		}
+	}
+	type result struct {
+		sub trade.SubmissionRecord
+		err error
+	}
+	results := make(chan result, 2)
+	for _, e := range []*manualSubmissionExecutor{f.e, second} {
+		go func(e *manualSubmissionExecutor) {
+			sub, err := e.execute(ctx, f.id, f.request, f.permit.ID)
+			results <- result{sub, err}
+		}(e)
+	}
+	// Both complete the real RPC/source preparation before either may claim.
+	for i := 0; i < 2; i++ {
+		select {
+		case <-ready:
+		case <-ctx.Done():
+			t.Fatal("prepare barrier", ctx.Err())
+		}
+	}
+	close(release)
+	wins := 0
+	for i := 0; i < 2; i++ {
+		select {
+		case r := <-results:
+			if r.err == nil && r.sub.State == "submitted" {
+				wins++
+			}
+		case <-ctx.Done():
+			t.Fatal("coordinator completion", ctx.Err())
+		}
+	}
+	if wins != 1 || f.fake.calls+secondFake.calls != 1 {
+		t.Fatal("duplicate economic action", wins, f.fake.calls, secondFake.calls)
+	}
+	if f.fake.calls == 1 && f.fake.rawHash != f.permit.ArtifactHash || secondFake.calls == 1 && secondFake.rawHash != f.permit.ArtifactHash {
+		t.Fatal("non-original artifact invoked")
+	}
+	var submissions, claims, consumed int
+	if err = f.e.verifier.store.db.QueryRow(`SELECT (SELECT COUNT(*) FROM transaction_submissions),(SELECT COUNT(*) FROM manual_first_submission_bindings),(SELECT COUNT(*) FROM canary_send_permits WHERE state='CONSUMED')`).Scan(&submissions, &claims, &consumed); err != nil || submissions != 1 || claims != 1 || consumed != 1 {
+		t.Fatal("coordinator conservation", submissions, claims, consumed, err)
+	}
+}
