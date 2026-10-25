@@ -314,3 +314,31 @@ SELECT ?,?,?,?, ?,?,?,?,binding_hash,?,'runtime-owner',1,? FROM manual_submissio
 		})
 	}
 }
+
+func TestManualSubmissionDurableIdentityCannotMutateOrReplay(t *testing.T) {
+	f := newManualSubmissionFixture(t, "buy")
+	sub, err := f.e.execute(context.Background(), f.id, f.request, f.permit.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, statement := range []string{
+		`UPDATE manual_first_submission_bindings SET lease_epoch=lease_epoch+1`,
+		`DELETE FROM manual_first_submission_bindings`,
+		`UPDATE manual_first_submission_transitions SET result_state='known_unsent'`,
+		`DELETE FROM manual_first_submission_transitions`,
+		`UPDATE transaction_submissions SET state='submitting'`,
+		`UPDATE transaction_submissions SET send_intent_at=NULL`,
+		`DELETE FROM transaction_submissions`,
+		`UPDATE canary_send_permits SET state='ISSUED',consumed_at=NULL`,
+		`INSERT OR REPLACE INTO manual_first_submission_bindings SELECT * FROM manual_first_submission_bindings`,
+		`INSERT OR REPLACE INTO transaction_submissions SELECT * FROM transaction_submissions`,
+	} {
+		if _, err = f.e.verifier.store.db.Exec(statement); err == nil {
+			t.Fatalf("durable identity mutation accepted: %s", statement)
+		}
+	}
+	var state string
+	if err = f.e.verifier.store.db.QueryRow(`SELECT state FROM transaction_submissions WHERE id=?`, sub.ID).Scan(&state); err != nil || state != "submitted" || f.fake.calls != 1 {
+		t.Fatal("retained outcome changed", state, err)
+	}
+}

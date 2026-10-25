@@ -47,10 +47,6 @@ func (v *manualRuntimeVerifier) measured(ctx context.Context) error {
 	return nil
 }
 
-func (v *manualRuntimeVerifier) authenticate(ctx context.Context, q queryRow, id Identity, request string, g manualRuntimeGate) error {
-	return v.authenticatePhase(ctx, q, id, request, g, false)
-}
-
 func (v *manualRuntimeVerifier) authenticatePhase(ctx context.Context, q queryRow, id Identity, request string, g manualRuntimeGate, claimed bool) error {
 	h, err := loadManualArtifactPhaseHistory(ctx, q, id, request, v.profile.process.scope, manualArtifactReadCipher{v.decryptor}, claimed)
 	if err != nil {

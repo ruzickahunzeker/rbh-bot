@@ -95,11 +95,6 @@ func runtimeStopFirst(ctx context.Context, q queryRow) error {
 }
 
 // SELECT-only on the caller's current snapshot/writer, not a new admission.
-// Original038 performs complete signed-phase/ownership/accounting validation.
-func loadManualRuntimeGate(ctx context.Context, q queryRow, id Identity, request string, profile manualRuntimeProfile, clock *manualRuntimeClock, sample manualRuntimeSample) (manualRuntimeGate, error) {
-	return loadManualRuntimePhaseGate(ctx, q, id, request, profile, clock, sample, false)
-}
-
 // Claimed work uses a separate complete projection. Never relax the original
 // signed-only projection to admit a consumed or already submitted artifact.
 func loadManualRuntimePhaseGate(ctx context.Context, q queryRow, id Identity, request string, profile manualRuntimeProfile, clock *manualRuntimeClock, sample manualRuntimeSample, claimed bool) (manualRuntimeGate, error) {
