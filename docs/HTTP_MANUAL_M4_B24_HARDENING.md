@@ -1,4 +1,9 @@
-# MANUAL M4-B2.4 consume hardening
+# MANUAL M4-B2.4 consume hardening — historical implementation record
+
+PR #38 has since landed this hardening on `main@869bdba`. Its separate
+post-merge status and closeout boundary are recorded in
+`HTTP_MANUAL_M4_B24_CLOSEOUT.md`. The checkpoint below describes this branch
+at author handoff, before independent review and merge.
 
 Base: `295a779932a9c66535927796c62a6a60e457e6ed` (PR #37 merge).
 Branch: `m4b24-consume-hardening-043`.

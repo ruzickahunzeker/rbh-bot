@@ -8,8 +8,9 @@ execution.
 ```ini
 M4-B2.3 = PASS
 M4-B2.4 scope = ACCEPTED_FOR_IMPLEMENTATION
-M4-B2.4 implementation = IMPLEMENTED_HARDENING_IN_VALIDATION
-M4-B2.4 independent review = PENDING_FRESH_REVIEW
+M4-B2.4 implementation = LANDED_PR_38
+M4-B2.4 independent review = PASS_ON_REVIEWED_CODE_HEAD
+M4-B2.4 formal closeout = PROPOSED_PENDING_SEPARATE_PR_MERGE
 production_broadcast = NOT_CONNECTED
 controlled_canary_authorization = NOT_GRANTED
 consume = PRIVATE_CONTRACT_ONLY
@@ -19,12 +20,11 @@ live = false
 release_ready = false
 ```
 
-Current hardening branch: `m4b24-consume-hardening-043`, from
-`main@295a779932a9c66535927796c62a6a60e457e6ed`. PR #37 landed the original
-implementation only. Migration 043 and its subsequent hardening are on this
-separate branch; 001–042 remain unchanged. Author validation and source/test
-mapping are recorded separately in `HTTP_MANUAL_M4_B24_HARDENING.md` and the
-B2.4 evidence package. Neither implementation nor green CI implies approval.
+PR #38 landed migration 043 and hardening on
+`main@869bdba8d2e6d9fc83933cb423775dfaed51e906`; 001–042 remain unchanged.
+The independent code review of `61acfe2` concluded PASS. Final head `aa15f8a`
+only added CI evidence and checksum; its tree exactly matches merged main.
+The separate proposed formal closeout is in `HTTP_MANUAL_M4_B24_CLOSEOUT.md`.
 
 ## Frozen boundary
 
@@ -64,5 +64,5 @@ re-signs, replaces, fee-bumps or changes the nonce/artifact.
 - no `transaction_submissions`, send-intent, nonce or economic-effect row is
   created by this slice.
 
-The maximum checkpoint is `M4_B24_READY_FOR_REVIEW`. Formal PASS requires a
-separate independent review and docs/evidence closeout.
+The hardening checkpoint was `M4_B24_READY_FOR_REVIEW`. Formal main PASS requires
+merging the separate docs/evidence closeout PR.
