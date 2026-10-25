@@ -7,6 +7,18 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
+Current B2.4 continuation (2026-10-25): `m4b24-consume-hardening-043`, base
+`295a779932a9c66535927796c62a6a60e457e6ed`, previous hardening `86583f0`.
+M1/M2/M3/M4-A/B1/B2.1/B2.2/B2.3 have PASS records. B2.4 implementation and
+hardening are present; author validation is in progress, fresh independent
+review and formal closeout are pending. See `HTTP_MANUAL_M4_B24_HARDENING.md`
+for the same-transaction current source, SQL witness and acceptance matrix.
+Only private FIRST_BROADCAST consumption metadata is in scope. Send/replay
+remain disabled, production broadcaster NOT_CONNECTED, authorization NOT_GRANTED,
+live/release_ready false. Whole M4-B/M4 remain incomplete; later stages require
+their existing gates. Earlier entries below are historical snapshots, not the
+current dashboard, including statements that B2.3/B2.4 have not started.
+
 Latest local M4-B2.3 implementation: `http-m4b23-first-permit`, base
 `2a238fc9a1bb7547153fda43086e8724b6b1fb75`. Accepted scope is implemented only
 through private FIRST_BROADCAST permit issuance metadata: additive040, fresh B22
@@ -773,7 +785,7 @@ M2_READY_FOR_REVIEW pending fresh independent review, not PASS or M3.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3/M4-A/M4-B1/B21/B22 controlled-local PASS; B23 first-permit design ready for acceptance, implementation NOT_STARTED; whole B2/B/M4 incomplete; B3/B4/C/D/M5 NOT_STARTED; no production signing/send/live permission |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3/M4-A/M4-B1/B21/B22/B23 PASS; B24 hardening in author validation, fresh independent review/closeout pending; whole B2/B/M4 incomplete; B3/B4/C/D/M5 NOT_STARTED; no production signing/send/live permission |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |

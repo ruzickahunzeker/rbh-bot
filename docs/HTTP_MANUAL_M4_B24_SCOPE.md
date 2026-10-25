@@ -8,8 +8,8 @@ execution.
 ```ini
 M4-B2.3 = PASS
 M4-B2.4 scope = ACCEPTED_FOR_IMPLEMENTATION
-M4-B2.4 implementation = NOT_STARTED
-M4-B2.4 independent review = NOT_PERFORMED
+M4-B2.4 implementation = IMPLEMENTED_HARDENING_IN_VALIDATION
+M4-B2.4 independent review = PENDING_FRESH_REVIEW
 production_broadcast = NOT_CONNECTED
 controlled_canary_authorization = NOT_GRANTED
 consume = PRIVATE_CONTRACT_ONLY
@@ -18,6 +18,13 @@ replay = DISABLED
 live = false
 release_ready = false
 ```
+
+Current hardening branch: `m4b24-consume-hardening-043`, from
+`main@295a779932a9c66535927796c62a6a60e457e6ed`. PR #37 landed the original
+implementation only. Migration 043 and its subsequent hardening are on this
+separate branch; 001–042 remain unchanged. Author validation and source/test
+mapping are recorded separately in `HTTP_MANUAL_M4_B24_HARDENING.md` and the
+B2.4 evidence package. Neither implementation nor green CI implies approval.
 
 ## Frozen boundary
 

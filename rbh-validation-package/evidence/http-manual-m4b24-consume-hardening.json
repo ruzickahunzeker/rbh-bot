@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "scope": "HTTP_MANUAL_M4_B24_PRIVATE_FIRST_BROADCAST_CONSUMPTION_HARDENING",
+  "branch": "m4b24-consume-hardening-043",
+  "base_main": "295a779932a9c66535927796c62a6a60e457e6ed",
+  "previous_hardening_head": "86583f07069ab6218cf961b4c4d6dd80bcb17973",
+  "checkpoint": "M4_B24_READY_FOR_REVIEW",
+  "independent_review": "PENDING_FRESH_REVIEW",
+  "formal_closeout": "NOT_STARTED",
+  "M4_B23": "PASS_UNCHANGED",
+  "M4_B2": "INCOMPLETE_NOT_PASS",
+  "M4_B": "INCOMPLETE_NOT_PASS",
+  "M4": "INCOMPLETE_NOT_PASS",
+  "corrections": {
+    "historical_042_deny": "043_REMOVES_ONLY_OBSOLETE_B23_CONSUME_DENY",
+    "source": "ORIGINAL_MANUAL_COMMAND_BINDING_TYPED_RESERVATION_USAGE_NOT_LEGACY_ADMISSION_DECISION",
+    "disabled_wallet_regression": "REPRODUCED_ACCEPT_AT_86583F0_THEN_REJECT_AFTER_CURRENT_SOURCE_RECHECK",
+    "current_source": "CURRENT_SIGNED_PHASE_FOUNDATION_CONTROLS_ALLOWLISTS_GATES_POLICY_AUTH_ACCOUNTING_SUBMISSION_LEASE_CLOCK",
+    "transaction": "FINAL_CURRENT_SOURCE_CHECK_SCOPE_CONSUME_AUDIT_ALERT_ONE_SQLITE_TRANSACTION",
+    "direct_sql": "EXACT_WITNESS_REQUIRED_AND_CURRENT_SOURCE_RECHECK_AT_UPDATE",
+    "nested_insert_probe": "AVOIDS_HISTORICAL_OLD_ALIAS_COLLISION_WITH_UPDATE_TRIGGER_PSEUDO_ROW_WITHOUT_CHANGING_OLD_VIEWS",
+    "scope_closure": "EXACT_CONSUMED_PERMIT_AUDIT_ALERT_REQUIRED_BEFORE_CLOSE",
+    "expiry": "PARSED_ABSOLUTE_TIMES_EQUALITY_REJECTED_NO_EXTENSION",
+    "prior_migrations": "001_THROUGH_042_BYTE_IDENTICAL_TO_BASE_MAIN"
+  },
+  "test_mapping": {
+    "successful_consume_duplicate_direct_sql_no_scope_orphan_witness": "TestHTTPM4B24PrivateFirstPermitConsumesOnceWithoutSubmission",
+    "audit_failure_rollback": "TestHTTPM4B24ConsumeAuditFailureRollsBack",
+    "file_close_reopen_issued_then_consumed_duplicate_unchanged_economic_snapshot": "TestHTTPM4B24RestartKeepsConsumeOneShot",
+    "sixteen_consumers_two_independent_sqlite_handles_exactly_one_winner": "TestHTTPM4B24ConcurrentConsumersHaveOneWinner",
+    "operation_attempt_artifact_wallet_epoch_policy_chain_build_environment_release_deployment_stop_revoke_frozen_expiry": "TestHTTPM4B24MutableControlsAndIdentityRejectWithoutConsume",
+    "disabled_wallet_after_issuance_rejects": "TestHTTPM4B24DisabledWalletCannotConsumePreviouslyIssuedPermit",
+    "issued_and_expiry_nanosecond_boundaries": "TestHTTPM4B24PermitTimeBoundaries",
+    "audit_alert_abort_fail_ignore_rollback": "TestHTTPM4B24WitnessFailureModesRollback",
+    "after_recheck_after_scope_before_commit_fault_rollback": "TestHTTPM4B24ConsumeFaultWindowsRollback",
+    "current_lease_and_retained_source_corruption_reject_without_repair": "TestHTTPM4B24CurrentDurableSourceAndLeaseRequired",
+    "buy_fixed_sell_resolved_percentage_sell_metadata_only": "TestHTTPM4B24ThreeSidesConsumeMetadataOnly",
+    "stop_precedes_invalid_permit_and_disabled_mode": "TestHTTPM4B24EmergencyStopPrecedesPermitIdentityAndDisabledMode",
+    "unknown_replay_permit_and_first_to_replay_conversion_rejected": "TestHTTPM4B24ReplayPurposeRemainsClosed",
+    "direct_sql_witness_fail_cannot_commit_partial_consume": "TestHTTPM4B24DirectSQLFailedAuditCannotCommitPartialConsume",
+    "true_after_recheck_committed_stop_revoke_lease_takeover_barriers": "TestHTTPM4B24ControlCommitAfterRecheckRejectsConsume",
+    "direct_sql_stop_revoke_lease_timestamp_expiry_rejects": "TestHTTPM4B24DirectSQLWitnessCannotBypassFinalControls",
+    "no_production_caller_signer_or_transport_dependency": "TestHTTPM4B24ConsumerHasNoProductionCallerOrTransportDependency",
+    "migration_042_to043_failure_rollback_idempotency_and_legacy_guards": "TestManualFirstBroadcastConsumeUpgradeFrom042Atomic"
+  },
+  "author_validation": {
+    "status": "COMPLETE",
+    "attribution": "AUTHOR_LOCAL_DOCKER_GO_1_26_6_NOT_INDEPENDENT_REVIEW_OR_REMOTE_CI",
+    "full_ordinary": {
+      "status": "PASS_PRE_FIXTURE_REUSE_NOT_CURRENT_HEAD",
+      "command": "go test -p 1 ./... -count=1 -timeout=25m",
+      "scope_note": "HISTORICAL_LOCAL_RUN_BEFORE_FINAL_TEST_ONLY_FIXTURE_REUSE; FINAL_FOCUSED_AND_RACE_RUNS_COVER_CURRENT_HEAD",
+      "consume_test_sha256_at_full_run": "73241e1719a6d3ca4018ba5d8a1c9a07d8c6cc9f8debc53ae239a48ced3edeed",
+      "package_seconds": {
+        "storage": 16.8,
+        "trade": 275.34,
+        "tradeapi": 713.4
+      }
+    },
+    "legacy_ci_selected_race": {
+      "status": "PASS",
+      "command": "go test -race -parallel=1 -timeout=15m ./internal/storage ./internal/tradeapi -run 'TestManualFirstBroadcast|TestHTTPM4B23|TestManual.*UpgradeFrom0(36|37|38|39)|TestHTTPM4B1PermitPassAndArmRemainClosed|TestHTTPM4B22PrivateDependenciesAndOriginalGuards' -count=1",
+      "scope": "UNCHANGED_B23_UPGRADE_AND_GUARD_GROUP_NOT_FULL_REPOSITORY_RACE",
+      "package_seconds": {
+        "storage": 108.56,
+        "tradeapi": 389.662
+      }
+    },
+    "b24_race": {
+      "status": "PASS",
+      "command": "go test -race -v -parallel=1 -timeout=25m ./internal/tradeapi -run '^TestHTTPM4B24' -count=1",
+      "scope": "ALL_B24_TESTS_NOT_FULL_REPOSITORY_RACE",
+      "tradeapi_seconds": 1258.627
+    },
+    "focused_final": {
+      "status": "PASS",
+      "command": "go test ./internal/storage ./internal/tradeapi -run '^TestHTTPM4B24|^TestManualFirstBroadcast' -count=1 -timeout=12m",
+      "package_seconds": {
+        "storage": 1.681,
+        "tradeapi": 96.457
+      }
+    },
+    "vet": {
+      "status": "PASS",
+      "command": "go vet ./..."
+    },
+    "staticcheck": {
+      "status": "PASS",
+      "command": "go run honnef.co/go/tools/cmd/staticcheck@v0.6.1 ./..."
+    },
+    "package_validation": "PASS_185_FILES_CURVE5_OFFLINE39",
+    "gofmt_diff": "PASS"
+  },
+  "intermediate_outcomes": [
+    {
+      "command": "go test -race -parallel=1 -timeout=15m ./internal/storage ./internal/tradeapi -run 'TestManualFirstBroadcast|TestHTTPM4B2[34]|TestManual.*UpgradeFrom0(36|37|38|39)|TestHTTPM4B1PermitPassAndArmRemainClosed|TestHTTPM4B22PrivateDependenciesAndOriginalGuards' -count=1",
+      "status": "TIMEOUT_NOT_PASS",
+      "tradeapi_seconds": 900.197,
+      "active_test": "TestHTTPM4B24MutableControlsAndIdentityRejectWithoutConsume/deployment-id",
+      "stack_location": "SQLITE_PREPARE_OF_HISTORICAL_FIXTURE_INSERT",
+      "correction": "REUSE_UNCHANGED_IDENTITY_FIXTURE_KEEP_ALL_CASES_AND_RUN_SEPARATE_B24_RACE_STEP",
+      "data_race_report": "NONE_BEFORE_TIMEOUT_NOT_A_COMPLETED_RACE_PASS"
+    }
+  ],
+  "historical_ci": {
+    "head": "86583f07069ab6218cf961b4c4d6dd80bcb17973",
+    "run_number": 184,
+    "url": "https://github.com/ruzickahunzeker/rbh-bot/actions/runs/40136313899",
+    "conclusion": "SUCCESS",
+    "scope": "PREVIOUS_HEAD_ONLY_NOT_THIS_CONTINUATION"
+  },
+  "current_head_ci": {
+    "head": "61acfe2b914a8077db649ed7c79060b9f260aede",
+    "run_number": 185,
+    "url": "https://github.com/ruzickahunzeker/rbh-bot/actions/runs/40141813419",
+    "conclusion": "SUCCESS",
+    "jobs": {
+      "go": "SUCCESS",
+      "validation-package": "SUCCESS"
+    },
+    "scope": "CURRENT_HEAD_REMOTE_CI_FULL_GO_TEST_RACE_VET_STATICCHECK_FORMAT_VALIDATION"
+  },
+  "source_sha256": {
+    "internal/storage/migrations/trade/043_manual_first_broadcast_consume_witness.sql": "a0a59f58a2d0ff8afbf719564e9576b098110bbbf0154f1b9d0c3ae5a33b3926",
+    "internal/trade/manual_first_broadcast_consume.go": "cd6d0ed79d730f35c78a31b4e5929531f3d6f0c29552440f8a4604cb7866d9aa",
+    "internal/tradeapi/manual_first_broadcast_consume_test.go": "23ca860d6465b34f16fe6e298141a31486d726ed4053d3a5cad7efa7274be2dd",
+    "internal/tradeapi/manual_first_broadcast_consume_hardening_test.go": "22a09b6e126ab394bf106f2b3af366c7e8d49a3ad08005a972e2da422fce7b92",
+    "internal/storage/manual_first_broadcast_consume_upgrade_test.go": "7765a9f4d96a193ee251b65c9b26ec46dfdd4d1eb85e58f6b0aead6efc779bb7",
+    ".github/workflows/ci.yml": "72cb49eafe9018fd430f366262ed1bbbca1ad49dc67b68c5d5e38e438f685a95"
+  },
+  "safety": {
+    "counter_attribution": "STRUCTURAL_DEPENDENCY_EXCLUSION_AND_UNCHANGED_ECONOMIC_SNAPSHOTS_NOT_PRODUCTION_TELEMETRY",
+    "production_caller_count": 0,
+    "signer_calls_from_consumer": 0,
+    "SubmissionService_calls_from_consumer": 0,
+    "SendRawTransaction_calls_from_consumer": 0,
+    "new_submission_rows": 0,
+    "new_receipt_rows": 0,
+    "new_position_effect_rows": 0,
+    "new_signing_intents": 0,
+    "new_nonce_claims": 0,
+    "automatic_replay": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "send": false,
+    "replay": false,
+    "live": false,
+    "release_ready": false
+  },
+  "limits": [
+    "Local synthetic authorization and artifacts only; the fixture restores no-arm before the tested action.",
+    "Retained-corruption tests restore original schema guards before invoking the consumer.",
+    "Transaction fault hooks and physical SQLite reopen are tested; OS-kill/power-loss behavior is not claimed.",
+    "No production runtime caller, signer, broadcaster, real RPC, authorization grant or live execution is introduced.",
+    "This closes neither whole M4-B nor M4, and does not authorize M4-C/D/M5."
+  ]
+}
