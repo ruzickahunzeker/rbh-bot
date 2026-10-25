@@ -7,12 +7,12 @@ internal quote/simulation and security gates remain required.
 
 ## Current checkpoints
 
-Current B2.4 closeout proposal (2026-10-25): PR #38 merged hardening head
-`aa15f8a` into `main@869bdba` with an identical file tree; CI #187 succeeded.
+Current B2.4 formal closeout (2026-10-25): PR #38 merged hardening head
+`aa15f8a` into `main@869bdba`; PR #39 merged the separate closeout at
+`main@d0f24f6` with the exact closeout tree. CI #187 and #190 succeeded.
 M1/M2/M3/M4-A/B1/B2.1/B2.2/B2.3 have PASS records. Independent review of the
 B2.4 code head `61acfe2` concluded PASS; the later commit changed evidence and
-checksum only. This separate docs/evidence closeout proposes `M4_B24_PASS` and
-requires its own PR merge before that status becomes formal on main. See
+checksum only. M4-B2.4 = PASS and checkpoint = `M4_B24_PASS` on main. See
 `HTTP_MANUAL_M4_B24_CLOSEOUT.md` and `HTTP_MANUAL_M4_B24_HARDENING.md` for the
 review boundary, same-transaction current source and acceptance matrix.
 Only private FIRST_BROADCAST consumption metadata is in scope. Send/replay
@@ -787,7 +787,7 @@ M2_READY_FOR_REVIEW pending fresh independent review, not PASS or M3.
 | 3 | C3-B B1-B4 implementation/test hardening | atomic risk/budget proof at fixed head, no signing/send | Complete at reviewed 02eb049; no HTTP/signing/send |
 | 4 | C3-B independent review / closeout | distinct reviewer PASS, separate docs/evidence commit | Complete, local only; historical implementation evidence unchanged |
 | 5 | C3-C default-off HTTP admission | one-request intake/validation/admission path in local harness | Complete; fresh independent PASS and separate local docs/evidence closeout |
-| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3/M4-A/M4-B1/B21/B22/B23 PASS; B24 hardening landed with independent code review PASS and separate closeout PR pending; whole B2/B/M4 incomplete; B3/B4/C/D/M5 NOT_STARTED; no production signing/send/live permission |
+| 6 | MANUAL execution/signing/submission adaptation | M1 reader, M2 durable binding, separately scoped M3–M5 | M1/M2/M3/M4-A/M4-B1/B21/B22/B23/B24 PASS; whole B2/B/M4 incomplete; B3/B4/C/D/M5 NOT_STARTED; no production signing/send/live permission |
 | 7 | HTTP status/events and recovery mapping | stable historical/current status, receipt/reorg visibility, failure semantics | No new economic route or recovery-send dependency |
 | 8 | Controlled release/readiness acceptance | authentic deployment/operator authorization and limits reviewed | Explicit real signing/sending/live authorization, never automatic |
 | 9 | BSC/Flap, then optional Base | independently scoped chain/protocol adapters behind same user contract | No Solana; not part of current Robinhood slice |

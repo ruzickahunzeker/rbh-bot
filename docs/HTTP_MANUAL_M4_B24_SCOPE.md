@@ -10,7 +10,8 @@ M4-B2.3 = PASS
 M4-B2.4 scope = ACCEPTED_FOR_IMPLEMENTATION
 M4-B2.4 implementation = LANDED_PR_38
 M4-B2.4 independent review = PASS_ON_REVIEWED_CODE_HEAD
-M4-B2.4 formal closeout = PROPOSED_PENDING_SEPARATE_PR_MERGE
+M4-B2.4 formal closeout = COMPLETE_PR_39
+M4-B2.4 = PASS
 production_broadcast = NOT_CONNECTED
 controlled_canary_authorization = NOT_GRANTED
 consume = PRIVATE_CONTRACT_ONLY
@@ -24,7 +25,8 @@ PR #38 landed migration 043 and hardening on
 `main@869bdba8d2e6d9fc83933cb423775dfaed51e906`; 001–042 remain unchanged.
 The independent code review of `61acfe2` concluded PASS. Final head `aa15f8a`
 only added CI evidence and checksum; its tree exactly matches merged main.
-The separate proposed formal closeout is in `HTTP_MANUAL_M4_B24_CLOSEOUT.md`.
+The separate formal closeout landed via PR #39 and is recorded in
+`HTTP_MANUAL_M4_B24_CLOSEOUT.md`.
 
 ## Frozen boundary
 
@@ -64,5 +66,5 @@ re-signs, replaces, fee-bumps or changes the nonce/artifact.
 - no `transaction_submissions`, send-intent, nonce or economic-effect row is
   created by this slice.
 
-The hardening checkpoint was `M4_B24_READY_FOR_REVIEW`. Formal main PASS requires
-merging the separate docs/evidence closeout PR.
+The hardening checkpoint was `M4_B24_READY_FOR_REVIEW`; PR #39 merged the
+separate docs/evidence closeout, establishing `M4_B24_PASS` on main.

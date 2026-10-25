@@ -8,12 +8,15 @@ file tree. The intervening `aa15f8a` commit changed only evidence and its
 checksum. Independent code review concluded PASS at `61acfe2`; this closeout
 records that conclusion and the post-merge identity check, not a new review of
 changed production code.
+PR #39 merged this closeout at
+`main@d0f24f6e8263df52e652060d761e9fe8e19a98c5`; its tree exactly matches
+the closeout head `3e211d7ad2702ab61b2db47c7a101e592b7df281`.
 
 ```ini
 M4-B2.3 = PASS
 M4-B2.4 independent review = PASS
-M4-B2.4 = PASS_ON_CLOSEOUT_BRANCH_PENDING_MERGE
-controlled_checkpoint = M4_B24_PASS_ON_CLOSEOUT_BRANCH_PENDING_MERGE
+M4-B2.4 = PASS
+controlled_checkpoint = M4_B24_PASS
 M4-B2 = INCOMPLETE
 M4-B = INCOMPLETE
 M4 = INCOMPLETE
@@ -35,9 +38,10 @@ bypass, duplicate/restart, concurrent consumers, failed audit/alert writes and
 control/lease commit windows are covered by the named tests in the hardening
 evidence. Migration files 001–042 were not modified.
 
-The exact final head passed CI #186 and the PR CI #187. CI #187's `go` and
-`validation-package` jobs both succeeded; the workflow includes Go tests and
-race checks, vet, staticcheck, formatting and package validation. The earlier
+The exact final hardening head passed CI #186 and PR CI #187; closeout head
+passed CI #189 and PR CI #190. Both CI #190 jobs (`go`, `validation-package`)
+succeeded. The workflow includes Go tests and race checks, vet, staticcheck,
+formatting and package validation. The earlier
 author local combined race timeout remains recorded as timeout, not PASS.
 
 The consumer has no production caller, signer, `SubmissionService`, raw-send,
@@ -46,5 +50,5 @@ structural/test evidence, not live production telemetry. No transaction send,
 new nonce, economic effect, canary authorization or live operation follows from
 this closeout. M4-C/D/M5 remain outside this decision.
 
-This branch changes docs, closeout evidence and checksum only. Formal main
-status becomes `M4_B24_PASS` only if its separate closeout PR is merged.
+The formal closeout is complete on main. This later status sync only updates
+docs, closeout evidence and checksum; it grants no runtime authority.

@@ -10,8 +10,12 @@
   "main_tree_equals_final_hardening_head": true,
   "after_review_code_changes": 0,
   "independent_review_conclusion": "PASS",
-  "formal_closeout": "PROPOSED_PENDING_SEPARATE_PR_MERGE",
-  "proposed_checkpoint": "M4_B24_PASS",
+  "formal_closeout": "COMPLETE_ON_MAIN_PR_39",
+  "closeout_pr": 39,
+  "closeout_pr_merged": true,
+  "closeout_merge_commit": "d0f24f6e8263df52e652060d761e9fe8e19a98c5",
+  "main_tree_equals_closeout_head": true,
+  "checkpoint": "M4_B24_PASS",
   "accepted_scope": "PRIVATE_FIRST_BROADCAST_PERMIT_CONSUMPTION_METADATA_ONLY",
   "ci": {
     "final_head_run": 186,
@@ -19,7 +23,13 @@
     "pr_run": 187,
     "pr_run_conclusion": "SUCCESS",
     "pr_go_job": "SUCCESS",
-    "pr_validation_package_job": "SUCCESS"
+    "pr_validation_package_job": "SUCCESS",
+    "closeout_head_run": 189,
+    "closeout_head_conclusion": "SUCCESS",
+    "closeout_pr_run": 190,
+    "closeout_pr_conclusion": "SUCCESS",
+    "closeout_pr_go_job": "SUCCESS",
+    "closeout_pr_validation_package_job": "SUCCESS"
   },
   "invariants": {
     "current_durable_manual_source_rechecked": "PASS",
@@ -46,6 +56,6 @@
   "limits": [
     "Independent review applied to code head 61acfe2; the next commit only updated evidence and checksum.",
     "Zero prohibited-path counts are structural and test evidence, not production telemetry.",
-    "Formal main status requires merge of this separate docs/evidence closeout PR."
+    "PR 39 merged the exact closeout head; this later status sync does not change the accepted runtime scope."
   ]
 }
