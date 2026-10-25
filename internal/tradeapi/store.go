@@ -35,22 +35,23 @@ func (i Identity) valid() bool {
 
 type Record struct {
 	validationMaxFee   string
-	Validation         *ManualValidation `json:"validation,omitempty"`
-	Admission          *ManualAdmission  `json:"admission,omitempty"`
-	RequestID          string            `json:"request_id"`
-	OperationID        *string           `json:"operation_id"` // C1 identity only, never authorization.
-	Status             string            `json:"status"`
-	Reason             string            `json:"reason_code"`
-	Request            Request           `json:"request"`
-	APIPolicyVersion   uint64            `json:"api_policy_version"`
-	APIPolicyHash      string            `json:"api_policy_hash"`
-	ExpiresAt          string            `json:"expires_at"`
-	CreatedAt          string            `json:"created_at"`
-	DeadlineCapability string            `json:"deadline_capability"`
-	ContractDeadline   bool              `json:"contract_deadline"`
-	SendAuthorized     bool              `json:"send_authorized"`
-	SubmissionQueued   bool              `json:"submission_queued"`
-	Duplicate          bool              `json:"duplicate"`
+	Validation         *ManualValidation  `json:"validation,omitempty"`
+	Admission          *ManualAdmission   `json:"admission,omitempty"`
+	Execution          *ExecutionSnapshot `json:"execution,omitempty"`
+	RequestID          string             `json:"request_id"`
+	OperationID        *string            `json:"operation_id"` // C1 identity only, never authorization.
+	Status             string             `json:"status"`
+	Reason             string             `json:"reason_code"`
+	Request            Request            `json:"request"`
+	APIPolicyVersion   uint64             `json:"api_policy_version"`
+	APIPolicyHash      string             `json:"api_policy_hash"`
+	ExpiresAt          string             `json:"expires_at"`
+	CreatedAt          string             `json:"created_at"`
+	DeadlineCapability string             `json:"deadline_capability"`
+	ContractDeadline   bool               `json:"contract_deadline"`
+	SendAuthorized     bool               `json:"send_authorized"`
+	SubmissionQueued   bool               `json:"submission_queued"`
+	Duplicate          bool               `json:"duplicate"`
 }
 
 func scanRecord(row interface{ Scan(...any) error }) (Record, string, error) {
@@ -166,6 +167,10 @@ func (s *Store) Get(ctx context.Context, identity Identity, id string, byKey boo
 			if exists {
 				r.Validation = &result
 			}
+		}
+		r.Execution, err = s.manualExecutionSnapshot(ctx, identity, r.RequestID)
+		if err != nil {
+			return Record{}, err
 		}
 	}
 	return r, err
