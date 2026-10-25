@@ -155,7 +155,11 @@ func (q *ProductionRecoveryQuerier) QueryRecovery(ctx context.Context, query Con
 	if err != nil || !found || stored.AttemptID != query.AttemptID || !strings.EqualFold(stored.TxHash, query.TxHash) {
 		return ControlledRecoveryEvidence{}, ErrArtifactIntegrity
 	}
-	raw, err := q.cipher.Decrypt(stored.KeyVersion, stored.Ciphertext, stored.EncryptionNonce, artifactAAD(stored.Operation, stored.StepID, stored.AttemptID))
+	aad, err := q.store.recoveryArtifactAAD(ctx, stored)
+	if err != nil {
+		return ControlledRecoveryEvidence{}, err
+	}
+	raw, err := q.cipher.Decrypt(stored.KeyVersion, stored.Ciphertext, stored.EncryptionNonce, aad)
 	if err != nil {
 		return ControlledRecoveryEvidence{}, err
 	}

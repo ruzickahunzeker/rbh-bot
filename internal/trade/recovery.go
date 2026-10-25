@@ -69,7 +69,11 @@ func (s *RecoveryService) reconcile(ctx context.Context, operation string, lease
 	if err != nil || !found {
 		return ErrArtifactIntegrity
 	}
-	raw, err := s.cipher.Decrypt(stored.KeyVersion, stored.Ciphertext, stored.EncryptionNonce, artifactAAD(stored.Operation, stored.StepID, stored.AttemptID))
+	aad, err := s.store.recoveryArtifactAAD(ctx, stored)
+	if err != nil {
+		return err
+	}
+	raw, err := s.cipher.Decrypt(stored.KeyVersion, stored.Ciphertext, stored.EncryptionNonce, aad)
 	if err != nil {
 		return err
 	}
