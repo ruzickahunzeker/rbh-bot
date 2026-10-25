@@ -99,8 +99,10 @@ An unresolved outcome never releases ownership because TTL/auth/stop changed.
 A1 alone owns schema and accounting transitions. A2 can use a store fake until
 A1 is available; A3 can develop fixtures/failure scenarios against frozen types.
 Only the integrator modifies shared legacy worker/service files, if required.
-Subagents/worktrees use separate file ownership and commits; the final result
-is one coherent implementation PR. Independent review occurs after integration,
+Each concurrent workstream must use its own Git worktree and file ownership;
+parallel branches must not share `/root/http/rbh-bot` as a mutable checkout.
+A planning worktree is `/root/http/worktrees/http-a-submission-execution-plan`.
+The final result is one coherent implementation PR. Independent review occurs after integration,
 not separately after every helper. If contracts change, notify all owners and
 update the acceptance matrix before coding dependent behavior.
 
