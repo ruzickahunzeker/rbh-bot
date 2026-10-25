@@ -38,6 +38,7 @@ type Record struct {
 	Validation         *ManualValidation  `json:"validation,omitempty"`
 	Admission          *ManualAdmission   `json:"admission,omitempty"`
 	Execution          *ExecutionSnapshot `json:"execution,omitempty"`
+	Progress           RecordProgress     `json:"progress"`
 	RequestID          string             `json:"request_id"`
 	OperationID        *string            `json:"operation_id"` // C1 identity only, never authorization.
 	Status             string             `json:"status"`
@@ -52,6 +53,25 @@ type Record struct {
 	SendAuthorized     bool               `json:"send_authorized"`
 	SubmissionQueued   bool               `json:"submission_queued"`
 	Duplicate          bool               `json:"duplicate"`
+}
+
+// RecordProgress is a read-only projection of verified durable facts. It is
+// neither a transaction outcome nor permission to sign, submit or send.
+type RecordProgress struct {
+	Stage string `json:"stage"`
+}
+
+func (r *Record) projectProgress() {
+	switch {
+	case r.Status == "REJECTED":
+		r.Progress.Stage = "REJECTED"
+	case r.Admission != nil:
+		r.Progress.Stage = "ADMISSION_RECORDED"
+	case r.Validation != nil:
+		r.Progress.Stage = "VALIDATION_RECORDED"
+	default:
+		r.Progress.Stage = "INTAKE_RECORDED"
+	}
 }
 
 func scanRecord(row interface{ Scan(...any) error }) (Record, string, error) {
@@ -105,6 +125,7 @@ func (s *Store) Reject(ctx context.Context, identity Identity, key string, reque
 		}
 		prior.Duplicate = true
 		_, err = conn.ExecContext(ctx, "COMMIT")
+		prior.projectProgress()
 		return prior, err
 	}
 	if !errors.Is(err, ErrNotFound) {
@@ -134,6 +155,7 @@ func (s *Store) Reject(ctx context.Context, identity Identity, key string, reque
 		return Record{}, err
 	}
 	_, err = conn.ExecContext(ctx, "COMMIT")
+	record.projectProgress()
 	return record, err
 }
 
@@ -172,6 +194,9 @@ func (s *Store) Get(ctx context.Context, identity Identity, id string, byKey boo
 		if err != nil {
 			return Record{}, err
 		}
+	}
+	if err == nil {
+		r.projectProgress()
 	}
 	return r, err
 }

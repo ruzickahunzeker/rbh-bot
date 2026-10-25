@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: EVM Bot user HTTP trading contract — HTTP-A/B/C1/C2/C3-C
-  version: 0.5.0
+  version: 0.5.1
   description: >-
     Local Unix-domain HTTP contract, execution/submission disabled. Valid new
     POSTs create immutable rejection records by default, or explicit opt-in
@@ -281,7 +281,10 @@ components:
         tip_gwei: [max_gwei]
     RejectedRecord:
       type: object
+      required: [request_id, status, reason_code, progress, request, expires_at, created_at, send_authorized, submission_queued]
       properties:
+        progress:
+          $ref: '#/components/schemas/TradeProgress'
         request_id: {type: string}
         operation_id: {type: 'null'}
         status: {const: REJECTED}
@@ -303,8 +306,12 @@ components:
         - $ref: '#/components/schemas/RecordedOrder'
     RecordedOrder:
       type: object
-      required: [request_id, operation_id, status, reason_code, request, expires_at, created_at, send_authorized, submission_queued]
+      required: [request_id, operation_id, status, reason_code, progress, request, expires_at, created_at, send_authorized, submission_queued]
       properties:
+        progress:
+          $ref: '#/components/schemas/TradeProgress'
+        execution:
+          $ref: '#/components/schemas/ExecutionSnapshot'
         request_id: {type: string}
         operation_id: {type: string, pattern: '^manual_op_req_[a-f0-9]{64}$'}
         status: {const: RECORDED}
@@ -326,6 +333,33 @@ components:
           $ref: '#/components/schemas/ManualValidation'
         admission:
           $ref: '#/components/schemas/ManualAdmission'
+    TradeProgress:
+      type: object
+      additionalProperties: false
+      required: [stage]
+      description: Read-only durable milestone, not a transaction outcome or execution/send permission
+      properties:
+        stage:
+          enum: [REJECTED, INTAKE_RECORDED, VALIDATION_RECORDED, ADMISSION_RECORDED]
+    ExecutionSnapshot:
+      type: object
+      additionalProperties: false
+      required: [operation_status, step_status]
+      description: >-
+        Optional read-only execution history on trade GET responses. A tx_hash
+        can exist on a signed attempt before submission. Interpret submission,
+        receipt and position-effect observations separately; this object grants
+        no signing, sending, replay or retry permission. The progress stage
+        continues to describe the intake/validation/admission milestone.
+      properties:
+        operation_status: {type: string}
+        step_status: {type: string}
+        trade_step_status: {type: string}
+        attempt_status: {type: string}
+        submission_state: {type: string}
+        tx_hash: {type: string}
+        receipt_state: {type: string}
+        position_effect_state: {type: string}
     ManualAdmission:
       type: object
       additionalProperties: false

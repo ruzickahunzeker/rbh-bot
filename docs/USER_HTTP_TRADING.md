@@ -187,9 +187,28 @@ GET /v1/trades/by-idempotency-key    (Idempotency-Key header)
 GET /v1/trades/{request_id}/events?after=<canonical cursor>
 ```
 
+`POST` and both trade `GET` responses include `progress.stage`, a read-only
+projection of verified durable milestones: `REJECTED`, `INTAKE_RECORDED`,
+`VALIDATION_RECORDED`, or `ADMISSION_RECORDED`. The existing top-level
+`status`/`reason_code` remain historical intake fields. A progress stage is
+not execution authorization, a signed artifact, a submission, receipt or trade
+success. `ADMISSION_RECORDED` only means the existing admission history was
+verified; duplicates and GET return historical observation, never renewed
+permission. The progress stage does not yet represent submission or canonical
+outcomes. HTTP 202 alone does not imply a send or queued transaction.
+
+The local A/B/C integration also includes an optional `execution` snapshot on
+both trade GET routes. Read its attempt, submission, receipt and position-effect
+observations separately. A `tx_hash` can already exist while the attempt is only
+`signed`; it does not prove submission, propagation or receipt success. Queries
+read existing history without granting permission or retrying a transaction.
+This integration candidate still requires the B/C completion and review tracked
+in `HTTP_ABC_INTEGRATION.md`.
+
 All require Bearer auth and return only the configured caller/wallet scope.
-Queries return 200 for a stored rejection. Events are explicitly
-API_REJECTION_ONLY, not a receipt/canonical/reorg feed or recovery health claim.
+Queries return 200 for a stored rejection. Events declare API_REJECTION_ONLY or
+MANUAL_ORDER_INTAKE_ONLY according to their stored source. Lifecycle events
+and recovery health are not covered by those scopes.
 AUTOINCREMENT cursor is preserved across SQLite reopen and VACUUM. Capabilities
 marks missing validation/query/execution integrations instead of claiming live
 readiness. Wallet listing reads the durable ID/address binding; it is not a
