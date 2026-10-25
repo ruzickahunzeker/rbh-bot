@@ -25,10 +25,30 @@ jobs:
       - run: >-
           go test -race -parallel=1 -timeout=25m ./internal/tradeapi
           -run '^TestHTTPM4B24' -count=1
+      # Partition A's race scope without dropping scenarios. Pure-Go SQLite
+      # schema/fault fixtures must not share one aggregate package deadline.
       - run: >-
           go test -race -parallel=1 -timeout=30m
-          ./internal/storage ./internal/trade ./internal/tradeapi
+          ./internal/storage ./internal/trade
           -run '^(TestManualSubmission|TestManualFirstSubmission|TestControlledSubmission)'
+          -count=1
+      - run: >-
+          go test -race -parallel=1 -timeout=35m ./internal/tradeapi
+          -run '^(TestManualSubmission|TestManualFirstSubmission|TestControlledSubmission)'
+          -skip '^TestManualSubmission(Executor|Bytes|PrivateLocal)'
+          -count=1
+      - run: >-
+          go test -race -parallel=1 -timeout=25m ./internal/tradeapi
+          -run '^TestManualSubmission(Bytes|PrivateLocal)'
+          -count=1
+      - run: >-
+          go test -race -parallel=1 -timeout=25m ./internal/tradeapi
+          -run '^TestManualSubmissionExecutor(ExactFirstOnly|OutcomeDistinctions|FaultDoesNotRecreatePermission)$'
+          -count=1
+      - run: >-
+          go test -race -parallel=1 -timeout=25m ./internal/tradeapi
+          -run '^TestManualSubmissionExecutor'
+          -skip '^TestManualSubmissionExecutor(ExactFirstOnly|OutcomeDistinctions|FaultDoesNotRecreatePermission)$'
           -count=1
       - run: go vet ./...
       - run: go install honnef.co/go/tools/cmd/staticcheck@v0.6.1

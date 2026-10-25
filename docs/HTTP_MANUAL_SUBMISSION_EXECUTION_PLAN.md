@@ -2,9 +2,11 @@
 
 Planning baseline: `main@404bbff12826ba8bd6c6552512704b28fb0c9d96`.
 M4-B2.4 is PASS following PR #39 and status sync PR #40.
-Implementation is in progress on the isolated A integration branch. This
-document is not independent approval, a runtime grant, or a change to earlier
-accepted send-intent ambiguity semantics. Target: A_READY_FOR_REVIEW only.
+Implementation and scoped author validation are complete on the isolated A
+integration branch. Status: A_READY_FOR_REVIEW; independent review has not been
+performed. This document is not independent approval, a runtime grant, or a
+change to earlier accepted send-intent ambiguity semantics. Aggregate command
+failures/timeouts and the precise successful rechecks remain in the evidence.
 
 ## Deliverable
 
@@ -28,7 +30,7 @@ to the submission subset of M4-C; cumulative tests contribute to M4-D. These
 are explicit scope mappings, not retroactive PASS or permission from the
 earlier B2.4 metadata-only closeout.
 
-## Findings that determine the design
+## Findings at the planning baseline
 
 - `ConsumeManualFirstBroadcastPermit` commits metadata only. Calling it and
   then separately inserting a submission cannot provide atomic claim semantics.
@@ -106,13 +108,14 @@ remains authoritative and takeover recovery needs no in-memory ticket.
 | Owner | Exclusive files/responsibility | Can start after A0 |
 |---|---|---|
 | A1: storage and lifecycle | New additive migration, upgrade/SQL tests, new MANUAL submission store, transaction-scoped consume helper | Atomic claim, phase projections, intent/outcome, typed accounting and source routing contracts |
-| A2: artifact and executor | New MANUAL decrypt-only adapter and coordinator files; minimal verifier adaptation | Authentic exact bytes, fresh gate composition, bounded fake transport, cancellation and durable-work dispatch against the A1 interface |
-| A3: adversarial acceptance | New integrated tests and reusable local fixtures, no production schema edits | Fault schedule, two-handle concurrency, duplicate/reopen, static dependency and legacy routing checks |
-| Integrator | Shared-file changes and final assembly | Resolve shared signatures, own migration numbering, review source isolation and combine all packages |
+| A2: exact artifact adapter | Private decrypt-only adapter and its tests | Authenticate original bytes, bounded synchronous borrowing, cleanup on failure/cancellation |
+| A3: source isolation | Legacy controlled-worker scan/expiry/recovery predicates and focused tests | Prevent MANUAL or conflicting source history from reaching legacy accounting/send handling |
+| Integrator | Private coordinator, phase-aware verifier, integrated tests and final assembly | Fresh gates, fake invocation, fault/commit windows, two-handle concurrency, close/reopen, static dependencies and evidence |
 
 A1 alone owns schema and accounting transitions. A2 can use a store fake until
 A1 is available; A3 can develop fixtures/failure scenarios against frozen types.
-Only the integrator modifies shared legacy worker/service files, if required.
+The isolated source-routing work package owns legacy worker predicate changes;
+the integrator owns verifier/coordinator composition and final conflict checks.
 Each concurrent workstream must use its own Git worktree and file ownership;
 parallel branches must not share `/root/http/rbh-bot` as a mutable checkout.
 A planning worktree is `/root/http/worktrees/http-a-submission-execution-plan`.
@@ -130,6 +133,21 @@ HTTP may report queued only after durable acceptance, and broadcast-observed
 only from the recorded submission outcome. A signed transaction hash can exist
 before send and must not be presented as evidence of propagation or success.
 Receipt success/failure and canonical/reorg changes remain recovery's concern.
+
+The separate C1 progress implementation currently exposes verified intake,
+validation and admission history only. This A branch does not merge or change
+that HTTP worktree. Its next submission projection must use the immutable
+`manual_first_submission_bindings` identity plus the matching
+`transaction_submissions` row; the pre-existing operation/attempt status is
+not advanced by A and must not be mistaken for its send outcome. In particular,
+`known_unsent` here means ownership retained, not permission for an automatic
+retry; `submitting` plus an intent marker is unresolved work, not sent/success.
+Historical HTTP/recovery readers must not reuse A's current-permission phase
+view: that view intentionally requires still-valid mutable controls and
+`submitting` state. Read-only observation of an existing outcome must remain
+available after stop, authorization/TTL expiry or deployment drift. B/C must
+validate durable ownership and outcome provenance without turning history into
+new send authority.
 
 Recovery receives propagated or ambiguous identities without transport,
 signer, permit or nonce capabilities. A performs no UNKNOWN_REPLAY issuance,
@@ -159,3 +177,29 @@ ordinary suite, relevant race/fault tests, vet/staticcheck/format and validation
 package once on the integrated head. Repeat for changes/failures, not routine
 status wording. Record exact test scope; local fake transport is not mainnet
 evidence. Final handoff is ready for independent review, never author PASS.
+
+## Validation and review handoff
+
+The machine-readable author record is
+`rbh-validation-package/evidence/http-manual-submission-execution-a.json`.
+It distinguishes the original full-suite failure from the corrected assertion
+rechecks, and the original aggregate race timeout from the partitioned reruns.
+Neither an interrupted command nor a test-only fake is labeled production/CI
+success. The original race selection is partitioned without dropping tests:
+storage/trade, HTTP core lifecycle tests, byte/dependency tests, executor
+outcome/fault tests, and the remaining executor control tests. New executor
+cases fall into the final group. Explicit completed per-test PASS records in a
+later-timed-out command are distinguished from successful command exits; only
+the unfinished remainder is rerun. No aggregate timeout is relabeled a green run.
+
+Independent review must check migration 044's deferred witnesses and immutable
+bindings; same-transaction claim/audit conservation; irreversible one-shot
+invocation ticket consumption; restart classification under higher lease epoch;
+retained original nonce/lane/typed accounting; and MANUAL/legacy isolation.
+The dependency check describes the present private composition, not a universal
+call-graph proof or measured counters from an unconnected real service.
+
+This delivery does not make the HTTP trading service live. Subsequent B/C
+integration needs historical outcome readers and query-only recovery using
+the handoff above. Production transport/startup, replay, release of retained
+known-unsent work and aggregate formal closeout remain outside this A change.
