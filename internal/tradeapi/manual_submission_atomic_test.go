@@ -273,3 +273,44 @@ func TestManualSubmissionOutcomeCommitFailureBurnsInvocationTicket(t *testing.T)
 		t.Fatal("failed outcome partial commit", state, audits, err)
 	}
 }
+
+func TestManualSubmissionDirectSQLFailedWitnessCannotCommit(t *testing.T) {
+	for _, event := range []string{"MANUAL_FIRST_BROADCAST_CONSUMED", "MANUAL_FIRST_SUBMISSION_CLAIMED"} {
+		t.Run(event, func(t *testing.T) {
+			f := manualB24Fixture(t)
+			before := manualB24EconomicSnapshot(t, f.s)
+			if _, err := f.s.db.Exec(`CREATE TRIGGER fail_manual_claim_audit BEFORE INSERT ON canary_runtime_audit WHEN NEW.event_type='` + event + `' BEGIN SELECT RAISE(FAIL,'forced witness failure'); END`); err != nil {
+				t.Fatal(err)
+			}
+			conn, err := f.s.db.Conn(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer conn.Close()
+			if _, err = conn.ExecContext(context.Background(), `BEGIN`); err != nil {
+				t.Fatal(err)
+			}
+			_, insertErr := conn.ExecContext(context.Background(), `INSERT INTO manual_first_submission_bindings(permit_id,submission_id,operation_id,attempt_id,authorization_id,authorization_epoch,artifact_hash,tx_hash,foundation_hash,environment,holder_id,lease_epoch,created_at)
+SELECT ?,?,?,?, ?,?,?,?,binding_hash,?,'runtime-owner',1,? FROM manual_submission_foundations WHERE operation_id=?`, f.permit.ID, "manual-first-submission:"+f.r.AttemptID, f.r.OperationID, f.r.AttemptID, f.r.AuthorizationID, f.r.AuthorizationEpoch, f.raw, f.permit.TxHash, f.r.Deployment.Environment, f.permit.IssuedAt.Add(time.Nanosecond).Format(time.RFC3339Nano), f.r.OperationID)
+			if insertErr == nil || !strings.Contains(insertErr.Error(), "forced witness failure") {
+				t.Fatal("fault window not reached", insertErr)
+			}
+			if _, err = conn.ExecContext(context.Background(), `COMMIT`); err == nil {
+				t.Fatal("partial FAIL statement committed")
+			}
+			if _, err = conn.ExecContext(context.Background(), `ROLLBACK`); err != nil {
+				t.Fatal(err)
+			}
+			if err = conn.Close(); err != nil {
+				t.Fatal(err)
+			}
+			if manualB24EconomicSnapshot(t, f.s) != before {
+				t.Fatal("failed witness changed economic state")
+			}
+			var state string
+			if err = f.s.db.QueryRow(`SELECT state FROM canary_send_permits WHERE id=?`, f.permit.ID).Scan(&state); err != nil || state != "ISSUED" {
+				t.Fatal("failed witness consumed permit", state, err)
+			}
+		})
+	}
+}
