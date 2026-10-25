@@ -258,8 +258,8 @@ func TestHTTPM4ADurableLegacyCollisionAndUnsupportedPhase(t *testing.T) {
 			} else if kind == "submission" {
 				query := `INSERT INTO transaction_submissions(id,attempt_id,tx_hash,sequence,state,created_at,updated_at) SELECT 'm4a-unsupported',id,tx_hash,0,'submitting',created_at,updated_at FROM transaction_attempts`
 				before := admittedDatabaseSnapshot(t, s.db)
-				if _, err := s.db.Exec(query); err == nil || !strings.Contains(err.Error(), "manual submission not connected") || admittedDatabaseSnapshot(t, s.db) != before {
-					t.Fatal("existing no-submission guard weakened", err)
+				if _, err := s.db.Exec(query); err == nil || !strings.Contains(err.Error(), "manual submission requires atomic first claim") || admittedDatabaseSnapshot(t, s.db) != before {
+					t.Fatal("unscoped submission insert guard weakened", err)
 				}
 				// Unsupported retained downstream pollution is seeded only in
 				// the disposable fixture; original guards/FK restored for read.
