@@ -5,7 +5,30 @@ authorization. The desired outcome is a normal one-request HTTP trading API
 that reuses the completed RBH core. No client-side dry-run/prepare prerequisite;
 internal quote/simulation and security gates remain required.
 
-Current local checkpoint: **A1 = PASS**, checkpoint
+Current local checkpoint: **A2 = PASS**, checkpoint
+`A2_FIRST_ADMISSION_HANDOFF_PASS`, review_state PASS, formal closeout
+COMPLETE_LOCAL_ONLY. Independent read-only implementation review of exact
+`8c545d1768199c046845cdbf5f57e15ef005c822` concluded scoped PASS, blockers 0.
+The separately user-authorized closeout changes docs/evidence/checksum only;
+see `HTTP_A2_FIRST_ADMISSION_HANDOFF_CLOSEOUT.md` and additive
+`evidence/http-a2-first-admission-joint-review.json`. All reviewed production
+code/tests and original implementation/scope evidence remain byte-identical.
+Earlier READY/NOT_PERFORMED fields in those snapshots are historical, not
+the current A2 status. This does not replace formal main or authorize a push,
+PR, merge, deployment, runtime grant or next-stage implementation.
+
+A2 closes only the private one-shot fresh-admission handoff, not its consumer:
+unique post-COMMIT ownership, shared-copy cancellation/discard behavior,
+post-commit projection failure burn, and no owner restored by historical
+duplicates, queries or restart. Production POST still discards the handoff;
+no binding/signing/permit/executor/send consumer is connected. A1 stays PASS.
+Production HTTP execution and reusable-wallet trading remain incomplete;
+production broadcast NOT_CONNECTED, authorization NOT_GRANTED,
+live=false, release_ready=false. A3 composition/custody/time-provider scope,
+A4 operator authority, A5 transport and B wallet reuse are later separate
+gates, not permissions implied by this closeout.
+
+Previous local checkpoint: **A1 = PASS**, checkpoint
 `A1_DISABLED_COMPOSITION_PASS`, review_state PASS, formal closeout
 COMPLETE_LOCAL_ONLY. Independent implementation review of exact
 `c305b06dcaab875aa82c49fc79fcb95420e00306` concluded scoped PASS, blockers 0.
