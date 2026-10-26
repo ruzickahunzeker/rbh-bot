@@ -1,0 +1,103 @@
+{
+  "scope": "A3_DESIGN_CLOCK_TRANSACTION_LATCH_ADDENDUM_ONLY",
+  "branch": "http-a3-trust-composition-design",
+  "base": "43698ac338e93218b8e39c58ab5b892b3bcace7a",
+  "base_is_formal_main": false,
+  "status": "A3_TRUST_COMPOSITION_SCOPE_READY_FOR_REVIEW",
+  "author_identified_gap": "PRE_SIGN_CLOCK_FLOOR_COMMIT_OWNERSHIP_AND_RELEASE_BEFORE_FAULT_LATCH_UNSPECIFIED",
+  "resolution": "PROPOSED_CONTRACT_NOT_INDEPENDENTLY_ACCEPTED_OR_IMPLEMENTED",
+  "A1": "PASS",
+  "A2": "PASS",
+  "A3_scope_accepted": false,
+  "A3_implementation": "NOT_STARTED",
+  "independent_A3_scope_review": "NOT_PERFORMED",
+  "required_scope_reading": [
+    {
+      "path": "docs/HTTP_A3_TRUST_COMPOSITION_SCOPE.md",
+      "sha256": "2b9a665ffccc1d35e3feb954bef39650fa7553cd6929f8b7b088715d44c72e29",
+      "preserved_from_base": true
+    },
+    {
+      "path": "docs/HTTP_A3_CLOCK_TRANSACTION_ADDENDUM.md",
+      "sha256": "5629a7faa3eee498de4e4ca07d7d15477a3eec595b3ed22dffe2585ee6d5a350"
+    }
+  ],
+  "inspected_unchanged_sources": [
+    {"path": "internal/storage/migrations/trade/039_manual_submission_clock.sql", "sha256": "96319ba32674729499b2503188fd4fe3ac72bf0433e9e37bcb3599d06d227dc3"},
+    {"path": "internal/tradeapi/manual_runtime_clock.go", "sha256": "f809962105699d8ed73da4992c6fea5ba9cbe31398102aae5f11efe0512a8983"},
+    {"path": "internal/tradeapi/manual_local_signing.go", "sha256": "98881ff85da6086c1e0ffbdea38ae658f2b2381de5a1d57e6d06954e0975ff7f"},
+    {"path": "internal/storage/database.go", "sha256": "5cd12c8981a2391604a79b6b9426c7c16f0b813db677bebdf00b537820d9f04c"}
+  ],
+  "proposed_contract": {
+    "durable_clock_owner": "EXISTING_MIGRATION039_EVENTS_COMPLETE_STATE_AUDIT_ALERT",
+    "new_schema_or_clock_ledger": false,
+    "constructor_bootstraps_clock": false,
+    "missing_corrupt_latched_history_reinitialized": false,
+    "high_water_semantics": "CANONICAL_ACCEPTED_SAMPLE_WALL_NOT_LOWER_UPPER_OR_PERSISTED_MONOTONIC_TICKS",
+    "initial_read_and_nonce_query": "FLOOR_READ_ONLY_NO_ADVANCE",
+    "transaction1": "ORIGINAL_SIGNING_INTENT_PLUS_ONE_HEALTHY_CLOCK_EVENT_AND_ORIGINAL_WITNESSES_COMMIT_ATOMICALLY",
+    "transaction2_entry": "REREAD_LATEST_COMPLETE_GENERATION_UNDER_ORIGINAL_FINAL_WRITER_NO_STALE_GENERATION_OR_OWNER_REBIND",
+    "transaction2": "ORIGINAL_ARTIFACT_OUTCOME_PLUS_ONE_FINAL_HEALTHY_CLOCK_EVENT_AND_ORIGINAL_WITNESSES_COMMIT_ATOMICALLY",
+    "historical_reads_advance_floor_or_resume": false,
+    "generation_overflow": "DENY_NO_INCREMENT_WRAP",
+    "clock_fault_process_response": "INVOCATION_INVALID_AND_SHARED_ACTION_BUNDLE_UNHEALTHY_NOT_A_DURABLE_GLOBAL_STOP",
+    "fault_cleanup_order": [
+      "STOP_FURTHER_ECONOMIC_WORK",
+      "ROLLBACK_ACTIVE_PHASE_END_READ_TRANSACTION_DISCARD_UNCOMMITTED_RESULT",
+      "CONFIRM_CONNECTION_RELEASE",
+      "ONLY_THEN_NEW_BOUNDED_LATCH_TRANSACTION_REREADS_LATEST_STATE_AND_COMMITS_EXACT_CRITICAL_WITNESSES"
+    ],
+    "nested_DB_connection_fetch_while_original_connection_held": false,
+    "latch_cleanup_timeout": "EXISTING_2_SECONDS_CANCELLATION_INDEPENDENT",
+    "already_latched_concurrent_result": "INDEPENDENTLY_VERIFY_COMPLETE_FAULT_AND_WITNESSES_NO_DUPLICATE_INSERT_OR_FABRICATED_WRITE_SUCCESS",
+    "cleanup_or_latch_failure": "SHARED_ACTION_BUNDLE_REMAINS_UNHEALTHY_COMBINED_ERROR_NO_FALSE_DURABLE_LATCH",
+    "ordinary_cancellation_policy_or_signer_failure_is_clock_fault": false,
+    "detection_to_latch_commit_crash_atomic": false,
+    "crash_before_latch_commit": "ONLY_PRIOR_COMMITTED_FLOOR_INTENT_SURVIVE_NO_DURABLE_FAULT_CLAIM",
+    "recovery_or_history_blocked_by_action_bundle_fault": false,
+    "marker_placement_TTL_AAD_artifact_or_economic_owner_changed": false,
+    "provider_clock_sleep_or_scalar_fallback_added": false
+  },
+  "proposed_acceptance_windows": [
+    "FAULT_BEFORE_MARKER",
+    "TRANSACTION1_HEALTHY_WITNESS_OR_REAL_COMMIT_FAILURE",
+    "MARKER_COMMIT_CRASH_BEFORE_FINAL_WRITER",
+    "CONCURRENT_HEALTHY_GENERATION_ADVANCE_IN_PHASE_GAP",
+    "CONTROL_CHANGE_COMMITTED_BEFORE_FINAL_WRITER",
+    "CLOCK_FAULT_IN_FINAL_WRITER_BEFORE_SIGNER",
+    "CLOCK_FAULT_AFTER_SIGNER_BEFORE_ARTIFACT_COMMIT",
+    "TRANSACTION2_HEALTHY_WITNESS_OR_REAL_COMMIT_FAILURE",
+    "SINGLE_CONNECTION_ROLLBACK_RELEASE_LATCH_BARRIER",
+    "CLEANUP_DB_OR_LATCH_AUDIT_FAILURE",
+    "TWO_HANDLE_CONCURRENT_FAULT_PERSISTENCE",
+    "CRASH_AFTER_DETECTION_BEFORE_LATCH_COMMIT",
+    "CRASH_AFTER_LATCH_COMMIT",
+    "NON_CLOCK_ERROR_NO_FAULT_EVENT"
+  ],
+  "validation": {
+    "kind": "DESIGN_SOURCE_MAPPING_HASH_MANIFEST_AND_DIFF_ONLY",
+    "new_proposed_runtime_tests_executed": false,
+    "Go_runtime_race_build_static_suites_rerun": false,
+    "remote_CI": "NOT_RUN",
+    "all_previous_199_manifest_entries_preserved": true,
+    "validation_package": "PASS_200_FILES",
+    "required_docs_and_source_hashes": "PASS",
+    "addendum_has_14_discriminating_future_fault_windows": true,
+    "diff_check": "PASS",
+    "production_tests_schema_config_startup_diff": "EMPTY"
+  },
+  "preserved_boundaries": {
+    "previous_design_and_evidence_rewritten": false,
+    "production_code_tests_or_migrations_changed": false,
+    "real_signer_manifest_or_time_provider_selected_or_loaded": false,
+    "A2_consumer_or_permit_or_submission_or_transport_connected": false,
+    "clock_or_economic_state_mutated_by_this_batch": false,
+    "A3_implementation_or_A4_A5_entered": false,
+    "real_grant_signing_mainnet_or_live": false,
+    "push_PR_merge_or_background_job": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}
