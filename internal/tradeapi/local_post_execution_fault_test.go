@@ -28,7 +28,8 @@ func (f localPostFixture) anotherHandle(t *testing.T, d *storage.Database, s *St
 	}
 	return &localPostHarness{api: api, scope: f.h.scope, waitBudget: f.h.waitBudget, binding: bindingWriter(s), nonce: nonceWriter(s, &localNonceObserver{nonce: "23"}),
 		signing:  &manualLocalSigningWriter{store: s, observer: &localNonceObserver{nonce: "23"}, signer: f.signer, cipher: f.h.signing.cipher, now: func() time.Time { return testNow }},
-		verifier: verifier, executor: &manualSubmissionExecutor{verifier: verifier, store: store, transport: f.transport, timeout: time.Second}}
+		verifier: verifier, executor: &manualSubmissionExecutor{verifier: verifier, store: store, transport: f.transport, timeout: time.Second},
+		onFailure: func(err error) { t.Logf("second local action sequence failed: %v", err) }}
 }
 
 func TestLocalPostExecutionWaitBudgetExpiresWithoutEconomicAction(t *testing.T) {
@@ -94,20 +95,40 @@ func TestLocalPostExecutionConcurrentTwoHandleDuplicates(t *testing.T) {
 		go func() { <-start; results <- call(h, "POST", "/v1/trades", "concurrent", encode(f.request)) }()
 	}
 	close(start)
-	select {
-	case <-entered:
-	case <-time.After(10 * time.Second):
-		t.Fatal("fresh intake never reached composition")
+	// These are test-process deadlock guards, not a production latency/SLA
+	// assertion. Race-instrumented schema checks may be CPU-heavy. Inspect any
+	// early response so a real admission rejection cannot look like a slow
+	// scheduler. No original response may return while its barrier is held.
+	duplicates := 0
+	entryTimer := time.NewTimer(2 * time.Minute)
+	defer entryTimer.Stop()
+	waiting := true
+	for waiting {
+		select {
+		case <-entered:
+			waiting = false
+		case w := <-results:
+			r := localPostRecord(t, w, 202)
+			if !r.Duplicate {
+				t.Fatal("original completed before entering its execution barrier")
+			}
+			duplicates++
+			if duplicates == 6 {
+				t.Fatal("all requests completed without an original execution owner")
+			}
+		case <-entryTimer.C:
+			t.Fatal("fresh intake never reached composition; early duplicates:", duplicates)
+		}
 	}
 	// Five duplicates must return WITHOUT waiting for/executing the original.
-	for i := 0; i < 5; i++ {
+	for i := duplicates; i < 5; i++ {
 		select {
 		case w := <-results:
 			r := localPostRecord(t, w, 202)
 			if !r.Duplicate {
 				t.Fatal("more than one fresh intake")
 			}
-		case <-time.After(10 * time.Second):
+		case <-time.After(2 * time.Minute):
 			t.Fatal("duplicate depends on in-memory execution queue")
 		}
 	}
@@ -122,7 +143,7 @@ func TestLocalPostExecutionConcurrentTwoHandleDuplicates(t *testing.T) {
 			t.Fatal("winner did not execute")
 		}
 		f.assertOne(t, r, 1)
-	case <-time.After(20 * time.Second):
+	case <-time.After(f.h.waitBudget + time.Second):
 		t.Fatal("winner did not finish")
 	}
 }

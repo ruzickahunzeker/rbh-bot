@@ -77,6 +77,10 @@ even when the first response was lost or a stage failed. Same-key changed
 payload stays 409. Concurrent duplicates on independent SQLite handles cannot
 create another claim/signature/permit/submission/invocation. A duplicate may
 observe the first request before it finishes; it does not wait on a work queue.
+The concurrency acceptance uses explicit ordering barriers, not a production
+latency assertion. Its passive deadlock guards allow two minutes for entry/
+duplicates and the bounded composition budget for the winner. Early HTTP
+responses are inspected, so a rejection cannot masquerade as scheduler delay.
 
 The originating uninterrupted HTTP stack is the sole initial execution owner.
 If it fails before signing/submission, its durable admission/claim is retained
