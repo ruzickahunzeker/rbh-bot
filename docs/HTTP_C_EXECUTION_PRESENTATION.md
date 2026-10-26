@@ -1,9 +1,16 @@
 # C verified execution presentation contract
 
+The C-branch author runs below are historical, not the integrated review
+receipt. The integrated local scope was independently reviewed at
+`4a54c7c5785e75835a53f108056ebc0a3d42fa25`; see
+`HTTP_ABC_RECOVERY_INTEGRATION.md` for its scoped conclusion and validation
+attribution. No standalone C-branch or aggregate M4 closeout is implied.
+
 Scope: HTTP presentation, OpenAPI, user documentation and tests on the shared
 A/B/C integration baseline. This is not HTTP production execution, broadcaster
-wiring or a new transaction state machine. Status remains implementation in
-progress pending B integration and fresh independent review; no PASS is claimed.
+wiring or a new transaction state machine. Integrated code review concluded
+PASS for this local recovery/history scope, not aggregate HTTP execution.
+Historical branch validation snapshots below retain their original meanings.
 
 `Record.status` and `reason_code` describe historical intake. `progress.stage`
 continues to report only rejection, intake, validation and admission milestones.
@@ -56,8 +63,8 @@ under this boundary. Stop/control-unavailable preflight still has highest
 priority and returns 503 for admission-enabled POSTs, including duplicates.
 Default-off original duplicate reads are historical, do not admit again and
 remain available, as do original GET/events/recovery. No request or fee field
-is changed, no new release/retry capability is added, and fresh review remains
-pending; this documentation does not claim aggregate PASS.
+is changed and no new release/retry capability is added. The scoped integrated
+review receipt above does not claim aggregate PASS.
 
 ## Evidence attribution
 

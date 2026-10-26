@@ -3,7 +3,10 @@
 Current integration note: the initial HTTP-A base/status, missing integrations
 and remaining-slice list below are historical, not current aggregate progress.
 The A/B/C candidate now includes verified execution history and source-bound
-local recovery/journal integration, still pending fresh independent review.
+local recovery/journal integration. Scoped independent review of production
+head `4a54c7c5785e75835a53f108056ebc0a3d42fa25` concluded PASS; the test-only
+compatibility delta was separately accepted. This is not aggregate HTTP
+execution acceptance; validation attribution is in the recovery batch evidence.
 See `HTTP_ABC_INTEGRATION.md`, `HTTP_C_EXECUTION_PRESENTATION.md` and the current
 recovery integration handoff. HTTP POST still does not invoke A, sign, allocate
 a nonce or send. No aggregate PASS, production connection, authorization grant,

@@ -5,13 +5,28 @@ authorization. The desired outcome is a normal one-request HTTP trading API
 that reuses the completed RBH core. No client-side dry-run/prepare prerequisite;
 internal quote/simulation and security gates remain required.
 
-The current local A/B/C development baseline is assembled on
+Latest local recovery/history batch: production/schema head
+`4a54c7c5785e75835a53f108056ebc0a3d42fa25`, test-only compatibility head
+`02495884b4399ecb51e3f3577e59e4cffd085a22`, on `http-abc-local-integration`.
+Scoped independent review concluded PASS for both code and the test-only delta,
+not aggregate M4 or production HTTP execution. Exact history, typed MANUAL
+recovery and durable lifecycle events are integrated; POST still stops at
+intake/validation/admission. Reusing a wallet with a retained MANUAL nonce claim
+is explicitly unsupported, including after canonical settlement, until a
+separately reviewed reorg/risk model exists. See
+`HTTP_ABC_RECOVERY_INTEGRATION.md` and its additive evidence for the current
+validation ledger (including the failed first full run and separate rechecks),
+remaining boundaries and the next batch proposal. Earlier snapshots below are
+historical; no main/release or runtime permission is replaced.
+
+The earlier local A/B/C development baseline was assembled on
 `http-abc-local-integration`, code commit
 `3ce8105c7ccc4bb0c307d5c20d945094b14e7e51`. See
 `HTTP_ABC_INTEGRATION.md` for the pinned source commits, coordinator/B/C thread
 links, continuation worktrees, shared Record contract and pending deliverables.
 A's independent PASS at `c0945ef` is recorded separately; B/C and the combined
-integration have no independent PASS. This is a local development handoff,
+integration had no independent PASS at that historical handoff. This was a local
+development handoff,
 not a replacement main/release baseline or production-send authorization.
 
 ## Current checkpoints
