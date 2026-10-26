@@ -131,3 +131,36 @@ restart ordering, corrupt provenance and cursor-pagination acceptance must be
 validated against B's integrated additive migration and source-bound writer.
 The pre-integration C baseline cannot run those event acceptance tests, and no
 event-test PASS is claimed by these documentation changes.
+
+## Real recovery HTTP harness, pending B integration
+
+`execution_recovery_http_test.go` uses the real A local first-submission fixture
+and public `trade.NewRecoveryServiceWithCipher`, `ReconcileWithLease` and
+`CheckReorgWithLease`. Its effect resolver is the production
+`NewPonsCurveEffectResolver`, not a fake resolver. Success receipts carry
+SDK-parseable Pons v2 Curve buy logs bound to the durable wallet, curve and
+transaction. The only fake chain dependency provides read-only receipt/header
+observations. The test-only cipher adapter delegates decryption and rejects
+encryption. RECOVERY uses an independent public durable lease with wall-clock
+expiry; no signer/submission/send dependency is supplied to recovery.
+
+The intended integration checks include submitted and unknown canonical apply,
+repeated reconciliation, orphan rollback and reapply; reverted receipts without
+position effects; both GET routes and default-off duplicate POST; stop/revoke
+plus an expired HTTP clock; and journal cursor/empty-page behavior. Original
+artifact/nonce identities and exactly-once position-effect history are checked.
+HTTP reads themselves must not reconcile or mutate. The setup makes exactly one
+fake transport invocation before recovery; its count must stay one throughout.
+That is evidence of zero additional sends, not zero historical signing or
+submission in the fixture.
+
+Author validation so far is compile-only:
+
+```sh
+go test ./internal/tradeapi -run '^$' -count=1 -timeout=5m
+```
+
+PASS in 0.026s **with no tests run**. Actual recovery execution requires B's
+additive migration 045 and source-aware service/resolver plus the shared reader,
+POST and event wiring. This C branch does not import or alter those files and
+does not claim the new recovery tests passed, independent review or readiness.
