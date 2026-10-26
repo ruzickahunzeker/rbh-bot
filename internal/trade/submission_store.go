@@ -157,6 +157,12 @@ func (s *Store) ObserveReceiptFenced(ctx context.Context, a SignedArtifact, r Re
 		if observeErr != nil {
 			return ReceiptObservation{}, observeErr
 		}
+		if s.recoveryHook != nil {
+			s.recoveryHook("manual_recovery_mutation_before_commit")
+		}
+		if err = assertRecoveryLeaseTx(ctx, tx, lease); err != nil {
+			return ReceiptObservation{}, err
+		}
 		return observed, tx.Commit()
 	}
 	if err = assertRecoveryLeaseTx(ctx, tx, lease); err != nil {
@@ -199,6 +205,12 @@ func (s *Store) CanonicalizeFenced(ctx context.Context, a SignedArtifact, r Rece
 			return sourceErr
 		}
 		if err = transitionManualReceiptTx(ctx, tx, a, r, "CANONICAL", effect, now, lease); err != nil {
+			return err
+		}
+		if s.recoveryHook != nil {
+			s.recoveryHook("manual_recovery_mutation_before_commit")
+		}
+		if err = assertRecoveryLeaseTx(ctx, tx, lease); err != nil {
 			return err
 		}
 		if err = tx.Commit(); err != nil {
@@ -296,7 +308,11 @@ func (s *Store) OrphanFenced(ctx context.Context, a SignedArtifact, r ReceiptObs
 			return err
 		}
 		if s.recoveryHook != nil {
+			s.recoveryHook("manual_recovery_mutation_before_commit")
 			s.recoveryHook("before_reorg_rollback_commit")
+		}
+		if err = assertRecoveryLeaseTx(ctx, tx, lease); err != nil {
+			return err
 		}
 		if err = tx.Commit(); err != nil {
 			return err

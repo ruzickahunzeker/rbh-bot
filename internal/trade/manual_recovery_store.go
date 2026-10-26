@@ -71,14 +71,17 @@ func insertManualRecoveryCommandTx(ctx context.Context, tx *sql.Tx, a SignedArti
 	}
 	var asset, delta any
 	if effect != nil {
-		asset, delta = effect.Asset, effect.Delta
+		asset, delta = strings.ToLower(effect.Asset), effect.Delta
 	}
 	id := "manual-recovery:" + r.ID + ":" + fmt.Sprint(r.Version)
 	_, err := tx.ExecContext(ctx, `INSERT INTO manual_recovery_commands(id,operation_id,kind,receipt_id,tx_hash,block_number,block_hash,receipt_status,prior_version,
  effect_asset,effect_delta,environment,holder_id,lease_epoch,checked_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		id, a.Operation, kind, r.ID, r.TxHash, r.BlockNumber, r.BlockHash, r.Status, r.Version,
 		asset, delta, lease.Environment, lease.HolderID, lease.Epoch, now.UTC().Format(time.RFC3339Nano))
-	return err
+	if err != nil {
+		return fmt.Errorf("%w: manual recovery command rejected: %v", ErrArtifactIntegrity, err)
+	}
+	return nil
 }
 
 func observeManualReceiptTx(ctx context.Context, tx *sql.Tx, a SignedArtifact, r ReceiptObservation, now time.Time, lease *RecoveryLeaseFence) (ReceiptObservation, error) {
@@ -116,6 +119,16 @@ func transitionManualReceiptTx(ctx context.Context, tx *sql.Tx, a SignedArtifact
 	}
 	if (kind == "ORPHAN" && old.CanonicalState == "orphaned") ||
 		(kind == "CANONICAL" && (old.CanonicalState == "canonical_success" || old.CanonicalState == "canonical_revert")) {
+		if kind == "CANONICAL" && old.CanonicalState == "canonical_success" {
+			var asset, delta, state, receipt string
+			if effect == nil {
+				return ErrArtifactIntegrity
+			}
+			if err := tx.QueryRowContext(ctx, `SELECT asset,delta,state,receipt_id FROM position_effects WHERE attempt_id=?`, a.AttemptID).Scan(&asset, &delta, &state, &receipt); err != nil ||
+				asset != strings.ToLower(effect.Asset) || delta != effect.Delta || state != "active" || receipt != old.ID {
+				return ErrArtifactIntegrity
+			}
+		}
 		return nil
 	}
 	// The observation read by the RPC phase is an optimistic version fence.

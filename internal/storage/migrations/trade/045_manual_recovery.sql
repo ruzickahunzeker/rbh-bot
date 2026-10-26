@@ -20,6 +20,9 @@ JOIN manual_nonce_claims q ON q.operation_id=b.operation_id AND q.execution_step
  AND q.wallet_id=b.wallet_id AND q.wallet_address=lower(b.wallet_address) AND q.contract_hash=b.contract_hash
  AND q.reservation_id=c.reservation_id
 JOIN manual_signed_artifact_commands m ON m.operation_id=q.operation_id
+JOIN manual_signing_facts signing_facts ON signing_facts.operation_id=q.operation_id AND hex(signing_facts.facts_json)=hex(m.facts_json)
+JOIN manual_signing_intents intent ON intent.operation_id=m.operation_id AND intent.owner_id=m.owner_id
+ AND intent.facts_hash=m.facts_hash AND hex(intent.facts_json)=hex(m.facts_json)
 JOIN manual_artifact_expected_attempt expected ON expected.operation_id=m.operation_id AND expected.attempt_id=q.attempt_id
 JOIN manual_nonce_actual_attempt actual ON actual.id=q.attempt_id AND actual.attempt_json=expected.attempt_json
 JOIN manual_artifact_expected_step es ON es.operation_id=b.operation_id AND es.id=b.execution_step_id
@@ -45,8 +48,11 @@ JOIN manual_submission_foundations f ON f.operation_id=b.operation_id
  AND json_extract(f.binding_json,'$.facts')=json(m.facts_json)
  AND json_extract(f.binding_json,'$.contract')=json(c.contract_json)
  AND json_extract(f.binding_json,'$.contract_hash')=c.contract_hash
- AND json_extract(f.binding_json,'$.reservation.id')=q.reservation_id
- AND json_extract(f.binding_json,'$.usage.authorization_id')=b.authorization_id
+ AND json_extract(f.binding_json,'$.envelope_hash')=manual_artifact_bytes_sha256(hex(m.envelope_json))
+ AND json_extract(f.binding_json,'$.reservation')=json_object('id',r.id,'operation_id',r.operation_id,'wallet_id',r.wallet_id,
+ 'input_amount',r.input_amount,'gas_budget',r.gas_budget,'unit_asset',unit.input_asset,'unit_decimals',unit.input_decimals,
+ 'unit_kind',unit.accounting_kind,'chain_id',unit.chain_id)
+ AND json_extract(f.binding_json,'$.usage')=json_object('authorization_id',usage.authorization_id,'operation_id',usage.operation_id,'amount',usage.amount)
 JOIN manual_first_submission_bindings first ON first.operation_id=b.operation_id AND first.attempt_id=q.attempt_id
  AND first.authorization_id=b.authorization_id AND first.authorization_epoch=b.authorization_epoch
  AND first.environment=b.environment AND first.foundation_hash=f.binding_hash
@@ -54,27 +60,48 @@ JOIN manual_first_submission_bindings first ON first.operation_id=b.operation_id
 JOIN transaction_submissions sub ON sub.id=first.submission_id AND sub.attempt_id=first.attempt_id
  AND sub.tx_hash=first.tx_hash AND sub.sequence=0 AND sub.created_at=first.created_at
  AND sub.state IN ('submitting','submitted','broadcast_unknown','manual_resolution','known_unsent')
+JOIN canary_send_permits permit ON permit.id=first.permit_id AND permit.operation_id=b.operation_id AND permit.attempt_id=q.attempt_id
+ AND permit.authorization_id=b.authorization_id AND permit.authorization_epoch=b.authorization_epoch
+ AND permit.purpose='FIRST_BROADCAST' AND permit.artifact_hash=first.artifact_hash AND permit.tx_hash=first.tx_hash
+ AND permit.state='CONSUMED' AND permit.consumed_at=first.created_at
 JOIN canary_runtime_audit claim ON claim.id='manual-first-submission-claim:'||first.permit_id
  AND claim.event_type='MANUAL_FIRST_SUBMISSION_CLAIMED' AND claim.operation_id=b.operation_id
  AND claim.attempt_id=q.attempt_id AND claim.authorization_id=b.authorization_id AND claim.authorization_epoch=b.authorization_epoch
+ AND claim.reason_code='CLAIMED_NOT_SEND_INTENT' AND claim.created_at=first.created_at
+ AND claim.details_json=json_object('permit_id',first.permit_id,'submission_id',first.submission_id,
+ 'artifact_hash',first.artifact_hash,'tx_hash',first.tx_hash,'foundation_hash',first.foundation_hash)
 JOIN canary_alert_outbox claim_alert ON claim_alert.audit_id=claim.id AND claim_alert.id='manual-first-submission-claim-alert:'||first.permit_id
+ AND claim_alert.severity='INFO' AND claim_alert.created_at=first.created_at
 JOIN canary_runtime_audit execution_audit ON execution_audit.id='manual-execution:'||b.operation_id
  AND execution_audit.event_type='MANUAL_EXECUTION_BOUND' AND execution_audit.operation_id=b.operation_id
  AND execution_audit.authorization_id=b.authorization_id AND execution_audit.authorization_epoch=b.authorization_epoch
  AND execution_audit.created_at=b.checked_at AND execution_audit.reason_code='BOUND_NOT_SIGNED_NOT_PERMISSION'
+ AND execution_audit.details_json=json_object('request_id',b.request_id,'execution_step_id',b.execution_step_id,'contract_hash',b.contract_hash,'reservation_id',q.reservation_id)
 JOIN canary_alert_outbox execution_alert ON execution_alert.id='manual-execution-alert:'||b.operation_id AND execution_alert.audit_id=execution_audit.id
+ AND execution_alert.severity='INFO' AND execution_alert.created_at=b.checked_at
 JOIN canary_runtime_audit nonce_audit ON nonce_audit.id='manual-nonce-audit:'||q.operation_id
  AND nonce_audit.event_type='MANUAL_NONCE_CLAIMED' AND nonce_audit.operation_id=q.operation_id AND nonce_audit.attempt_id=q.attempt_id
  AND nonce_audit.authorization_id=b.authorization_id AND nonce_audit.authorization_epoch=b.authorization_epoch AND nonce_audit.created_at=q.checked_at
+ AND nonce_audit.reason_code='NONCE_CLAIMED_NOT_SIGNED_NOT_PERMISSION'
+ AND nonce_audit.details_json=json_object('execution_step_id',q.execution_step_id,'nonce',q.nonce,'contract_hash',q.contract_hash,
+ 'reservation_id',q.reservation_id,'observation_hash',q.observation_hash)
 JOIN canary_alert_outbox nonce_alert ON nonce_alert.id='manual-nonce-alert:'||q.operation_id AND nonce_alert.audit_id=nonce_audit.id
+ AND nonce_alert.severity='INFO' AND nonce_alert.created_at=q.checked_at
 JOIN canary_runtime_audit artifact_audit ON artifact_audit.id='manual-artifact:'||m.operation_id
  AND artifact_audit.event_type='MANUAL_ARTIFACT_STORED' AND artifact_audit.operation_id=m.operation_id AND artifact_audit.attempt_id=q.attempt_id
  AND artifact_audit.authorization_id=b.authorization_id AND artifact_audit.authorization_epoch=b.authorization_epoch AND artifact_audit.created_at=m.checked_at
+ AND artifact_audit.reason_code='ENCRYPTED_ARTIFACT_NOT_PERMISSION'
+ AND artifact_audit.details_json=json_object('owner_id',m.owner_id,'facts_hash',m.facts_hash,
+ 'envelope_hash',manual_artifact_bytes_sha256(hex(m.envelope_json)),'execution_step_id',q.execution_step_id,'observation_hash',m.observation_hash,'nonce',q.nonce)
 JOIN canary_alert_outbox artifact_alert ON artifact_alert.id='manual-artifact-alert:'||m.operation_id AND artifact_alert.audit_id=artifact_audit.id
+ AND artifact_alert.severity='INFO' AND artifact_alert.created_at=m.checked_at
 JOIN canary_runtime_audit foundation_audit ON foundation_audit.id='manual-submission-foundation:'||f.operation_id
  AND foundation_audit.event_type='MANUAL_SUBMISSION_FOUNDATION' AND foundation_audit.operation_id=f.operation_id AND foundation_audit.attempt_id=q.attempt_id
  AND foundation_audit.authorization_id=b.authorization_id AND foundation_audit.authorization_epoch=b.authorization_epoch AND foundation_audit.created_at=f.created_at
+ AND foundation_audit.reason_code='METADATA_ONLY_NOT_GATE_OR_SEND_PERMISSION'
+ AND foundation_audit.details_json=json_object('binding_hash',f.binding_hash,'execution_step_id',q.execution_step_id,'facts_hash',m.facts_hash)
 JOIN canary_alert_outbox foundation_alert ON foundation_alert.id='manual-submission-foundation-alert:'||f.operation_id AND foundation_alert.audit_id=foundation_audit.id
+ AND foundation_alert.severity='INFO' AND foundation_alert.created_at=f.created_at
 WHERE src.source='MANUAL' AND src.chain='robinhood' AND src.operation_id='manual_op_'||src.id
  AND b.execution_step_id='manual-exec:'||src.operation_id AND q.attempt_id='manual-nonce:'||b.operation_id
  AND manual_artifact_facts_hash(hex(m.facts_json),typeof(m.facts_json))=m.facts_hash
@@ -85,14 +112,23 @@ WHERE src.source='MANUAL' AND src.chain='robinhood' AND src.operation_id='manual
  JOIN canary_runtime_audit outcome_audit ON outcome_audit.id='manual-first-submission-transition:'||outcome.id
  AND outcome_audit.event_type='MANUAL_FIRST_SUBMISSION_OUTCOME' AND outcome_audit.operation_id=b.operation_id AND outcome_audit.attempt_id=q.attempt_id
  AND outcome_audit.authorization_id=b.authorization_id AND outcome_audit.authorization_epoch=b.authorization_epoch AND outcome_audit.created_at=outcome.checked_at
+ AND outcome_audit.reason_code=CASE WHEN outcome.result_state='known_unsent' THEN 'KNOWN_UNSENT_RETAINED' ELSE outcome.result_state END
+ AND outcome_audit.details_json=json_object('submission_id',outcome.submission_id,'permit_id',first.permit_id,
+ 'state',outcome.result_state,'rpc_hash',outcome.rpc_hash,'failure_class',outcome.failure_class,'failure_detail',outcome.failure_detail)
  JOIN canary_alert_outbox outcome_alert ON outcome_alert.id='manual-first-submission-transition-alert:'||outcome.id AND outcome_alert.audit_id=outcome_audit.id
+ AND outcome_alert.created_at=outcome.checked_at AND outcome_alert.severity=CASE WHEN outcome.result_state='submitted' THEN 'INFO' ELSE 'WARNING' END
  WHERE outcome.submission_id=sub.id AND outcome.kind='OUTCOME' AND outcome.result_state=sub.state
  AND outcome.rpc_hash IS sub.rpc_hash AND outcome.failure_class IS sub.failure_class AND outcome.failure_detail IS sub.failure_detail
  AND outcome.checked_at=sub.updated_at))
  AND (sub.send_intent_at IS NULL OR EXISTS(SELECT 1 FROM manual_first_submission_transitions intent
  JOIN canary_runtime_audit intent_audit ON intent_audit.id='manual-first-submission-transition:'||intent.id
  AND intent_audit.event_type='MANUAL_FIRST_SUBMISSION_INTENT' AND intent_audit.operation_id=b.operation_id AND intent_audit.attempt_id=q.attempt_id
+ AND intent_audit.authorization_id=b.authorization_id AND intent_audit.authorization_epoch=b.authorization_epoch
+ AND intent_audit.reason_code='DURABLE_SEND_AMBIGUITY_BOUNDARY' AND intent_audit.created_at=intent.checked_at
+ AND intent_audit.details_json=json_object('submission_id',intent.submission_id,'permit_id',first.permit_id,
+ 'state','submitting','rpc_hash',NULL,'failure_class',NULL,'failure_detail',NULL)
  JOIN canary_alert_outbox intent_alert ON intent_alert.id='manual-first-submission-transition-alert:'||intent.id AND intent_alert.audit_id=intent_audit.id
+ AND intent_alert.created_at=intent.checked_at AND intent_alert.severity='INFO'
  WHERE intent.submission_id=sub.id AND intent.kind='INTENT' AND intent.checked_at=sub.send_intent_at))
  AND NOT EXISTS(SELECT 1 FROM transaction_submissions extra WHERE extra.attempt_id=q.attempt_id AND extra.id!=sub.id)
  AND NOT EXISTS(SELECT 1 FROM manual_first_submission_scopes scope WHERE scope.permit_id=first.permit_id);
@@ -189,11 +225,17 @@ WHEN NEW.sequence!=-1 OR typeof(NEW.id)!='text' OR NEW.id IS NOT 'manual-recover
  AND r.block_number=NEW.block_number AND r.receipt_status=NEW.receipt_status AND r.reconciliation_version=NEW.prior_version
  AND ((NEW.kind='CANONICAL' AND r.canonical_state IN ('observed','orphaned'))
  OR (NEW.kind='ORPHAN' AND r.canonical_state IN ('observed','canonical_success','canonical_revert')))))
+ OR (NEW.kind='CANONICAL' AND EXISTS(SELECT 1 FROM receipt_observations other
+ JOIN manual_recovery_source src ON src.attempt_id=other.attempt_id AND src.operation_id=NEW.operation_id
+ WHERE other.id!=NEW.receipt_id AND other.canonical_state IN ('canonical_success','canonical_revert')))
+ OR (NEW.kind='CANONICAL' AND EXISTS(SELECT 1 FROM manual_recovery_commands previous
+ WHERE previous.receipt_id=NEW.receipt_id AND previous.kind='CANONICAL'
+ AND (previous.effect_asset IS NOT NEW.effect_asset OR previous.effect_delta IS NOT NEW.effect_delta)))
  OR (NEW.kind='CANONICAL' AND NEW.receipt_status=1 AND
  (typeof(NEW.effect_asset)!='text' OR length(NEW.effect_asset)=0 OR typeof(NEW.effect_delta)!='text'
  OR length(NEW.effect_delta)=0 OR NEW.effect_delta='0'
  OR NOT EXISTS(SELECT 1 FROM manual_admission_commands contract WHERE contract.operation_id=NEW.operation_id
- AND lower(NEW.effect_asset)=json_extract(contract.contract_json,'$.output.resolution.token.address')
+ AND NEW.effect_asset=json_extract(contract.contract_json,'$.output.resolution.token.address')
  AND ((json_extract(contract.contract_json,'$.output.resolution.side')='buy'
  AND NEW.effect_delta=manual_u256_add(NEW.effect_delta,'0') AND manual_u256_cmp(NEW.effect_delta,'0')>0
  AND manual_u256_cmp(NEW.effect_delta,json_extract(contract.contract_json,'$.minimum_output.units'))>=0)
@@ -230,6 +272,7 @@ SELECT c.id,l.wallet_id,l.rowid,
  WHEN json_extract(l.lane_json,'$.state')='idle' THEN json_set(l.lane_json,'$.state','frozen','$.operation_id',c.operation_id,
  '$.step_id',c.execution_step_id,'$.reserved_nonce',c.nonce,'$.freeze_reason','canonical_reorg','$.updated_at',c.checked_at)
  ELSE json_set(l.lane_json,'$.state','frozen','$.freeze_reason',CASE WHEN json_extract(l.lane_json,'$.operation_id')=c.operation_id
+ AND json_extract(l.lane_json,'$.step_id')=c.execution_step_id AND json_extract(l.lane_json,'$.reserved_nonce')=c.nonce
  THEN 'canonical_reorg' ELSE 'prior_canonical_reorg' END,'$.updated_at',c.checked_at) END AS lane_json
 FROM manual_recovery_open c JOIN manual_artifact_actual_lane l ON l.wallet_id=c.wallet_id
 WHERE c.kind='ORPHAN' OR (c.kind='CANONICAL' AND json_extract(l.lane_json,'$.state')!='idle');
@@ -587,11 +630,19 @@ JOIN receipt_observations r ON r.id=c.receipt_id AND r.attempt_id=first.attempt_
  WHEN c.receipt_status=1 THEN 'canonical_success' ELSE 'canonical_revert' END
 JOIN canary_runtime_audit audit ON audit.id='manual-recovery-audit:'||c.id AND audit.event_type='MANUAL_RECOVERY_'||c.kind
  AND audit.operation_id=c.operation_id AND audit.attempt_id=first.attempt_id AND audit.created_at=c.checked_at
+ AND audit.authorization_id=first.authorization_id AND audit.authorization_epoch=first.authorization_epoch
+ AND audit.reason_code IN (c.kind,'PRIOR_CANONICAL_REORG_LANE_FROZEN')
+ AND audit.details_json=json_object('command_id',c.id,'command_sequence',c.sequence,'receipt_id',c.receipt_id,'prior_version',c.prior_version,
+ 'block_hash',c.block_hash,'receipt_status',c.receipt_status,'lease_epoch',c.lease_epoch)
 JOIN canary_alert_outbox alert ON alert.id='manual-recovery-alert:'||c.id AND alert.audit_id=audit.id AND alert.created_at=c.checked_at
+ AND alert.severity=CASE WHEN c.kind='ORPHAN' OR audit.reason_code='PRIOR_CANONICAL_REORG_LANE_FROZEN' THEN 'CRITICAL' ELSE 'INFO' END
 JOIN manual_http_order_sources src ON src.operation_id=c.operation_id
 JOIN manual_lifecycle_events event ON event.request_id=src.id AND event.audit_id=audit.id
+ AND event.event_type=audit.event_type AND event.reason_code=audit.reason_code AND event.created_at=audit.created_at
 LEFT JOIN position_effects p ON p.attempt_id=first.attempt_id
 WHERE c.sequence=(SELECT MAX(latest.sequence) FROM manual_recovery_commands latest WHERE latest.operation_id=c.operation_id)
+ AND (c.kind!='CANONICAL' OR c.receipt_status!=1 OR (p.state='active' AND p.receipt_id=c.receipt_id AND p.asset=c.effect_asset AND p.delta=c.effect_delta))
+ AND (c.kind!='ORPHAN' OR p.receipt_id IS NOT c.receipt_id OR p.state='rolled_back')
  AND NOT EXISTS(SELECT 1 FROM manual_recovery_scopes scope WHERE scope.command_id=c.id);
 
 

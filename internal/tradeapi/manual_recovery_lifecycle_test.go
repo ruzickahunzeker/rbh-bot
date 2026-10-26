@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math/big"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -270,7 +271,7 @@ func manualRecoveryCanonicalSQL(ctx context.Context, tx interface {
  prior_version,effect_asset,effect_delta,environment,holder_id,lease_epoch,checked_at)
  SELECT 'manual-recovery:'||r.id||':'||r.reconciliation_version,src.operation_id,'CANONICAL',r.id,r.tx_hash,r.block_number,r.block_hash,r.receipt_status,
  r.reconciliation_version,?,?,src.environment,?,?,? FROM manual_recovery_source src
- JOIN receipt_observations r ON r.attempt_id=src.attempt_id WHERE src.operation_id=?`, asset, delta, lease.HolderID, lease.Epoch, time.Now().UTC().Format(time.RFC3339Nano), operation)
+ JOIN receipt_observations r ON r.attempt_id=src.attempt_id WHERE src.operation_id=? AND r.canonical_state IN ('observed','orphaned')`, asset, delta, lease.HolderID, lease.Epoch, time.Now().UTC().Format(time.RFC3339Nano), operation)
 	return err
 }
 
@@ -366,5 +367,268 @@ func TestManualRecoveryCloseReopenAndLeaseTakeover(t *testing.T) {
 	}
 	if count(t, db, "manual_recovery_commands") != 2 || f.fake.calls != 1 {
 		t.Fatal("restart duplicated an action")
+	}
+}
+
+func TestManualRecoveryLeaseTakeoverCannotCrossMutationCommit(t *testing.T) {
+	f, recovery, backend, lease := manualRecoveryFixture(t, "submitted", "buy")
+	original := backend.header
+	backend.header = &types.Header{Number: original.Number, Extra: []byte("only-observe-first")}
+	if err := recovery.ReconcileWithLease(context.Background(), f.permit.OperationID, func() trade.RecoveryLeaseFence { return lease }); !errors.Is(err, trade.ErrNotCanonical) {
+		t.Fatal(err)
+	}
+	second, err := storage.Open(context.Background(), storage.TradeOwner, f.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer second.Close()
+	secondStore, err := trade.NewStore(second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entered, resume := make(chan struct{}), make(chan struct{})
+	var release sync.Once
+	defer release.Do(func() { close(resume) })
+	var barrier sync.Once
+	f.e.store.SetRecoveryHookForTest(func(at string) {
+		if at == "manual_recovery_mutation_before_commit" {
+			barrier.Do(func() { close(entered); <-resume })
+		}
+	})
+	mutation := make(chan error, 1)
+	stored, found, err := f.e.store.LoadEncryptedArtifact(context.Background(), f.permit.OperationID)
+	if err != nil || !found {
+		t.Fatal(found, err)
+	}
+	var observation trade.ReceiptObservation
+	db := f.e.verifier.store.db
+	if err := db.QueryRow(`SELECT id,attempt_id,tx_hash,block_number,block_hash,receipt_status,canonical_state,reconciliation_version FROM receipt_observations`).Scan(&observation.ID, &observation.AttemptID, &observation.TxHash, &observation.BlockNumber, &observation.BlockHash, &observation.Status, &observation.CanonicalState, &observation.Version); err != nil {
+		t.Fatal(err)
+	}
+	var asset, delta string
+	if err := db.QueryRow(`SELECT json_extract(contract_json,'$.output.resolution.token.address'),json_extract(contract_json,'$.minimum_output.units') FROM manual_admission_commands`).Scan(&asset, &delta); err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		mutation <- f.e.store.CanonicalizeFenced(context.Background(), stored.SignedArtifact, observation, &trade.PositionEffect{Asset: asset, Delta: delta}, time.Now(), &lease)
+	}()
+	select {
+	case <-entered:
+	case <-time.After(10 * time.Second):
+		t.Fatal("mutation did not reach the fenced pre-commit window")
+	}
+	takeover := make(chan error, 1)
+	go func() {
+		// This is a higher-epoch takeover AFTER durable expiry. The supplied
+		// time advances deterministically; the SQL writer must still serialize
+		// with the old owner's already-fenced mutation transaction.
+		future := time.Now().Add(2 * time.Hour)
+		takeover <- secondStore.AcquireCanaryWorkerLease(context.Background(), "RECOVERY", lease.Environment, "takeover-owner", 2, future.Add(time.Hour), future)
+	}()
+	select {
+	case err := <-takeover:
+		t.Fatalf("takeover completed before fenced mutation commit: %v", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+	release.Do(func() { close(resume) })
+	if err := <-mutation; err != nil {
+		t.Fatal("old owner did not finish before takeover", err)
+	}
+	if err := <-takeover; err != nil {
+		t.Fatal("takeover did not finish after prior mutation", err)
+	}
+	f.e.store.SetRecoveryHookForTest(nil)
+	if err := f.e.store.OrphanFenced(context.Background(), stored.SignedArtifact, observation, time.Now(), &lease); !errors.Is(err, trade.ErrCanaryRecoveryLeaseLost) {
+		t.Fatal("stale owner could continue after takeover", err)
+	}
+	assertManualRecoveryStates(t, f, "canonical_success", "active", "committed", "CONSUMED", "idle")
+	if count(t, db, "manual_recovery_commands") != 2 || f.fake.calls != 1 {
+		t.Fatal("lease handoff duplicated mutation or economic action")
+	}
+}
+
+func TestManualRecoveryRejectsConflictingEffectAndDirectSQLBypasses(t *testing.T) {
+	f, recovery, backend, lease := manualRecoveryFixture(t, "submitted", "buy")
+	original := backend.header
+	backend.header = &types.Header{Number: original.Number, Extra: []byte("only-observe-for-sql")}
+	if err := recovery.ReconcileWithLease(context.Background(), f.permit.OperationID, func() trade.RecoveryLeaseFence { return lease }); !errors.Is(err, trade.ErrNotCanonical) {
+		t.Fatal(err)
+	}
+	db := f.e.verifier.store.db
+	var asset, delta string
+	if err := db.QueryRow(`SELECT json_extract(contract_json,'$.output.resolution.token.address'),json_extract(contract_json,'$.minimum_output.units') FROM manual_admission_commands`).Scan(&asset, &delta); err != nil {
+		t.Fatal(err)
+	}
+	for _, malformed := range []string{"--1", "01", "-1", "1.2", "0", " 1", new(big.Int).Lsh(big.NewInt(1), 256).String()} {
+		if err := manualRecoveryCanonicalSQL(context.Background(), db, f.permit.OperationID, lease, asset, malformed); err == nil {
+			t.Fatalf("noncanonical/wrong-direction economic delta accepted: %q", malformed)
+		}
+	}
+	if err := manualRecoveryCanonicalSQL(context.Background(), db, f.permit.OperationID, lease, "0x"+strings.Repeat("f", 40), delta); err == nil {
+		t.Fatal("caller-invented asset accepted")
+	}
+	for _, statement := range []string{
+		`UPDATE receipt_observations SET canonical_state='canonical_success'`,
+		`DELETE FROM receipt_observations`,
+		`UPDATE canary_risk_reservations SET state='released'`,
+		`UPDATE canary_authorization_operation_usage SET state='RELEASED'`,
+		`UPDATE manual_recovery_commands SET rowid=rowid+100`,
+		`DELETE FROM manual_recovery_commands`,
+		`UPDATE manual_lifecycle_events SET cursor=cursor+100`,
+		`DELETE FROM manual_lifecycle_events`,
+	} {
+		if _, err := db.Exec(statement); err == nil {
+			t.Fatalf("direct SQL bypass accepted: %s", statement)
+		}
+	}
+	backend.header = original
+	if err := recovery.ReconcileWithLease(context.Background(), f.permit.OperationID, func() trade.RecoveryLeaseFence { return lease }); err != nil {
+		t.Fatal(err)
+	}
+	changed, _ := new(big.Int).SetString(delta, 10)
+	changed.Add(changed, big.NewInt(1))
+	contradictory, err := trade.NewRecoveryServiceWithCipher(f.e.store, manualArtifactReadCipher{f.e.verifier.decryptor}, backend, manualRecoveryEffect{asset, changed.String()}, trade.CanonicalPolicy{Confirmations: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := contradictory.ReconcileWithLease(context.Background(), f.permit.OperationID, func() trade.RecoveryLeaseFence { return lease }); !errors.Is(err, trade.ErrArtifactIntegrity) {
+		t.Fatal("same canonical receipt acquired contradictory economic output", err)
+	}
+	if count(t, db, "manual_recovery_commands") != 2 || f.fake.calls != 1 {
+		t.Fatal("rejected bypass/contradiction created a second effect")
+	}
+	old, err := f.e.store.ListCanonicalReceiptObservations(context.Background(), f.permit.AttemptID)
+	if err != nil || len(old) != 1 {
+		t.Fatal(old, err)
+	}
+	if err := f.e.store.OrphanFenced(context.Background(), mustManualArtifact(t, f), old[0], time.Now(), &lease); err != nil {
+		t.Fatal(err)
+	}
+	if err := contradictory.ReconcileWithLease(context.Background(), f.permit.OperationID, func() trade.RecoveryLeaseFence { return lease }); !errors.Is(err, trade.ErrArtifactIntegrity) {
+		t.Fatal("same-block reapply changed an immutable receipt effect", err)
+	}
+	if err := manualRecoveryCanonicalSQL(context.Background(), db, f.permit.OperationID, lease, asset, changed.String()); err == nil {
+		t.Fatal("direct SQL changed the same receipt effect during reapply")
+	}
+	assertManualRecoveryStates(t, f, "orphaned", "rolled_back", "frozen", "FROZEN", "frozen")
+	if count(t, db, "manual_recovery_commands") != 3 {
+		t.Fatal("rejected same-block reapply changed durable history")
+	}
+	if err := recovery.ReconcileWithLease(context.Background(), f.permit.OperationID, func() trade.RecoveryLeaseFence { return lease }); err != nil {
+		t.Fatal("exact prior output could not reapply", err)
+	}
+}
+
+func TestManualRecoveryRequiresOrphanBeforeDifferentCanonicalReceipt(t *testing.T) {
+	for _, states := range [][2]uint64{{1, 0}, {0, 1}, {0, 0}} {
+		t.Run(string(rune('0'+states[0]))+"_to_"+string(rune('0'+states[1])), func(t *testing.T) {
+			f, recovery, backend, lease := manualRecoveryFixture(t, "submitted", "buy")
+			backend.receipt.Status = states[0]
+			if err := recovery.ReconcileWithLease(context.Background(), f.permit.OperationID, func() trade.RecoveryLeaseFence { return lease }); err != nil {
+				t.Fatal("initial canonical receipt", err)
+			}
+			old, err := f.e.store.ListCanonicalReceiptObservations(context.Background(), f.permit.AttemptID)
+			if err != nil || len(old) != 1 {
+				t.Fatal(old, err)
+			}
+			backend.header = &types.Header{Number: big.NewInt(46), Extra: []byte("different-receipt-must-not-coexist")}
+			backend.receipt.BlockNumber, backend.receipt.BlockHash, backend.receipt.Status = backend.header.Number, backend.header.Hash(), states[1]
+			if err := recovery.ReconcileWithLease(context.Background(), f.permit.OperationID, func() trade.RecoveryLeaseFence { return lease }); !errors.Is(err, trade.ErrArtifactIntegrity) {
+				t.Fatal("second canonical receipt accepted before old receipt orphaned", err)
+			}
+			db := f.e.verifier.store.db
+			var asset, delta any
+			if states[1] == 1 {
+				var a, d string
+				if err := db.QueryRow(`SELECT json_extract(contract_json,'$.output.resolution.token.address'),json_extract(contract_json,'$.minimum_output.units') FROM manual_admission_commands`).Scan(&a, &d); err != nil {
+					t.Fatal(err)
+				}
+				asset, delta = a, d
+			}
+			_, err = db.Exec(`INSERT INTO manual_recovery_commands(id,operation_id,kind,receipt_id,tx_hash,block_number,block_hash,receipt_status,
+ prior_version,effect_asset,effect_delta,environment,holder_id,lease_epoch,checked_at)
+ SELECT 'manual-recovery:'||r.id||':'||r.reconciliation_version,src.operation_id,'CANONICAL',r.id,r.tx_hash,r.block_number,r.block_hash,r.receipt_status,
+ r.reconciliation_version,?,?,src.environment,?,?,? FROM manual_recovery_source src JOIN receipt_observations r ON r.attempt_id=src.attempt_id
+ WHERE src.operation_id=? AND r.canonical_state='observed'`, asset, delta, lease.HolderID, lease.Epoch, time.Now().UTC().Format(time.RFC3339Nano), f.permit.OperationID)
+			if err == nil {
+				t.Fatal("direct SQL bypassed other-canonical receipt guard")
+			}
+			var canonical int
+			var risk string
+			if err := db.QueryRow(`SELECT (SELECT COUNT(*) FROM receipt_observations WHERE canonical_state IN ('canonical_success','canonical_revert')),
+ (SELECT state FROM canary_risk_reservations)`).Scan(&canonical, &risk); err != nil || canonical != 1 || (states[0] == 1 && risk != "committed") || (states[0] == 0 && risk != "released") {
+				t.Fatal("contradictory receipt changed prior canonical economics", canonical, risk, err)
+			}
+			if err := f.e.store.OrphanFenced(context.Background(), mustManualArtifact(t, f), old[0], time.Now(), &lease); err != nil {
+				t.Fatal("cannot orphan old receipt", err)
+			}
+			if err := recovery.ReconcileWithLease(context.Background(), f.permit.OperationID, func() trade.RecoveryLeaseFence { return lease }); err != nil {
+				t.Fatal("new receipt not admitted after explicit old orphan", err)
+			}
+			if states[1] == 1 {
+				assertManualRecoveryStates(t, f, "canonical_success", "active", "committed", "CONSUMED", "idle")
+			} else {
+				effect := ""
+				if states[0] == 1 {
+					effect = "rolled_back"
+				}
+				assertManualRecoveryStates(t, f, "canonical_revert", effect, "released", "CONSUMED", "idle")
+			}
+		})
+	}
+}
+
+func mustManualArtifact(t *testing.T, f manualSubmissionFixture) trade.SignedArtifact {
+	t.Helper()
+	a, found, err := f.e.store.LoadEncryptedArtifact(context.Background(), f.permit.OperationID)
+	if err != nil || !found {
+		t.Fatal(found, err)
+	}
+	return a.SignedArtifact
+}
+
+func TestManualRecoveryLeaseExpiryInMutationCommitWindowRollsBack(t *testing.T) {
+	f, recovery, backend, lease := manualRecoveryFixture(t, "submitted", "buy")
+	original := backend.header
+	backend.header = &types.Header{Number: original.Number, Extra: []byte("observe-before-expiry-window")}
+	if err := recovery.ReconcileWithLease(context.Background(), f.permit.OperationID, func() trade.RecoveryLeaseFence { return lease }); !errors.Is(err, trade.ErrNotCanonical) {
+		t.Fatal(err)
+	}
+	db := f.e.verifier.store.db
+	expiry := time.Now().UTC().Add(5 * time.Second)
+	if _, err := db.Exec(`UPDATE canary_worker_leases SET expires_at=? WHERE role='RECOVERY'`, expiry.Format(time.RFC3339Nano)); err != nil {
+		t.Fatal(err)
+	}
+	entered := make(chan struct{})
+	var once sync.Once
+	f.e.store.SetRecoveryHookForTest(func(at string) {
+		if at == "manual_recovery_mutation_before_commit" {
+			once.Do(func() {
+				close(entered)
+				<-time.After(time.Until(expiry.Add(10 * time.Millisecond)))
+			})
+		}
+	})
+	defer f.e.store.SetRecoveryHookForTest(nil)
+	a := mustManualArtifact(t, f)
+	var observation trade.ReceiptObservation
+	if err := db.QueryRow(`SELECT id,attempt_id,tx_hash,block_number,block_hash,receipt_status,canonical_state,reconciliation_version FROM receipt_observations`).Scan(&observation.ID, &observation.AttemptID, &observation.TxHash, &observation.BlockNumber, &observation.BlockHash, &observation.Status, &observation.CanonicalState, &observation.Version); err != nil {
+		t.Fatal(err)
+	}
+	var asset, delta string
+	if err := db.QueryRow(`SELECT json_extract(contract_json,'$.output.resolution.token.address'),json_extract(contract_json,'$.minimum_output.units') FROM manual_admission_commands`).Scan(&asset, &delta); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.e.store.CanonicalizeFenced(context.Background(), a, observation, &trade.PositionEffect{Asset: asset, Delta: delta}, time.Now(), &lease); !errors.Is(err, trade.ErrCanaryRecoveryLeaseLost) {
+		t.Fatal("expired lease committed a staged canonical mutation", err)
+	}
+	select {
+	case <-entered:
+	default:
+		t.Fatal("test failed to enter the real writer commit window")
+	}
+	assertManualRecoveryStates(t, f, "observed", "", "reserved", "RESERVED", "signed")
+	if count(t, db, "manual_recovery_commands") != 1 || count(t, db, "position_effects") != 0 || f.fake.calls != 1 {
+		t.Fatal("expiry did not roll back effect/audit/event together")
 	}
 }
