@@ -346,20 +346,47 @@ components:
       additionalProperties: false
       required: [operation_status, step_status]
       description: >-
-        Optional read-only execution history on trade GET responses. A tx_hash
-        can exist on a signed attempt before submission. Interpret submission,
-        receipt and position-effect observations separately; this object grants
-        no signing, sending, replay or retry permission. The progress stage
+        Optional read-only verified execution history on both trade GET routes
+        and duplicate POST responses. These observations follow the immutable
+        request/execution/nonce/artifact/first-submission identity, not the latest
+        unrelated database row. Missing stages are omitted; contradictory
+        provenance fails the request instead of presenting unverified success.
+        A tx_hash can exist on a signed attempt before submission. Interpret
+        submission, receipt and position-effect observations separately; this
+        object grants no signing, sending, replay or retry permission. Reads and
+        duplicates do not renew TTL or perform economic work. The progress stage
         continues to describe the intake/validation/admission milestone.
       properties:
         operation_status: {type: string}
         step_status: {type: string}
         trade_step_status: {type: string}
         attempt_status: {type: string}
-        submission_state: {type: string}
-        tx_hash: {type: string}
-        receipt_state: {type: string}
-        position_effect_state: {type: string}
+        submission_state:
+          type: string
+          enum: [submitting, submitted, broadcast_unknown, reconciling, manual_resolution, expired_prebroadcast, known_unsent]
+          description: >-
+            Durable submission observation, not receipt success. broadcast_unknown
+            means non-invocation/non-propagation cannot be durably proved; it is
+            not evidence that sending probably occurred. known_unsent retains
+            frozen ownership in this MANUAL scope. Neither state permits
+            automatic resend, replacement, replay or release.
+        tx_hash:
+          type: string
+          description: Exact signed artifact identity; presence alone does not prove send, propagation, receipt success or canonical effect
+        receipt_state:
+          type: string
+          enum: [observed, canonical_success, canonical_revert, orphaned]
+          description: >-
+            observed does not imply canonicality. canonical_revert is a reverted
+            receipt, not a successful trade. orphaned supersedes the earlier
+            canonical observation; later re-canonicalization may change it again.
+        position_effect_state:
+          type: string
+          enum: [active, rolled_back]
+          description: >-
+            Current durable effect state, independently observed from receipt
+            state. rolled_back is visible after earlier application; reapplication
+            returns active. This is not a permanent success or finality flag.
     ManualAdmission:
       type: object
       additionalProperties: false

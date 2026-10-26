@@ -198,12 +198,42 @@ permission. The progress stage does not yet represent submission or canonical
 outcomes. HTTP 202 alone does not imply a send or queued transaction.
 
 The local A/B/C integration also includes an optional `execution` snapshot on
-both trade GET routes. Read its attempt, submission, receipt and position-effect
-observations separately. A `tx_hash` can already exist while the attempt is only
-`signed`; it does not prove submission, propagation or receipt success. Queries
-read existing history without granting permission or retrying a transaction.
+both trade GET routes and duplicate POST responses. It is a verified historical
+view, not an execution command. Each stage must follow the immutable request,
+execution, nonce, signed artifact and first-submission identity; an unrelated
+latest attempt is not a substitute. Stages that never occurred are omitted.
+Missing or contradictory provenance for an existing downstream result fails the
+query rather than returning an unverified successful-looking snapshot.
+
+Read its attempt, submission, receipt and position-effect observations separately:
+
+| Observation | Meaning; not permission |
+| --- | --- |
+| `attempt_status=signed`, `tx_hash` present, no submission | Signed artifact identity only; no proof of propagation |
+| `submission_state=submitting` | In-progress durable submission record; no receipt/canonical success implied |
+| `submission_state=submitted` | Submission outcome only; receipt and canonical effect remain separate |
+| `submission_state=broadcast_unknown` | The system cannot durably prove no invocation/propagation; wallet lane and reservation remain frozen, not automatic resend/replay permission |
+| `submission_state=known_unsent` | In this MANUAL scope, known-unsent ownership is still retained/frozen; no automatic retry or release |
+| `submission_state=manual_resolution` | Contradictory/unresolved evidence needs separate resolution; no automatic retry |
+| `receipt_state=observed` | Receipt observation only, not canonical confirmation or applied position |
+| `receipt_state=canonical_success` | Current canonical successful receipt; inspect the position effect separately |
+| `receipt_state=canonical_revert` | Canonical reverted transaction; not a successful trade and no new position effect |
+| `receipt_state=orphaned`, `position_effect_state=rolled_back` | Previous canonical effect was rolled back; prior success is not permanent |
+| Later `canonical_success` and `active` | Re-canonicalized current facts; not a second transaction or a new finality guarantee |
+
+Queries remain historical after emergency stop, authorization revoke/expiry,
+application TTL expiry or deployment drift. They never renew `expires_at`, mint
+permission, sign, send, replay, rebuild or allocate another nonce. A duplicate
+POST in the default-off history composition reads the same execution facts as
+the two GET routes; an admission-enabled POST still checks its own admission
+controls. Neither HTTP 200/202 nor a recorded hash enables live or marks release
+readiness. Raw transaction bytes, ciphertext, encryption nonces, private keys
+and permits are never part of this public snapshot.
+
 This integration candidate still requires the B/C completion and review tracked
-in `HTTP_ABC_INTEGRATION.md`.
+in `HTTP_ABC_INTEGRATION.md`. Receipt/reorg serialization contract tests alone
+are not evidence of actual recovery; that acceptance requires B's source-bound
+reconciliation tests and the integrated HTTP recovery harness.
 
 All require Bearer auth and return only the configured caller/wallet scope.
 Queries return 200 for a stored rejection. Events declare API_REJECTION_ONLY or

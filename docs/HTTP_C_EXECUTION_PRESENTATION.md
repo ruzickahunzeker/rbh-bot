@@ -1,0 +1,78 @@
+# C verified execution presentation contract
+
+Scope: HTTP presentation, OpenAPI, user documentation and tests on the shared
+A/B/C integration baseline. This is not HTTP production execution, broadcaster
+wiring or a new transaction state machine. Status remains implementation in
+progress pending B integration and fresh independent review; no PASS is claimed.
+
+`Record.status` and `reason_code` describe historical intake. `progress.stage`
+continues to report only rejection, intake, validation and admission milestones.
+The existing `execution` object preserves independent verified operation, step,
+attempt, submission, receipt and current position-effect facts. No synthesized
+permanent success flag or resend/replay permission is introduced.
+
+The shared reader is owned by B and the coordinator, not presentation code.
+It must use immutable request -> execution binding -> nonce claim -> signed
+artifact -> first-submission binding identities. Missing unperformed stages
+may be omitted. Existing downstream data with missing/conflicting provenance
+must fail closed, not fall back to a latest row or serialize unverified success.
+Historical reads do not depend on current authorization or phase-gated views.
+
+Both request-ID and idempotency GETs use this contract. Duplicate POST in the
+default-off history composition includes the same verified snapshot without
+renewing TTL or redoing validation/admission/signing/submission. The coordinator
+owns connecting that shared POST snapshot; C does not fork `Store.Get`.
+
+## Presentation boundaries
+
+- A signed hash is not submitted/propagated, and `submitted` is not receipt or
+  canonical position success.
+- `broadcast_unknown` states durable inability to prove no invocation, not a
+  probability of propagation. Ambiguity stays frozen and grants no automatic
+  replay/replacement or new nonce.
+- `known_unsent` in this MANUAL slice means retained/frozen ownership, not retry
+  or release permission.
+- `observed` is not canonical. `canonical_revert` is not a successful trade.
+- `orphaned`/`rolled_back` must remain visible after a prior successful receipt;
+  re-canonicalization can return `canonical_success`/`active` without another
+  economic action. Presentation never owns that transition.
+- No raw transaction, ciphertext, encryption nonce, private key or permit is
+  exposed. Capabilities stay disabled regardless of historical transaction data.
+
+## Evidence attribution
+
+`TestHTTPCExecutionSignedHistoryAndDuplicateDoNotSubmit` uses real local signed
+artifact state to check both GET routes and duplicate POST, identical public
+snapshot and immutable TTL/intake history, no additional signer invocation and
+no submission creation.
+
+`TestHTTPCExecutionSubmissionOutcomesRemainHistoricalAndFrozen` uses the existing
+private fake transport to create submitted, known-unsent, unknown and manual
+resolution outcomes. After stop, revoke and HTTP-clock TTL expiry, both GETs and
+default-off duplicate POST must retain the same verified snapshot and frozen
+lane/reservation, preserve the database snapshot and perform no second transport
+invocation. This fixture creates one local fake invocation before the checks;
+it is not evidence of zero historical submissions or a real chain transaction.
+
+`TestHTTPCExecutionReceiptAndReorgFactsAreIndependent` checks serialization
+vocabulary only. It does not forge receipt rows, bypass schema guards, execute
+recovery or establish canonical/reorg accounting acceptance. Actual receipt,
+rollback/reapply and lifecycle event evidence belongs to the B integration and
+must be tested before aggregate B/C readiness is claimed.
+
+No remote CI, real RPC, mainnet, production HTTP execution, automatic resend,
+authorization grant, live enablement or release readiness is claimed.
+
+Initial focused author run on the C baseline:
+
+```sh
+go test ./internal/tradeapi -run '^TestHTTPCExecution' -count=1 -timeout=5m
+```
+
+Result: FAIL in 8.095s. Both GET routes and the receipt/reorg serialization
+contract passed; the signed fixture and four submission-outcome fixtures each
+failed at duplicate POST because the baseline handler omitted `execution` from
+its historical copy. The coordinator-owned shared POST wiring is a required
+integration dependency. This failed run is retained, not presented as completed
+integration acceptance. Source and module cache were mounted read-only in the
+existing Go 1.26.6 container, with networking disabled and module changes denied.
