@@ -385,6 +385,8 @@ func writeError(w http.ResponseWriter, r *http.Request, err error) {
 		status, code, message = 422, "MANUAL_ADMISSION_REJECTED", "manual admission rejected; durable intake may already exist"
 		if admissionError.Code == "EMERGENCY_STOPPED" || admissionError.Code == "CONTROL_UNAVAILABLE" || admissionError.Code == "CONTROL_UNVERIFIABLE" || admissionError.Code == "CANARY_DISABLED" {
 			status, code, message = 503, "MANUAL_ADMISSION_UNAVAILABLE", "manual admission stopped or control unavailable"
+		} else if admissionError.Code == "MANUAL_WALLET_REUSE_UNSUPPORTED" {
+			status, code, message = 422, "MANUAL_WALLET_REUSE_UNSUPPORTED", "retained MANUAL wallet history cannot authorize another trade in this stage"
 		}
 	case errors.Is(err, chainquery.ErrExpired):
 		status, code, message = 422, "APPLICATION_TTL_EXPIRED", "application TTL expired or unverifiable"

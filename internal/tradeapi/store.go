@@ -265,16 +265,17 @@ func (s *Store) Wallet(ctx context.Context, identity Identity) (Wallet, error) {
 	return w, nil
 }
 
-// A single unresolved wallet lane makes all token inventory unavailable for
-// new execution. Counting both layers as blockers avoids double-subtracting
-// the same operation's C07 and execution reservations. No row is mutated.
+// An unresolved lane or retained MANUAL nonce claim makes token inventory
+// unavailable for new execution. This slice does not support MANUAL wallet
+// reuse after canonical settlement. Treating these as blockers, not balances
+// to subtract, avoids double counting C07/execution reservations. No writes.
 func (s *Store) readWalletState(ctx context.Context, identity Identity) (Wallet, bool, error) {
 	w := Wallet{ID: identity.WalletID, Chain: "robinhood"}
 	if s == nil || s.db == nil || ctx == nil || !identity.valid() {
 		return w, false, ErrInvalid
 	}
 	var blocked bool
-	err := s.db.QueryRowContext(ctx, `SELECT w.address,EXISTS(SELECT 1 FROM execution_wallet_lanes WHERE wallet_id=w.id AND state!='idle') OR EXISTS(SELECT 1 FROM execution_reservations WHERE wallet_id=w.id AND status IN ('reserved','signed','frozen')) OR EXISTS(SELECT 1 FROM canary_risk_reservations WHERE wallet_id=w.id AND state IN ('reserved','frozen')) OR EXISTS(SELECT 1 FROM execution_steps WHERE wallet_id=w.id AND status IN ('nonce_reserved','signing','signed','submitted','broadcast_unknown','reconciling','manual_resolution')) FROM dry_run_wallets w WHERE w.id=? AND w.chain_id=4663 AND w.enabled=1`, identity.WalletID).Scan(&w.Address, &blocked)
+	err := s.db.QueryRowContext(ctx, `SELECT w.address,EXISTS(SELECT 1 FROM execution_wallet_lanes WHERE wallet_id=w.id AND state!='idle') OR EXISTS(SELECT 1 FROM execution_reservations WHERE wallet_id=w.id AND status IN ('reserved','signed','frozen')) OR EXISTS(SELECT 1 FROM canary_risk_reservations WHERE wallet_id=w.id AND state IN ('reserved','frozen')) OR EXISTS(SELECT 1 FROM execution_steps WHERE wallet_id=w.id AND status IN ('nonce_reserved','signing','signed','submitted','broadcast_unknown','reconciling','manual_resolution')) OR EXISTS(SELECT 1 FROM manual_nonce_claims WHERE wallet_id=w.id OR wallet_address=lower(w.address)) FROM dry_run_wallets w WHERE w.id=? AND w.chain_id=4663 AND w.enabled=1`, identity.WalletID).Scan(&w.Address, &blocked)
 	if errors.Is(err, sql.ErrNoRows) {
 		return w, false, ErrWallet
 	}

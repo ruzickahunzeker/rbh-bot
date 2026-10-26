@@ -1,5 +1,9 @@
 # HTTP A/B/C shared integration baseline
 
+This is the historical shared handoff receipt. The newer recovery/history batch
+is tracked in `HTTP_ABC_RECOVERY_INTEGRATION.md`; it does not rewrite the baseline
+evidence below.
+
 ## Source and status
 
 Coordinator branch: `http-abc-local-integration`.

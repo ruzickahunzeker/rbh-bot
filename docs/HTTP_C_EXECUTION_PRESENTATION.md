@@ -49,8 +49,9 @@ no submission creation.
 `TestHTTPCExecutionSubmissionOutcomesRemainHistoricalAndFrozen` uses the existing
 private fake transport to create submitted, known-unsent, unknown and manual
 resolution outcomes. After stop, revoke and HTTP-clock TTL expiry, both GETs and
-default-off duplicate POST must retain the same verified snapshot and frozen
-lane/reservation, preserve the database snapshot and perform no second transport
+default-off duplicate POST must retain the same verified snapshot and original
+ownership (submitted keeps signed/reserved; the other three outcomes keep
+frozen/frozen), preserve the database snapshot and perform no second transport
 invocation. This fixture creates one local fake invocation before the checks;
 it is not evidence of zero historical submissions or a real chain transaction.
 

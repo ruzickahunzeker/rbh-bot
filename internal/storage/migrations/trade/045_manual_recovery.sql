@@ -10,7 +10,9 @@ INSERT INTO manual_recovery_upgrade_check(safe)
 SELECT CASE WHEN EXISTS(SELECT 1 FROM manual_nonce_claims retained
  JOIN canary_risk_reservations active ON active.operation_id!=retained.operation_id AND active.state IN ('reserved','frozen')
  JOIN dry_run_wallets wallet ON wallet.id=active.wallet_id
- WHERE active.wallet_id=retained.wallet_id OR lower(wallet.address)=lower(retained.wallet_address)) THEN 0 ELSE 1 END;
+ WHERE active.wallet_id=retained.wallet_id OR lower(wallet.address)=lower(retained.wallet_address))
+ OR EXISTS(SELECT 1 FROM manual_nonce_claims a JOIN manual_nonce_claims b ON b.operation_id!=a.operation_id
+ WHERE a.wallet_id=b.wallet_id OR lower(a.wallet_address)=lower(b.wallet_address)) THEN 0 ELSE 1 END;
 DROP TABLE manual_recovery_upgrade_check;
 
 CREATE VIEW manual_retained_wallet_claims AS

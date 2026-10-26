@@ -40,6 +40,9 @@ func TestManualRecoveryNoWalletReuseBeforeMultiGenerationRiskModel(t *testing.T)
 	if w.Code != 422 || backend.resolves.Load() != 0 || backend.completes.Load() != 0 {
 		t.Fatal("settled wallet reused by validation/RPC", w.Code, w.Body.String(), backend.resolves.Load(), backend.completes.Load())
 	}
+	if !strings.Contains(w.Body.String(), `"code":"MANUAL_WALLET_REUSE_UNSUPPORTED"`) {
+		t.Fatal("HTTP wallet reuse rejection did not identify the unsupported boundary", w.Body.String())
+	}
 	if err := checkManualWalletReusable(context.Background(), s.db, f.id); inputFailureCode(err) != "MANUAL_WALLET_REUSE_UNSUPPORTED" {
 		t.Fatal("unstable retained-wallet rejection reason", err)
 	}

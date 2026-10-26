@@ -294,6 +294,9 @@ func TestHTTPCExecutionRecoveryCanonicalRollbackReapply(t *testing.T) {
 				}
 			}
 			f.assertHTTPFacts(t, "canonical_success", "active")
+			if _, blocked, err := f.submission.e.verifier.store.readWalletState(context.Background(), f.submission.id); err != nil || !blocked {
+				t.Fatal("canonical history implied unsupported MANUAL wallet reuse", blocked, err)
+			}
 			f.assertEffects(t, "active", 1, 0, 0)
 			page = f.events(t, cursor)
 			if len(page.Events) != 2 || page.Events[0].Type != "MANUAL_RECOVERY_OBSERVE" || page.Events[1].Type != "MANUAL_RECOVERY_CANONICAL" {
