@@ -1,0 +1,116 @@
+{
+  "scope": "A3_TRUST_CONTRACT_AND_DISCONNECTED_COMPOSITION_DESIGN_ONLY",
+  "branch": "http-a3-trust-composition-design",
+  "base": "747b0d311334304060ae5b74e6c65609b8c83686",
+  "base_is_formal_main": false,
+  "before_edits": {"worktree": "CLEAN", "ahead": 0, "behind": 0},
+  "status": "A3_TRUST_COMPOSITION_SCOPE_READY_FOR_REVIEW",
+  "A1": "PASS",
+  "A2": "PASS",
+  "A3_scope_accepted": false,
+  "A3_implementation": "NOT_STARTED",
+  "independent_A3_scope_review": "NOT_PERFORMED",
+  "document": {
+    "path": "docs/HTTP_A3_TRUST_COMPOSITION_SCOPE.md",
+    "sha256": "2b9a665ffccc1d35e3feb954bef39650fa7553cd6929f8b7b088715d44c72e29"
+  },
+  "inspected_sources": [
+    {"path": "internal/tradeapi/manual_admission_continuation.go", "sha256": "2a7e78ffa6c8040a5359a954bac326025f832bd49eb384535aa19e52a6646eb1"},
+    {"path": "internal/tradeapi/manual_local_signing.go", "sha256": "98881ff85da6086c1e0ffbdea38ae658f2b2381de5a1d57e6d06954e0975ff7f"},
+    {"path": "internal/tradeapi/manual_runtime_identity.go", "sha256": "efb0c2d183f58af67d0c4eb34f5a1a42795b042c6f2f85e3c8df3093854cf5f5"},
+    {"path": "internal/tradeapi/manual_runtime_image.go", "sha256": "ff7a1c41ee636e55a8137555bbff466b842c05e1cdab7f48279469a3858ef41a"},
+    {"path": "internal/tradeapi/manual_runtime_clock.go", "sha256": "f809962105699d8ed73da4992c6fea5ba9cbe31398102aae5f11efe0512a8983"},
+    {"path": "internal/tradeapi/manual_runtime_inputs.go", "sha256": "625b7826b2ecb5589474dad41b9351cc475c7ac164b48761b6425a2d08c2295a"},
+    {"path": "internal/tradeapi/manual_runtime_verifier.go", "sha256": "0d80464611fdd526cd8f7fd4949377dd966ff2f3313b6768fb93541f684038ab"},
+    {"path": "internal/tradeapi/manual_nonce_claim.go", "sha256": "d2f407700697c440ec7d56afb33bb004be33966942af9bd3ff656f471908ce89"},
+    {"path": "internal/tradeapi/manual_submission_artifact.go", "sha256": "6938d86d4673ba56c12e5a0ad111974e383aaab7b604c153e24ebe1626795e29"},
+    {"path": "internal/tradeapi/manual_submission_dependency_test.go", "sha256": "375064ef5b9f451988bd4d30e14e7d8d548025bc9e6c018ac711d05e85553514"},
+    {"path": "internal/tradeapi/manual_local_signing_test.go", "sha256": "8dd7369acd9f0e667faa77da128eeff440fc5899015b6d669e3e77b743875702"},
+    {"path": "internal/app/user_trade_api.go", "sha256": "c44c2c0f08c7e538b7d712a75599396702820c5f0f1689ab04b3c06234767014"}
+  ],
+  "design_findings": {
+    "existing_signing_clock": "SCALAR_NOW_WITH_LOCAL_REVERSAL_CHECK_NOT_BOUNDED_RUNTIME_SOURCE",
+    "existing_runtime_clock": "WALL_ERROR_TICKS_PROVIDER_SESSION_PLUS_DURABLE_FLOOR_LATCH",
+    "scalar_conversion_establishes_both_causality_and_expiry_bounds": false,
+    "signed_artifact_runtime_verifier_can_be_used_as_pre_sign_gate": false,
+    "manifest_digest_alone_authenticates_operator": false,
+    "existing_identity_measures_running_image_not_path": true,
+    "production_manifest_loader_exists": false,
+    "production_bounded_time_source_exists": false,
+    "real_custody_source_selected_by_this_design": false,
+    "current_PRIVATE_nonce_observer_is_production_adapter": false,
+    "A2_handoff_possession_authorizes_signing": false,
+    "recovery_may_capture_signing_bundle": false,
+    "proposed_new_SQL_schema_or_state_machine": false
+  },
+  "proposed_implementation_slices": [
+    {
+      "id": "A3-A",
+      "scope": "PRIVATE_IMMUTABLE_TRUST_DEPENDENCY_BUNDLE_CONSTRUCTOR_AND_EXACT_REFERENCE_GUARDS",
+      "constructor_economic_actions": 0,
+      "production_A2_HTTP_startup_consumer": false
+    },
+    {
+      "id": "A3-B",
+      "scope": "BOUNDED_PRE_SIGN_TRUST_INPUTS_ON_ORIGINAL_SIGNING_WRITER",
+      "requires_exact_scope_acceptance_before_code_change": true,
+      "lower_bound": "SOURCE_CONTROL_CLAIM_OBSERVATION_CAUSALITY",
+      "upper_bound": "STRICT_OPERATION_AUTH_EXPIRY_AND_OBSERVATION_FRESHNESS",
+      "original_intent_marker_artifact_owner_AAD_and_no_resign_semantics_preserved": true
+    },
+    {
+      "id": "A3-C",
+      "scope": "CONTROLLED_LOCAL_BUNDLE_SIGNING_VERIFIER_FAULT_CONCURRENCY_REOPEN_HARNESS",
+      "fixture_ephemeral_signatures_counted_separately": true,
+      "real_signing_permit_submission_send_or_mainnet_authority": false
+    }
+  ],
+  "unresolved_production_trust_choices": [
+    "REAL_SIGNER_CUSTODY_AND_AUTHENTICATED_OPERATOR_MANIFEST_SOURCE",
+    "REAL_BOUNDED_TIME_PROVIDER_AND_DOCUMENTED_TRUST_FAILURE_MODEL",
+    "REAL_NONCE_OBSERVER_ADAPTER_CONTRACT_AND_LATER_STARTUP_COMPOSITION"
+  ],
+  "author_baseline_validation": {
+    "kind": "INHERITED_BOUNDARY_REGRESSION_NOT_A3_IMPLEMENTATION_ACCEPTANCE",
+    "tested_source_head": "747b0d311334304060ae5b74e6c65609b8c83686",
+    "environment": "DOCKER_GO_1_26_6_NETWORK_NONE_SOURCE_MODULES_READ_ONLY_CACHE_WRITABLE",
+    "checks": [
+      {
+        "command": "go test ./internal/tradeapi -run '^(TestA2PrivateUncachedNoExecutionConsumerBoundary|TestManualSubmissionPrivateLocalDependencyBoundary|TestHTTPM3B3CLocalCompositionDisconnected)$' -count=1 -timeout=1m -v",
+        "result": "PASS",
+        "top_level_tests": 3,
+        "seconds": 0.304
+      },
+      {
+        "command": "go test ./internal/app ./internal/config -run '^(TestA1RecoveryOnlyStaticCapabilityBoundary|TestA1RecoveryOnlyProfileValidation|TestA1RecoveryOnlyProfileEnvironment)$' -count=1 -timeout=1m -v",
+        "result": "PASS",
+        "top_level_tests": 3,
+        "package_seconds": {"app": 0.035, "config": 0.013}
+      }
+    ],
+    "A3_runtime_tests_prove_proposed_contracts": false,
+    "new_race_full_runtime_build_or_static_suites_rerun": false,
+    "remote_CI": "NOT_RUN",
+    "validation_package": "PASS_199_FILES",
+    "prior_198_manifest_entries_preserved": true,
+    "document_and_source_hashes": "PASS",
+    "diff_check": "PASS"
+  },
+  "boundaries": {
+    "production_code_tests_schema_config_startup_CI_OpenAPI_changed": false,
+    "A2_closeout_original_docs_and_evidence_changed": false,
+    "migrations_001_through_045_or_existing_gates_changed": false,
+    "A2_handoff_consumer_connected": false,
+    "signer_key_or_manifest_loader_time_source_implemented": false,
+    "real_nonce_observer_permit_executor_or_transport_wired": false,
+    "key_rotation_or_clock_service_or_host_config_changed": false,
+    "B_C_branches_modified_or_merged": false,
+    "A4_A5_C_integration_or_B_reuse_implementation_entered": false,
+    "real_grants_keys_signing_send_mainnet": false,
+    "push_PR_merge_or_unattended_job": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}
