@@ -39,6 +39,26 @@ owns connecting that shared POST snapshot; C does not fork `Store.Get`.
 - No raw transaction, ciphertext, encryption nonce, private key or permit is
   exposed. Capabilities stay disabled regardless of historical transaction data.
 
+## Conservative retained-wallet boundary
+
+This slice supports history/recovery of the retained MANUAL operation, not
+wallet reuse for a second MANUAL admission/execution. A retained nonce claim
+or signed artifact keeps that wallet/address outside new admission, including
+after canonical success or revert. An idle lane, settled reservation or current
+confirmed balance must not be presented as reusable execution allowance. Wallet
+balance references remain blocked/zero for sellable and unreserved token units;
+`available_native` remains null. Aliases or deleting retained provenance are
+not a supported escape. See the current A/B/C recovery integration handoff's
+conservative wallet-reuse boundary; reuse requires a separate accounting review.
+
+HTTP 422 `MANUAL_WALLET_REUSE_UNSUPPORTED` identifies a new admission rejected
+under this boundary. Stop/control-unavailable preflight still has highest
+priority and returns 503 for admission-enabled POSTs, including duplicates.
+Default-off original duplicate reads are historical, do not admit again and
+remain available, as do original GET/events/recovery. No request or fee field
+is changed, no new release/retry capability is added, and fresh review remains
+pending; this documentation does not claim aggregate PASS.
+
 ## Evidence attribution
 
 `TestHTTPCExecutionSignedHistoryAndDuplicateDoNotSubmit` uses real local signed

@@ -1,5 +1,15 @@
 # User HTTP trading — HTTP-A
 
+Current integration note: the initial HTTP-A base/status, missing integrations
+and remaining-slice list below are historical, not current aggregate progress.
+The A/B/C candidate now includes verified execution history and source-bound
+local recovery/journal integration, still pending fresh independent review.
+See `HTTP_ABC_INTEGRATION.md`, `HTTP_C_EXECUTION_PRESENTATION.md` and the current
+recovery integration handoff. HTTP POST still does not invoke A, sign, allocate
+a nonce or send. No aggregate PASS, production connection, authorization grant,
+live or release-readiness claim is made here. Request fields and fee semantics
+are unchanged.
+
 Historical HTTP-A slice record. The local HTTP-B extension is documented in
 HTTP_READ_ONLY_QUERIES.md; its optional read-only composition does not alter
 the rejection-only POST boundary below.
@@ -64,6 +74,23 @@ by constant-time digest comparison. Only its digest is retained by the handler;
 it is never returned or written to the ledger/audit. One immutable deployment-
 configured caller/wallet scope is supported. Rotating credentials requires
 restart; keep principal identity stable to retain retry/query continuity.
+
+One configured caller/wallet does not promise repeatable trading on that wallet.
+Once a MANUAL nonce claim or signed artifact is retained, this slice does not
+support a second MANUAL admission/execution for that wallet/address, including
+after a canonical success or revert. An idle lane, a settled risk reservation,
+new token/order/key or another wallet-ID alias for the same address does not
+grant reuse. Do not delete old claims/artifacts to make a wallet look reusable.
+Multiple sequential MANUAL operations need a separately designed and reviewed
+wallet-reuse/accounting contract; this slice does not supply it.
+
+Original GET, events and recovery remain available. Default-off duplicate POST
+only reads the original history and does not attempt a new admission, so it is
+not rejected for wallet reuse. An admission-enabled POST retains its existing
+stop-first preflight, including on duplicates: stop/control unavailability has
+503 priority. A genuinely new admission against retained MANUAL wallet history
+returns HTTP 422 `MANUAL_WALLET_REUSE_UNSUPPORTED`, never automatic re-signing,
+replay, nonce allocation or permission to rotate the idempotency key and retry.
 
 This is a local contract, not public TLS, multi-tenant auth or Internet exposure.
 Public routing/TLS/rate limiting and additional caller scopes require a separate
@@ -258,18 +285,28 @@ later appends. Journal history does not claim that a recovery worker is healthy
 or available. Original C1 evidence is historical and is not retroactively
 upgraded by the new scope.
 
-Capabilities
-marks missing validation/query/execution integrations instead of claiming live
-readiness. Wallet listing reads the durable ID/address binding; it is not a
-balance query. Balances/token metadata/reference fees are not implemented here.
+Capabilities mark missing validation/query/execution integrations instead of
+claiming live readiness. Wallet listing reads the durable ID/address binding;
+it is neither a balance query nor proof that the wallet can execute again.
+The optional read-only balance/token/fee composition is described in
+`HTTP_READ_ONLY_QUERIES.md`; the original HTTP-A-only omissions above are
+historical. With retained MANUAL nonce history, balance references report
+`wallet_lane_blocked=true` and zero sellable/unreserved token references even
+if canonical settlement left the lane idle. Confirmed on-chain balance or
+allowance is not reusable execution budget. `available_native` remains null;
+no balance response allocates a reservation or grants admission/send permission.
 
 Errors: 400 INVALID_REQUEST, 401 UNAUTHORIZED, 403 WALLET_SCOPE_DENIED or
 WALLET_UNAVAILABLE, 404 REQUEST_NOT_FOUND, 409 IDEMPOTENCY_CONFLICT,
-413 REQUEST_TOO_LARGE, 415 UNSUPPORTED_MEDIA_TYPE, 422 API_POLICY_REJECTED,
+413 REQUEST_TOO_LARGE, 415 UNSUPPORTED_MEDIA_TYPE, 422 API_POLICY_REJECTED or
+MANUAL_WALLET_REUSE_UNSUPPORTED,
 503 API_UNAVAILABLE. A valid rejected order returns 503 SUBMISSION_DISABLED
 inside its redacted Record. No error contains raw SQL, secrets or artifact bytes.
 
 ## Remaining slices and review gate
+
+Historical HTTP-A list, superseded for current progress by the integration
+handoff; the current A/B/C candidate still awaits fresh independent review.
 
 1. Independent review of HTTP-A; branch-only READY_FOR_REVIEW, not PASS.
 2. Read-only token/balance/fee queries and verified protocol/source resolution.

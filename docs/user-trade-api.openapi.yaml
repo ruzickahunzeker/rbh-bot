@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: EVM Bot user HTTP trading contract — HTTP-A/B/C1/C2/C3-C
-  version: 0.5.1
+  version: 0.5.2
   description: >-
     Local Unix-domain HTTP contract, execution/submission disabled. Valid new
     POSTs create immutable rejection records by default, or explicit opt-in
@@ -12,6 +12,11 @@ info:
     Admission observations never authorize execution/send. No signing, nonce
     allocation or sending is reachable.
     No client-facing dry-run step. Live execution is not implemented here.
+    The A/B/C integration candidate remains pending fresh review. A wallet with
+    a retained MANUAL nonce claim or signed artifact cannot admit/execute a
+    second MANUAL operation in this slice, including after canonical settlement
+    or revert. Historical GET/events/recovery and default-off duplicate reads
+    remain available; neither an idle lane nor a confirmed balance grants reuse.
 security:
   - bearerAuth: []
 paths:
@@ -34,7 +39,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/RecordedOrder'
         '422':
-          description: TTL expired/unverifiable or validation/admission rejected; intake/validation may already be durable
+          description: >-
+            TTL expired/unverifiable or validation/admission rejected;
+            intake/validation may already be durable. MANUAL_WALLET_REUSE_UNSUPPORTED
+            specifically rejects a new admission for a wallet/address with
+            retained MANUAL nonce/artifact history, even after canonical outcome.
+            Default-off historical duplicates do not create an admission and do
+            not receive this error merely for reading the original record.
           headers:
             Location:
               description: Durable request path when intake already succeeded; reuse original idempotency key
@@ -43,6 +54,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                retainedManualWallet:
+                  value:
+                    error:
+                      code: MANUAL_WALLET_REUSE_UNSUPPORTED
+                      message: retained MANUAL wallet history cannot authorize another trade in this stage
         '502':
           description: Unverifiable chain observation; source/resolution may already be durable
           content:
@@ -50,7 +67,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '503':
-          description: Durable SUBMISSION_DISABLED record, or unavailable/stopped admission/API error; committed phases remain queryable
+          description: Durable SUBMISSION_DISABLED record, or unavailable/stopped admission/API error; stop-first admission preflight takes priority over wallet-reuse rejection, including admission-enabled duplicate POSTs; committed phases remain queryable
           content:
             application/json:
               schema:
@@ -156,7 +173,7 @@ paths:
       summary: Durable wallet identity in caller scope, no balances
       responses:
         '200':
-          description: Caller-scoped wallet ID, chain and address
+          description: Caller-scoped wallet ID, chain and address; listing does not authorize reuse of a retained MANUAL wallet
         default:
           $ref: '#/components/responses/Error'
   /v1/tokens/{address}:
@@ -189,7 +206,9 @@ paths:
         '200':
           description: >-
             Native balance and optional token/allowance at one block/hash;
-            unresolved lane forces sellable/unreserved token reference to zero.
+            an unresolved lane or retained MANUAL nonce claim forces
+            wallet_lane_blocked=true and sellable/unreserved token reference to
+            zero, including after canonical settlement leaves the lane idle.
             available_native=null, not an execution reservation or permission.
         default:
           $ref: '#/components/responses/Error'
@@ -247,6 +266,7 @@ components:
           minLength: 1
           maxLength: 128
           pattern: '^[A-Za-z0-9._:-]+$'
+          description: Configured caller-owned wallet; a retained MANUAL nonce claim or signed artifact forbids a second MANUAL admission/execution in this slice, even after canonical settlement/revert or through an address alias
         token:
           type: string
           pattern: '^0x[a-fA-F0-9]{40}$'
