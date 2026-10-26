@@ -54,6 +54,11 @@ jobs:
           go test -race -parallel=1 -timeout=15m ./internal/tradeapi
           -run '^(TestHTTPABC|TestHTTPC1Progress|TestManualExecutionSnapshot|TestManualSignedArtifactReadOnlyRecoveryQuery)'
           -count=1
+      - run: >-
+          go test -race -parallel=1 -timeout=25m
+          ./internal/storage ./internal/tradeapi
+          -run '^(TestManualRecovery|TestHTTPCExecution)'
+          -count=1
       - run: go vet ./...
       - run: go install honnef.co/go/tools/cmd/staticcheck@v0.6.1
       - run: staticcheck ./...
