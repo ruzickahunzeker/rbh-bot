@@ -3,7 +3,8 @@
 Branch: `http-a3-trust-composition`.
 Base/accepted scope: `37926899a0aca4c56e4aa8aef5a893d438c25335`.
 Initial implementation: `7f34a901dd3fab64353b7c8fa821974d40241750`.
-Final code and tests: `d9ca5639f04bb45a8bc64fa62b4c0c130a5f7123`.
+Historical final code/tests before freshness hardening: `d9ca5639f04bb45a8bc64fa62b4c0c130a5f7123`.
+Current reviewed hardening head: `dd47ca0e01e1941da1215b1292e0b5f83239b1de`.
 Author ceiling: `A3_TRUST_COMPOSITION_READY_FOR_REVIEW`, not A3 PASS.
 Independent implementation review: NOT_PERFORMED. No formal closeout.
 

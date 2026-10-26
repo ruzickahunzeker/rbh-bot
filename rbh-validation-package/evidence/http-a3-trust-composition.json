@@ -4,13 +4,14 @@
   "base_and_accepted_scope_head": "37926899a0aca4c56e4aa8aef5a893d438c25335",
   "base_is_formal_main": false,
   "initial_implementation_head": "7f34a901dd3fab64353b7c8fa821974d40241750",
-  "final_code_and_tests_head": "d9ca5639f04bb45a8bc64fa62b4c0c130a5f7123",
+  "historical_final_code_and_tests_head": "d9ca5639f04bb45a8bc64fa62b4c0c130a5f7123",
+  "reviewed_hardening_head": "dd47ca0e01e1941da1215b1292e0b5f83239b1de",
   "status": "A3_TRUST_COMPOSITION_READY_FOR_REVIEW",
   "A1": "PASS",
   "A2": "PASS",
   "scope_review": {"reviewer": "a3_scope_independent_review", "head": "37926899a0aca4c56e4aa8aef5a893d438c25335", "conclusion": "PASS", "blockers": 0, "user_accepted_implementation_scope": true, "scope_review_is_code_approval": false},
   "independent_implementation_review": "PRIOR_HEAD_BLOCKED_PROFILE_MAXAGE_EQUALITY",
-  "hardening": {"review_blocker": "profile.maxAge equality accepted at pre-sign freshness boundary", "scope": "A3 helper only; strict nonce/runtime wall and monotonic freshness", "status": "READY_FOR_REVIEW", "tests": ["TestA3ProfileFreshnessNanosecondBounds", "TestA3ProfileFreshnessWriterBoundariesNoResign"], "independent_review_pending": true},
+  "hardening": {"review_blocker": "profile.maxAge equality accepted at pre-sign freshness boundary", "scope": "A3 helper only; strict nonce/runtime wall and monotonic freshness", "status": "READY_FOR_REVIEW", "reviewed_head": "dd47ca0e01e1941da1215b1292e0b5f83239b1de", "tests": ["TestA3ProfileFreshnessNanosecondBounds", "TestA3ProfileFreshnessWriterBoundariesNoResign"], "independent_review_pending": true},
   "formal_closeout": "NOT_PERFORMED",
   "sources": [
     {"path": "internal/tradeapi/manual_trust_composition.go", "sha256": "f50ac1438c8089d2be67736d182f270f3ade091b1af42f542ee7f57afe98fb54"},
@@ -20,7 +21,7 @@
     {"path": "internal/tradeapi/manual_local_signing_test.go", "sha256": "01b0b06f4706bebc4109b0036ab12b2855d40ae3ec95f8083a06aef71fe2f40c"},
     {"path": "internal/tradeapi/manual_runtime_verifier_test.go", "sha256": "087ba37543d7790659dfdb800efdf45585101a717e4c1d7e8ea2df4f68283843"}
   ],
-  "document": {"path": "docs/HTTP_A3_TRUST_COMPOSITION.md", "sha256": "7b4663a226557a2990d1b8079d8297bea5025e9f4c68f4d26dc70ece306943fe"},
+  "document": {"path": "docs/HTTP_A3_TRUST_COMPOSITION.md", "sha256": "287a19f4b3d37f6309d59cd51c6e7c3873c9985e1bcb886d5c7c1ef7af46b524"},
   "implemented_semantics": {
     "bundle": "PRIVATE_COPIED_EXPECTED_VALUES_TRUSTED_INTERFACES_SHARED_HEALTH_POINTER",
     "constructor": "VALIDATE_ONLY_ZERO_DB_WRITE_CLOCK_BOOTSTRAP_OBSERVATION_SIGN_OR_GRANT",
@@ -85,13 +86,13 @@
   },
   "author_validation": {
     "environment": "DOCKER_GO_1_26_6_NETWORK_NONE_SOURCE_MODULES_READ_ONLY_CACHE_WRITABLE",
-    "final_head": "d9ca5639f04bb45a8bc64fa62b4c0c130a5f7123",
+    "final_head": "dd47ca0e01e1941da1215b1292e0b5f83239b1de",
     "hardening_checks": [
-      {"command": "go test ./internal/tradeapi -run '^TestA3ProfileFreshnessNanosecondBounds$' -count=1 -timeout=4m -v", "result": "PASS", "scenarios": 18},
-      {"command": "go test ./internal/tradeapi -run '^TestA3ProfileFreshnessWriterBoundariesNoResign$' -count=1 -timeout=4m -v", "result": "PASS", "scenarios": 8},
-      {"command": "go test ./internal/tradeapi -run '^(TestA3|TestHTTPM3B3C|TestHTTPM4B22(PrivateDependenciesAndOriginalGuards|RunningImageReplacementSameRevision|ClockDirectSQLImmutableAuditAndLatch|ClockDirectSQLCanonicalAndGenerationFailClosed)|TestA2|TestManualSubmissionPrivateLocalDependencyBoundary|TestLocalPostExecutionNoProductionRegistrationAndNoArm)' -count=1 -timeout=10m", "result": "PASS", "seconds": 143.188},
-      {"command": "go test -race ./internal/tradeapi -run '^TestA3(ProfileFreshnessNanosecondBounds|ProfileFreshnessWriterBoundariesNoResign|FinalWriterBarrierAndTwoHandleSigning|FailedLatchAndConcurrentAlreadyLatched|FinalClockSampleAfterArtifactAuthentication)$' -count=1 -timeout=12m", "result": "PASS", "seconds": 572.164, "selected_top_level_tests": 5},
-      {"command": "go build ./... && go vet ./... && staticcheck ./...", "result": "PASS"}
+      {"head": "dd47ca0e01e1941da1215b1292e0b5f83239b1de", "command": "go test ./internal/tradeapi -run '^TestA3ProfileFreshnessNanosecondBounds$' -count=1 -timeout=4m -v", "result": "PASS", "scenarios": 18},
+      {"head": "dd47ca0e01e1941da1215b1292e0b5f83239b1de", "command": "go test ./internal/tradeapi -run '^TestA3ProfileFreshnessWriterBoundariesNoResign$' -count=1 -timeout=4m -v", "result": "PASS", "scenarios": 8},
+      {"head": "dd47ca0e01e1941da1215b1292e0b5f83239b1de", "command": "go test ./internal/tradeapi -run '^(TestA3|TestHTTPM3B3C|TestHTTPM4B22(PrivateDependenciesAndOriginalGuards|RunningImageReplacementSameRevision|ClockDirectSQLImmutableAuditAndLatch|ClockDirectSQLCanonicalAndGenerationFailClosed)|TestA2|TestManualSubmissionPrivateLocalDependencyBoundary|TestLocalPostExecutionNoProductionRegistrationAndNoArm)' -count=1 -timeout=10m", "result": "PASS", "seconds": 143.188},
+      {"head": "dd47ca0e01e1941da1215b1292e0b5f83239b1de", "command": "go test -race ./internal/tradeapi -run '^TestA3(ProfileFreshnessNanosecondBounds|ProfileFreshnessWriterBoundariesNoResign|FinalWriterBarrierAndTwoHandleSigning|FailedLatchAndConcurrentAlreadyLatched|FinalClockSampleAfterArtifactAuthentication)$' -count=1 -timeout=12m", "result": "PASS", "seconds": 572.164, "selected_top_level_tests": 5},
+      {"head": "dd47ca0e01e1941da1215b1292e0b5f83239b1de", "command": "go build ./... && go vet ./... && staticcheck ./...", "result": "PASS"}
     ],
     "final_checks": [
       {"command": "go test ./internal/tradeapi -run '^(TestA3|TestHTTPM3B3C|TestHTTPM4B22(PrivateDependenciesAndOriginalGuards|RunningImageReplacementSameRevision|ClockDirectSQLImmutableAuditAndLatch|ClockDirectSQLCanonicalAndGenerationFailClosed)|TestA2|TestManualSubmissionPrivateLocalDependencyBoundary|TestLocalPostExecutionNoProductionRegistrationAndNoArm)' -count=1 -timeout=8m", "result": "PASS", "seconds": 174.307, "all_new_A3_top_level_tests": 16},
