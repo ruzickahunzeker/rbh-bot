@@ -1,5 +1,11 @@
 # Next HTTP execution batch — proposal, not runtime authority
 
+Historical proposal note: the user subsequently accepted implementation of the
+controlled local first-order harness. That accepted test-only scope is tracked
+in `HTTP_LOCAL_POST_EXECUTION.md`; wallet reuse and production signing/transport
+below remain proposals, not permission. This document preserves the planning
+baseline and is not evidence that production execution was connected.
+
 Planning source: production/schema `4a54c7c5785e75835a53f108056ebc0a3d42fa25`,
 test-only `02495884b4399ecb51e3f3577e59e4cffd085a22`, coordinator branch
 `http-abc-local-integration`. Current validation and scoped review belong to

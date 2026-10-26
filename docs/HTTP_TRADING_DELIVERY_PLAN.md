@@ -5,6 +5,14 @@ authorization. The desired outcome is a normal one-request HTTP trading API
 that reuses the completed RBH core. No client-side dry-run/prepare prerequisite;
 internal quote/simulation and security gates remain required.
 
+Current continuation: the accepted `http-local-post-execution` batch implements
+only a test-compiled authenticated first-order POST composition. Production API
+options/startup/transport and migrations stay unchanged. See
+`HTTP_LOCAL_POST_EXECUTION.md` for the exact scope, response/restart limitations
+and acceptance map, and `HTTP_WALLET_REUSE_DESIGN.md` for the separate unresolved
+repeat-trading decision. Production POST still does not invoke A. No local
+harness result promotes aggregate M4 or real trading readiness.
+
 Latest local recovery/history batch: production/schema head
 `4a54c7c5785e75835a53f108056ebc0a3d42fa25`, test-only compatibility head
 `02495884b4399ecb51e3f3577e59e4cffd085a22`, on `http-abc-local-integration`.

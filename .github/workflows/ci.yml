@@ -59,6 +59,10 @@ jobs:
           ./internal/storage ./internal/tradeapi
           -run '^(TestManualRecovery|TestHTTPCExecution)'
           -count=1
+      # Authenticated POST composition is test-only and uses no network send.
+      - run: >-
+          go test -race -parallel=1 -timeout=20m ./internal/tradeapi
+          -run '^TestLocalPostExecution' -count=1
       - run: go vet ./...
       - run: go install honnef.co/go/tools/cmd/staticcheck@v0.6.1
       - run: staticcheck ./...

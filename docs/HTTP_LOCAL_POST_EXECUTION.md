@@ -1,0 +1,143 @@
+# Local authenticated POST execution composition
+
+Accepted scope: local first-order HTTP harness using existing MANUAL state
+owners, test signing, synchronous fake first submission and controlled queries.
+Base: `36ba2828c74f09291856e6fbe39722e944442c91`.
+Branch: `http-local-post-execution`.
+Author status: `LOCAL_HTTP_FIRST_ORDER_READY_FOR_REVIEW`; no aggregate M4/PASS,
+formal closeout, production HTTP execution or real-action authority is implied.
+Validation/review attribution will be recorded in additive batch evidence.
+
+## Composition and ownership
+
+Every new composition type and constructor is in `*_test.go`. The production
+`API`, `Options`, configuration, cmd/app startup and transport graph are
+unchanged. The CI change only adds a race selection for this local acceptance.
+There is no public listener, production signer/custody or real RPC send adapter.
+No migration or existing test/guard is changed.
+
+The local handler delegates authentication, strict user parameters, immutable
+intake, validation and atomic admission to the existing `API.ServeHTTP`.
+Only a successful, fresh, nonduplicate admission can continue on that original
+HTTP stack. The trusted internal response selects a request ID, not security
+facts or execution permission: each subsequent existing component independently
+reloads the original durable owner/source and current controls.
+
+`authenticated POST -> original MANUAL admission -> execution binding -> nonce
+claim -> local signing -> submission foundation -> fresh verifier/permit -> A
+single first-submission executor -> verified GET/events`
+
+Operation -> ExecutionStep -> TransactionAttempt and existing submissions,
+receipts and position effects remain authoritative. There is no new lifecycle
+table, parallel accounting ledger, HTTP status owner or durable retry queue.
+The test fake computes its returned hash by decoding the original borrowed
+signed bytes; the bytes must be cleared after invocation. Source, fees, units,
+absolute TTL, nonce, signature and artifact identities come from the original
+durable bindings, never client-supplied security fields.
+
+## Initial state and authority limits
+
+The setup generates an ephemeral key and seeds local policy/configuration plus
+one unrelated validated-only source. The target order does not exist before
+POST. Before target execution there are zero admissions, bindings, nonce claims,
+signing intents, signed artifacts, permits or submissions.
+
+The reused old fixture temporarily removes the no-arm guard to seed a synthetic
+ARMED authorization. Its exact original SQL is restored and asserted BEFORE
+every new HTTP/action test; a further arming UPDATE must reject. This is NOT
+evidence that the intact production schema can grant MANUAL authorization.
+No fixture key, permission or fake transport is a real operator grant.
+
+## Synchronous wait, duplicate and restart contract
+
+The local action sequence is bounded by the original request context and a
+one-minute composition budget after admission. The underlying validation keeps
+its existing bounds; this is not a claim of a new total production HTTP SLA.
+The A invocation has its own one-second trusted synchronous fake deadline.
+Waiting never extends absolute `expires_at` or waits for canonical confirmation.
+
+HTTP 202 still describes durable acceptance, not confirmed trade success or a
+production send grant. `execution` carries the current historical submission,
+receipt and effect facts; all production authorization/capability flags stay
+false. A phase error may return 503 after acceptance. `Location`, request ID
+and the original idempotency key remain the recovery handles; this is not proof
+that the committed intake/claim was rolled back.
+
+An exact duplicate returns verified history without reentering the composition,
+even when the first response was lost or a stage failed. Same-key changed
+payload stays 409. Concurrent duplicates on independent SQLite handles cannot
+create another claim/signature/permit/submission/invocation. A duplicate may
+observe the first request before it finishes; it does not wait on a work queue.
+
+The originating uninterrupted HTTP stack is the sole initial execution owner.
+If it fails before signing/submission, its durable admission/claim is retained
+for inspection, NOT automatically resumed by another POST or restart. This
+batch adds no operator resume/cleanup endpoint or automatic eventual-execution
+promise. Future durable scheduling/resume requires its own scope and gate
+contract; a new idempotency key is not a recovery mechanism.
+
+After claim, before intent, an older SUBMISSION epoch can be classified
+known-unsent-retained only under the existing owner fence. After intent, restart
+cannot prove no invocation: it conservatively records broadcast_unknown,
+including a crash before the fake RPC invocation. Unknown never proves that
+propagation happened. Both states retain the original signed ownership; no
+automatic retry, replacement, fee bump, resign, rebuild or new nonce is added.
+
+## Recovery and wallet boundary
+
+The existing controlled recovery worker receives only its independent RECOVERY
+lease, store, decrypt/query service and production Pons resolver. Its constructor
+does not receive the local handler, signer, fake transport, submission executor,
+permit issuer or nonce writer. The legacy cipher interface still includes an
+Encrypt method; the test adapter rejects/counts it, rather than falsely claiming
+that the interface is structurally decrypt-only.
+
+Submitted and unknown work remains queryable/reconcilable under stop, disabled
+mode, revoke and expired application TTL. Query-only unresolved/unsafe nonce
+evidence retains ambiguity freeze. RPC failure must produce existing durable
+audit/alert without applying an effect or releasing a lane. Recovery uses the
+real local Pons effect resolver on synthetic, identity-checked receipts, not a
+fake economic-effect resolver. Apply/rollback/reapply must each happen once.
+
+File-backed close/reopen preserves request and cursor identities. A fresh
+read-only HTTP handler can return duplicate/GET/events history without execution
+dependencies, and a new recovery worker/store/resolver rediscovers original work
+from SQLite under the still-valid independent RECOVERY lease. Higher-epoch
+takeover acceptance remains in the preceding B/W3 tests, not newly claimed here.
+
+Wallet reuse remains UNSUPPORTED while a MANUAL nonce claim is retained, even
+after canonical success or revert. Stop-first priority is unchanged. Second
+admission returns `MANUAL_WALLET_REUSE_UNSUPPORTED`; lifetime budget is not
+refunded/recharged and C07's single-active-risk constraint is not weakened.
+`HTTP_WALLET_REUSE_DESIGN.md` records the separate unresolved design decision.
+
+## Acceptance map
+
+- `TestLocalPostExecutionFirstOrderThreeSides`: one POST BUY, fixed SELL and
+  resolved-percentage SELL; exact original artifact/fees/TTL/nonce, one signature
+  and fake invocation, duplicate plus both GET routes without extra work.
+- `TestLocalPostExecutionAuthenticationAndStrictInput`: auth/wallet/security
+  injection denial; the unchanged production API itself does not sign/submit.
+- `TestLocalPostExecutionConcurrentTwoHandleDuplicates`: six simultaneous POSTs,
+  two handles; five duplicates return while the first stack is barrier-paused.
+- `TestLocalPostExecutionOutcomeAndLostResponse`: deterministic rejection,
+  ambiguity, contradiction, timeout and lost response remain distinct.
+- `TestLocalPostExecutionFaultReopenNeverResumes`: binding/nonce/signing/artifact/
+  permit/claim/intent/invocation fault windows, file reopen and original semantics.
+- `TestLocalPostExecutionControlsAtIndependentBoundaries`: stop, TTL, revoke,
+  deployment and SUBMISSION lease drift reject at the applicable next gate.
+- `TestLocalPostExecutionClaimAuditAlertAndCommitRollback`: audit, alert and
+  precommit failure cannot partially consume/claim; duplicate cannot retry it.
+- Cancellation tests distinguish zero new work before intake from retained
+  committed claim after intake.
+- Recovery tests cover pending/revert, all three trade sides, unknown query-only
+  freeze, stop/revoke/TTL, RPC fault alerts, canonical/reorg/reapply, GET/events
+  and new-worker rediscovery after real SQLite close/reopen.
+- Static test verifies no product registration; no-arm rejection and the prior
+  executor dependency tests remain in force.
+
+Local signer/fake transport calls are ONE for an ordinary successful fixture,
+not zero. Duplicates/reads/recovery have zero ADDITIONAL economic calls.
+All real send/mainnet/replay execution and real authorization grants remain
+zero/unwired. No remote push/PR/merge, production enablement, new chain/protocol,
+public API exposure or live/release readiness follows from this batch.
