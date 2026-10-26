@@ -1,0 +1,158 @@
+{
+  "scope": "PRIVATE_FIRST_ADMISSION_HANDOFF_NO_EXECUTION_CONSUMER",
+  "branch": "http-a2-first-admission-handoff",
+  "base": "80b35c0d9e3a37baafb11df48f1331cbe7a3feac",
+  "base_is_formal_main": false,
+  "implementation_and_tests_head": "c2fd02caa33f34808aa241a4203864cf0c63a50c",
+  "status": "A2_READY_FOR_REVIEW",
+  "independent_scope_review": {
+    "conclusion": "PASS",
+    "head": "80b35c0d9e3a37baafb11df48f1331cbe7a3feac",
+    "blockers": 0,
+    "implementation_authorized_by_user": true,
+    "scope_review_is_implementation_approval": false
+  },
+  "independent_implementation_review": "NOT_PERFORMED",
+  "formal_closeout": "NOT_PERFORMED",
+  "sources": [
+    {"path": "internal/tradeapi/http.go", "sha256": "6454ed05f896c6a3cef1a1548d1e392c73150fc77b462898378d80e312f9a076"},
+    {"path": "internal/tradeapi/manual_admission_http.go", "sha256": "fd4b722d36c1fd096b5cb0e06891906b36f8fff31add63192f4414519f9b8f14"},
+    {"path": "internal/tradeapi/manual_atomic_admission.go", "sha256": "3d1469b8f0857f20c610dd2c8b38884b916c85e92e2a21435f96aa3eae50cdbe"},
+    {"path": "internal/tradeapi/manual_admission_continuation.go", "sha256": "2a7e78ffa6c8040a5359a954bac326025f832bd49eb384535aa19e52a6646eb1"},
+    {"path": "internal/tradeapi/manual_admission_continuation_test.go", "sha256": "ea47fe9ad341c8f16fa76f3ae1b2bf07f872b3c48b299b3262e2775e15f7be8a"}
+  ],
+  "documentation": {
+    "path": "docs/HTTP_A2_FIRST_ADMISSION_HANDOFF.md",
+    "sha256": "ebcf512f8dbc4de89ddb606d3ae9bdd419d2ab938cb72366aa0f21892ba81143"
+  },
+  "semantics": {
+    "mint_site": "ORIGINAL_FRESH_ADMISSION_WRITER_AFTER_SUCCESSFUL_COMMIT_ONLY",
+    "copy_guard": "SHARED_PRIVATE_STATE_POINTER_WITH_ATOMIC_ONE_SHOT",
+    "original_context_cancellation_burns_all_copies": true,
+    "post_commit_projection_failure_burns_all_copies": true,
+    "historical_commit_can_mint": false,
+    "public_composite_Duplicate_selects_owner": false,
+    "GET_events_idempotency_or_reopen_can_restore": false,
+    "witness_is_current_execution_authority": false,
+    "production_take_call_sites": 0,
+    "production_POST_disposition": "DISCARD_AT_ORIGINAL_STACK_RETURN",
+    "eventual_execution_guarantee": false,
+    "new_queue_durable_ticket_or_API_Store_Record_cache": false,
+    "schema_TTL_no_arm_C07_A1_or_wallet_model_changed": false
+  },
+  "acceptance_mapping": [
+    {
+      "test": "TestA2FreshCommitWitnessAndSharedCopyConcurrency",
+      "covers": ["fresh COMMIT witness bound to original durable identities", "64 concurrent value copies plus original reference: exactly one test-only ownership take", "historical writer returns no witness", "full durable snapshot unchanged by claiming/history"],
+      "economic_actions_by_test_only_claimant": 0
+    },
+    {
+      "test": "TestA2InvalidCanceledDiscardedCannotReconstruct",
+      "covers": ["nil and zero", "discard", "origin cancellation with replacement context", "caller cancellation", "nil claim context", "all failed claims burn copies", "JSON cannot reconstruct private state"]
+    },
+    {
+      "test": "TestA2ObservationCompatibilityDoesNotRetainOwnership",
+      "covers": ["original observation helper preserves fresh/history projection", "no owner retained for a later writer", "no durable writes on historical observations"]
+    },
+    {
+      "test": "TestA2RollbackAndRealCommitFailureMintNothing",
+      "covers": ["before_command", "after_command", "before_commit", "cancel_before_commit", "audit insertion failure", "real deferred foreign-key COMMIT failure"],
+      "real_commit_failure": "BEFORE_COMMIT_CHECKPOINT_REACHED_THEN_SQL_COMMIT_FOREIGN_KEY_ERROR",
+      "all_failure_windows": "NIL_WITNESS_ZERO_RESULT_COMPLETE_DURABLE_ROLLBACK"
+    },
+    {
+      "test": "TestA2PostCommitProjectionFailureBurnsAllCopies",
+      "covers": ["cancelled observation read", "projection mismatch", "identity mismatch", "scope mismatch"],
+      "durable_admission_retained": true,
+      "saved_witness_copy_usable_after_failure": false
+    },
+    {
+      "test": "TestA2DifferentIntakeAdmissionWinnersTwoHandles",
+      "covers": ["two independent SQLite handles", "deterministic barrier outside writer", "duplicate intake is sole fresh admission owner", "intake winner later gets history only", "historical loser does not mutate durable state"]
+    },
+    {
+      "test": "TestA2LostResponseQueriesDuplicatesAndReopenNoResume",
+      "covers": ["real failing HTTP response writer after COMMIT", "original Location", "exact retry", "GET/by-key/events", "actual file-backed close/reopen", "TTL and lifetime usage preserved", "zero restored owner", "original active reservation still blocks a second order"],
+      "second_order_rejection": "403_WALLET_UNAVAILABLE",
+      "retained_nonce_claim_created_in_A2_fixture": false,
+      "proves_new_multi_generation_wallet_model": false
+    },
+    {
+      "test": "TestA2PrivateUncachedNoExecutionConsumerBoundary",
+      "covers": ["no cached/configurable handoff", "no exported JSON state or constructor", "context/atomic imports only", "exactly one original writer mint site", "zero non-test take calls"],
+      "lexical_guards_are_whole_program_formal_proof": false
+    }
+  ],
+  "fixture_attribution": {
+    "authorization": "INHERITED_DISPOSABLE_SYNTHETIC_FIXTURE_NOT_REAL_GRANT",
+    "exact_migration018_no_arm_restored_before_every_A2_target_action": true,
+    "A2_fixture_constructs_signer_cipher_executor_or_transport": false,
+    "A2_target_binding_nonce_signing_permit_executor_submission_send_actions": 0,
+    "proof_kind": "DEPENDENCY_FREE_TEST_OWNERSHIP_CLAIMANT_PLUS_DURABLE_ROW_SNAPSHOTS_AND_SOURCE_GUARDS_NOT_FABRICATED_CALLBACK_COUNTERS",
+    "target_attempt_submission_execution_lane_execution_reservation_permit_snapshot_rows": 0,
+    "inherited_local_POST_regressions_use_ephemeral_signing_and_fake_transport": true,
+    "claim_whole_validation_suite_fixture_signer_calls_zero": false,
+    "mainnet_sends": 0
+  },
+  "author_validation": {
+    "environment": "DOCKER_GO_1_26_6_NETWORK_NONE_SOURCE_AND_MODULES_READ_ONLY_CACHE_WRITABLE",
+    "final_code_head": "c2fd02caa33f34808aa241a4203864cf0c63a50c",
+    "final_code_checks": [
+      {
+        "command": "go test -race ./internal/tradeapi -run '^TestA2' -count=1 -timeout=10m -v",
+        "result": "PASS",
+        "seconds": 349.922,
+        "top_level_tests": 8
+      },
+      {
+        "command": "go test ./internal/tradeapi -run '^(TestA2|TestHTTPC3[ABC]|TestUserHTTP|TestManualSubmissionPrivateLocalDependencyBoundary|TestLocalPostExecution(NoProductionRegistrationAndNoArm|AdmissionWinnerOwnsContinuation|ConcurrentTwoHandleDuplicates|FaultReopenNeverResumes))' -count=1 -timeout=8m",
+        "result": "PASS",
+        "seconds": 300.710
+      },
+      {
+        "command": "go test ./internal/app ./internal/config -run '^TestA1' -count=1 -timeout=3m",
+        "result": "PASS",
+        "package_seconds": {"app": 18.975, "config": 0.021}
+      },
+      {"command": "go build ./...", "result": "PASS"},
+      {"command": "go vet ./...", "result": "PASS"},
+      {"command": "staticcheck ./...", "result": "PASS"},
+      {"command": "gofmt -l CHANGED_GO_FILES (must be empty)", "result": "PASS"},
+      {"command": "python3 rbh-validation-package/scripts/verify_offline.py --output /tmp/http-a2-offline-results.json", "result": "PASS", "reference_model_tests": 39, "proves_SDK_or_EVM": false},
+      {"command": "python3 rbh-validation-package/scripts/verify_curve_expected.py", "result": "PASS", "events_checked": 5}
+    ],
+    "earlier_working_tree_validation": [
+      {"command": "go test ./internal/tradeapi -run '^TestA2' -count=1 -timeout=3m -v", "result": "PASS", "seconds": 5.788, "top_level_tests": 7, "before_final_test_delta": true},
+      {"command": "go test ./internal/tradeapi -run '^(TestHTTPC3[ABC]|TestManualSubmissionPrivateLocalDependencyBoundary|TestLocalPostExecutionNoProductionRegistrationAndNoArm)' -count=1 -timeout=5m", "result": "PASS", "seconds": 218.845, "before_final_test_delta": true},
+      {"command": "go test ./internal/tradeapi -run '^(TestUserHTTP|TestLocalPostExecution(AdmissionWinnerOwnsContinuation|ConcurrentTwoHandleDuplicates|FaultReopenNeverResumes))' -count=1 -timeout=3m", "result": "PASS", "seconds": 35.946, "before_final_lexical_guard_and_signature_cleanup": true},
+      {"command": "go test ./internal/tradeapi -run '^TestA2' -count=1 -timeout=3m", "result": "PASS", "seconds": 17.935, "before_final_lexical_guard_and_signature_cleanup": true}
+    ],
+    "earlier_unsuccessful_checks_not_hidden": [
+      {"command": "staticcheck ./internal/tradeapi ./internal/app ./internal/config", "result": "FAIL_THEN_FIXED", "details": "U1000 observation helper not referenced; SA9005 intentional private JSON tests. Added observation compatibility acceptance and narrowly documented SA9005 ignores only on the two intentional JSON calls. No production deny guard removed."},
+      {"command": "go test ./internal/tradeapi -run '^TestA2' -count=1 -timeout=3m", "result": "FAIL_THEN_FIXED", "seconds": 22.857, "details": "New second-order test over-specified a 422 admission-lane rejection. Actual original validation rejects earlier with 403 WALLET_UNAVAILABLE. Test corrected to original public behavior; no production mapping changed."},
+      {"command": "go test ./internal/tradeapi -run '^TestA2LostResponse' -count=1 -timeout=1m -v", "result": "FAIL_SAME_EXPECTATION_DIAGNOSTIC", "seconds": 1.116, "details": "Confirmed actual 403 WALLET_UNAVAILABLE before correcting the test."},
+      {"command": "go test -race ./internal/tradeapi -run '^TestA2' -count=1 -timeout=5m -v", "result": "TIMEOUT_NOT_PASS", "seconds": 300.505, "details": "Earlier seven-test version timed out during scope_mismatch fixture setup in instrumented SQLite. No completed full race result inferred. Final eight-test version rerun with 10m aggregate bound; per-operation and production timeouts unchanged."}
+    ],
+    "whole_repository_runtime_ordinary_or_race_tests": "NOT_RUN_NOT_CLAIMED",
+    "remote_CI": "NOT_RUN",
+    "validation_package_with_new_evidence": "PASS_197_FILES",
+    "diff_and_source_hash_checks": "PASS"
+  },
+  "unchanged_boundaries": {
+    "public_Options_constructors_routes_status_mapping_JSON_OpenAPI": true,
+    "migrations_001_through_045": true,
+    "TTL_no_arm_C07_wallet_reuse": true,
+    "A1_app_config_startup_and_recovery": true,
+    "signing_verifier_permit_executor_transport_implementations": true,
+    "existing_test_files_and_CI": true,
+    "historical_evidence_and_scope_documents": true,
+    "B_C_worktrees_edited_or_merged": false,
+    "A3_A4_A5_entered": false,
+    "push_PR_merge": false,
+    "real_grant_keys_signing_send_mainnet": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false
+  }
+}
