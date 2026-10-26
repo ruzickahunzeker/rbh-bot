@@ -13,8 +13,9 @@ import (
 	"github.com/ruzickahunzeker/rbh-bot/internal/manualsign"
 )
 
-// Private controlled-local composition only. No constructor or HTTP/config/
-// startup caller. This owns no key loader, grant, allocator or send dependency.
+// Private controlled-local composition only. The private A3 bundle can select
+// bounded trust; original scalar-clock fixtures remain compatible. No HTTP/
+// startup caller, key loader, grant, allocator or send dependency.
 type manualLocalSigningWriter struct {
 	store      *Store
 	observer   manualNonceObserver

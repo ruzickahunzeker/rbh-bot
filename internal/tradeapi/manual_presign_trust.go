@@ -96,23 +96,7 @@ func (t *manualPreSignTrust) check(g manualSigningGate, raw, digest, notBefore s
 	if t.bundle.health.unhealthy.Load() {
 		return rejectManualInput("SIGNING_TRUST_UNHEALTHY")
 	}
-	s := t.clock.previous
-	lo, hi, err := s.bounds()
-	if err != nil {
-		return err
-	}
 	scope := t.bundle.profile.process.scope
-	state, err := readManualRuntimeClock(t.ctx, t.q, scope.Environment)
-	if err != nil {
-		return err
-	}
-	if err = checkManualClockFloor(state, s); err != nil {
-		t.clock.invalid = true
-		t.clock.faultReason = "CLOCK_REVERSAL"
-		t.clock.faultWall = s.wall
-		t.bundle.health.unhealthy.Store(true)
-		return err
-	}
 	// Reuse durable source verification, not caller-supplied profile/security
 	// fields. This does not call the signed-artifact runtime verifier at pre-sign.
 	f := g.facts
@@ -127,6 +111,16 @@ func (t *manualPreSignTrust) check(g manualSigningGate, raw, digest, notBefore s
 		if e != nil || current != f {
 			return manualVerificationError(e, "SIGNING_TRUST_SOURCE_CHANGED")
 		}
+	}
+	// Source verification/decryption consumes time. Sample AFTER it, then apply
+	// BOTH causality and expiry bounds; never reuse the pre-crypto sample.
+	if _, err := t.read(); err != nil {
+		return err
+	}
+	s := t.clock.previous
+	lo, hi, err := s.bounds()
+	if err != nil {
+		return err
 	}
 	control, err := readManualControl(t.ctx, t.q, lo)
 	if err != nil {

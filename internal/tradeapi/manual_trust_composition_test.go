@@ -654,6 +654,18 @@ func TestA3FinalWriterBarrierAndTwoHandleSigning(t *testing.T) {
 			}
 			writerStarted := make(chan struct{})
 			otherDone := make(chan outcome, 1)
+			q := `UPDATE canary_control_state SET emergency_stopped=1`
+			if kind == "revoke" {
+				q = `UPDATE canary_runtime_authorizations SET state='REVOKED'`
+			}
+			if kind == "takeover" {
+				q = `UPDATE canary_worker_leases SET holder_id='new-owner',lease_epoch=2`
+			}
+			if kind != "duplicate" {
+				if _, err := s2.db.Exec(`PRAGMA busy_timeout=30`); err != nil {
+					t.Fatal(err)
+				}
+			}
 			go func() {
 				close(writerStarted)
 				if kind == "duplicate" {
@@ -665,21 +677,21 @@ func TestA3FinalWriterBarrierAndTwoHandleSigning(t *testing.T) {
 					otherDone <- outcome{v, err}
 					return
 				}
-				q := `UPDATE canary_control_state SET emergency_stopped=1`
-				if kind == "revoke" {
-					q = `UPDATE canary_runtime_authorizations SET state='REVOKED'`
-				}
-				if kind == "takeover" {
-					q = `UPDATE canary_worker_leases SET holder_id='new-owner',lease_epoch=2`
-				}
 				_, err := s2.db.ExecContext(ctx, q)
 				otherDone <- outcome{err: err}
 			}()
 			<-writerStarted
-			select {
-			case result := <-otherDone:
-				t.Fatal("competing writer committed while final fence held", result.err)
-			case <-time.After(30 * time.Millisecond):
+			if kind != "duplicate" {
+				select {
+				case result := <-otherDone:
+					// A returned SQLITE_BUSY proves the competing write actually
+					// attempted while the original final transaction was held.
+					if result.err == nil || !strings.Contains(result.err.Error(), "SQLITE_BUSY") {
+						t.Fatal("expected fenced control write", result.err)
+					}
+				case <-ctx.Done():
+					t.Fatal(ctx.Err())
+				}
 			}
 			releaseOnce.Do(func() { close(release) })
 			select {
@@ -690,13 +702,17 @@ func TestA3FinalWriterBarrierAndTwoHandleSigning(t *testing.T) {
 			case <-ctx.Done():
 				t.Fatal(ctx.Err())
 			}
-			select {
-			case result := <-otherDone:
-				if result.err != nil || (kind == "duplicate" && !result.v.Duplicate) {
-					t.Fatal("other writer", result.err)
+			if kind == "duplicate" {
+				select {
+				case result := <-otherDone:
+					if result.err != nil || (kind == "duplicate" && !result.v.Duplicate) {
+						t.Fatal("other writer", result.err)
+					}
+				case <-ctx.Done():
+					t.Fatal(ctx.Err())
 				}
-			case <-ctx.Done():
-				t.Fatal(ctx.Err())
+			} else if _, err := s2.db.ExecContext(ctx, q); err != nil {
+				t.Fatal("control write after original COMMIT", err)
 			}
 			if f.signer.calls.Load() != 1 {
 				t.Fatal("second signature", f.signer.calls.Load())
@@ -884,3 +900,98 @@ func TestA3ActualProcessClockCrashWindows(t *testing.T) {
 }
 
 var _ manualartifact.Cipher = manualArtifactReadCipher{}
+
+type a3FailCipher struct{ manualartifact.Cipher }
+
+func (a3FailCipher) Encrypt([]byte, []byte) ([]byte, []byte, error) {
+	return nil, nil, errors.New("controlled encryption failure")
+}
+
+func TestA3SignerCipherFailureRetainsOriginalMarker(t *testing.T) {
+	for _, kind := range []string{"error", "panic", "wrong_nonce", "timeout", "cipher"} {
+		t.Run(kind, func(t *testing.T) {
+			f := a3TrustFixture(t)
+			if kind == "cipher" {
+				b, err := newManualTrustComposition(f.s, f.h.identity, f.b.profile, f.clock, f.identity, f.b.nonce, f.b.runtime, f.signer, a3FailCipher{f.b.cipher}, f.b.decryptor)
+				if err != nil {
+					t.Fatal(err)
+				}
+				f.w = b.signingWriter()
+			} else {
+				f.signer.invoke = func(ctx context.Context, tx *types.Transaction, chain *big.Int) (*types.Transaction, error) {
+					switch kind {
+					case "error":
+						return nil, errors.New("controlled signer failure")
+					case "panic":
+						panic("controlled signer panic")
+					case "timeout":
+						<-ctx.Done()
+						return nil, ctx.Err()
+					}
+					wrong := types.NewTx(&types.DynamicFeeTx{ChainID: tx.ChainId(), Nonce: tx.Nonce() + 1, To: tx.To(), Value: tx.Value(), Data: tx.Data(), Gas: tx.Gas(), GasFeeCap: tx.GasFeeCap(), GasTipCap: tx.GasTipCap()})
+					return f.signer.signer.SignTransaction(ctx, wrong, chain)
+				}
+			}
+			got, err := f.w.sign(context.Background(), f.h.identity, f.r.RequestID, f.scope)
+			if err == nil || got != (manualLocalSigningResult{}) || f.signer.calls.Load() != 1 || count(t, f.s.db, "manual_signed_artifact_commands") != 0 {
+				t.Fatal("failed primitive escaped", err)
+			}
+			a3ClockRows(t, f.s, 2, false)
+			if got, err := f.w.sign(context.Background(), f.h.identity, f.r.RequestID, f.scope); err != nil || !got.Duplicate || f.signer.calls.Load() != 1 {
+				t.Fatal("failure resigned", err)
+			}
+		})
+	}
+}
+
+func TestA3DatabaseUnavailableDuringFaultPersistence(t *testing.T) {
+	f := a3TrustFixture(t)
+	f.w.checkpoint = func(at string) error {
+		if at == "before_sign" {
+			f.clock.move(testNow.Add(-time.Nanosecond))
+		}
+		if at == "trust_connection_released" {
+			return f.d.Close()
+		}
+		return nil
+	}
+	_, err := f.w.sign(context.Background(), f.h.identity, f.r.RequestID, f.scope)
+	if err == nil || !strings.Contains(err.Error(), "database is closed") || !f.b.health.unhealthy.Load() || f.signer.calls.Load() != 0 {
+		t.Fatal("unavailable database reported durable fault", err)
+	}
+	d, err := storage.Open(context.Background(), storage.TradeOwner, f.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	s, err := NewStore(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a3ClockRows(t, s, 2, false)
+	if count(t, s.db, "manual_signing_intents") != 1 {
+		t.Fatal("lost original marker")
+	}
+}
+
+type a3AdvancingDecryptor struct {
+	manualArtifactDecryptor
+	after func()
+}
+
+func (d a3AdvancingDecryptor) Decrypt(v string, c, n, a []byte) ([]byte, error) {
+	raw, err := d.manualArtifactDecryptor.Decrypt(v, c, n, a)
+	d.after()
+	return raw, err
+}
+
+func TestA3FinalClockSampleAfterArtifactAuthentication(t *testing.T) {
+	f := a3TrustFixture(t)
+	expiry, _ := canonicalManualTime(f.r.ExpiresAt)
+	f.b.decryptor = a3AdvancingDecryptor{f.b.decryptor, func() { f.clock.move(expiry) }}
+	_, err := f.w.sign(context.Background(), f.h.identity, f.r.RequestID, f.scope)
+	if err == nil || f.signer.calls.Load() != 1 || count(t, f.s.db, "manual_signed_artifact_commands") != 0 {
+		t.Fatal("accepted stale pre-decrypt clock sample", err)
+	}
+	a3ClockRows(t, f.s, 2, false)
+}
