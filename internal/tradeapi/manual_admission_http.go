@@ -120,6 +120,7 @@ func (h *API) admitManualRecord(ctx context.Context, record *Record) error {
 	observation.Status = result.Status
 	record.Validation = stored.Validation
 	record.Admission = observation
+	record.Execution = stored.Execution
 	record.Duplicate = record.Duplicate || result.Duplicate
 	return nil
 }
@@ -173,6 +174,6 @@ func (h *API) returnExistingAdmission(ctx context.Context, record *Record) error
 	if stored.Admission == nil {
 		return rejectManualInput("ADMISSION_LEDGER_INCOMPLETE")
 	}
-	record.Admission, record.Validation = stored.Admission, stored.Validation
+	record.Admission, record.Validation, record.Execution = stored.Admission, stored.Validation, stored.Execution
 	return nil
 }

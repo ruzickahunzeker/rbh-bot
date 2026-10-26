@@ -29,15 +29,21 @@ func loadManualArtifactFacts(ctx context.Context, query queryRow, id Identity, r
 	if err != nil {
 		return zero, err
 	}
-	f := manualartifact.Facts{Version: manualartifact.Version, OperationID: c.OperationID, RequestID: c.RequestID, ExecutionStepID: q.Step, AttemptID: q.Attempt, WalletID: c.WalletID,
+	f := manualArtifactFacts(c, b, q)
+	if err = f.Validate(); err != nil {
+		return zero, err
+	}
+	return f, nil
+}
+
+// Immutable facts are shared by signing and read-only historical validation.
+// This constructor does not consult current permission or acquire capabilities.
+func manualArtifactFacts(c ManualExecutionContract, b manualExecutionBinding, q manualNonceClaim) manualartifact.Facts {
+	return manualartifact.Facts{Version: manualartifact.Version, OperationID: c.OperationID, RequestID: c.RequestID, ExecutionStepID: q.Step, AttemptID: q.Attempt, WalletID: c.WalletID,
 		ReservationID: q.Reservation, ContractHash: c.BindingHash, ChainID: c.ChainID, From: c.Output.From, To: c.Output.To, Value: c.Output.Value, Data: c.Output.Data,
 		Nonce: q.Nonce, GasLimit: c.Output.GasLimit, GasFeeCap: c.Output.GasFeeCap, GasTipCap: c.Output.GasTipCap, PolicyVersion: c.PolicyVersion, PolicyHash: c.PolicyHash,
 		QuoteBlockNumber: c.Output.Resolution.Token.Block.Number, QuoteBlockHash: c.Output.Resolution.Token.Block.Hash, RuntimeCodeHash: c.Output.Resolution.Token.CurveRuntimeCodeHash,
 		ExpiresAt: c.ExpiresAt, ClaimedAt: q.CheckedAt, ClaimObservationHash: q.ObservationHash, DeadlineCapability: c.DeadlineCapability, ContractDeadline: c.ContractDeadline,
 		AuthorizationID: b.Scope.AuthorizationID, AuthorizationEpoch: b.Scope.AuthorizationEpoch, ManualPolicyID: b.Scope.ManualPolicyID,
 		ManualPolicyHash: b.PolicyHash, GateEvidenceSetHash: b.GateHash, Environment: b.Scope.Environment, BuildSHA: b.Scope.BuildSHA, ReleaseID: b.Scope.ReleaseID, DeploymentID: b.Scope.DeploymentID}
-	if err = f.Validate(); err != nil {
-		return zero, err
-	}
-	return f, nil
 }

@@ -252,7 +252,7 @@ func (h *API) submit(w http.ResponseWriter, r *http.Request) {
 			writeError(w, r, err)
 			return
 		}
-		record.Validation, record.Admission = stored.Validation, stored.Admission
+		record.Validation, record.Admission, record.Execution = stored.Validation, stored.Admission, stored.Execution
 	}
 	status := http.StatusServiceUnavailable
 	if record.OperationID != nil {
@@ -327,7 +327,7 @@ func (h *API) capabilities(w http.ResponseWriter, r *http.Request) {
 	}
 	handling, events := "REJECTION_ONLY", "API_REJECTION_ONLY"
 	if h.manualIntake {
-		stage, handling, events = "HTTP_C1_READY_FOR_REVIEW", "MANUAL_RECORD_ONLY", "MANUAL_ORDER_INTAKE_ONLY"
+		stage, handling, events = "HTTP_C1_READY_FOR_REVIEW", "MANUAL_RECORD_ONLY", "MANUAL_ORDER_LIFECYCLE"
 	}
 	validationCapability := "NOT_CONNECTED"
 	admissionCapability := "NOT_CONNECTED"

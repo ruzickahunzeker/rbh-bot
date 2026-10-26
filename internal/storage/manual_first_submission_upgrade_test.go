@@ -123,7 +123,10 @@ BEGIN SELECT RAISE(ABORT,'forced 044 journal failure'); END`); err != nil {
 		t.Fatal(err)
 	}
 	// The new phase projection must not redefine the prior 036..043 views.
-	viewsQuery := `SELECT json_group_array(json_object('name',name,'sql',sql)) FROM (SELECT name,sql FROM sqlite_master WHERE type='view' AND name NOT LIKE 'manual_first_submission_%' ORDER BY name)`
+	// Compare only views that existed before this upgrade. Later additive
+	// migrations may add their own views without weakening 044's old views.
+	viewNames := read(`SELECT json_group_array(name) FROM (SELECT name FROM sqlite_master WHERE type='view' AND name NOT LIKE 'manual_first_submission_%' ORDER BY name)`)
+	viewsQuery := `SELECT json_group_array(json_object('name',name,'sql',sql)) FROM (SELECT name,sql FROM sqlite_master WHERE type='view' AND name IN (SELECT value FROM json_each('` + viewNames + `')) ORDER BY name)`
 	oldViews := read(viewsQuery)
 	for i := 0; i < 2; i++ {
 		if err := d.Migrate(ctx); err != nil {

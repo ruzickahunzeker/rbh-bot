@@ -226,8 +226,7 @@ func (s *Store) Events(ctx context.Context, identity Identity, id string, after 
 	var e Event
 	query := `SELECT r.sequence,a.event_type,a.reason_code,a.created_at FROM user_http_trade_requests r JOIN canary_runtime_audit a ON a.id='user-http-audit:'||r.id WHERE r.id=? AND r.principal_id=? AND r.wallet_id=? AND r.sequence>?`
 	if record.OperationID != nil {
-		result.Scope = "MANUAL_ORDER_INTAKE_ONLY"
-		query = `SELECT r.sequence,a.event_type,a.reason_code,a.created_at FROM manual_http_order_sources r JOIN canary_runtime_audit a ON a.id='manual-http-audit:'||r.id WHERE r.id=? AND r.principal_id=? AND r.wallet_id=? AND r.sequence>?`
+		return s.manualLifecycleEvents(ctx, identity, id, after)
 	}
 	err = s.db.QueryRowContext(ctx, query, id, identity.PrincipalID, identity.WalletID, after).Scan(&e.Cursor, &e.Type, &e.Reason, &e.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
