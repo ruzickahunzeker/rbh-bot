@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -88,6 +89,11 @@ func (s *RecoveryService) reconcile(ctx context.Context, operation string, lease
 	if receipt == nil {
 		return ErrReceiptPending
 	}
+	if strings.HasPrefix(operation, "manual_op_") {
+		if err := validateRecoveryReceipt(receipt, common.HexToHash(stored.TxHash)); err != nil {
+			return err
+		}
+	}
 	if receipt.BlockNumber == nil {
 		return ErrNotCanonical
 	}
@@ -110,6 +116,9 @@ func (s *RecoveryService) reconcile(ctx context.Context, operation string, lease
 	latest, err := s.backend.HeaderByNumber(ctx, nil)
 	if err != nil {
 		return err
+	}
+	if canonical == nil || canonical.Number == nil || canonical.Number.Cmp(receipt.BlockNumber) != 0 || latest == nil || latest.Number == nil || !latest.Number.IsUint64() {
+		return ErrArtifactIntegrity
 	}
 	if !s.policy.Confirm(latest.Number.Uint64(), receipt.BlockNumber.Uint64(), receipt.BlockHash, canonical.Hash()) {
 		return ErrNotCanonical
@@ -145,6 +154,9 @@ func (s *RecoveryService) checkReorg(ctx context.Context, operation string, obse
 	header, err := s.backend.HeaderByNumber(ctx, new(big.Int).SetUint64(observation.BlockNumber))
 	if err != nil {
 		return err
+	}
+	if header == nil || header.Number == nil || !header.Number.IsUint64() || header.Number.Uint64() != observation.BlockNumber {
+		return ErrArtifactIntegrity
 	}
 	if header.Hash().Hex() == observation.BlockHash {
 		return nil

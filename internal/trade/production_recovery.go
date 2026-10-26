@@ -226,12 +226,31 @@ func (r *PonsCurveEffectResolver) ResolvePositionEffect(ctx context.Context, art
 	if receipt.TxHash == (common.Hash{}) || !strings.EqualFold(receipt.TxHash.Hex(), artifact.TxHash) {
 		return PositionEffect{}, ErrArtifactIntegrity
 	}
-	dryRun, found, err := r.store.Result(ctx, artifact.Operation)
-	if err != nil || !found || dryRun.Status != "success" || dryRun.Route.Protocol != "pons-v2-curve" || dryRun.Route.Curve == (common.Address{}) || dryRun.Route.Token == (common.Address{}) {
-		return PositionEffect{}, ErrArtifactIntegrity
+	var curve, token, quote common.Address
+	var direction string
+	if strings.HasPrefix(artifact.Operation, "manual_op_") {
+		var curveText, tokenText, protocol string
+		if err := r.store.db.QueryRowContext(ctx, `SELECT json_extract(c.contract_json,'$.output.resolution.token.curve'),
+ json_extract(c.contract_json,'$.output.resolution.token.address'),json_extract(c.contract_json,'$.output.resolution.token.protocol'),
+ json_extract(c.contract_json,'$.output.resolution.side') FROM manual_recovery_source src
+ JOIN manual_admission_commands c ON c.operation_id=src.operation_id
+ WHERE src.operation_id=? AND src.attempt_id=? AND src.tx_hash=? AND src.wallet_id=?`,
+			artifact.Operation, artifact.AttemptID, artifact.TxHash, artifact.WalletID).Scan(&curveText, &tokenText, &protocol, &direction); err != nil || protocol != "pons_v2_curve" {
+			return PositionEffect{}, ErrArtifactIntegrity
+		}
+		curve, token = common.HexToAddress(curveText), common.HexToAddress(tokenText)
+		if curve != common.HexToAddress(artifact.To) || curve == (common.Address{}) || token == (common.Address{}) || (direction != "buy" && direction != "sell") {
+			return PositionEffect{}, ErrArtifactIntegrity
+		}
+	} else {
+		dryRun, found, err := r.store.Result(ctx, artifact.Operation)
+		if err != nil || !found || dryRun.Status != "success" || dryRun.Route.Protocol != "pons-v2-curve" || dryRun.Route.Curve == (common.Address{}) || dryRun.Route.Token == (common.Address{}) {
+			return PositionEffect{}, ErrArtifactIntegrity
+		}
+		curve, token, quote, direction = dryRun.Route.Curve, dryRun.Route.Token, dryRun.Route.QuoteToken, dryRun.Parameters.Direction
 	}
 	p := parser.New()
-	if err = p.Registry().RegisterCurve(parser.CurveRegistration{Curve: dryRun.Route.Curve, Protocol: parser.ProtocolPonsV2, Token: dryRun.Route.Token, Quote: dryRun.Route.QuoteToken}); err != nil {
+	if err := p.Registry().RegisterCurve(parser.CurveRegistration{Curve: curve, Protocol: parser.ProtocolPonsV2, Token: token, Quote: quote}); err != nil {
 		return PositionEffect{}, err
 	}
 	events, err := p.ParseReceipt(receipt)
@@ -240,7 +259,7 @@ func (r *PonsCurveEffectResolver) ResolvePositionEffect(ctx context.Context, art
 	}
 	var delta *big.Int
 	for _, event := range events {
-		if event.Protocol != parser.ProtocolPonsV2 || event.Log.Address != dryRun.Route.Curve {
+		if event.Protocol != parser.ProtocolPonsV2 || event.Log.Address != curve {
 			continue
 		}
 		trade, ok := event.Data.(parser.CurveTrade)
@@ -250,9 +269,9 @@ func (r *PonsCurveEffectResolver) ResolvePositionEffect(ctx context.Context, art
 		}
 		var candidate *big.Int
 		switch {
-		case dryRun.Parameters.Direction == "buy" && event.Kind == parser.EventCurveBuy:
+		case direction == "buy" && event.Kind == parser.EventCurveBuy:
 			candidate = new(big.Int).Set(trade.AmountOut)
-		case dryRun.Parameters.Direction == "sell" && event.Kind == parser.EventCurveSell:
+		case direction == "sell" && event.Kind == parser.EventCurveSell:
 			candidate = new(big.Int).Neg(new(big.Int).Set(trade.AmountIn))
 		default:
 			continue
@@ -265,5 +284,5 @@ func (r *PonsCurveEffectResolver) ResolvePositionEffect(ctx context.Context, art
 	if delta == nil || delta.Sign() == 0 {
 		return PositionEffect{}, ErrArtifactIntegrity
 	}
-	return PositionEffect{Asset: dryRun.Route.Token.Hex(), Delta: delta.String()}, nil
+	return PositionEffect{Asset: token.Hex(), Delta: delta.String()}, nil
 }
