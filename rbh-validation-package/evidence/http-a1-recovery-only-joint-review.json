@@ -1,0 +1,121 @@
+{
+  "scope": "A1_RECOVERY_ONLY_STARTUP_FORMAL_CLOSEOUT_DOCS_EVIDENCE_ONLY",
+  "branch": "http-a1-recovery-only-closeout",
+  "base": "c305b06dcaab875aa82c49fc79fcb95420e00306",
+  "reviewed_head": "c305b06dcaab875aa82c49fc79fcb95420e00306",
+  "production_code_head": "43c6dc9136d1ac4d70de2576fe2aadcbdbbc8397",
+  "final_test_only_head": "156615c992fc5cd76cb952d91a60d42a909d4512",
+  "common_local_code_baseline": "80ad4e474c3016f8686dd9d9ca096302ae2cf10a",
+  "before_closeout_edits": {
+    "worktree": "CLEAN",
+    "ahead_of_reviewed_head": 0,
+    "behind_reviewed_head": 0
+  },
+  "status": {
+    "A1": "PASS",
+    "checkpoint": "A1_DISABLED_COMPOSITION_PASS",
+    "review_state": "PASS",
+    "formal_closeout": "COMPLETE_LOCAL_ONLY",
+    "formal_main_or_remote_release_baseline_changed": false,
+    "aggregate_M4_or_production_HTTP_service_PASS": false
+  },
+  "authorization": {
+    "kind": "USER_SEPARATELY_AUTHORIZED_DOCS_EVIDENCE_FORMAL_CLOSEOUT",
+    "permits_code_schema_runtime_or_next_stage_changes": false,
+    "permits_push_PR_or_merge": false
+  },
+  "documents": [
+    {
+      "path": "docs/HTTP_A1_RECOVERY_ONLY_CLOSEOUT.md",
+      "sha256": "505d7bc782fb13c08967d031166419d44538e9bea47623c040aea2428ec8570f"
+    },
+    {
+      "path": "docs/HTTP_TRADING_DELIVERY_PLAN.md",
+      "sha256": "01c1d1c1c0b12023b4b73f87f6c61bbbff63b4f626d9512935cdda4d2c43cf7f"
+    }
+  ],
+  "independent_code_review": {
+    "reviewer": "a1_independent_code_review",
+    "mode": "READ_ONLY_SOURCE_AND_FOCUSED_LOCAL_VALIDATION",
+    "reviewed_head": "c305b06dcaab875aa82c49fc79fcb95420e00306",
+    "conclusion": "PASS",
+    "actionable_blockers": 0,
+    "scope": "A1_RECOVERY_ONLY_STARTUP_NOT_PRODUCTION_HTTP_OR_WALLET_REUSE_OR_REAL_SEND_AUTHORITY",
+    "ordinary_command": "go test ./internal/config ./internal/app -count=1 -timeout=3m -v",
+    "ordinary_top_level_test_count": 23,
+    "ordinary_result": "PASS",
+    "ordinary_config_seconds": 0.023,
+    "ordinary_app_seconds": 6.672,
+    "race_command": "go test -race ./internal/config ./internal/app -run '^(TestA1RecoveryOnlyActualStartupRediscoveryAndRestart|TestA1RecoveryOnlyDrainWaitsForBoundedRead|TestA1RecoveryStartAuditFailureDoesNotLeakWorker|TestA1RecoveryLifetimeReadinessDuringDrainAndFailure|TestA1RecoveryOnlyListenerFailureDrainsAndStopsRenewal|TestA1RecoveryOnlyProfileValidation|TestA1RecoveryOnlyProfileEnvironment)$' -count=1 -timeout=4m -v",
+    "race_top_level_test_count": 7,
+    "race_result": "PASS",
+    "race_exit_code": 0,
+    "race_config_seconds": 1.022,
+    "race_app_seconds": 51.039,
+    "race_selector_confirmed_from_reviewer_prior_command_without_rerun": true,
+    "environment": "DOCKER_GO_1_26_6_NETWORK_NONE_SOURCE_MODULES_READ_ONLY_CACHE_WRITABLE",
+    "manifest": "PASS_194_FILES",
+    "prior_manifest_entries_preserved": 193,
+    "new_test_mapping_functions_checked": 13,
+    "source_boundary_and_document_hash": "PASS",
+    "independent_all_repository_ordinary_or_race": "NOT_RUN",
+    "independent_all_repository_static_checks": "NOT_RUN",
+    "independent_remote_CI": "NOT_RUN",
+    "running_test_processes_at_handoff": 0,
+    "reviewer_modified_worktree": false
+  },
+  "non_blocking_recommendations": [
+    {
+      "path_at_reviewed_head": "internal/app/recovery_startup_test.go",
+      "line": 245,
+      "finding": "ADD_GET_REQUESTS_FOR_GET_SHAPED_V1_ROUTE_ABSENCE_POST_ONLY_IS_NOT_THAT_ASSERTION",
+      "why_not_blocker": "REVIEWED_STARTUP_SOURCE_DOES_NOT_REGISTER_USER_API",
+      "status": "NOT_IMPLEMENTED_NO_CODE_CHANGES_IN_CLOSEOUT"
+    },
+    {
+      "path_at_reviewed_head": "internal/app/recovery_startup_test.go",
+      "line": 353,
+      "finding": "FIFTY_MS_SAMPLE_IS_SHORTER_THAN_TEN_SECOND_RENEWAL_PERIOD_ADD_CONTROLLED_RENEWAL_BARRIER",
+      "why_not_blocker": "REVIEWED_CANCEL_JOIN_EXIT_AND_DRAIN_EVIDENCE_SUPPORTED_SCOPE_PASS",
+      "status": "NOT_IMPLEMENTED_NO_CODE_CHANGES_IN_CLOSEOUT"
+    }
+  ],
+  "preserved_historical_evidence": {
+    "path": "rbh-validation-package/evidence/http-a1-recovery-only-startup.json",
+    "sha256": "f5e271dc1f9b424538b92c9a13b2512894d8f6c6f0cf0ff6f5fa39864878351e",
+    "document_path_at_reviewed_head": "docs/HTTP_A1_RECOVERY_ONLY_STARTUP.md",
+    "document_sha256": "051d98a73a188218acfdc7e3825fe4155af6ed8b34fa0dd804ff0fdb8339c444",
+    "byte_identical_to_reviewed_head": true,
+    "old_READY_NOT_PERFORMED_fields": "HISTORICAL_SNAPSHOT_SUPERSEDED_FOR_CURRENT_STATUS_ONLY",
+    "author_test_claims_relabelled_independent": false
+  },
+  "closeout_validation": {
+    "kind": "DOCS_EVIDENCE_MANIFEST_AND_BYTE_IDENTITY_ONLY",
+    "Go_tests_build_race_static_checks_rerun": false,
+    "all_existing_194_manifest_entries_preserved": true,
+    "validation_package": "PASS_195_FILES",
+    "document_hashes": "PASS",
+    "diff_check": "PASS",
+    "production_tests_schema_config_startup_CI_OpenAPI_diff_against_reviewed_head": "EMPTY"
+  },
+  "remaining": [
+    "SEPARATELY_SCOPED_PRODUCTION_HTTP_COMPOSITION_CUSTODY_AUTHORITY_AND_TRANSPORT",
+    "C_PROPOSED_WAIT_TIMEOUT_AND_ERROR_MAPPING_NOT_ACCEPTED",
+    "B_WALLET_REUSE_MODEL_NOT_IMPLEMENTED_RETAINED_SECOND_ORDER_REJECTION_STAYS"
+  ],
+  "boundaries": {
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "C04_C05_C07_C08_implementation_and_PASS_records_changed": false,
+    "migrations_001_through_045_changed": false,
+    "no_arm_TTL_artifact_identity_marker_ambiguity_and_unknown_freeze_changed": false,
+    "new_mainnet_calls_signing_send_replay_nonce_or_grants": false,
+    "fixture_two_setup_signatures_mislabelled_zero": false,
+    "deployment_env_keys_RPC_or_flags_provisioned": false,
+    "B_C_branches_modified": false,
+    "next_stage_implementation_entered": false,
+    "push_PR_merge_performed": false
+  }
+}

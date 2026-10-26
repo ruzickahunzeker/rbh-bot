@@ -5,7 +5,23 @@ authorization. The desired outcome is a normal one-request HTTP trading API
 that reuses the completed RBH core. No client-side dry-run/prepare prerequisite;
 internal quote/simulation and security gates remain required.
 
-Current continuation: the accepted `http-local-post-execution` batch implements
+Current local checkpoint: **A1 = PASS**, checkpoint
+`A1_DISABLED_COMPOSITION_PASS`, review_state PASS, formal closeout
+COMPLETE_LOCAL_ONLY. Independent implementation review of exact
+`c305b06dcaab875aa82c49fc79fcb95420e00306` concluded scoped PASS, blockers 0.
+The separately authorized closeout is docs/evidence/checksum only; see
+`HTTP_A1_RECOVERY_ONLY_CLOSEOUT.md` and additive
+`evidence/http-a1-recovery-only-joint-review.json`. No formal main baseline,
+remote merge or runtime authority is changed. Explicit RECOVERY_ONLY startup
+is implemented; LEGACY stays the default. This profile deliberately has no
+`/v1/` user API or legacy dry-run/prepare handlers and no signer/send capability.
+Production POST execution and reusable-wallet trading remain incomplete;
+production broadcast NOT_CONNECTED, authorization NOT_GRANTED,
+live=false, release_ready=false. A later scope decision is not implementation
+permission. Earlier pending-review snapshots below and in the original A1
+implementation document/evidence remain historical, not the current A1 status.
+
+Previous local first-order continuation: the accepted `http-local-post-execution` batch implements
 only a test-compiled authenticated first-order POST composition. Production API
 options/startup/transport and migrations stay unchanged. See
 `HTTP_LOCAL_POST_EXECUTION.md` for the exact scope, response/restart limitations
@@ -37,9 +53,9 @@ integration had no independent PASS at that historical handoff. This was a local
 development handoff,
 not a replacement main/release baseline or production-send authorization.
 
-## Current checkpoints
+## Earlier admission checkpoints (historical)
 
-Current B2.4 formal closeout (2026-10-25): PR #38 merged hardening head
+Earlier B2.4 formal closeout (2026-10-25): PR #38 merged hardening head
 `aa15f8a` into `main@869bdba`; PR #39 merged the separate closeout at
 `main@d0f24f6` with the exact closeout tree. CI #187 and #190 succeeded.
 M1/M2/M3/M4-A/B1/B2.1/B2.2/B2.3 have PASS records. Independent review of the
