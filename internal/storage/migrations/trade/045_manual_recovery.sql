@@ -109,6 +109,14 @@ JOIN canary_runtime_audit nonce_audit ON nonce_audit.id='manual-nonce-audit:'||q
  'reservation_id',q.reservation_id,'observation_hash',q.observation_hash)
 JOIN canary_alert_outbox nonce_alert ON nonce_alert.id='manual-nonce-alert:'||q.operation_id AND nonce_alert.audit_id=nonce_audit.id
  AND nonce_alert.severity='INFO' AND nonce_alert.created_at=q.checked_at
+JOIN canary_runtime_audit signing_audit ON signing_audit.id='manual-sign-intent:'||intent.operation_id
+ AND signing_audit.event_type='MANUAL_SIGNING_INTENT' AND signing_audit.operation_id=intent.operation_id AND signing_audit.attempt_id=q.attempt_id
+ AND signing_audit.authorization_id=b.authorization_id AND signing_audit.authorization_epoch=b.authorization_epoch
+ AND signing_audit.reason_code='SIGNER_MAY_HAVE_RUN_NOT_PERMISSION' AND signing_audit.created_at=intent.checked_at
+ AND signing_audit.details_json=json_object('owner_id',intent.owner_id,'facts_hash',intent.facts_hash,
+ 'observation_hash',intent.observation_hash,'execution_step_id',q.execution_step_id,'nonce',q.nonce)
+JOIN canary_alert_outbox signing_alert ON signing_alert.id='manual-sign-intent-alert:'||intent.operation_id AND signing_alert.audit_id=signing_audit.id
+ AND signing_alert.severity='WARNING' AND signing_alert.created_at=intent.checked_at
 JOIN canary_runtime_audit artifact_audit ON artifact_audit.id='manual-artifact:'||m.operation_id
  AND artifact_audit.event_type='MANUAL_ARTIFACT_STORED' AND artifact_audit.operation_id=m.operation_id AND artifact_audit.attempt_id=q.attempt_id
  AND artifact_audit.authorization_id=b.authorization_id AND artifact_audit.authorization_epoch=b.authorization_epoch AND artifact_audit.created_at=m.checked_at
@@ -128,6 +136,8 @@ WHERE src.source='MANUAL' AND src.chain='robinhood' AND src.operation_id='manual
  AND b.execution_step_id='manual-exec:'||src.operation_id AND q.attempt_id='manual-nonce:'||b.operation_id
  AND manual_artifact_facts_hash(hex(m.facts_json),typeof(m.facts_json))=m.facts_hash
  AND manual_artifact_envelope_valid(hex(m.facts_json),typeof(m.facts_json),hex(m.envelope_json),typeof(m.envelope_json))=1
+ AND EXISTS(SELECT 1 FROM manual_admission_complete admitted
+ WHERE admitted.operation_id=c.operation_id AND admitted.contract_hash=c.contract_hash)
  AND ((sub.state='submitting' AND NOT EXISTS(SELECT 1 FROM manual_first_submission_transitions outcome
  WHERE outcome.submission_id=sub.id AND outcome.kind='OUTCOME'))
  OR EXISTS(SELECT 1 FROM manual_first_submission_transitions outcome
@@ -242,13 +252,13 @@ WHEN NEW.sequence!=-1 OR typeof(NEW.id)!='text' OR NEW.id IS NOT 'manual-recover
  OR (NEW.kind='OBSERVE' AND (NEW.prior_version!=0 OR NEW.effect_asset IS NOT NULL OR NEW.effect_delta IS NOT NULL
  OR EXISTS(SELECT 1 FROM receipt_observations r WHERE r.id=NEW.receipt_id)))
  OR (NEW.kind!='OBSERVE' AND NOT EXISTS(SELECT 1 FROM receipt_observations r
- JOIN manual_recovery_source src ON src.operation_id=NEW.operation_id AND src.attempt_id=r.attempt_id
+ JOIN manual_first_submission_bindings src ON src.operation_id=NEW.operation_id AND src.attempt_id=r.attempt_id
  WHERE r.id=NEW.receipt_id AND r.tx_hash=NEW.tx_hash AND r.block_hash=NEW.block_hash
  AND r.block_number=NEW.block_number AND r.receipt_status=NEW.receipt_status AND r.reconciliation_version=NEW.prior_version
  AND ((NEW.kind='CANONICAL' AND r.canonical_state IN ('observed','orphaned'))
  OR (NEW.kind='ORPHAN' AND r.canonical_state IN ('observed','canonical_success','canonical_revert')))))
  OR (NEW.kind='CANONICAL' AND EXISTS(SELECT 1 FROM receipt_observations other
- JOIN manual_recovery_source src ON src.attempt_id=other.attempt_id AND src.operation_id=NEW.operation_id
+ JOIN manual_first_submission_bindings src ON src.attempt_id=other.attempt_id AND src.operation_id=NEW.operation_id
  WHERE other.id!=NEW.receipt_id AND other.canonical_state IN ('canonical_success','canonical_revert')))
  OR (NEW.kind='CANONICAL' AND EXISTS(SELECT 1 FROM manual_recovery_commands previous
  WHERE previous.receipt_id=NEW.receipt_id AND previous.kind='CANONICAL'
@@ -263,7 +273,7 @@ WHEN NEW.sequence!=-1 OR typeof(NEW.id)!='text' OR NEW.id IS NOT 'manual-recover
  AND manual_u256_cmp(NEW.effect_delta,json_extract(contract.contract_json,'$.minimum_output.units'))>=0)
  OR (json_extract(contract.contract_json,'$.output.resolution.side')='sell'
  AND NEW.effect_delta='-'||json_extract(contract.contract_json,'$.input.units'))))
- OR EXISTS(SELECT 1 FROM position_effects p JOIN manual_recovery_source src ON src.attempt_id=p.attempt_id
+ OR EXISTS(SELECT 1 FROM position_effects p JOIN manual_first_submission_bindings src ON src.attempt_id=p.attempt_id
  WHERE src.operation_id=NEW.operation_id AND (lower(p.asset)!=lower(NEW.effect_asset) OR p.state!='rolled_back'))))
  OR ((NEW.kind!='CANONICAL' OR NEW.receipt_status!=1) AND (NEW.effect_asset IS NOT NULL OR NEW.effect_delta IS NOT NULL))
 BEGIN SELECT RAISE(ABORT,'manual recovery requires exact retained source, phase and recovery lease'); END;
