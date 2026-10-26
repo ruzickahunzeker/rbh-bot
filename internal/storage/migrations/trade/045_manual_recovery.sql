@@ -1,6 +1,26 @@
 -- B: recovery of the retained exact MANUAL first submission, not a send grant.
 -- Existing 001..044 are immutable. No current authorization/TTL/control gate
 -- participates in historical identity or propagated-transaction recovery.
+-- This slice does not define a multi-generation wallet risk/reorg ledger.
+-- Refuse a conflicting pre-existing database; never cancel or relabel rows.
+CREATE TABLE manual_recovery_upgrade_check(
+ safe INTEGER NOT NULL CONSTRAINT manual_recovery_wallet_reuse_requires_review CHECK(safe=1)
+);
+INSERT INTO manual_recovery_upgrade_check(safe)
+SELECT CASE WHEN EXISTS(SELECT 1 FROM manual_nonce_claims retained
+ JOIN canary_risk_reservations active ON active.operation_id!=retained.operation_id AND active.state IN ('reserved','frozen')
+ JOIN dry_run_wallets wallet ON wallet.id=active.wallet_id
+ WHERE active.wallet_id=retained.wallet_id OR lower(wallet.address)=lower(retained.wallet_address)) THEN 0 ELSE 1 END;
+DROP TABLE manual_recovery_upgrade_check;
+
+CREATE VIEW manual_retained_wallet_claims AS
+SELECT operation_id,wallet_id,wallet_address FROM manual_nonce_claims;
+CREATE TRIGGER manual_recovery_no_wallet_reuse BEFORE INSERT ON manual_admission_commands
+WHEN EXISTS(SELECT 1 FROM manual_retained_wallet_claims retained WHERE retained.operation_id!=NEW.operation_id
+ AND (retained.wallet_id=json_extract(NEW.contract_json,'$.wallet_id')
+ OR lower(retained.wallet_address)=lower(json_extract(NEW.contract_json,'$.wallet_address'))))
+BEGIN SELECT RAISE(ABORT,'MANUAL_WALLET_REUSE_UNSUPPORTED'); END;
+
 CREATE VIEW manual_submission_history_source AS
 SELECT src.id AS request_id,src.principal_id,b.operation_id,b.validation_step_id,
  b.execution_step_id,b.wallet_id,b.wallet_address,q.attempt_id,q.nonce,

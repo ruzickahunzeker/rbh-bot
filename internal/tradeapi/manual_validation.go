@@ -144,6 +144,9 @@ func validationSource(ctx context.Context, q queryRow, id Identity, requestID st
 	return r, address, nil
 }
 func validationWallet(ctx context.Context, q queryRow, id Identity, p validationPolicy, r *chainquery.Resolution) error {
+	if err := checkManualWalletReusable(ctx, q, id); err != nil {
+		return err
+	}
 	var address string
 	var blocked bool
 	err := q.QueryRowContext(ctx, `SELECT w.address,EXISTS(SELECT 1 FROM execution_wallet_lanes WHERE wallet_id=w.id AND state!='idle') OR EXISTS(SELECT 1 FROM execution_reservations WHERE wallet_id=w.id AND status IN ('reserved','signed','frozen')) OR EXISTS(SELECT 1 FROM canary_risk_reservations WHERE wallet_id=w.id AND state IN ('reserved','frozen')) OR EXISTS(SELECT 1 FROM execution_steps WHERE wallet_id=w.id AND status IN ('nonce_reserved','signing','signed','submitted','broadcast_unknown','reconciling','manual_resolution')) FROM dry_run_wallets w JOIN canary_wallet_allowlist a ON a.wallet_id=w.id AND a.chain_id=4663 AND a.policy_version=? AND a.enabled=1 AND lower(a.address)=lower(w.address) WHERE w.id=? AND w.chain_id=4663 AND w.enabled=1`, p.Version, id.WalletID).Scan(&address, &blocked)

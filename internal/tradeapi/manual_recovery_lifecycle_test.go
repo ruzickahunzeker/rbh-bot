@@ -632,3 +632,82 @@ func TestManualRecoveryLeaseExpiryInMutationCommitWindowRollsBack(t *testing.T) 
 		t.Fatal("expiry did not roll back effect/audit/event together")
 	}
 }
+
+func TestManualRecoveryKnownUnsentRetainsFrozenOwnership(t *testing.T) {
+	f := newManualSubmissionFixture(t, "buy")
+	f.fake.result = manualTransportResult{deterministicUnsent: true}
+	sub, err := f.e.execute(context.Background(), f.id, f.request, f.permit.ID)
+	if err != nil || sub.State != "known_unsent" {
+		t.Fatal(sub, err)
+	}
+	db := f.e.verifier.store.db
+	var history, recoverable int
+	var lane, risk, usage string
+	if err := db.QueryRow(`SELECT (SELECT COUNT(*) FROM manual_submission_history_source WHERE submission_state='known_unsent'),
+ (SELECT COUNT(*) FROM manual_recovery_source),(SELECT state FROM execution_wallet_lanes),
+ (SELECT state FROM canary_risk_reservations),(SELECT state FROM canary_authorization_operation_usage)`).Scan(&history, &recoverable, &lane, &risk, &usage); err != nil || history != 1 || recoverable != 0 || lane != "frozen" || risk != "frozen" || usage != "FROZEN" {
+		t.Fatal("known-unsent became release/retry/recovery permission", history, recoverable, lane, risk, usage, err)
+	}
+	items, err := f.e.store.ListControlledRecoveryItems(context.Background())
+	if err != nil || len(items) != 0 || f.fake.calls != 1 {
+		t.Fatal("known-unsent discovered as an automatic retry", items, f.fake.calls, err)
+	}
+}
+
+func TestManualRecoveryRestartRediscoversSubmittedAndUnknown(t *testing.T) {
+	for _, state := range []string{"submitted", "broadcast_unknown"} {
+		t.Run(state, func(t *testing.T) {
+			f, _, backend, lease := manualRecoveryFixture(t, state, "buy")
+			decryptor := f.e.verifier.decryptor
+			if err := f.d.Close(); err != nil {
+				t.Fatal(err)
+			}
+			fresh, err := storage.Open(context.Background(), storage.TradeOwner, f.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer fresh.Close()
+			db, err := fresh.SQLDB(storage.TradeOwner)
+			if err != nil {
+				t.Fatal(err)
+			}
+			store, err := trade.NewStore(fresh)
+			if err != nil {
+				t.Fatal(err)
+			}
+			items, err := store.ListControlledRecoveryItems(context.Background())
+			if err != nil || len(items) != 1 || items[0].AttemptID != f.permit.AttemptID || items[0].TxHash != f.permit.TxHash || items[0].SubmissionState != state {
+				t.Fatal("restart did not rediscover exact durable submission", items, err)
+			}
+			if _, err := db.Exec(`UPDATE canary_worker_leases SET holder_id='restart-owner',lease_epoch=2 WHERE role='RECOVERY'`); err != nil {
+				t.Fatal(err)
+			}
+			lease.HolderID, lease.Epoch = "restart-owner", 2
+			var asset, delta string
+			if err := db.QueryRow(`SELECT json_extract(contract_json,'$.output.resolution.token.address'),json_extract(contract_json,'$.minimum_output.units') FROM manual_admission_commands`).Scan(&asset, &delta); err != nil {
+				t.Fatal(err)
+			}
+			recovery, err := trade.NewRecoveryServiceWithCipher(store, manualArtifactReadCipher{decryptor}, backend, manualRecoveryEffect{asset, delta}, trade.CanonicalPolicy{Confirmations: 1})
+			if err != nil {
+				t.Fatal(err)
+			}
+			querier := &manualRecoveryQuerier{evidence: trade.ControlledRecoveryEvidence{TxFound: true, ReceiptFound: true, NonceState: "PROPAGATED", EvidenceHash: strings.Repeat("c", 64), ObservedAt: time.Now()}}
+			worker, err := trade.NewControlledRecoveryWorker(store, recovery, querier, lease.Environment, lease.HolderID, lease.Epoch)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i := 0; i < 2; i++ {
+				if err := worker.RunOnce(context.Background()); err != nil {
+					t.Fatal("restarted worker could not reconcile durable work", err)
+				}
+			}
+			var receiptState, effectState string
+			if err := db.QueryRow(`SELECT canonical_state,effect_state FROM manual_recovery_current WHERE operation_id=?`, f.permit.OperationID).Scan(&receiptState, &effectState); err != nil || receiptState != "canonical_success" || effectState != "active" {
+				t.Fatal(receiptState, effectState, err)
+			}
+			if count(t, db, "manual_recovery_commands") != 2 || count(t, db, "transaction_submissions") != 1 || count(t, db, "transaction_attempts") != 1 || f.fake.calls != 1 {
+				t.Fatal("restart duplicated a submission/signature/position effect")
+			}
+		})
+	}
+}
