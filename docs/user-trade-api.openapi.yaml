@@ -75,7 +75,7 @@ paths:
           $ref: '#/components/responses/Error'
   /v1/trades/{request_id}:
     get:
-      summary: Query intake/rejection and historical validation/admission, not transaction outcome
+      summary: Query verified intake and execution history without authorizing an action
       parameters:
         - $ref: '#/components/parameters/RequestID'
       responses:
@@ -89,7 +89,7 @@ paths:
           $ref: '#/components/responses/Error'
   /v1/trades/{request_id}/events:
     get:
-      summary: Request-scoped intake/rejection audit only, not recovery service events
+      summary: Read caller-scoped durable lifecycle history, never command recovery or sending
       parameters:
         - $ref: '#/components/parameters/RequestID'
         - name: after
@@ -98,26 +98,49 @@ paths:
             type: integer
             minimum: 0
             maximum: 9223372036854775807
+          description: Exclusive request-scoped cursor; use the preceding response next_cursor, not a timestamp or another request cursor
       responses:
         '200':
-          description: Intake/rejection audit events and durable request-scoped next_cursor
+          description: >-
+            At most 100 append-only journal events in strictly increasing
+            request-scoped cursor order. MANUAL_ORDER_LIFECYCLE uses the durable
+            manual_lifecycle_events journal and preserves the original intake
+            sequence. API_REJECTION_ONLY remains the rejection scope. This is
+            recorded history, not recovery availability or action permission.
           content:
             application/json:
               schema:
                 type: object
+                required: [scope, events, next_cursor]
                 properties:
                   scope:
-                    enum: [API_REJECTION_ONLY, MANUAL_ORDER_INTAKE_ONLY]
+                    enum: [API_REJECTION_ONLY, MANUAL_ORDER_INTAKE_ONLY, MANUAL_ORDER_LIFECYCLE]
+                    description: MANUAL_ORDER_INTAKE_ONLY describes the historical C1-only response; journal-backed MANUAL responses use MANUAL_ORDER_LIFECYCLE
                   events:
                     type: array
+                    maxItems: 100
                     items:
                       type: object
+                      required: [cursor, type, reason_code, created_at]
                       properties:
-                        cursor: {type: integer}
-                        type: {enum: [USER_HTTP_TRADE_REJECTED, MANUAL_HTTP_ORDER_RECORDED]}
-                        reason_code: {enum: [SUBMISSION_DISABLED, VALIDATION_NOT_CONNECTED]}
+                        cursor:
+                          type: integer
+                          minimum: 1
+                          maximum: 9223372036854775807
+                          description: Per-request durable order, retained across restart; not a cross-request cursor
+                        type:
+                          type: string
+                          description: Verified durable event type; includes intake and source-bound submission/receipt/canonical/reorg lifecycle facts, not commands
+                          examples: [USER_HTTP_TRADE_REJECTED, MANUAL_HTTP_ORDER_RECORDED]
+                        reason_code:
+                          type: string
+                          description: Durable event reason, not intake-only or current execution permission
                         created_at: {type: string, format: date-time}
-                  next_cursor: {type: integer}
+                  next_cursor:
+                    type: integer
+                    minimum: 0
+                    maximum: 9223372036854775807
+                    description: Last event actually returned, or unchanged input after on an empty page; never advances over unseen events
         default:
           $ref: '#/components/responses/Error'
   /v1/capabilities:

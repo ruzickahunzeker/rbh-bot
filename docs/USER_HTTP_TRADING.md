@@ -236,10 +236,29 @@ are not evidence of actual recovery; that acceptance requires B's source-bound
 reconciliation tests and the integrated HTTP recovery harness.
 
 All require Bearer auth and return only the configured caller/wallet scope.
-Queries return 200 for a stored rejection. Events declare API_REJECTION_ONLY or
-MANUAL_ORDER_INTAKE_ONLY according to their stored source. Lifecycle events
-and recovery health are not covered by those scopes.
-AUTOINCREMENT cursor is preserved across SQLite reopen and VACUUM. Capabilities
+Queries return 200 for a stored rejection. `API_REJECTION_ONLY` remains the
+rejection-event scope. The integrated MANUAL journal response uses
+`MANUAL_ORDER_LIFECYCLE`; the former `MANUAL_ORDER_INTAKE_ONLY` scope described
+the historical C1-only implementation, not the completed lifecycle journal.
+
+MANUAL lifecycle events come from the durable append-only
+`manual_lifecycle_events` journal, not a timestamp-sorted union of unrelated
+tables. The original intake sequence is preserved. Later source-bound lifecycle
+events append in strictly increasing per-request cursor order with the
+corresponding durable transition. Submission, receipt, canonical, rollback and
+reapply events are observations, never new execution or retry commands.
+
+Each page returns at most 100 events with `cursor > after`, ordered by cursor.
+Poll with the response's `next_cursor` for the same request. It is the last
+event actually returned; an empty page leaves it equal to the input `after`.
+Thus an empty poll must not skip a later transition. Do not derive cursors from
+timestamps, combine cursors from different requests or assume row IDs in other
+tables are journal cursors. Cursor ordering survives SQLite close/reopen and
+later appends. Journal history does not claim that a recovery worker is healthy
+or available. Original C1 evidence is historical and is not retroactively
+upgraded by the new scope.
+
+Capabilities
 marks missing validation/query/execution integrations instead of claiming live
 readiness. Wallet listing reads the durable ID/address binding; it is not a
 balance query. Balances/token metadata/reference fees are not implemented here.

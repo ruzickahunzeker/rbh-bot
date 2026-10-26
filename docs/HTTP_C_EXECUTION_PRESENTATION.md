@@ -106,3 +106,28 @@ responses for corrupt history; all three foreign-identity cases passed. The
 coordinator-owned immutable-identity reader is the required integration fix.
 This deliberately failing baseline run is not independent acceptance of that
 fix. The command used the same offline, read-only Go container setup as above.
+
+## Lifecycle event presentation contract
+
+The coordinator-owned event reader consumes `manual_lifecycle_events` and
+reports `scope=MANUAL_ORDER_LIFECYCLE` for journal-backed MANUAL history.
+`API_REJECTION_ONLY` is retained for recorded rejections. The older
+`MANUAL_ORDER_INTAKE_ONLY` scope belongs to the historical C1 response and is
+retained in the OpenAPI vocabulary for that history, not claimed as lifecycle
+coverage by the old evidence.
+
+The journal is append-only and request-scoped, preserving the original intake
+sequence and ordering later transition events strictly after it. Lifecycle
+mutation and its event witness commit together; presentation does not invent
+events by merging table timestamps or own the underlying transition. Each page
+contains at most 100 events, with cursor strictly greater than `after`.
+`next_cursor` advances only to the last event actually returned. An empty page
+returns the input cursor unchanged, so subsequent polling can discover a later
+append. Cursors survive restart and are not interchangeable across requests.
+
+This contract does not infer recovery health, enable execution/send/replay or
+grant permission from a journal record. Actual append/rollback/reapply,
+restart ordering, corrupt provenance and cursor-pagination acceptance must be
+validated against B's integrated additive migration and source-bound writer.
+The pre-integration C baseline cannot run those event acceptance tests, and no
+event-test PASS is claimed by these documentation changes.
