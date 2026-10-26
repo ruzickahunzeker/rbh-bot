@@ -71,6 +71,42 @@ type httpExecutionRecoveryFixture struct {
 	asset      string
 }
 
+func TestHTTPCExecutionRecoveryRejectsContradictoryTradeAmounts(t *testing.T) {
+	for _, fault := range []string{"wrong_input", "below_minimum_output"} {
+		t.Run(fault, func(t *testing.T) {
+			f := newHTTPExecutionRecoveryFixture(t, "broadcast_unknown", types.ReceiptStatusSuccessful)
+			data := f.backend.receipt.Logs[0].Data
+			switch fault {
+			case "wrong_input":
+				value := new(big.Int).SetBytes(data[:32])
+				value.Add(value, big.NewInt(1)).FillBytes(data[:32])
+			case "below_minimum_output":
+				var minimum string
+				if err := f.submission.e.verifier.store.db.QueryRow(`SELECT json_extract(contract_json,'$.minimum_output.units') FROM manual_admission_commands WHERE operation_id=?`, f.submission.permit.OperationID).Scan(&minimum); err != nil {
+					t.Fatal(err)
+				}
+				value, ok := new(big.Int).SetString(minimum, 10)
+				if !ok || value.Cmp(big.NewInt(1)) <= 0 {
+					t.Fatal("invalid fixture minimum")
+				}
+				value.Sub(value, big.NewInt(1)).FillBytes(data[32:64])
+			}
+			if err := f.service.ReconcileWithLease(context.Background(), f.submission.permit.OperationID, f.lease); !errors.Is(err, trade.ErrArtifactIntegrity) {
+				t.Fatal("contradictory event produced a canonical outcome", err)
+			}
+			store := f.submission.e.verifier.store
+			if count(t, store.db, "position_effects") != 0 {
+				t.Fatal("contradictory event created a position effect")
+			}
+			var lane, risk string
+			if err := store.db.QueryRow(`SELECT l.state,r.state FROM execution_wallet_lanes l JOIN canary_risk_reservations r ON r.operation_id=l.operation_id WHERE l.operation_id=?`, f.submission.permit.OperationID).Scan(&lane, &risk); err != nil || lane != "frozen" || risk != "frozen" {
+				t.Fatal("contradictory event released ambiguity", lane, risk, err)
+			}
+			f.assertHTTPFacts(t, "observed", "")
+		})
+	}
+}
+
 func newHTTPExecutionRecoveryFixture(t *testing.T, outcome string, receiptStatus uint64) httpExecutionRecoveryFixture {
 	t.Helper()
 	f := newManualSubmissionFixture(t, "buy")

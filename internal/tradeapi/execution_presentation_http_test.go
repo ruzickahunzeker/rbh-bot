@@ -131,8 +131,14 @@ func TestHTTPCExecutionSubmissionOutcomesRemainHistoricalAndFrozen(t *testing.T)
 			if err := store.db.QueryRow(`SELECT l.state,r.state FROM execution_wallet_lanes l JOIN canary_risk_reservations r ON r.operation_id=l.operation_id WHERE l.operation_id=?`, f.permit.OperationID).Scan(&lane, &reservation); err != nil {
 				t.Fatal(err)
 			}
-			if lane != "frozen" || reservation != "frozen" || f.fake.calls != 1 || admittedDatabaseSnapshot(t, store.db) != before {
-				t.Fatal("history/duplicate released frozen ownership or caused economic work", lane, reservation, f.fake.calls)
+			wantLane, wantReservation := "frozen", "frozen"
+			if tc.state == "submitted" {
+				// A successful submission retains its original signed/reserved
+				// pending lane. Only ambiguous/rejected outcomes freeze it.
+				wantLane, wantReservation = "signed", "reserved"
+			}
+			if lane != wantLane || reservation != wantReservation || f.fake.calls != 1 || admittedDatabaseSnapshot(t, store.db) != before {
+				t.Fatal("history/duplicate changed retained ownership or caused economic work", lane, reservation, f.fake.calls)
 			}
 			capabilities := call(h, http.MethodGet, "/v1/capabilities", "", "")
 			var flags map[string]any

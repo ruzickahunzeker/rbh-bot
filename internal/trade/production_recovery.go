@@ -228,18 +228,31 @@ func (r *PonsCurveEffectResolver) ResolvePositionEffect(ctx context.Context, art
 	}
 	var curve, token, quote common.Address
 	var direction string
-	if strings.HasPrefix(artifact.Operation, "manual_op_") {
-		var curveText, tokenText, protocol string
+	var manual bool
+	if err := r.store.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM manual_http_order_sources WHERE operation_id=?) OR EXISTS(SELECT 1 FROM manual_nonce_claims WHERE operation_id=? OR attempt_id=?)`, artifact.Operation, artifact.Operation, artifact.AttemptID).Scan(&manual); err != nil {
+		return PositionEffect{}, err
+	}
+	var expectedInput, minimumOutput *big.Int
+	if manual || strings.HasPrefix(artifact.Operation, "manual_op_") {
+		var curveText, tokenText, protocol, wallet, input, minimum string
 		if err := r.store.db.QueryRowContext(ctx, `SELECT json_extract(c.contract_json,'$.output.resolution.token.curve'),
  json_extract(c.contract_json,'$.output.resolution.token.address'),json_extract(c.contract_json,'$.output.resolution.token.protocol'),
- json_extract(c.contract_json,'$.output.resolution.side') FROM manual_recovery_source src
+ json_extract(c.contract_json,'$.output.resolution.side'),src.wallet_address,src.input_amount,
+ json_extract(c.contract_json,'$.minimum_output.units') FROM manual_recovery_source src
  JOIN manual_admission_commands c ON c.operation_id=src.operation_id
- WHERE src.operation_id=? AND src.attempt_id=? AND src.tx_hash=? AND src.wallet_id=?`,
-			artifact.Operation, artifact.AttemptID, artifact.TxHash, artifact.WalletID).Scan(&curveText, &tokenText, &protocol, &direction); err != nil || protocol != "pons_v2_curve" {
+ WHERE src.operation_id=? AND src.attempt_id=? AND src.tx_hash=? AND src.wallet_id=? AND src.execution_step_id=? AND src.nonce=?`,
+			artifact.Operation, artifact.AttemptID, artifact.TxHash, artifact.WalletID, artifact.StepID, fmt.Sprint(artifact.Nonce)).Scan(&curveText, &tokenText, &protocol, &direction, &wallet, &input, &minimum); err != nil || protocol != "pons_v2_curve" {
 			return PositionEffect{}, ErrArtifactIntegrity
 		}
+		if err := validateRecoveryReceipt(receipt, common.HexToHash(artifact.TxHash)); err != nil {
+			return PositionEffect{}, err
+		}
+		var inputOK, minimumOK bool
+		expectedInput, inputOK = new(big.Int).SetString(input, 10)
+		minimumOutput, minimumOK = new(big.Int).SetString(minimum, 10)
 		curve, token = common.HexToAddress(curveText), common.HexToAddress(tokenText)
-		if curve != common.HexToAddress(artifact.To) || curve == (common.Address{}) || token == (common.Address{}) || (direction != "buy" && direction != "sell") {
+		if !inputOK || !minimumOK || expectedInput.Sign() <= 0 || minimumOutput.Sign() <= 0 || !common.IsHexAddress(artifact.From) ||
+			common.HexToAddress(wallet) != common.HexToAddress(artifact.From) || curve != common.HexToAddress(artifact.To) || curve == (common.Address{}) || token == (common.Address{}) || (direction != "buy" && direction != "sell") {
 			return PositionEffect{}, ErrArtifactIntegrity
 		}
 	} else {
@@ -265,6 +278,9 @@ func (r *PonsCurveEffectResolver) ResolvePositionEffect(ctx context.Context, art
 		trade, ok := event.Data.(parser.CurveTrade)
 		wallet := common.HexToAddress(artifact.From)
 		if !ok || trade.AmountIn == nil || trade.AmountOut == nil || trade.AmountIn.Sign() <= 0 || trade.AmountOut.Sign() <= 0 || trade.BuyerOrSeller != wallet || trade.Recipient != wallet {
+			return PositionEffect{}, ErrArtifactIntegrity
+		}
+		if expectedInput != nil && (trade.AmountIn.Cmp(expectedInput) != 0 || trade.AmountOut.Cmp(minimumOutput) < 0) {
 			return PositionEffect{}, ErrArtifactIntegrity
 		}
 		var candidate *big.Int
