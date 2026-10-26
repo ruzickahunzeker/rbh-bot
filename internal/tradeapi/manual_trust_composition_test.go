@@ -995,3 +995,144 @@ func TestA3FinalClockSampleAfterArtifactAuthentication(t *testing.T) {
 	}
 	a3ClockRows(t, f.s, 2, false)
 }
+
+// Exercise each profile bound independently. These helper-only fixtures choose
+// distinct nonce/runtime starts so one older observation cannot mask another
+// comparison; they do not claim to reproduce the writer's observation order.
+func TestA3ProfileFreshnessNanosecondBounds(t *testing.T) {
+	for _, kind := range []string{"nonce_wall", "runtime_wall", "runtime_ticks"} {
+		for _, uncertainty := range []time.Duration{0, time.Nanosecond} {
+			for _, offset := range []time.Duration{-time.Nanosecond, 0, time.Nanosecond} {
+				t.Run(fmt.Sprintf("%s/error=%s/offset=%s", kind, uncertainty, offset), func(t *testing.T) {
+					f := a3TrustFixture(t)
+					g, err := loadManualSigningGate(context.Background(), f.s.db, f.h.identity, f.r.RequestID, f.scope, &manualSigningClock{now: func() time.Time { return testNow }})
+					if err != nil {
+						t.Fatal(err)
+					}
+					trust, err := f.b.session(context.Background(), f.h.identity, f.scope)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if err := trust.observe(g); err != nil {
+						t.Fatal(err)
+					}
+					start, nonceAt := testNow, testNow
+					upper := testNow.Add(f.b.profile.maxAge + offset)
+					switch kind {
+					case "nonce_wall":
+						start = start.Add(100 * time.Nanosecond)
+					case "runtime_wall":
+						nonceAt = nonceAt.Add(100 * time.Nanosecond)
+					case "runtime_ticks":
+						upper = testNow.Add(200 * time.Nanosecond)
+					}
+					trust.observedStarted.wall = start.Format(time.RFC3339Nano)
+					f.b.nonce.(*localNonceObserver).change = func(o *manualnonce.Observation) { o.ObservedAt = nonceAt.Format(time.RFC3339Nano) }
+					o, err := f.b.nonce.ObserveManualNonce(context.Background(), g.observation)
+					if err != nil {
+						t.Fatal(err)
+					}
+					f.clock.uncertainty = uncertainty
+					f.clock.move(upper.Add(-uncertainty))
+					if kind == "runtime_ticks" {
+						// sample() adds 1ns, so this selects the exact elapsed bound.
+						f.clock.ticks = trust.observedStarted.ticks + f.b.profile.maxAge + offset - time.Nanosecond
+					}
+					before := admittedDatabaseSnapshot(t, f.s.db)
+					raw := manualnonce.Encode(o)
+					err = trust.check(g, raw, manualnonce.Digest(raw), g.facts.ClaimedAt)
+					wantCode := "SIGNING_TRUST_RUNTIME_OBSERVATION_STALE"
+					if kind == "nonce_wall" {
+						wantCode = "SIGNING_TRUST_OBSERVATION_INVALID"
+					}
+					if offset < 0 {
+						if err != nil {
+							t.Fatal("deadline minus 1ns rejected", err)
+						}
+					} else if err == nil || inputFailureCode(err) != wantCode {
+						t.Fatal("deadline equality/after accepted or masked", err, wantCode)
+					}
+					if f.signer.calls.Load() != 0 || before != admittedDatabaseSnapshot(t, f.s.db) || f.b.health.unhealthy.Load() {
+						t.Fatal("freshness check mutated state, signed, or invented a clock fault")
+					}
+					a3ClockRows(t, f.s, 1, false)
+				})
+			}
+		}
+	}
+}
+
+// The actual original writer must reject equality before signing and roll back
+// an already-staged artifact at its final boundary, retaining only its marker.
+func TestA3ProfileFreshnessWriterBoundariesNoResign(t *testing.T) {
+	for _, kind := range []string{"nonce_wall", "runtime_ticks"} {
+		for _, stage := range []string{"before_sign", "before_artifact_commit"} {
+			for _, offset := range []time.Duration{0, time.Nanosecond} {
+				t.Run(fmt.Sprintf("%s/%s/offset=%s", kind, stage, offset), func(t *testing.T) {
+					f := a3TrustFixture(t)
+					f.clock.uncertainty = time.Nanosecond
+					var nonceAt time.Time
+					var startedTicks time.Duration
+					atBoundary := false
+					f.clock.change = func(c *runtimeTestClock) {
+						if !atBoundary {
+							c.wall = c.wall.Add(10 * time.Nanosecond)
+							return
+						}
+						if kind == "nonce_wall" {
+							// The upper uncertainty bound, not wall, hits the deadline.
+							c.wall = nonceAt.Add(f.b.profile.maxAge + offset - c.uncertainty)
+						} else {
+							c.wall = c.wall.Add(10 * time.Nanosecond)
+							c.ticks = startedTicks + f.b.profile.maxAge + offset - time.Nanosecond
+						}
+					}
+					f.b.nonce.(*localNonceObserver).change = func(o *manualnonce.Observation) {
+						f.clock.mu.Lock()
+						defer f.clock.mu.Unlock()
+						nonceAt = f.clock.wall.Add(time.Nanosecond)
+						o.ObservedAt = nonceAt.Format(time.RFC3339Nano)
+					}
+					f.b.runtime.(*runtimeTestObserver).during = func() {
+						f.clock.mu.Lock()
+						defer f.clock.mu.Unlock()
+						startedTicks = f.clock.ticks
+					}
+					f.w.checkpoint = func(at string) error {
+						if at == stage {
+							atBoundary = true
+						}
+						return nil
+					}
+					got, err := f.w.sign(context.Background(), f.h.identity, f.r.RequestID, f.scope)
+					wantCode := "SIGNING_TRUST_RUNTIME_OBSERVATION_STALE"
+					if kind == "nonce_wall" {
+						wantCode = "SIGNING_TRUST_OBSERVATION_INVALID"
+					}
+					wantCalls := int64(0)
+					if stage == "before_artifact_commit" {
+						wantCalls = 1
+					}
+					if !atBoundary || err == nil || inputFailureCode(err) != wantCode || got != (manualLocalSigningResult{}) || f.signer.calls.Load() != wantCalls {
+						t.Fatal("freshness boundary not enforced", atBoundary, err, f.signer.calls.Load())
+					}
+					if count(t, f.s.db, "manual_signing_intents") != 1 || count(t, f.s.db, "manual_signed_artifact_commands") != 0 || f.b.health.unhealthy.Load() {
+						t.Fatal("lost marker, committed expired artifact, or false clock fault")
+					}
+					a3ClockRows(t, f.s, 2, false)
+					before := admittedDatabaseSnapshot(t, f.s.db)
+					if retry, err := f.w.sign(context.Background(), f.h.identity, f.r.RequestID, f.scope); err != nil || !retry.Duplicate {
+						t.Fatal("same-process history", err)
+					}
+					_, s := bindingReopen(t, f.d, f.path)
+					bundle := *f.b
+					bundle.store = s
+					if history, err := bundle.signingWriter().sign(context.Background(), f.h.identity, f.r.RequestID, f.scope); err != nil || !history.Duplicate || before != admittedDatabaseSnapshot(t, s.db) || f.signer.calls.Load() != wantCalls {
+						t.Fatal("reopen resigned or changed durable state", err)
+					}
+					a3ClockRows(t, s, 2, false)
+				})
+			}
+		}
+	}
+}

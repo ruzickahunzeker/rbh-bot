@@ -170,13 +170,13 @@ AND manual_time_cmp(?,w.created_at)>=0 AND manual_time_cmp(?,c.created_at)>=0 AN
 	if raw != "" {
 		nonceEvidence, e := manualnonce.Verify(raw, digest, f.Nonce, g.observation, hi.UTC().Format(time.RFC3339Nano))
 		at, ae := canonicalManualTime(nonceEvidence.ObservedAt)
-		if e != nil || ae != nil || lo.Before(at) || !hi.Before(at.Add(manualnonce.MaxObservationAge)) || hi.Sub(at) > t.bundle.profile.maxAge {
+		if e != nil || ae != nil || lo.Before(at) || !hi.Before(at.Add(manualnonce.MaxObservationAge)) || !hi.Before(at.Add(t.bundle.profile.maxAge)) {
 			return rejectManualInput("SIGNING_TRUST_OBSERVATION_INVALID")
 		}
 		o := t.observation
 		p := t.bundle.profile.process
 		start, se := canonicalManualTime(t.observedStarted.wall)
-		if se != nil || s.ticks < t.observedStarted.ticks || s.ticks-t.observedStarted.ticks > t.bundle.profile.maxAge || hi.Sub(start) > t.bundle.profile.maxAge {
+		if se != nil || s.ticks < t.observedStarted.ticks || s.ticks-t.observedStarted.ticks >= t.bundle.profile.maxAge || !hi.Before(start.Add(t.bundle.profile.maxAge)) {
 			return rejectManualInput("SIGNING_TRUST_RUNTIME_OBSERVATION_STALE")
 		}
 		if o.ChainID != 4663 || o.ProfileID != p.networkProfile || o.Environment != scope.Environment || o.NetworkCheckpoint != p.networkCheckpoint || o.Curve != f.To || o.RuntimeCodeHash != f.RuntimeCodeHash || o.Quote.Number != f.QuoteBlockNumber || o.Quote.Hash != f.QuoteBlockHash || o.Anchor.Number < o.Quote.Number || len(o.Anchor.Hash) != 66 || !strings.HasPrefix(o.Anchor.Hash, "0x") || !manualHex(strings.TrimPrefix(o.Anchor.Hash, "0x"), 64) || strings.Trim(strings.TrimPrefix(o.Anchor.Hash, "0x"), "0") == "" || o.EvidenceHash != o.Digest() {

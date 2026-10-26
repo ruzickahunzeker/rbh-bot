@@ -51,6 +51,20 @@ signed. It samples time again AFTER that authentication/decryption. A controlled
 decryptor advancing time to expiry proves a pre-crypto timestamp cannot pass
 the final artifact boundary. No TTL extension, sleep, resign or new nonce.
 
+## Freshness hardening after independent review
+
+The independent implementation review identified that `profile.maxAge` is an
+observation freshness deadline, so equality must be rejected just like the
+global nonce observation deadline. The hardening slice keeps all older owners
+and boundaries unchanged and makes the new pre-sign helper use strict upper
+bounds for nonce wall age, runtime wall age, and runtime monotonic elapsed age.
+The `-1ns`, equality, and `+1ns` cases are covered with zero uncertainty and
+positive uncertainty. Writer-level checks prove equality rejects before a
+signer call, while an already invoked signer followed by an expired final
+check leaves only the original marker, rolls back the artifact/healthy event,
+and never signs again on duplicate or reopen. The legacy verifier and nonce
+owner retain their existing semantics; this change is limited to the A3 helper.
+
 ## Clock transactions, failure and restart
 
 The initial read does not advance the floor. The original intent transaction
@@ -86,7 +100,7 @@ These are software process exits, not power-loss/storage durability proof.
 
 ## Test mapping and honest limits
 
-Sixteen new top-level tests reside in manual_trust_composition_test.go:
+Eighteen new top-level tests reside in manual_trust_composition_test.go:
 
 | Test suffix after TestA3 | Main evidence |
 | --- | --- |
@@ -106,6 +120,8 @@ Sixteen new top-level tests reside in manual_trust_composition_test.go:
 | SignerCipherFailureRetainsOriginalMarker | Error/panic/wrong nonce/timeout/cipher failure: one original fixture invocation, marker retained, never re-sign |
 | DatabaseUnavailableDuringFaultPersistence | Actual DB close after release; unhealthy flag/error retained, no false durable latch on reopen |
 | FinalClockSampleAfterArtifactAuthentication | Time crosses expiry during decrypt; artifact/final healthy event roll back, original signature ambiguity retained |
+| ProfileFreshnessNanosecondBounds | A3 nonce/runtime wall and monotonic maxAge -1ns/equality/+1ns with zero/positive uncertainty |
+| ProfileFreshnessWriterBoundariesNoResign | Strict equality rejection before sign and after signer; marker retained, artifact rolled back, duplicate/reopen do not resign |
 
 Two existing test guards get only the exact accepted new bundle-file exception;
 all their other checks remain, plus a new whole-tree lexical restriction on the
