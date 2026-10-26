@@ -1,0 +1,19 @@
+{
+  "scope": "A4_OPERATOR_ONLY_DURABLE_MANUAL_AUTHORIZATION",
+  "status": "A4_AUTHORIZATION_SCOPE_READY_FOR_REVIEW",
+  "base_head": "0281d4fa91fe83d2677a94dc03dd4ca0d2d19f15",
+  "scope_document": {"path": "docs/HTTP_A4_AUTHORIZATION_SCOPE.md", "sha256": "beae1c2f4bec50027de70519cfe57581556cbe3db6d66b0156b9450c4f377cc6"},
+  "proposed_migration": "046_manual_operator_authority",
+  "state_owner": "canary_runtime_authorizations",
+  "existing_guard_preserved": "manual_b1_no_arm",
+  "operator_authority": "OUT_OF_BAND_ED25519_TRUST_ROOT_CANONICAL_SIGNED_ENVELOPE",
+  "approval_bindings": ["build_sha", "release_id", "deployment_id", "environment", "chain_id", "wallet_id", "wallet_address", "policy_version", "policy_hash", "gate_evidence_set_hash", "authorization_epoch", "max_operations", "max_total_input", "source_hash"],
+  "implementation": "NOT_STARTED",
+  "independent_scope_review": "PENDING",
+  "formal_closeout": "NOT_PERFORMED",
+  "prohibited_paths": {"http_grant": false, "signer": false, "submission": false, "raw_send": false, "permit_consume": false, "mainnet": false, "live": false},
+  "A3": "PASS",
+  "production_broadcast": "NOT_CONNECTED",
+  "controlled_canary_authorization": "NOT_GRANTED",
+  "release_ready": false
+}
