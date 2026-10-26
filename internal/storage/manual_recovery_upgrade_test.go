@@ -133,7 +133,7 @@ func TestManualRecovery045UpgradeBackfillAndAtomicRollback(t *testing.T) {
 }
 
 func TestManualRecovery045RejectsConflictingImportedWalletHistory(t *testing.T) {
-	for _, conflict := range []string{"foreign_active_risk", "normalized_address_active_risk", "two_retained_claims"} {
+	for _, conflict := range []string{"foreign_active_risk", "normalized_address_active_risk", "two_retained_claims", "missing_registry_same_wallet"} {
 		t.Run(conflict, func(t *testing.T) {
 			d := openTradeThrough044(t, filepath.Join(t.TempDir(), "conflicting-import.db"))
 			// Model a nonstandard imported/pre-hardening store. These rows are
@@ -145,7 +145,7 @@ func TestManualRecovery045RejectsConflictingImportedWalletHistory(t *testing.T) 
 			if err != nil {
 				t.Fatal(err)
 			}
-			rows, err := conn.QueryContext(ctx, `SELECT name,sql FROM sqlite_master WHERE type='trigger' AND tbl_name IN ('manual_nonce_claims','canary_risk_reservations') ORDER BY name`)
+			rows, err := conn.QueryContext(ctx, `SELECT name,sql FROM sqlite_master WHERE type='trigger' AND tbl_name IN ('manual_nonce_claims','canary_risk_reservations','dry_run_wallets') ORDER BY name`)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -187,6 +187,11 @@ func TestManualRecovery045RejectsConflictingImportedWalletHistory(t *testing.T) 
 			}
 			if err != nil {
 				t.Fatal(err)
+			}
+			if conflict == "missing_registry_same_wallet" {
+				if _, err := conn.ExecContext(ctx, `DELETE FROM dry_run_wallets WHERE id='retained-wallet'`); err != nil {
+					t.Fatal(err)
+				}
 			}
 			for _, item := range triggers {
 				if _, err := conn.ExecContext(ctx, item.sql); err != nil {
