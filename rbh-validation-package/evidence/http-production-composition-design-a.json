@@ -1,0 +1,104 @@
+{
+  "scope": "A_MAINLINE_PRODUCTION_COMPOSITION_DESIGN_ONLY",
+  "branch": "http-production-composition-plan",
+  "base": "80ad4e474c3016f8686dd9d9ca096302ae2cf10a",
+  "base_is_formal_main": false,
+  "status": "A_PRODUCTION_COMPOSITION_DESIGN_READY_FOR_REVIEW",
+  "shared_contract_status": "ABC_SHARED_CONTRACT_READY_FOR_REVIEW",
+  "shared_contract_joint_acceptance": "NOT_PERFORMED",
+  "independent_review": "NOT_PERFORMED",
+  "implementation": "NOT_STARTED",
+  "documents": [
+    {
+      "path": "docs/HTTP_ABC_SHARED_CONTRACT.md",
+      "sha256": "b4afcd4928542ea3e94c10e6eaead8b355558d2a1d9928cd383b95a52b1b660f"
+    },
+    {
+      "path": "docs/HTTP_PRODUCTION_COMPOSITION_PLAN.md",
+      "sha256": "3ecaf4fcf587ba4389fb7435ac0d9cd50e791105ea48455fdbc746a3c2f4e8f2"
+    }
+  ],
+  "read_only_C_reference": {
+    "branch": "http-c-production-http-contract",
+    "head": "9715887a4757eb22041b55fa0f842e5838359019",
+    "path": "docs/HTTP_PRODUCTION_USER_CONTRACT_PROPOSAL.md",
+    "sha256": "53e0b0e45b2437cfb71ccfa38c01b012764d45791846f834086c2bcd995130ac",
+    "merged_or_modified_by_A": false,
+    "proposed_10s_default_30s_max_and_202_timeout_accepted_by_A": false
+  },
+  "inspected_baseline_source": [
+    {
+      "path": "internal/app/run.go",
+      "sha256": "e4a2c06d89341473edc4ba6d9715413a1a1dd29f091a976a332096c7e6f094d0",
+      "finding": "RECOVERY_GRAPH_HAS_NO_SIGNER_BUT_PROCESS_STARTUP_STILL_REQUIRES_EXECUTION_KEY"
+    },
+    {
+      "path": "internal/app/user_trade_api.go",
+      "sha256": "c44c2c0f08c7e538b7d712a75599396702820c5f0f1689ab04b3c06234767014",
+      "finding": "EXISTING_LOCAL_UDS_REGISTRATION_STOPS_AT_INTAKE_VALIDATION_ADMISSION"
+    },
+    {
+      "path": "internal/tradeapi/http.go",
+      "sha256": "5cba71f843fb5e1a20c0bc0479f5d67636266f378ffd48aee28ce903a6c2c734",
+      "finding": "LEGACY_OPTIONS_CANNOT_ENABLE_EXECUTION_SIGNING_SEND"
+    },
+    {
+      "path": "internal/tradeapi/manual_submission_executor.go",
+      "sha256": "bdd021d8ff48d4c0da71805feb5e0147ce1c5fb6f4fb44cd18d8e1454c1d1a50",
+      "finding": "PRIVATE_TRUSTED_LOCAL_TRANSPORT_NOT_EXISTING_PRODUCTION_ADAPTER_MARKER_AMBIGUITY_PRESERVED"
+    },
+    {
+      "path": "internal/trade/production_composition.go",
+      "sha256": "b166f2116dbb58cc9de5eb71cb580f7167f49b7e263632166509239986651c13",
+      "finding": "DISABLED_ONLY_ADMISSION_AND_SEND_FALSE_INDEPENDENT_OPTIONAL_RECOVERY"
+    },
+    {
+      "path": "internal/storage/migrations/trade/018_manual_risk_units.sql",
+      "sha256": "2863b944c60d9bccaad999c9d89ac9f5ec201f634cb1dabba1e1865b7bbb53dd",
+      "finding": "DECLARED_MANUAL_NO_ARM_GUARD_REMAINS_NO_DEPLOYABLE_GRANT_PROTOCOL_IN_THIS_BATCH"
+    }
+  ],
+  "design_deliverables": {
+    "durable_source_and_original_state_owner_contract": true,
+    "typed_first_admission_handoff_not_public_duplicate_or_JSON_ticket": true,
+    "exact_future_component_surface_and_A_B_C_file_ownership": true,
+    "separate_execution_and_recovery_dependency_graphs": true,
+    "legacy_cipher_encrypt_method_limit_acknowledged": true,
+    "default_disabled_config_deployment_identity_and_grant_boundaries": true,
+    "three_dimensional_readiness_startup_shutdown_plan": true,
+    "no_automatic_scheduler_or_resume_promise": true,
+    "future_evidence_matrix_and_individual_design_review_gate": true
+  },
+  "open_design_decisions": [
+    "B_WALLET_GENERATION_ASSET_DEPENDENCY_AND_C07_COMPATIBILITY",
+    "C_A_PRODUCTION_RESPONSE_WAIT_BUDGET_AND_TIMEOUT_MAPPING",
+    "PRODUCTION_CUSTODY_MANIFEST_CLOCK_AND_EXACT_BYTE_TRANSPORT_CONTRACTS",
+    "SEPARATELY_REVIEWED_OPERATOR_AUTHORIZATION_PROTOCOL_WITH_NO_ARM_GUARD_INTACT_UNTIL_APPROVED",
+    "RECOVERY_ONLY_PROCESS_STARTUP_WITHOUT_SIGNER_DEPENDENCY"
+  ],
+  "validation": {
+    "kind": "DOCS_SOURCE_TRACEABILITY_AND_MANIFEST_ONLY_NOT_RUNTIME_ACCEPTANCE",
+    "git_diff_check": "PASS",
+    "production_tests_schema_config_startup_CI_diff_against_base": "EMPTY",
+    "go_tests_build_race_vet_staticcheck": "NOT_RERUN_DOCS_ONLY",
+    "prior_local_POST_scoped_PASS_repeated_or_promoted": false,
+    "remote_CI": "NOT_RUN",
+    "validation_package": "PASS_192_FILES"
+  },
+  "boundaries": {
+    "production_code_or_tests_modified": false,
+    "schema_or_migration_modified": false,
+    "existing_migrations_001_through_045_immutable": true,
+    "B_C_branches_or_uncommitted_wallet_design_modified": false,
+    "legacy_wallet_design_5329f28_merged": false,
+    "first_order_harness_reimplemented": false,
+    "production_HTTP_execution_connected": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "batch_performed_real_sign_send_replay_or_mainnet_call": false,
+    "batch_counts_are_runtime_prohibited_path_test_evidence": false,
+    "push_PR_merge_or_formal_closeout": false
+  }
+}
