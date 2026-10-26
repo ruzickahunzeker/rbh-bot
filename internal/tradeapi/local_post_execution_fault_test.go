@@ -109,7 +109,7 @@ func TestLocalPostExecutionConcurrentTwoHandleDuplicates(t *testing.T) {
 			waiting = false
 		case w := <-results:
 			r := localPostRecord(t, w, 202)
-			if !r.Duplicate {
+			if !r.Duplicate || r.Admission == nil || r.Admission.Status != "HISTORICAL_ADMISSION_NOT_PERMISSION" {
 				t.Fatal("original completed before entering its execution barrier")
 			}
 			duplicates++
@@ -125,7 +125,7 @@ func TestLocalPostExecutionConcurrentTwoHandleDuplicates(t *testing.T) {
 		select {
 		case w := <-results:
 			r := localPostRecord(t, w, 202)
-			if !r.Duplicate {
+			if !r.Duplicate || r.Admission == nil || r.Admission.Status != "HISTORICAL_ADMISSION_NOT_PERMISSION" {
 				t.Fatal("more than one fresh intake")
 			}
 		case <-time.After(2 * time.Minute):
@@ -139,7 +139,7 @@ func TestLocalPostExecutionConcurrentTwoHandleDuplicates(t *testing.T) {
 	select {
 	case w := <-results:
 		r := localPostRecord(t, w, 202)
-		if r.Duplicate || r.Execution.SubmissionState != "submitted" {
+		if r.Execution.SubmissionState != "submitted" {
 			t.Fatal("winner did not execute")
 		}
 		f.assertOne(t, r, 1)

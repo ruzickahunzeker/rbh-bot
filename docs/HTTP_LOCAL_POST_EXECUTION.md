@@ -23,8 +23,12 @@ No migration or existing test/guard is changed.
 
 The local handler delegates authentication, strict user parameters, immutable
 intake, validation and atomic admission to the existing `API.ServeHTTP`.
-Only a successful, fresh, nonduplicate admission can continue on that original
-HTTP stack. The trusted internal response selects a request ID, not security
+Only the unique successful FIRST admission commit can continue on that HTTP
+stack. Intake and admission winners may be different requests: the composite
+public `duplicate` flag is NOT continuation identity or permission. A request
+with duplicate intake may commit the first admission and start the ONE original
+action; a historical admission can never continue. The trusted internal
+first-admission response selects a request ID, not security
 facts or execution permission: each subsequent existing component independently
 reloads the original durable owner/source and current controls.
 
@@ -72,8 +76,13 @@ false. A phase error may return 503 after acceptance. `Location`, request ID
 and the original idempotency key remain the recovery handles; this is not proof
 that the committed intake/claim was rolled back.
 
-An exact duplicate returns verified history without reentering the composition,
-even when the first response was lost or a stage failed. Same-key changed
+An exact duplicate of an already ADMITTED order returns verified history without
+reentering the composition, even when the first response was lost or a stage
+failed. Intake-only duplicates may still compete for the first admission, as
+the existing API already permits; only its unique commit winner can continue.
+The public duplicate flag is preserved even when that first admission produces
+the original submission. This never retries a committed admission/execution.
+Same-key changed
 payload stays 409. Concurrent duplicates on independent SQLite handles cannot
 create another claim/signature/permit/submission/invocation. A duplicate may
 observe the first request before it finishes; it does not wait on a work queue.
@@ -82,7 +91,8 @@ latency assertion. Its passive deadlock guards allow two minutes for entry/
 duplicates and the bounded composition budget for the winner. Early HTTP
 responses are inspected, so a rejection cannot masquerade as scheduler delay.
 
-The originating uninterrupted HTTP stack is the sole initial execution owner.
+The uninterrupted FIRST-admission-winning HTTP stack is the sole initial
+execution owner, not necessarily the first-intake stack.
 If it fails before signing/submission, its durable admission/claim is retained
 for inspection, NOT automatically resumed by another POST or restart. This
 batch adds no operator resume/cleanup endpoint or automatic eventual-execution
@@ -137,7 +147,12 @@ refunded/recharged and C07's single-active-risk constraint is not weakened.
 - `TestLocalPostExecutionAuthenticationAndStrictInput`: auth/wallet/security
   injection denial; the unchanged production API itself does not sign/submit.
 - `TestLocalPostExecutionConcurrentTwoHandleDuplicates`: six simultaneous POSTs,
-  two handles; five duplicates return while the first stack is barrier-paused.
+  two handles; five historical admissions return while the unique admission
+  winner's stack is barrier-paused.
+- `TestLocalPostExecutionAdmissionWinnerOwnsContinuation`: deterministically
+  pause the first intake during validation so another intake wins first
+  admission. The latter must submit once while preserving duplicate=true;
+  the former and later retries return history without additional actions.
 - `TestLocalPostExecutionOutcomeAndLostResponse`: deterministic rejection,
   ambiguity, contradiction, timeout and lost response remain distinct.
 - `TestLocalPostExecutionFaultReopenNeverResumes`: binding/nonce/signing/artifact/

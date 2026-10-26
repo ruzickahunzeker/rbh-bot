@@ -119,14 +119,16 @@ func (h *localPostHarness) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	copyLocalHTTPHeader(w.Header(), accepted.Header())
 	var record Record
 	if r.Method != http.MethodPost || r.URL.Path != "/v1/trades" || accepted.Code != http.StatusAccepted ||
-		json.Unmarshal(accepted.Body.Bytes(), &record) != nil || record.Duplicate || record.Admission == nil ||
+		json.Unmarshal(accepted.Body.Bytes(), &record) != nil || record.Admission == nil ||
 		record.Admission.Status != "ADMITTED_NOT_SIGNED_NOT_SUBMITTED" {
 		w.WriteHeader(accepted.Code)
 		_, _ = w.Write(accepted.Body.Bytes())
 		return
 	}
-	// Only the fresh intake's uninterrupted stack owns this local attempt. A
-	// duplicate or restart never enqueues/resumes an admitted-but-unstarted item.
+	// Only the unique FIRST ADMISSION commit's uninterrupted stack owns this
+	// local attempt. Intake and admission winners can differ under concurrency;
+	// the composite public Duplicate flag cannot identify continuation ownership.
+	// Historical admission/restart never enqueues or resumes unstarted work.
 	if h.waitBudget <= 0 || h.waitBudget > 5*time.Minute {
 		writeError(w, r, ErrInvalid)
 		return
@@ -149,6 +151,7 @@ func (h *localPostHarness) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
+	current.Duplicate = record.Duplicate // preserve intake/admission history truth
 	// 202 still means durable acceptance, never receipt/canonical success or
 	// a production send grant. execution carries the local historical outcome.
 	writeJSON(w, http.StatusAccepted, current)

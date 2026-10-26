@@ -66,7 +66,7 @@ jobs:
           -count=1
       - run: >-
           go test -race -parallel=1 -timeout=30m ./internal/tradeapi
-          -run '^TestLocalPostExecution(ConcurrentTwoHandleDuplicates|FaultReopenNeverResumes|ControlsAtIndependentBoundaries|CancellationAfterClaim|ClaimAuditAlertAndCommitRollback)$'
+          -run '^TestLocalPostExecution(ConcurrentTwoHandleDuplicates|AdmissionWinnerOwnsContinuation|FaultReopenNeverResumes|ControlsAtIndependentBoundaries|CancellationAfterClaim|ClaimAuditAlertAndCommitRollback)$'
           -count=1
       - run: >-
           go test -race -parallel=1 -timeout=30m ./internal/tradeapi
