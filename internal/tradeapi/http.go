@@ -240,7 +240,11 @@ func (h *API) submit(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Location", "/v1/trades/"+record.RequestID)
 	if record.OperationID != nil && h.validator != nil {
-		if err := h.validateAndAdmit(r.Context(), &record); err != nil {
+		continuation, err := h.validateAndAdmitWithContinuation(r.Context(), &record)
+		// A2 has no execution consumer. Ownership exists only on this original
+		// authenticated stack and is burned on every return, never cached.
+		defer continuation.discard()
+		if err != nil {
 			writeError(w, r, err)
 			return
 		}
