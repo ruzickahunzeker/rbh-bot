@@ -219,7 +219,28 @@ func TestHTTPM2AuditAlertDeliveryAndLegacyCompatibility(t *testing.T) {
 func binding023AuditHistory(t *testing.T, s *Store, field string) {
 	t.Helper()
 	bindingPredecessor023(t, s)
-	if _, err := s.db.Exec(`PRAGMA recursive_triggers=OFF;
+	// The fixture models 023, before the 045 lifecycle capture existed. Keep
+	// every 001..023 guard and foreign_keys=ON; only suspend the later capture
+	// within this transaction. Defer its journal FK while replacing/restoring
+	// the original parent audit, and restore capture before COMMIT. Nothing in
+	// production migrations or the original historical guards is relaxed.
+	var capture string
+	if err := s.db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='trigger' AND name='manual_lifecycle_audit'`).Scan(&capture); err != nil {
+		t.Fatal(err)
+	}
+	tx, err := s.db.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(`PRAGMA defer_foreign_keys=ON; DROP TRIGGER manual_lifecycle_audit`); err != nil {
+		t.Fatal(err)
+	}
+	var foreignKeys int
+	if err := tx.QueryRow(`PRAGMA foreign_keys`).Scan(&foreignKeys); err != nil || foreignKeys != 1 {
+		t.Fatal("historical fixture disabled foreign-key enforcement", foreignKeys, err)
+	}
+	if _, err := tx.Exec(`PRAGMA recursive_triggers=OFF;
  CREATE TEMP TABLE m2_saved_audit AS SELECT * FROM canary_runtime_audit WHERE event_type='MANUAL_EXECUTION_BOUND';
  UPDATE OR REPLACE canary_alert_outbox SET rowid=(SELECT rowid FROM canary_alert_outbox WHERE id LIKE 'manual-execution-alert:%') WHERE id='unrelated-alert';
  INSERT OR REPLACE INTO canary_runtime_audit(rowid,id,event_type,reason_code,details_json,created_at)
@@ -254,10 +275,23 @@ func binding023AuditHistory(t *testing.T, s *Store, field string) {
 		additional = `INSERT INTO canary_runtime_audit(id,event_type,operation_id,attempt_id,authorization_id,authorization_epoch,reason_code,details_json,created_at)
  SELECT ` + aliasID + `,event_type,operation_id,attempt_id,authorization_id,authorization_epoch,reason_code,details_json,created_at FROM m2_saved_audit;`
 	}
-	if _, err := s.db.Exec(`INSERT INTO canary_runtime_audit(` + columns + `) SELECT ` + selects + ` FROM m2_saved_audit;
+	if _, err := tx.Exec(`INSERT INTO canary_runtime_audit(` + columns + `) SELECT ` + selects + ` FROM m2_saved_audit;
  INSERT INTO canary_alert_outbox(id,audit_id,severity,state,created_at)
  SELECT 'manual-execution-alert:'||operation_id,id,'INFO','PENDING',created_at FROM m2_saved_audit;` + additional + `DROP TABLE m2_saved_audit`); err != nil {
 		t.Fatal(err)
+	}
+	if _, err := tx.Exec(capture); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal("023 history did not restore its parent-audit foreign keys", err)
+	}
+	var captureCount, deferred int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='trigger' AND name='manual_lifecycle_audit'`).Scan(&captureCount); err != nil || captureCount != 1 {
+		t.Fatal("historical fixture did not restore 045 capture", captureCount, err)
+	}
+	if err := s.db.QueryRow(`PRAGMA defer_foreign_keys`).Scan(&deferred); err != nil || deferred != 0 {
+		t.Fatal("historical fixture leaked FK deferral", deferred, err)
 	}
 	if count(t, s.db, "manual_execution_binding_integrity") != 1 {
 		t.Fatal("023 view already rejected reconstructed history")
