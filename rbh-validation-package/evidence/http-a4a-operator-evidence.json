@@ -1,0 +1,18 @@
+{
+  "scope": "A4-A_DURABLE_OPERATOR_EVIDENCE_OVERLAY",
+  "status": "A4-A_READY_FOR_REVIEW",
+  "base_scope_head": "fdaa3ba31dff2d265b8d56d35c6cee601a5bc119",
+  "migration": "046_manual_operator_authority",
+  "implementation_head": "PENDING_LOCAL_COMMIT",
+  "scope_document": "docs/HTTP_A4_AUTHORIZATION_SCOPE.md",
+  "implementation_document": "docs/HTTP_A4_AUTHORIZATION_IMPLEMENTATION.md",
+  "tables": ["manual_operator_trust_roots", "manual_operator_authorization_requests", "manual_operator_authorization_approvals", "manual_operator_revocations"],
+  "state_owner": "canary_runtime_authorizations",
+  "manual_b1_no_arm": "PRESERVED",
+  "signature_verification": "NOT_IMPLEMENTED_A4B",
+  "authorization_grant": "NOT_GRANTED",
+  "prohibited_paths": {"http": false, "signer": false, "submission": false, "permit": false, "raw_send": false, "mainnet": false, "live": false},
+  "production_broadcast": "NOT_CONNECTED",
+  "release_ready": false,
+  "independent_review": "PENDING"
+}
