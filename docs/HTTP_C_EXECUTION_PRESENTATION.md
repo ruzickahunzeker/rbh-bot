@@ -76,3 +76,33 @@ its historical copy. The coordinator-owned shared POST wiring is a required
 integration dependency. This failed run is retained, not presented as completed
 integration acceptance. Source and module cache were mounted read-only in the
 existing Go 1.26.6 container, with networking disabled and module changes denied.
+
+## Corrupt identity HTTP fixtures
+
+`execution_identity_http_test.go` adds ten isolated corruption scenarios against
+real local signed/submitted state: missing execution binding, nonce claim,
+artifact command or first-submission link; an extra latest attempt/submission;
+artifact-envelope hash drift; wrong exact-submission identity; and binding or
+submission-row transaction-hash drift. Each scenario proves healthy GETs before
+damage, then requires both GET routes to fail closed without returning an
+execution snapshot, writing durable state or invoking transport again.
+Principal, wallet ID and wallet-address mismatches separately require 404.
+
+The helper explicitly drops only triggers attached to the damaged table and
+temporarily disables that fixture connection's foreign-key enforcement to model
+retained-store corruption. These are test-only adversarial injections, not
+production permissions, proposed migrations or claims that ordinary SQL can
+bypass guards.
+
+Initial author command:
+
+```sh
+go test ./internal/tradeapi -run '^TestHTTPCExecutionIdentity' -count=1 -timeout=5m
+```
+
+Result on the unchanged C reader baseline: FAIL in 16.847s. All ten injections
+were successfully constructed and exposed the baseline's healthy-looking 200
+responses for corrupt history; all three foreign-identity cases passed. The
+coordinator-owned immutable-identity reader is the required integration fix.
+This deliberately failing baseline run is not independent acceptance of that
+fix. The command used the same offline, read-only Go container setup as above.
