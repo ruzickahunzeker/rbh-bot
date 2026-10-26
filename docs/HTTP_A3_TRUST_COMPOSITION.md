@@ -5,8 +5,9 @@ Base/accepted scope: `37926899a0aca4c56e4aa8aef5a893d438c25335`.
 Initial implementation: `7f34a901dd3fab64353b7c8fa821974d40241750`.
 Historical final code/tests before freshness hardening: `d9ca5639f04bb45a8bc64fa62b4c0c130a5f7123`.
 Current reviewed hardening head: `dd47ca0e01e1941da1215b1292e0b5f83239b1de`.
-Author ceiling: `A3_TRUST_COMPOSITION_READY_FOR_REVIEW`, not A3 PASS.
-Independent implementation review: NOT_PERFORMED. No formal closeout.
+Formal status: `A3 = PASS`, `A3_TRUST_COMPOSITION_PASS`.
+Independent implementation review: PASS on `946b35bf3ce6bd229418e968498b84f85b759f2e`.
+Formal closeout: COMPLETE on this docs/evidence closeout commit.
 
 The user accepted the independently scope-reviewed original A3 contract plus
 clock transaction addendum at the base above. The scope review was PASS with
@@ -150,8 +151,8 @@ trade executor/recovery, A2 consumer, existing C04/C05/C07/C08 implementation,
 no-arm, wallet model, CI or B/C worktree changes. No permit/submission/raw-send
 path is added. A1/A2 remain PASS. A3 scope PASS is not this implementation PASS.
 
-Next gate is separately authorized independent implementation review of the
-exact final head. No self-issued PASS/closeout, A4/A5, push/PR/merge, real grant,
+Next gate is separately authorized A4 scope work. No self-issued A4/A5,
+push/PR/merge, real grant,
 key provisioning, mainnet send, replay/rebuild/replacement/fee bump or live.
 Production broadcast=NOT_CONNECTED; authorization=NOT_GRANTED;
 live=false; release_ready=false. Production HTTP trading is still unconnected.

@@ -6,13 +6,14 @@
   "initial_implementation_head": "7f34a901dd3fab64353b7c8fa821974d40241750",
   "historical_final_code_and_tests_head": "d9ca5639f04bb45a8bc64fa62b4c0c130a5f7123",
   "reviewed_hardening_head": "dd47ca0e01e1941da1215b1292e0b5f83239b1de",
-  "status": "A3_TRUST_COMPOSITION_READY_FOR_REVIEW",
+  "status": "A3_TRUST_COMPOSITION_PASS",
   "A1": "PASS",
   "A2": "PASS",
   "scope_review": {"reviewer": "a3_scope_independent_review", "head": "37926899a0aca4c56e4aa8aef5a893d438c25335", "conclusion": "PASS", "blockers": 0, "user_accepted_implementation_scope": true, "scope_review_is_code_approval": false},
-  "independent_implementation_review": "PRIOR_HEAD_BLOCKED_PROFILE_MAXAGE_EQUALITY",
-  "hardening": {"review_blocker": "profile.maxAge equality accepted at pre-sign freshness boundary", "scope": "A3 helper only; strict nonce/runtime wall and monotonic freshness", "status": "READY_FOR_REVIEW", "reviewed_head": "dd47ca0e01e1941da1215b1292e0b5f83239b1de", "tests": ["TestA3ProfileFreshnessNanosecondBounds", "TestA3ProfileFreshnessWriterBoundariesNoResign"], "independent_review_pending": true},
-  "formal_closeout": "NOT_PERFORMED",
+  "independent_implementation_review": "PASS",
+  "hardening": {"review_blocker": "profile.maxAge equality accepted at pre-sign freshness boundary", "scope": "A3 helper only; strict nonce/runtime wall and monotonic freshness", "status": "PASS", "reviewed_head": "dd47ca0e01e1941da1215b1292e0b5f83239b1de", "tests": ["TestA3ProfileFreshnessNanosecondBounds", "TestA3ProfileFreshnessWriterBoundariesNoResign"], "independent_review_pending": false},
+  "formal_closeout": "COMPLETE",
+  "closeout": {"closeout_head": "946b35bf3ce6bd229418e968498b84f85b759f2e", "reviewed_head": "946b35bf3ce6bd229418e968498b84f85b759f2e", "independent_review": "PASS", "production_broadcast": "NOT_CONNECTED", "controlled_canary_authorization": "NOT_GRANTED", "live": false, "release_ready": false},
   "sources": [
     {"path": "internal/tradeapi/manual_trust_composition.go", "sha256": "f50ac1438c8089d2be67736d182f270f3ade091b1af42f542ee7f57afe98fb54"},
     {"path": "internal/tradeapi/manual_presign_trust.go", "sha256": "bee7a7661c423d98082a392a968002021bce6ddd4b5738327d6fe49618470334"},
@@ -21,7 +22,7 @@
     {"path": "internal/tradeapi/manual_local_signing_test.go", "sha256": "01b0b06f4706bebc4109b0036ab12b2855d40ae3ec95f8083a06aef71fe2f40c"},
     {"path": "internal/tradeapi/manual_runtime_verifier_test.go", "sha256": "087ba37543d7790659dfdb800efdf45585101a717e4c1d7e8ea2df4f68283843"}
   ],
-  "document": {"path": "docs/HTTP_A3_TRUST_COMPOSITION.md", "sha256": "287a19f4b3d37f6309d59cd51c6e7c3873c9985e1bcb886d5c7c1ef7af46b524"},
+  "document": {"path": "docs/HTTP_A3_TRUST_COMPOSITION.md", "sha256": "b1777d91291db64dc1b3b29a795805a071017f292bf438a5c828f1f1b4777b3c"},
   "implemented_semantics": {
     "bundle": "PRIVATE_COPIED_EXPECTED_VALUES_TRUSTED_INTERFACES_SHARED_HEALTH_POINTER",
     "constructor": "VALIDATE_ONLY_ZERO_DB_WRITE_CLOCK_BOOTSTRAP_OBSERVATION_SIGN_OR_GRANT",
