@@ -368,7 +368,7 @@ func TestHTTPM4B22PrivateDependenciesAndOriginalGuards(t *testing.T) {
 			owned := strings.HasPrefix(base, "manual_runtime_") || strings.HasPrefix(base, "manual_first_broadcast")
 			// A adds exactly one private local coordinator; its capability and
 			// production reachability are guarded by the dedicated AST test.
-			localCoordinator := filepath.ToSlash(path) == filepath.ToSlash(filepath.Join(root, "internal", "tradeapi", "manual_submission_executor.go"))
+			localCoordinator := filepath.ToSlash(path) == filepath.ToSlash(filepath.Join(root, "internal", "tradeapi", "manual_submission_executor.go")) || filepath.ToSlash(path) == filepath.ToSlash(filepath.Join(root, "internal", "tradeapi", "manual_trust_composition.go"))
 			if !owned && !localCoordinator && strings.Contains(string(raw), "manualRuntimeVerifier") {
 				t.Errorf("runtime verifier escaped private files: %s", path)
 			}

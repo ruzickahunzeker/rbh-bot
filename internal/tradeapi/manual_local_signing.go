@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"time"
 
 	"github.com/ruzickahunzeker/rbh-bot/internal/manualartifact"
@@ -20,6 +21,7 @@ type manualLocalSigningWriter struct {
 	signer     manualsign.Signer
 	cipher     manualartifact.Cipher
 	now        func() time.Time
+	trust      *manualTrustComposition // Optional only for the new disconnected trusted-local bundle.
 	checkpoint func(string) error
 }
 
@@ -36,9 +38,13 @@ type manualSigningClock struct {
 	now      func() time.Time
 	previous time.Time
 	invalid  bool
+	trust    *manualPreSignTrust
 }
 
 func (c *manualSigningClock) read() (time.Time, error) {
+	if c.trust != nil {
+		return c.trust.read()
+	}
 	n := c.now().UTC()
 	if n.IsZero() || n.Year() < 1970 || n.Year() > 9998 || (!c.previous.IsZero() && n.Before(c.previous)) {
 		c.invalid = true
@@ -105,6 +111,9 @@ type manualSigningGate struct {
 // conserved allowance; never asks admission to charge another operation.
 func loadManualSigningGate(ctx context.Context, q queryRow, id Identity, request string, scope manualAdmissionScope, clock *manualSigningClock) (manualSigningGate, error) {
 	var zero manualSigningGate
+	if clock.trust != nil {
+		clock.trust.q = q
+	}
 	now, clockErr := clock.read()
 	control, err := readManualControl(ctx, q, now) // stop has first DB priority
 	if err != nil {
@@ -164,7 +173,13 @@ func loadManualSigningGate(ctx context.Context, q queryRow, id Identity, request
 		c.Output.Resolution.Token.Curve, f.RuntimeCodeHash, c.Output.Resolution.Token.Address).Scan(&allowed); err != nil || allowed != 1 {
 		return zero, manualVerificationError(err, "SIGNING_WALLET_RISK_ALLOWLIST_INVALID")
 	}
-	return manualSigningGate{facts: f, observation: manualNonceFacts(c, b), authExpiry: a.ExpiresAt}, nil
+	result := manualSigningGate{facts: f, observation: manualNonceFacts(c, b), authExpiry: a.ExpiresAt}
+	if clock.trust != nil {
+		if err := clock.trust.check(result, "", "", ""); err != nil {
+			return zero, err
+		}
+	}
+	return result, nil
 }
 
 func (g manualSigningGate) fresh(clock *manualSigningClock, raw, digest, notBefore string) (time.Time, error) {
@@ -177,21 +192,51 @@ func (g manualSigningGate) fresh(clock *manualSigningClock, raw, digest, notBefo
 	if _, err := manualnonce.Verify(raw, digest, g.facts.Nonce, g.observation, now.Format(time.RFC3339Nano)); err != nil {
 		return time.Time{}, rejectManualInput("SIGNING_OBSERVATION_INVALID_OR_EXPIRED")
 	}
+	if clock.trust != nil {
+		if err := clock.trust.check(g, raw, digest, notBefore); err != nil {
+			return time.Time{}, err
+		}
+	}
 	return now, nil
 }
 
-func (w *manualLocalSigningWriter) sign(ctx context.Context, id Identity, request string, scope manualAdmissionScope) (manualLocalSigningResult, error) {
+func (w *manualLocalSigningWriter) sign(ctx context.Context, id Identity, request string, scope manualAdmissionScope) (result manualLocalSigningResult, resultErr error) {
 	var zero manualLocalSigningResult
 	if w == nil || w.store == nil || w.store.db == nil || ctx == nil || !scope.valid() {
 		return zero, ErrInvalid
 	}
+	var trust *manualPreSignTrust
+	// This defer is first: every transaction and connection is released before
+	// fault persistence can acquire a new connection on the one-connection pool.
+	defer func() {
+		if r := recover(); r != nil {
+			if trust == nil {
+				panic(r)
+			}
+			result = manualLocalSigningResult{}
+			resultErr = errors.New("SIGNING_TRUST_PRIMITIVE_FAILED")
+			trust.bundle.health.unhealthy.Store(true)
+		}
+		if trust != nil {
+			trust.finish(&result, &resultErr)
+			if e := w.at("trust_cleanup_finished"); e != nil {
+				result = manualLocalSigningResult{}
+				resultErr = errors.Join(resultErr, e)
+			}
+		}
+	}()
 	// One coherent initial snapshot. Historical results do not need a clock,
 	// observer or signer, and can never resume a retained invocation owner.
 	tx, err := w.store.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return zero, err
 	}
-	defer tx.Rollback()
+	defer func() {
+		e := tx.Rollback()
+		if trust != nil && e != nil && !errors.Is(e, sql.ErrTxDone) {
+			trust.cleanupErr = errors.Join(trust.cleanupErr, e)
+		}
+	}()
 	history, exists, err := w.history(ctx, tx, id, request, scope)
 	if err != nil {
 		return zero, err
@@ -205,10 +250,17 @@ func (w *manualLocalSigningWriter) sign(ctx context.Context, id Identity, reques
 		}
 		return history, nil
 	}
-	if w.now == nil || w.observer == nil || w.signer == nil || w.cipher == nil {
+	if (w.now == nil && w.trust == nil) || w.observer == nil || w.signer == nil || w.cipher == nil {
 		return zero, ErrInvalid
 	}
 	clock := &manualSigningClock{now: w.now}
+	if w.trust != nil {
+		trust, err = w.trust.session(ctx, id, scope)
+		if err != nil {
+			return zero, err
+		}
+		clock.trust = trust
+	}
 	candidate, err := loadManualSigningGate(ctx, tx, id, request, scope, clock)
 	if err != nil {
 		return zero, err
@@ -223,6 +275,9 @@ func (w *manualLocalSigningWriter) sign(ctx context.Context, id Identity, reques
 	}
 	if err := tx.Commit(); err != nil {
 		return zero, err
+	}
+	if trust != nil {
+		trust.q = w.store.db
 	}
 	if err := w.at("after_read"); err != nil {
 		return zero, err
@@ -242,6 +297,11 @@ func (w *manualLocalSigningWriter) sign(ctx context.Context, id Identity, reques
 	if observedErr != nil || observedAt.Before(readAt) {
 		return zero, rejectManualInput("SIGNING_QUERY_TIME_REVERSED")
 	}
+	if trust != nil {
+		if err := trust.observe(candidate); err != nil {
+			return zero, err
+		}
+	}
 	if _, err := candidate.fresh(clock, raw, digest, candidate.facts.ClaimedAt); err != nil {
 		return zero, err
 	}
@@ -252,20 +312,46 @@ func (w *manualLocalSigningWriter) sign(ctx context.Context, id Identity, reques
 	if err != nil {
 		return zero, err
 	}
-	defer conn.Close()
+	active := false
+	defer func() {
+		if trust == nil {
+			return
+		}
+		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
+		defer cancel()
+		if active {
+			_, e := conn.ExecContext(cleanupCtx, "ROLLBACK")
+			trust.cleanupErr = errors.Join(trust.cleanupErr, e)
+		}
+		trust.cleanupErr = errors.Join(trust.cleanupErr, conn.Close())
+		if e := w.at("trust_connection_released"); e != nil {
+			trust.cleanupErr = errors.Join(trust.cleanupErr, e)
+		}
+	}()
+	defer func() {
+		if trust == nil {
+			_ = conn.Close()
+		}
+	}()
 	if err := verifyManualWriterConnection(ctx, conn); err != nil {
 		return zero, err
 	}
 	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
 		return zero, err
 	}
-	defer conn.ExecContext(context.Background(), "ROLLBACK")
+	active = true
+	defer func() {
+		if trust == nil {
+			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
+		}
+	}()
 	if v, found, err := w.history(ctx, conn, id, request, scope); err != nil {
 		return zero, err
 	} else if found {
 		if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
 			return zero, err
 		}
+		active = false
 		if err := ctx.Err(); err != nil {
 			return zero, err
 		}
@@ -294,9 +380,21 @@ func (w *manualLocalSigningWriter) sign(ctx context.Context, id Identity, reques
 	if _, err := current.fresh(clock, raw, digest, marked.Format(time.RFC3339Nano)); err != nil {
 		return zero, err
 	}
+	if trust != nil {
+		if err := trust.advance(conn); err != nil {
+			return zero, err
+		}
+		if err := w.at("trust_marker_clock_staged"); err != nil {
+			return zero, err
+		}
+		if trust.bundle.health.unhealthy.Load() {
+			return zero, rejectManualInput("SIGNING_TRUST_UNHEALTHY")
+		}
+	}
 	if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
 		return zero, err // never invoke if marker commit outcome is uncertain
 	}
+	active = false
 	if err := w.at("after_marker_commit"); err != nil {
 		return zero, err
 	}
@@ -305,6 +403,7 @@ func (w *manualLocalSigningWriter) sign(ctx context.Context, id Identity, reques
 	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
 		return zero, err
 	}
+	active = true
 	if err := w.at("after_fence"); err != nil {
 		return zero, err
 	}
@@ -359,6 +458,9 @@ func (w *manualLocalSigningWriter) sign(ctx context.Context, id Identity, reques
 	if _, err := conn.ExecContext(ctx, `INSERT INTO manual_signed_artifact_commands VALUES(?,?,?,?,?,?,?,?)`, current.facts.OperationID, owner, factsJSON, factsHash, encode(envelope), raw, digest, envelope.CompletedAt); err != nil {
 		return zero, err
 	}
+	if trust != nil {
+		trust.artifactWritten = true
+	}
 	if err := w.at("after_artifact_insert"); err != nil {
 		return zero, err
 	}
@@ -372,9 +474,21 @@ func (w *manualLocalSigningWriter) sign(ctx context.Context, id Identity, reques
 	if _, err := current.fresh(clock, raw, digest, envelope.CompletedAt); err != nil {
 		return zero, err
 	}
+	if trust != nil {
+		if err := trust.advance(conn); err != nil {
+			return zero, err
+		}
+		if err := w.at("trust_artifact_clock_staged"); err != nil {
+			return zero, err
+		}
+		if trust.bundle.health.unhealthy.Load() {
+			return zero, rejectManualInput("SIGNING_TRUST_UNHEALTHY")
+		}
+	}
 	if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
 		return zero, err
 	}
+	active = false
 	if err := w.at("after_artifact_commit"); err != nil {
 		return zero, err
 	}
