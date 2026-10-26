@@ -616,3 +616,96 @@ func TestA1RecoveryOnlyDatabaseFailureDoesNotStartRPC(t *testing.T) {
 		t.Fatal("failed DB startup opened listener")
 	}
 }
+
+func TestA1RecoveryLifetimeReadinessDuringDrainAndFailure(t *testing.T) {
+	for _, kind := range []string{"drain", "rpc_failure"} {
+		t.Run(kind, func(t *testing.T) {
+			f := &recoveryRPCFixture{calls: map[string]int{}, entered: make(chan struct{}), release: make(chan struct{})}
+			rpc := httptest.NewServer(f)
+			defer rpc.Close()
+			cfg := a1Config(t, rpc.URL)
+			seedA1Work(t, cfg)
+			d, _ := a1DB(t, cfg)
+			defer d.Close()
+			store, err := trade.NewStore(d)
+			if err != nil {
+				t.Fatal(err)
+			}
+			cipher, err := loadRecoveryCipher(cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			queryRPC, err := trade.DialReadOnlyRecoveryRPC(context.Background(), rpc.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer queryRPC.Close()
+			resolver, err := trade.NewPonsCurveEffectResolver(store)
+			if err != nil {
+				t.Fatal(err)
+			}
+			recovery, err := trade.NewRecoveryServiceWithCipher(store, cipher, queryRPC, resolver, trade.CanonicalPolicy{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			querier, err := trade.NewProductionRecoveryQuerier(store, cipher, queryRPC)
+			if err != nil {
+				t.Fatal(err)
+			}
+			composition, err := trade.NewProductionComposition(store, trade.ProductionModeDisabled)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = composition.ConfigureRecovery(recovery, querier, queryRPC, trade.ProductionRecoveryConfig{Environment: "production", HolderID: "a1-readiness", LeaseTTL: time.Minute, ScanInterval: 10 * time.Millisecond}); err != nil {
+				t.Fatal(err)
+			}
+			loop, err := startRecoveryLifetime(context.Background(), composition)
+			if err != nil {
+				t.Fatal(err)
+			}
+			released := false
+			defer func() {
+				if !released {
+					close(f.release)
+				}
+				loop.stopAndWait()
+			}()
+			select {
+			case <-f.entered:
+			case <-time.After(10 * time.Second):
+				t.Fatal("read did not start")
+			}
+			ready := composition.Readiness()
+			if !ready.RecoveryReady || ready.CanaryAdmissionReady || ready.SubmissionSendReady {
+				t.Fatal("readiness dimensions conflated", ready)
+			}
+			if kind == "drain" {
+				loop.cancel()
+				a1Wait(t, func() bool { return !composition.Readiness().RecoveryReady })
+				select {
+				case <-loop.done:
+					t.Fatal("loop exited before drain")
+				default:
+				}
+			} else {
+				f.mu.Lock()
+				f.failure = true
+				f.mu.Unlock()
+			}
+			close(f.release)
+			released = true
+			select {
+			case <-loop.done:
+			case <-time.After(15 * time.Second):
+				t.Fatal("loop did not stop")
+			}
+			if kind == "rpc_failure" && loop.err == nil {
+				t.Fatal("failed RPC reported successful loop")
+			}
+			ready = composition.Readiness()
+			if ready.RecoveryReady || ready.CanaryAdmissionReady || ready.SubmissionSendReady {
+				t.Fatal("terminal readiness revived", ready)
+			}
+		})
+	}
+}
