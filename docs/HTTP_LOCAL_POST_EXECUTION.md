@@ -10,8 +10,19 @@ Fresh independent review of `f792dbd1f9399615ae7cbc47b85c3f336bfe1b99`
 concluded PASS for this local-only scope. The permanent target-parameter test
 delta `3031cec784c8c847477f6151bf9151a552b91668` separately passed incremental
 read-only review. This does not change the author READY status into a formal
-aggregate closeout. Full ordinary and race validations are still running;
-command/head attribution is in additive `evidence/http-local-post-execution.json`.
+aggregate closeout. Later validation exposed a real first-intake/first-admission
+handoff defect despite that review and a green full ordinary run. The test-only
+fix and deterministic regression are in `846a33152f8557277962c73415421ce54d66ef66`.
+Final 17-test ordinary/race rechecks passed on that head (142.845s / 1730.870s),
+with all-package build/vet/staticcheck/format verification also passing. Fresh
+independent review of exact `846a33152f8557277962c73415421ce54d66ef66` concluded
+PASS for this local-only scope: independent focused tests passed (8.286s),
+restoring the old duplicate condition failed the deterministic regression as
+expected (0.468s), and additional historical-admission/reopen adversarial plus
+focused acceptance passed (10.006s). Those independent checks did not rerun the
+whole repository or all race tests. Earlier
+failures, interrupted runs and command/head attribution are retained in additive
+`evidence/http-local-post-execution.json`.
 
 ## Composition and ownership
 
