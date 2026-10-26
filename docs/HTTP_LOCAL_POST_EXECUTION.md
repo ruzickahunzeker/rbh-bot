@@ -6,7 +6,12 @@ Base: `36ba2828c74f09291856e6fbe39722e944442c91`.
 Branch: `http-local-post-execution`.
 Author status: `LOCAL_HTTP_FIRST_ORDER_READY_FOR_REVIEW`; no aggregate M4/PASS,
 formal closeout, production HTTP execution or real-action authority is implied.
-Validation/review attribution will be recorded in additive batch evidence.
+Fresh independent review of `f792dbd1f9399615ae7cbc47b85c3f336bfe1b99`
+concluded PASS for this local-only scope. The permanent target-parameter test
+delta `3031cec784c8c847477f6151bf9151a552b91668` separately passed incremental
+read-only review. This does not change the author READY status into a formal
+aggregate closeout. Full ordinary and race validations are still running;
+command/head attribution is in additive `evidence/http-local-post-execution.json`.
 
 ## Composition and ownership
 
@@ -50,8 +55,12 @@ No fixture key, permission or fake transport is a real operator grant.
 
 ## Synchronous wait, duplicate and restart contract
 
-The local action sequence is bounded by the original request context and a
-one-minute composition budget after admission. The underlying validation keeps
+The local action sequence is bounded by the original request context and an
+explicit TEST-ONLY wait budget after admission, capped at five minutes. Slow
+race-instrumented SQLite success fixtures use that five-minute cap, not a
+production timeout setting. A separate 10ms-budget test must return a deadline
+error with durable Location and zero nonce/sign/send work; increasing a later
+duplicate's budget cannot restore continuation. The underlying validation keeps
 its existing bounds; this is not a claim of a new total production HTTP SLA.
 The A invocation has its own one-second trusted synchronous fake deadline.
 Waiting never extends absolute `expires_at` or waits for canonical confirmation.
@@ -116,6 +125,11 @@ refunded/recharged and C07's single-active-risk constraint is not weakened.
 - `TestLocalPostExecutionFirstOrderThreeSides`: one POST BUY, fixed SELL and
   resolved-percentage SELL; exact original artifact/fees/TTL/nonce, one signature
   and fake invocation, duplicate plus both GET routes without extra work.
+- `TestLocalPostExecutionTargetParametersNotSeed`: target amount/percentage,
+  fee and TTL deliberately differ from the validated-only seed. The real signer
+  hook checks BUY value, fee/tip/nonce/chain; SELL input is checked through
+  durable validation plus the existing exact-artifact gates, not a new independent
+  ABI decoder. Seed gets no execution binding/claim, and duplicate does no work.
 - `TestLocalPostExecutionAuthenticationAndStrictInput`: auth/wallet/security
   injection denial; the unchanged production API itself does not sign/submit.
 - `TestLocalPostExecutionConcurrentTwoHandleDuplicates`: six simultaneous POSTs,
@@ -130,6 +144,8 @@ refunded/recharged and C07's single-active-risk constraint is not weakened.
   precommit failure cannot partially consume/claim; duplicate cannot retry it.
 - Cancellation tests distinguish zero new work before intake from retained
   committed claim after intake.
+- `TestLocalPostExecutionWaitBudgetExpiresWithoutEconomicAction`: response-wait
+  expiry cannot extend application TTL, start economic work or resume on retry.
 - Recovery tests cover pending/revert, all three trade sides, unknown query-only
   freeze, stop/revoke/TTL, RPC fault alerts, canonical/reorg/reapply, GET/events
   and new-worker rediscovery after real SQLite close/reopen.

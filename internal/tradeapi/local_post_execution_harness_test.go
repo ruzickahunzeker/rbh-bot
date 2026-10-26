@@ -31,7 +31,9 @@ type localPostHarness struct {
 	signing    *manualLocalSigningWriter
 	verifier   *manualRuntimeVerifier
 	executor   *manualSubmissionExecutor
+	waitBudget time.Duration
 	checkpoint func(string) error
+	onFailure  func(error)
 }
 
 func (h *localPostHarness) at(stage string) error {
@@ -125,9 +127,16 @@ func (h *localPostHarness) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	// Only the fresh intake's uninterrupted stack owns this local attempt. A
 	// duplicate or restart never enqueues/resumes an admitted-but-unstarted item.
-	ctx, cancel := context.WithTimeout(r.Context(), time.Minute)
+	if h.waitBudget <= 0 || h.waitBudget > 5*time.Minute {
+		writeError(w, r, ErrInvalid)
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), h.waitBudget)
 	defer cancel()
 	if err := h.executeOriginal(ctx, record.RequestID); err != nil {
+		if h.onFailure != nil {
+			h.onFailure(err)
+		}
 		writeError(w, r, err) // Location survives even if intake/claim already committed
 		return
 	}
@@ -251,9 +260,10 @@ func newLocalPostFixture(t *testing.T, side string) localPostFixture {
 		t.Fatal(err)
 	}
 	transport := &localPostTransport{}
-	h := &localPostHarness{api: api, scope: scope, binding: bindingWriter(s), nonce: nonceWriter(s, &localNonceObserver{nonce: "23"}),
+	h := &localPostHarness{api: api, scope: scope, waitBudget: 5 * time.Minute, binding: bindingWriter(s), nonce: nonceWriter(s, &localNonceObserver{nonce: "23"}),
 		signing:  &manualLocalSigningWriter{store: s, observer: &localNonceObserver{nonce: "23"}, signer: signer, cipher: cipher, now: func() time.Time { return testNow }},
 		verifier: verifier, executor: &manualSubmissionExecutor{verifier: verifier, store: tradeStore, transport: transport, timeout: time.Second}}
+	h.onFailure = func(err error) { t.Logf("local action sequence failed: %v", err) }
 	for _, table := range []string{"manual_admission_commands", "manual_execution_bindings", "manual_nonce_claims", "manual_signing_intents", "manual_signed_artifact_commands", "canary_send_permits", "transaction_submissions"} {
 		if count(t, s.db, table) != 0 {
 			t.Fatal("target work was prepared before POST", table)

@@ -13,6 +13,11 @@ a nonce or send. No aggregate PASS, production connection, authorization grant,
 live or release-readiness claim is made here. Request fields and fee semantics
 are unchanged.
 
+The later `http-local-post-execution` acceptance composes one authenticated
+POST through local signing/fake submission/recovery only in `*_test.go`.
+See `HTTP_LOCAL_POST_EXECUTION.md`. It adds no production option, route or
+execution enablement; this client-facing API's POST boundary is unchanged.
+
 Historical HTTP-A slice record. The local HTTP-B extension is documented in
 HTTP_READ_ONLY_QUERIES.md; its optional read-only composition does not alter
 the rejection-only POST boundary below.

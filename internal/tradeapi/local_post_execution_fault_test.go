@@ -26,9 +26,38 @@ func (f localPostFixture) anotherHandle(t *testing.T, d *storage.Database, s *St
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &localPostHarness{api: api, scope: f.h.scope, binding: bindingWriter(s), nonce: nonceWriter(s, &localNonceObserver{nonce: "23"}),
+	return &localPostHarness{api: api, scope: f.h.scope, waitBudget: f.h.waitBudget, binding: bindingWriter(s), nonce: nonceWriter(s, &localNonceObserver{nonce: "23"}),
 		signing:  &manualLocalSigningWriter{store: s, observer: &localNonceObserver{nonce: "23"}, signer: f.signer, cipher: f.h.signing.cipher, now: func() time.Time { return testNow }},
 		verifier: verifier, executor: &manualSubmissionExecutor{verifier: verifier, store: store, transport: f.transport, timeout: time.Second}}
+}
+
+func TestLocalPostExecutionWaitBudgetExpiresWithoutEconomicAction(t *testing.T) {
+	f := newLocalPostFixture(t, "buy")
+	f.h.waitBudget = 10 * time.Millisecond
+	var failure error
+	f.h.onFailure = func(err error) { failure = err }
+	f.h.checkpoint = func(stage string) error {
+		if stage == "before_binding" {
+			// Deliberately exceed only the test composition wait budget. The
+			// trusted application clock/TTL and all production gates are intact.
+			time.Sleep(5 * f.h.waitBudget)
+		}
+		return nil
+	}
+	w := call(f.h, "POST", "/v1/trades", "wait-budget", encode(f.request))
+	if w.Code != 503 || !errors.Is(failure, context.DeadlineExceeded) || w.Header().Get("Location") == "" || f.signer.calls.Load() != 0 || f.transport.calls.Load() != 0 {
+		t.Fatal("short composition budget failed open/lost handle", w.Code, failure)
+	}
+	got := localPostRecord(t, call(f.h, "GET", w.Header().Get("Location"), "", ""), 200)
+	if got.ExpiresAt != testNow.Add(time.Duration(f.h.api.policy.DefaultTTLSeconds)*time.Second).Format(time.RFC3339Nano) || count(t, f.store.db, "manual_nonce_claims") != 0 || count(t, f.store.db, "transaction_submissions") != 0 {
+		t.Fatal("wait timeout extended TTL or created economic work")
+	}
+	before := admittedDatabaseSnapshot(t, f.store.db)
+	f.h.waitBudget = 5 * time.Minute
+	got = localPostRecord(t, call(f.h, "POST", "/v1/trades", "wait-budget", encode(f.request)), 202)
+	if !got.Duplicate || admittedDatabaseSnapshot(t, f.store.db) != before || f.signer.calls.Load() != 0 || f.transport.calls.Load() != 0 {
+		t.Fatal("larger later wait budget revived an expired continuation")
+	}
 }
 
 func TestLocalPostExecutionConcurrentTwoHandleDuplicates(t *testing.T) {
