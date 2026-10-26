@@ -68,6 +68,50 @@ must commit together; any audit/evidence failure rolls back the transition.
 The migration must preserve the no-arm behavior until a valid approval exists,
 and must not silently remove or disable the guard.
 
+### Guard replacement is explicit and atomic
+
+Because migration018's `manual_b1_no_arm` is an unconditional abort trigger,
+046 cannot merely add a second allowing trigger. In one SQLite migration
+transaction, 046 must verify the exact existing trigger definition, drop only
+that named trigger, and install a replacement with the same deny-by-default
+behavior plus one additional predicate: a complete, valid, non-replayed
+operator approval matching the transition row and all bindings above. If any
+precondition or replacement step fails, the migration rolls back and the old
+guard remains. The replacement must be covered by direct-SQL tests for both
+unauthorized and valid transitions; no window may exist in which a MANUAL row
+can arm without the approval predicate.
+
+The no-budget, no-permit and no-PASS guards are not replaced by 046. Any
+future change to those guards requires a separately reviewed schema slice and
+must remain downstream of the same approval evidence.
+
+## Trust-root bootstrap and time source
+
+The operator trust root is provisioned out-of-band as part of the authenticated
+deployment identity. 046 stores only the pinned root/key fingerprints and
+signed rotation evidence; it does not accept arbitrary SQL key insertion. The
+composition layer must verify the bootstrap attestation before opening the
+operator-writer capability, and append-only SQL triggers reject update/delete
+or unbound key rows. Direct SQL cannot create, rotate or revoke a trusted key
+without a valid signed root/rotation envelope and the exact durable audit.
+
+Approval `issued_at`/`expires_at` and revocation checks use the already approved
+bounded A3 time-source contract. `time.Now`, a request timestamp, SQLite text
+ordering or an unverified provider is not acceptable. Missing, reversed,
+uncertain or expired time evidence rejects the transition.
+
+## Gate attestation binding
+
+The approval envelope carries an ordered four-gate attestation set, not only an
+opaque aggregate. It contains the exact immutable evidence identity for C04,
+C05, C07 and C08, including each gate's reviewed head/evidence hash and
+attested time. The current C04/C05/C08 `canary_gate_attestations` rows remain
+authoritative; C07's durable admission evidence must be added as an explicit
+046-bound attestation record (or a separately reviewed additive C07 source),
+with no inferred C07 PASS from a configuration flag. The aggregate
+`gate_evidence_set_hash` is the canonical hash of this ordered set and is
+accepted only after every individual binding verifies.
+
 ## Required bindings and fail-closed rules
 
 An approval is valid only if it matches the durable authorization row and
