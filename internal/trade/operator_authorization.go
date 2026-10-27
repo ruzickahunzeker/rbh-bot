@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
 const operatorAuthorizationDomain = "RBH-MANUAL-A4-AUTHORIZATION-V1"
@@ -40,7 +42,8 @@ type OperatorApprovalEnvelope struct {
 func (e OperatorApprovalEnvelope) canonicalPayload() ([]byte, error) {
 	if e.ApprovalID == "" || e.RequestID == "" || e.OperatorKeyID == "" || e.AuthorizationID == "" ||
 		e.AuthorizationEpoch == 0 || e.ChainID != 4663 || e.Environment == "" || e.WalletID == "" ||
-		e.PolicyVersion == 0 || e.MaxOperations == 0 || e.MaxTotalInput == "" || e.Nonce == "" || e.SchemaVersion != "1" {
+		e.PolicyVersion == 0 || e.MaxOperations == 0 || e.Nonce == "" || e.SchemaVersion != "1" ||
+		!common.IsHexAddress(e.WalletAddress) || common.HexToAddress(e.WalletAddress) == (common.Address{}) {
 		return nil, ErrCanaryRuntimeRejected
 	}
 	issued, err := time.Parse(time.RFC3339Nano, e.IssuedAt)
@@ -51,13 +54,16 @@ func (e OperatorApprovalEnvelope) canonicalPayload() ([]byte, error) {
 	if err != nil || expires.UTC().Format(time.RFC3339Nano) != e.ExpiresAt || !issued.Before(expires) {
 		return nil, ErrCanaryRuntimeRejected
 	}
-	for _, v := range []string{e.BuildSHA, e.PolicyHash, e.GateEvidenceSetHash, e.SourceHash} {
-		if len(v) != 64 && len(v) != 40 {
+	for i, v := range []string{e.BuildSHA, e.PolicyHash, e.GateEvidenceSetHash, e.SourceHash} {
+		if (i == 0 && len(v) != 40 && len(v) != 64) || (i > 0 && len(v) != 64) {
 			return nil, ErrCanaryRuntimeRejected
 		}
 		if _, err := hex.DecodeString(v); err != nil {
 			return nil, ErrCanaryRuntimeRejected
 		}
+	}
+	if maximum, ok := canonicalPositive(e.MaxTotalInput); !ok || maximum.String() != e.MaxTotalInput {
+		return nil, ErrCanaryRuntimeRejected
 	}
 	return json.Marshal(struct {
 		Domain string `json:"domain"`

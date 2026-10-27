@@ -59,4 +59,21 @@ func TestOperatorApprovalCanonicalSignatureVerification(t *testing.T) {
 	if err := VerifyOperatorApproval(e, hex.EncodeToString(public), hex.EncodeToString(signature)); err == nil {
 		t.Fatal("mutated envelope accepted")
 	}
+	for name, mutate := range map[string]func(*OperatorApprovalEnvelope){
+		"policy_hash_length":  func(v *OperatorApprovalEnvelope) { v.PolicyHash = v.PolicyHash[:40] },
+		"gate_hash_length":    func(v *OperatorApprovalEnvelope) { v.GateEvidenceSetHash = v.GateEvidenceSetHash[:40] },
+		"source_hash_length":  func(v *OperatorApprovalEnvelope) { v.SourceHash = v.SourceHash[:40] },
+		"amount_noncanonical": func(v *OperatorApprovalEnvelope) { v.MaxTotalInput = "01" },
+		"amount_nonpositive":  func(v *OperatorApprovalEnvelope) { v.MaxTotalInput = "0" },
+		"wallet_zero":         func(v *OperatorApprovalEnvelope) { v.WalletAddress = "0x0000000000000000000000000000000000000000" },
+		"wallet_malformed":    func(v *OperatorApprovalEnvelope) { v.WalletAddress = "not-an-address" },
+	} {
+		t.Run(name, func(t *testing.T) {
+			bad := testOperatorEnvelope()
+			mutate(&bad)
+			if err := VerifyOperatorApproval(bad, hex.EncodeToString(public), hex.EncodeToString(signature)); err == nil {
+				t.Fatal("malformed envelope accepted")
+			}
+		})
+	}
 }
