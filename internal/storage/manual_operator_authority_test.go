@@ -105,7 +105,7 @@ VALUES('a4-auth',1,'CONTROLLED_CANARY','a4-fixture',4663,1,'a4-wallet',?, 'a4-re
 		}
 	}
 	var triggerSQL string
-	if err := d.db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='trigger' AND name='manual_b1_no_arm'`).Scan(&triggerSQL); err != nil || !strings.Contains(triggerSQL, "verified operator approval") {
+	if err := d.db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='trigger' AND name='manual_b1_no_arm'`).Scan(&triggerSQL); err != nil || !strings.Contains(triggerSQL, "complete verified approval") {
 		t.Fatal("approval-gated no-arm trigger missing", err)
 	}
 }
@@ -131,7 +131,8 @@ func TestA4B2DirectSQLValidApprovalArmsExactlyOnce(t *testing.T) {
 	stamp := metadataStamp
 	c07Evidence := strings.Repeat("f", 64)
 	reviewedHead := strings.Repeat("a", 40)
-	gateHash := a4GateSetHash("c1af9454a6a4433b488158c25224d13dfbf31178c71dae7468c80917743381fd", reviewedHead, stamp, "1a793f13d9304a31ed405f9fe25f1713cf79b6f8d28bb3da8ad16a01dc24c40b", reviewedHead, stamp, c07Evidence, reviewedHead, stamp, "8178e7b976dbea67be1de83cec529171e56d154cd2114f1bf290bebbd1fc77d8", reviewedHead, stamp)
+	const durableGateStamp = "2026-09-27T00:00:00Z"
+	gateHash := a4GateSetHash("c1af9454a6a4433b488158c25224d13dfbf31178c71dae7468c80917743381fd", reviewedHead, durableGateStamp, "1a793f13d9304a31ed405f9fe25f1713cf79b6f8d28bb3da8ad16a01dc24c40b", reviewedHead, durableGateStamp, c07Evidence, reviewedHead, stamp, "8178e7b976dbea67be1de83cec529171e56d154cd2114f1bf290bebbd1fc77d8", reviewedHead, durableGateStamp)
 	sourceHash := strings.Repeat("c", 64)
 	build := strings.Repeat("1", 40)
 	if _, err := d.db.Exec(`INSERT INTO operations(id,chain_id,wallet_id,idempotency_key,request_fingerprint,kind,status,created_at) VALUES('a4b2-op',4663,'fixture-wallet','a4b2-key','a4b2-fingerprint','swap','prepared',?)`, stamp); err != nil {
@@ -172,7 +173,11 @@ func TestA4B2DirectSQLValidApprovalArmsExactlyOnce(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		if _, err := d.db.Exec(`INSERT INTO manual_operator_gate_attestations VALUES('a4b2-auth',1,?,?,?,?)`, gate, evidence, reviewedHead, stamp); err != nil {
+		gateStamp := stamp
+		if gate != "C07" {
+			gateStamp = durableGateStamp
+		}
+		if _, err := d.db.Exec(`INSERT INTO manual_operator_gate_attestations VALUES('a4b2-auth',1,?,?,?,?)`, gate, evidence, reviewedHead, gateStamp); err != nil {
 			t.Fatal(err)
 		}
 	}
