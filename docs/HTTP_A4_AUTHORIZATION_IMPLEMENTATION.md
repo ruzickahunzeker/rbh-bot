@@ -4,6 +4,7 @@ Status: `A4-A_READY_FOR_REVIEW`
 Base scope: `fdaa3ba31dff2d265b8d56d35c6cee601a5bc119`  
 Historical implementation head before hardening: `4022f6e4379ea2b4d8f70536d48901bea6f163d0`.
 Current reviewed hardening head: `1e3e09ba319ef095c09133cb861fbf3cb86a2d63`.
+Current reviewed docs/evidence head: `553e142a81eedba2f37fa8841611a7f0b0ec7d73`.
 
 This slice implements only additive migration `046_manual_operator_authority`.
 It adds append-only durable tables for operator trust-root metadata,
