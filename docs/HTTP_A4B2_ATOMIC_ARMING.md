@@ -1,6 +1,6 @@
 # A4-B2 — approval-gated atomic arming
 
-Status: `A4-B2_READY_FOR_REVIEW`  
+Status: `A4-B2_READY_FOR_REVIEW`
 Scope: durable SQL gate only; no HTTP, signer, submission, permit, broadcast or live.
 
 Migration `047_manual_operator_arming` adds the explicit C04/C05/C07/C08

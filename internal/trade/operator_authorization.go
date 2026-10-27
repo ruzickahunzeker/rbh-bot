@@ -15,6 +15,7 @@ const operatorAuthorizationDomain = "RBH-MANUAL-A4-AUTHORIZATION-V1"
 // OperatorApprovalEnvelope is the canonical, signed authority payload. It is
 // verification-only in A4-B1; it cannot arm an authorization or reach sending.
 type OperatorApprovalEnvelope struct {
+	Domain              string `json:"domain"`
 	ApprovalID          string `json:"approval_id"`
 	RequestID           string `json:"request_id"`
 	OperatorKeyID       string `json:"operator_key_id"`
@@ -42,7 +43,7 @@ type OperatorApprovalEnvelope struct {
 func (e OperatorApprovalEnvelope) canonicalPayload() ([]byte, error) {
 	if e.ApprovalID == "" || e.RequestID == "" || e.OperatorKeyID == "" || e.AuthorizationID == "" ||
 		e.AuthorizationEpoch == 0 || e.ChainID != 4663 || e.Environment == "" || e.WalletID == "" ||
-		e.PolicyVersion == 0 || e.MaxOperations == 0 || e.Nonce == "" || e.SchemaVersion != "1" ||
+		e.PolicyVersion == 0 || e.MaxOperations == 0 || e.Nonce == "" || e.SchemaVersion != "1" || e.Domain != operatorAuthorizationDomain ||
 		!common.IsHexAddress(e.WalletAddress) || common.HexToAddress(e.WalletAddress) == (common.Address{}) {
 		return nil, ErrCanaryRuntimeRejected
 	}
@@ -65,10 +66,7 @@ func (e OperatorApprovalEnvelope) canonicalPayload() ([]byte, error) {
 	if maximum, ok := canonicalPositive(e.MaxTotalInput); !ok || maximum.String() != e.MaxTotalInput {
 		return nil, ErrCanaryRuntimeRejected
 	}
-	return json.Marshal(struct {
-		Domain string `json:"domain"`
-		OperatorApprovalEnvelope
-	}{operatorAuthorizationDomain, e})
+	return json.Marshal(e)
 }
 
 func (e OperatorApprovalEnvelope) Hash() (string, error) {

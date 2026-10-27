@@ -88,6 +88,9 @@ VALUES('a4-auth',1,'CONTROLLED_CANARY','a4-fixture',4663,1,'a4-wallet',?, 'a4-re
 func TestA4B2DirectSQLValidApprovalArmsExactlyOnce(t *testing.T) {
 	d := metadataDB(t)
 	insertMetadataAuth(t, d.db, "a4b2-auth", 1)
+	if _, err := d.db.Exec(`INSERT INTO dry_run_wallets(id,chain_id,address,enabled) VALUES('fixture-wallet',4663,'0x1111111111111111111111111111111111111111',1)`); err != nil {
+		t.Fatal(err)
+	}
 	policyHash := insertMetadataPolicy(t, d.db)
 	if err := declareMetadataUnit(d.db, "a4b2-auth", 1, policyHash, "native", 18); err != nil {
 		t.Fatal(err)
@@ -99,7 +102,7 @@ func TestA4B2DirectSQLValidApprovalArmsExactlyOnce(t *testing.T) {
 	stamp := metadataStamp
 	gateHash := strings.Repeat("b", 64)
 	build := strings.Repeat("1", 40)
-	envelope := `{"domain":"RBH-MANUAL-A4-AUTHORIZATION-V1","approval_id":"approval-a4b2","request_id":"request-a4b2","operator_key_id":"key-a4b2","issued_at":"` + stamp + `","expires_at":"2026-10-10T01:00:00Z","authorization_id":"a4b2-auth","authorization_epoch":1,"build_sha":"` + build + `","release_id":"fixture-release","deployment_id":"fixture-deployment","environment":"controlled-fixture","chain_id":4663,"wallet_id":"fixture-wallet","wallet_address":"0x1111111111111111111111111111111111111111","policy_version":1,"policy_hash":"` + strings.Repeat("a", 64) + `","gate_evidence_set_hash":"` + gateHash + `","max_operations":10,"max_total_input":"100","source_hash":"` + strings.Repeat("c", 64) + `","nonce":"nonce-a4b2","schema_version":"1"}`
+	envelope := `{"domain":"RBH-MANUAL-A4-AUTHORIZATION-V1","approval_id":"approval-a4b2","request_id":"request-a4b2","operator_key_id":"key-a4b2","issued_at":"` + stamp + `","expires_at":"2026-10-10T01:00:00Z","authorization_id":"a4b2-auth","authorization_epoch":1,"build_sha":"` + build + `","release_id":"fixture-release","deployment_id":"fixture-deployment","environment":"controlled-fixture","chain_id":4663,"wallet_id":"fixture-wallet","wallet_address":"0x1111111111111111111111111111111111111111","policy_version":1,"policy_hash":"` + policyHash + `","gate_evidence_set_hash":"` + gateHash + `","max_operations":10,"max_total_input":"100","source_hash":"` + strings.Repeat("c", 64) + `","nonce":"nonce-a4b2","schema_version":"1"}`
 	signature := ed25519.Sign(private, []byte(envelope))
 	if _, err := d.db.Exec(`INSERT INTO manual_operator_trust_roots VALUES('key-a4b2',?,?,?, ?,NULL)`, hex.EncodeToString(public), strings.Repeat("d", 64), strings.Repeat("e", 64), stamp); err != nil {
 		t.Fatal(err)
@@ -111,7 +114,13 @@ func TestA4B2DirectSQLValidApprovalArmsExactlyOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, gate := range []string{"C04", "C05", "C07", "C08"} {
-		if _, err := d.db.Exec(`INSERT INTO manual_operator_gate_attestations VALUES('a4b2-auth',1,?,?,?,?)`, gate, strings.Repeat("f", 64), "reviewed-head", stamp); err != nil {
+		evidence := strings.Repeat("f", 64)
+		if gate != "C07" {
+			if err := d.db.QueryRow(`SELECT evidence_hash FROM canary_gate_attestations WHERE gate=?`, gate).Scan(&evidence); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if _, err := d.db.Exec(`INSERT INTO manual_operator_gate_attestations VALUES('a4b2-auth',1,?,?,?,?)`, gate, evidence, "reviewed-head", stamp); err != nil {
 			t.Fatal(err)
 		}
 	}

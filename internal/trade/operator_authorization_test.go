@@ -12,6 +12,7 @@ import (
 func testOperatorEnvelope() OperatorApprovalEnvelope {
 	stamp := time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC)
 	return OperatorApprovalEnvelope{
+		Domain:     "RBH-MANUAL-A4-AUTHORIZATION-V1",
 		ApprovalID: "approval-1", RequestID: "request-1", OperatorKeyID: "key-1",
 		IssuedAt: stamp.Format(time.RFC3339Nano), ExpiresAt: stamp.Add(time.Minute).Format(time.RFC3339Nano),
 		AuthorizationID: "auth-1", AuthorizationEpoch: 1, BuildSHA: "0123456789abcdef0123456789abcdef01234567",

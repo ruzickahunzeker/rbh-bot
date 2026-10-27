@@ -26,7 +26,12 @@ WHEN NEW.state='ARMED' AND EXISTS(SELECT 1 FROM manual_authorization_units WHERE
      AND root.revoked_at IS NULL
      AND manual_artifact_bytes_sha256(hex(rq.canonical_envelope))=rq.request_hash
      AND manual_operator_signature_valid(root.public_key_hex,rq.canonical_envelope,ap.signature_hex)=1
-     AND manual_time_cmp(NEW.updated_at,ap.issued_at)>=0
+     AND ap.envelope_hash=rq.request_hash
+     AND json_extract(rq.canonical_envelope,'$.approval_id')=ap.approval_id
+     AND json_extract(rq.canonical_envelope,'$.request_id')=rq.request_id
+     AND json_extract(rq.canonical_envelope,'$.operator_key_id')=ap.operator_key_id
+     AND json_extract(rq.canonical_envelope,'$.chain_id')=4663
+     AND manual_time_cmp(NEW.updated_at,ap.issued_at)=0
      AND manual_time_cmp(NEW.updated_at,ap.expires_at)<0
      AND json_extract(rq.canonical_envelope,'$.domain')='RBH-MANUAL-A4-AUTHORIZATION-V1'
      AND json_extract(rq.canonical_envelope,'$.authorization_id')=NEW.id
@@ -36,10 +41,16 @@ WHEN NEW.state='ARMED' AND EXISTS(SELECT 1 FROM manual_authorization_units WHERE
      AND json_extract(rq.canonical_envelope,'$.deployment_id')=NEW.deployment_id
      AND json_extract(rq.canonical_envelope,'$.environment')=NEW.environment
      AND json_extract(rq.canonical_envelope,'$.wallet_id')=NEW.wallet_id
+     AND EXISTS(SELECT 1 FROM dry_run_wallets w WHERE w.id=NEW.wallet_id AND w.chain_id=4663 AND w.enabled=1 AND lower(w.address)=lower(json_extract(rq.canonical_envelope,'$.wallet_address')))
      AND json_extract(rq.canonical_envelope,'$.policy_version')=NEW.policy_version
+     AND json_extract(rq.canonical_envelope,'$.policy_hash')=(SELECT p.policy_hash FROM manual_risk_policies p JOIN manual_authorization_units u ON u.manual_policy_id=p.id WHERE u.authorization_id=NEW.id)
+     AND length(json_extract(rq.canonical_envelope,'$.source_hash'))=64
+     AND NOT EXISTS(SELECT 1 FROM manual_operator_revocations r WHERE r.authorization_id=NEW.id AND r.authorization_epoch=NEW.epoch)
      AND json_extract(rq.canonical_envelope,'$.gate_evidence_set_hash')=NEW.gate_evidence_set_hash
      AND json_extract(rq.canonical_envelope,'$.max_operations')=NEW.max_operations
      AND json_extract(rq.canonical_envelope,'$.max_total_input')=NEW.max_total_input
      AND (SELECT COUNT(*) FROM manual_operator_gate_attestations g WHERE g.authorization_id=NEW.id AND g.authorization_epoch=NEW.epoch)=4
+     AND NOT EXISTS(SELECT 1 FROM manual_operator_gate_attestations g WHERE g.authorization_id=NEW.id AND g.authorization_epoch=NEW.epoch AND g.gate IN ('C04','C05','C08')
+       AND NOT EXISTS(SELECT 1 FROM canary_gate_attestations c WHERE c.gate=g.gate AND c.status='PASS' AND c.evidence_hash=g.evidence_hash))
  )
 BEGIN SELECT RAISE(ABORT,'manual authorization requires verified operator approval'); END;
