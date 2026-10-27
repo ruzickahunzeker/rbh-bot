@@ -2,6 +2,9 @@ package storage
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/hex"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -17,7 +20,7 @@ func TestA4OperatorAuthorityOverlayIsDurableButNoArm(t *testing.T) {
 		t.Fatal(err)
 	}
 	var version int
-	if err := d.db.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&version); err != nil || version != 46 {
+	if err := d.db.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&version); err != nil || version != 47 {
 		t.Fatal("migration046 not landed", version, err)
 	}
 	for _, table := range []string{"manual_operator_trust_roots", "manual_operator_authorization_requests", "manual_operator_authorization_approvals", "manual_operator_revocations"} {
@@ -77,7 +80,53 @@ VALUES('a4-auth',1,'CONTROLLED_CANARY','a4-fixture',4663,1,'a4-wallet',?, 'a4-re
 		}
 	}
 	var triggerSQL string
-	if err := d.db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='trigger' AND name='manual_b1_no_arm'`).Scan(&triggerSQL); err != nil || !strings.Contains(triggerSQL, "manual atomic admission not connected") {
-		t.Fatal("migration046 changed or removed manual_b1_no_arm", err)
+	if err := d.db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='trigger' AND name='manual_b1_no_arm'`).Scan(&triggerSQL); err != nil || !strings.Contains(triggerSQL, "verified operator approval") {
+		t.Fatal("approval-gated no-arm trigger missing", err)
+	}
+}
+
+func TestA4B2DirectSQLValidApprovalArmsExactlyOnce(t *testing.T) {
+	d := metadataDB(t)
+	insertMetadataAuth(t, d.db, "a4b2-auth", 1)
+	policyHash := insertMetadataPolicy(t, d.db)
+	if err := declareMetadataUnit(d.db, "a4b2-auth", 1, policyHash, "native", 18); err != nil {
+		t.Fatal(err)
+	}
+	public, private, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stamp := metadataStamp
+	gateHash := strings.Repeat("b", 64)
+	build := strings.Repeat("1", 40)
+	envelope := `{"domain":"RBH-MANUAL-A4-AUTHORIZATION-V1","approval_id":"approval-a4b2","request_id":"request-a4b2","operator_key_id":"key-a4b2","issued_at":"` + stamp + `","expires_at":"2026-10-10T01:00:00Z","authorization_id":"a4b2-auth","authorization_epoch":1,"build_sha":"` + build + `","release_id":"fixture-release","deployment_id":"fixture-deployment","environment":"controlled-fixture","chain_id":4663,"wallet_id":"fixture-wallet","wallet_address":"0x1111111111111111111111111111111111111111","policy_version":1,"policy_hash":"` + strings.Repeat("a", 64) + `","gate_evidence_set_hash":"` + gateHash + `","max_operations":10,"max_total_input":"100","source_hash":"` + strings.Repeat("c", 64) + `","nonce":"nonce-a4b2","schema_version":"1"}`
+	signature := ed25519.Sign(private, []byte(envelope))
+	if _, err := d.db.Exec(`INSERT INTO manual_operator_trust_roots VALUES('key-a4b2',?,?,?, ?,NULL)`, hex.EncodeToString(public), strings.Repeat("d", 64), strings.Repeat("e", 64), stamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.db.Exec(`INSERT INTO manual_operator_authorization_requests(request_id,authorization_id,authorization_epoch,request_hash,canonical_envelope,created_at) VALUES('request-a4b2','a4b2-auth',1,manual_artifact_bytes_sha256(hex(?)),?,?)`, envelope, envelope, stamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.db.Exec(`INSERT INTO manual_operator_authorization_approvals VALUES('approval-a4b2','request-a4b2','key-a4b2',manual_artifact_bytes_sha256(hex(?)),?,?,?,?)`, envelope, hex.EncodeToString(signature), stamp, "2026-10-10T01:00:00Z", stamp); err != nil {
+		t.Fatal(err)
+	}
+	for _, gate := range []string{"C04", "C05", "C07", "C08"} {
+		if _, err := d.db.Exec(`INSERT INTO manual_operator_gate_attestations VALUES('a4b2-auth',1,?,?,?,?)`, gate, strings.Repeat("f", 64), "reviewed-head", stamp); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := d.db.Exec(`UPDATE canary_runtime_authorizations SET state='ARMED',updated_at=? WHERE id='a4b2-auth' AND state='PENDING'`, stamp); err != nil {
+		t.Fatal("valid approval rejected", err)
+	}
+	if _, err := d.db.Exec(`UPDATE canary_runtime_authorizations SET state='ARMED',updated_at=? WHERE id='a4b2-auth' AND state='ARMED'`, stamp); err != nil {
+		t.Fatal("idempotent armed update rejected", err)
+	}
+	var state string
+	if err := d.db.QueryRow(`SELECT state FROM canary_runtime_authorizations WHERE id='a4b2-auth'`).Scan(&state); err != nil || state != "ARMED" {
+		t.Fatal("state", state, err)
+	}
+	var audits int
+	if err := d.db.QueryRow(`SELECT COUNT(*) FROM canary_runtime_audit WHERE authorization_id='a4b2-auth' AND event_type='AUTHORIZATION_STATE_CHANGED'`).Scan(&audits); err != nil || audits != 1 {
+		t.Fatal("audit count", audits, err)
 	}
 }
