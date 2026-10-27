@@ -1,10 +1,10 @@
 {
   "scope": "A4-B2_APPROVAL_GATED_ATOMIC_ARMING",
-  "status": "A4-B2_READY_FOR_REVIEW",
+  "status": "A4-B2_HARDENING_IN_PROGRESS",
   "base_head": "5a76ec8cc77f84acdfd394c218b9b63702fc1411",
-  "implementation_head": "91742c5d624eb17519cc95627d4e5c4d14349280",
-  "implementation_document": {"path": "docs/HTTP_A4B2_ATOMIC_ARMING.md", "sha256": "554d460dd28e123a8a4ce5eace165895b9ae3e74d66d3f3b374b25ca3ce3d1f4"},
-  "migration": "047_manual_operator_arming",
+  "implementation_head": "8c245f158398f5252034eb06864234bc2e1c3f66",
+  "implementation_document": {"path": "docs/HTTP_A4B2_ATOMIC_ARMING.md", "sha256": "bbe560b474a5e9394438975872690e701f87b51064e69563630150951bec50f7"},
+  "migration": "047_manual_operator_arming + 048_manual_operator_arming_hardening",
   "state_owner": "canary_runtime_authorizations",
   "guard": "manual_b1_no_arm_atomic_approval_predicate",
   "gate_attestations": ["C04", "C05", "C07", "C08"],
@@ -12,5 +12,6 @@
   "transition_audit": "EXACTLY_ONE",
   "authorization_grant": "NOT_GRANTED",
   "prohibited_paths": {"http": false, "signer": false, "submission": false, "permit": false, "raw_send": false, "mainnet": false, "live": false},
+  "hardening": ["authenticated trust-root bootstrap witness", "A3 durable bounded clock", "C07/source identity witnesses", "canonical envelope and nonce binding"],
   "independent_review": "PENDING"
 }
