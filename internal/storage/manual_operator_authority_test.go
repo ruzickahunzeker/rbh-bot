@@ -44,6 +44,29 @@ VALUES('a4-auth',1,'CONTROLLED_CANARY','a4-fixture',4663,1,'a4-wallet',?, 'a4-re
 	if _, err := d.db.Exec(`INSERT INTO manual_operator_authorization_approvals VALUES('approval-1','req-1','key-1',?,?,?, ?,?)`, strings.Repeat("f", 64), strings.Repeat("1", 128), stamp, stamp, stamp, stamp); err != nil {
 		t.Fatal(err)
 	}
+	bad64 := "z" + strings.Repeat("0", 63)
+	bad128 := "z" + strings.Repeat("0", 127)
+	for _, statement := range []string{
+		`INSERT INTO manual_operator_trust_roots VALUES('bad-key',?, ?, ?, ?,NULL)`,
+		`INSERT INTO manual_operator_authorization_requests VALUES('bad-req','a4-auth',1,?, ?,?)`,
+		`INSERT INTO manual_operator_authorization_approvals VALUES('bad-approval','req-1','key-1',?, ?,?,?,?)`,
+		`INSERT INTO manual_operator_revocations VALUES('bad-revoke','a4-auth',1,'TEST',?,?)`,
+	} {
+		var err error
+		switch {
+		case strings.Contains(statement, "trust_roots"):
+			_, err = d.db.Exec(statement, bad64, strings.Repeat("c", 64), strings.Repeat("d", 64), stamp)
+		case strings.Contains(statement, "authorization_requests"):
+			_, err = d.db.Exec(statement, bad64, `{"authorization_id":"a4-auth"}`, stamp)
+		case strings.Contains(statement, "authorization_approvals"):
+			_, err = d.db.Exec(statement, bad64, bad128, stamp, stamp, stamp)
+		default:
+			_, err = d.db.Exec(statement, bad64, stamp)
+		}
+		if err == nil {
+			t.Fatal("malformed operator evidence accepted", statement)
+		}
+	}
 	for _, statement := range []string{
 		`UPDATE manual_operator_trust_roots SET revoked_at='2026-10-28T00:00:00Z'`,
 		`DELETE FROM manual_operator_authorization_requests`,
