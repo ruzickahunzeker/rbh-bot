@@ -16,6 +16,8 @@ attestation witnesses, rejects non-canonical approval JSON, binds approval
 columns to the signed request and requires the A3 durable clock state for the
 arming window. The trust-root bootstrap witness remains an out-of-band
 deployment responsibility; no HTTP or SQL grant path is enabled by this slice.
+The ordered aggregate hash and full negative/concurrency evidence remain
+review gates for this branch.
 
 The existing authorization row remains the sole state owner and migration010
 transition audit remains same-transaction. Direct SQL valid approval arming,
