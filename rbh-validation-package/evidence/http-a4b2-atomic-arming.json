@@ -1,9 +1,9 @@
 {
   "scope": "A4-B2_APPROVAL_GATED_ATOMIC_ARMING",
-  "status": "A4-B2_PASS",
+  "status": "A4-B2_HARDENING_IN_PROGRESS",
   "base_head": "5a76ec8cc77f84acdfd394c218b9b63702fc1411",
   "implementation_head": "4e80965f024269a6c97382f0a277ad31704e9dd4",
-  "implementation_document": {"path": "docs/HTTP_A4B2_ATOMIC_ARMING.md", "sha256": "707b4dfc8c77d5643ccabed80ec41d22ea062e007fba64656bdf03badb3e8a16"},
+  "implementation_document": {"path": "docs/HTTP_A4B2_ATOMIC_ARMING.md", "sha256": "f68aabd9331e32b9d6fbf56d735e728d472f5de2daf809f42934de9eebbef80e"},
   "migration": "047_manual_operator_arming + 048_manual_operator_arming_hardening + 049_manual_operator_arming_proof",
   "state_owner": "canary_runtime_authorizations",
   "guard": "manual_b1_no_arm_atomic_approval_predicate",
@@ -13,8 +13,5 @@
   "authorization_grant": "NOT_GRANTED",
   "prohibited_paths": {"http": false, "signer": false, "submission": false, "permit": false, "raw_send": false, "mainnet": false, "live": false},
   "hardening": ["authenticated trust-root bootstrap witness", "A3 durable bounded clock", "C07/source identity witnesses", "canonical envelope and nonce binding"],
-  "independent_review": "PASS",
-  "reviewed_head": "8022c00fe2421aff91899e9cbb2d51acdf6b49fc",
-  "ci": {"go_test": "PASS", "go_test_race": "PASS", "go_vet": "PASS", "staticcheck": "PASS", "gofmt_diff": "PASS", "validation_package": "PASS"},
-  "closeout": {"status": "PREPARED", "branch": "a4b2-atomic-arming-closeout", "production_broadcast": "NOT_CONNECTED", "controlled_canary_authorization": "NOT_GRANTED", "live": false, "release_ready": false, "a5": "NOT_STARTED"}
+  "independent_review": "PENDING"
 }
