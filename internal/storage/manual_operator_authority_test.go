@@ -130,7 +130,8 @@ func TestA4B2DirectSQLValidApprovalArmsExactlyOnce(t *testing.T) {
 	}
 	stamp := metadataStamp
 	c07Evidence := strings.Repeat("f", 64)
-	gateHash := a4GateSetHash("c1af9454a6a4433b488158c25224d13dfbf31178c71dae7468c80917743381fd", "reviewed-head", stamp, "1a793f13d9304a31ed405f9fe25f1713cf79b6f8d28bb3da8ad16a01dc24c40b", "reviewed-head", stamp, c07Evidence, "reviewed-head", stamp, "8178e7b976dbea67be1de83cec529171e56d154cd2114f1bf290bebbd1fc77d8", "reviewed-head", stamp)
+	reviewedHead := strings.Repeat("a", 40)
+	gateHash := a4GateSetHash("c1af9454a6a4433b488158c25224d13dfbf31178c71dae7468c80917743381fd", reviewedHead, stamp, "1a793f13d9304a31ed405f9fe25f1713cf79b6f8d28bb3da8ad16a01dc24c40b", reviewedHead, stamp, c07Evidence, reviewedHead, stamp, "8178e7b976dbea67be1de83cec529171e56d154cd2114f1bf290bebbd1fc77d8", reviewedHead, stamp)
 	sourceHash := strings.Repeat("c", 64)
 	build := strings.Repeat("1", 40)
 	if _, err := d.db.Exec(`INSERT INTO operations(id,chain_id,wallet_id,idempotency_key,request_fingerprint,kind,status,created_at) VALUES('a4b2-op',4663,'fixture-wallet','a4b2-key','a4b2-fingerprint','swap','prepared',?)`, stamp); err != nil {
@@ -160,8 +161,8 @@ func TestA4B2DirectSQLValidApprovalArmsExactlyOnce(t *testing.T) {
 	if _, err := d.db.Exec(`INSERT INTO manual_operator_authorization_approvals VALUES('approval-a4b2','request-a4b2','key-a4b2',manual_artifact_bytes_sha256(hex(?)),?,?,?,?)`, envelope, hex.EncodeToString(signature), stamp, "2026-10-10T01:00:00Z", stamp); err != nil {
 		t.Fatal(err)
 	}
-	c07MAC := a4BootstrapMAC("a4b2-auth", "1", c07Evidence, "reviewed-head", stamp)
-	if _, err := d.db.Exec(`INSERT INTO manual_operator_c07_attestations(authorization_id,authorization_epoch,evidence_hash,reviewed_head,attested_at,attestation_mac) VALUES('a4b2-auth',1,?,?,?,?)`, c07Evidence, "reviewed-head", stamp, c07MAC); err != nil {
+	c07MAC := a4BootstrapMAC("a4b2-auth", "1", c07Evidence, reviewedHead, stamp)
+	if _, err := d.db.Exec(`INSERT INTO manual_operator_c07_attestations(authorization_id,authorization_epoch,evidence_hash,reviewed_head,attested_at,attestation_mac) VALUES('a4b2-auth',1,?,?,?,?)`, c07Evidence, reviewedHead, stamp, c07MAC); err != nil {
 		t.Fatal(err)
 	}
 	for _, gate := range []string{"C04", "C05", "C07", "C08"} {
@@ -171,7 +172,7 @@ func TestA4B2DirectSQLValidApprovalArmsExactlyOnce(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		if _, err := d.db.Exec(`INSERT INTO manual_operator_gate_attestations VALUES('a4b2-auth',1,?,?,?,?)`, gate, evidence, "reviewed-head", stamp); err != nil {
+		if _, err := d.db.Exec(`INSERT INTO manual_operator_gate_attestations VALUES('a4b2-auth',1,?,?,?,?)`, gate, evidence, reviewedHead, stamp); err != nil {
 			t.Fatal(err)
 		}
 	}
