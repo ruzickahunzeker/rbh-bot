@@ -2,7 +2,7 @@
   "scope": "A4-B1_OPERATOR_APPROVAL_SIGNATURE_VERIFIER",
   "status": "A4-B1_READY_FOR_REVIEW",
   "base_head": "8f407c390f81dc2894ea6c53f23ad5d9302c9156",
-  "implementation_head": "64b2a7fc374828d4f1c3f3708b2b96060e7e6a66",
+  "implementation_head": "ead90e620d4fdbf05857d2ff65065e34b6a69c6f",
   "implementation_document": {"path": "docs/HTTP_A4B1_OPERATOR_SIGNATURE_VERIFIER.md", "sha256": "0f474c6d5f5aba05624b58e953a355f956d70060231c9c0008f9f8bff19dbd63"},
   "domain": "RBH-MANUAL-A4-AUTHORIZATION-V1",
   "algorithm": "Ed25519",
