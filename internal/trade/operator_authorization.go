@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"time"
 )
 
@@ -109,5 +108,3 @@ func verifyOperatorApprovalAt(e OperatorApprovalEnvelope, publicKeyHex, signatur
 	}
 	return nil
 }
-
-var errOperatorApprovalUnavailable = errors.New("operator approval unavailable")
