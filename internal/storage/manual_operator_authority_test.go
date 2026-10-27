@@ -20,10 +20,10 @@ func TestA4OperatorAuthorityOverlayIsDurableButNoArm(t *testing.T) {
 		t.Fatal(err)
 	}
 	var version int
-	if err := d.db.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&version); err != nil || version != 47 {
-		t.Fatal("migration046 not landed", version, err)
+	if err := d.db.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&version); err != nil || version != 48 {
+		t.Fatal("A4 hardening migration not landed", version, err)
 	}
-	for _, table := range []string{"manual_operator_trust_roots", "manual_operator_authorization_requests", "manual_operator_authorization_approvals", "manual_operator_revocations"} {
+	for _, table := range []string{"manual_operator_trust_roots", "manual_operator_trust_root_bootstrap", "manual_operator_authorization_requests", "manual_operator_authorization_approvals", "manual_operator_revocations", "manual_operator_authorization_sources", "manual_operator_c07_attestations"} {
 		var n int
 		if err := d.db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, table).Scan(&n); err != nil || n != 1 {
 			t.Fatal("missing A4 table", table, err)
@@ -38,10 +38,14 @@ func TestA4OperatorAuthorityOverlayIsDurableButNoArm(t *testing.T) {
 VALUES('a4-auth',1,'CONTROLLED_CANARY','a4-fixture',4663,1,'a4-wallet',?, 'a4-release','a4-deployment',?, 'a4-ref',1,'1','PENDING',?,?,?,?)`, strings.Repeat("1", 40), strings.Repeat("a", 64), stamp, stamp, stamp, stamp); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := d.db.Exec(`INSERT INTO manual_operator_trust_root_bootstrap VALUES('key-1',?,?,?, 'a4-deployment',?)`, strings.Repeat("b", 64), strings.Repeat("c", 64), strings.Repeat("d", 64), stamp); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := d.db.Exec(`INSERT INTO manual_operator_trust_roots VALUES('key-1',?,?,?, ?,NULL)`, strings.Repeat("b", 64), strings.Repeat("c", 64), strings.Repeat("d", 64), stamp); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := d.db.Exec(`INSERT INTO manual_operator_authorization_requests VALUES('req-1','a4-auth',1,?,?,?)`, strings.Repeat("e", 64), `{"authorization_id":"a4-auth","authorization_epoch":1}`, stamp); err != nil {
+	validEnvelope := `{"domain":"RBH-MANUAL-A4-AUTHORIZATION-V1","approval_id":"approval-1","request_id":"req-1","operator_key_id":"key-1","issued_at":"` + stamp + `","expires_at":"2026-10-10T01:00:00Z","authorization_id":"a4-auth","authorization_epoch":1,"build_sha":"` + strings.Repeat("1", 40) + `","release_id":"a4-release","deployment_id":"a4-deployment","environment":"a4-fixture","chain_id":4663,"wallet_id":"a4-wallet","wallet_address":"0x1111111111111111111111111111111111111111","policy_version":1,"policy_hash":"` + strings.Repeat("a", 64) + `","gate_evidence_set_hash":"` + strings.Repeat("b", 64) + `","max_operations":1,"max_total_input":"1","source_hash":"` + strings.Repeat("c", 64) + `","nonce":"nonce-1","schema_version":"1"}`
+	if _, err := d.db.Exec(`INSERT INTO manual_operator_authorization_requests VALUES('req-1','a4-auth',1,?,?,?)`, strings.Repeat("e", 64), validEnvelope, stamp); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := d.db.Exec(`INSERT INTO manual_operator_authorization_approvals VALUES('approval-1','req-1','key-1',?,?,?, ?,?)`, strings.Repeat("f", 64), strings.Repeat("1", 128), stamp, stamp, stamp, stamp); err != nil {
@@ -101,9 +105,25 @@ func TestA4B2DirectSQLValidApprovalArmsExactlyOnce(t *testing.T) {
 	}
 	stamp := metadataStamp
 	gateHash := strings.Repeat("b", 64)
+	sourceHash := strings.Repeat("c", 64)
 	build := strings.Repeat("1", 40)
-	envelope := `{"domain":"RBH-MANUAL-A4-AUTHORIZATION-V1","approval_id":"approval-a4b2","request_id":"request-a4b2","operator_key_id":"key-a4b2","issued_at":"` + stamp + `","expires_at":"2026-10-10T01:00:00Z","authorization_id":"a4b2-auth","authorization_epoch":1,"build_sha":"` + build + `","release_id":"fixture-release","deployment_id":"fixture-deployment","environment":"controlled-fixture","chain_id":4663,"wallet_id":"fixture-wallet","wallet_address":"0x1111111111111111111111111111111111111111","policy_version":1,"policy_hash":"` + policyHash + `","gate_evidence_set_hash":"` + gateHash + `","max_operations":10,"max_total_input":"100","source_hash":"` + strings.Repeat("c", 64) + `","nonce":"nonce-a4b2","schema_version":"1"}`
+	if _, err := d.db.Exec(`INSERT INTO operations(id,chain_id,wallet_id,idempotency_key,request_fingerprint,kind,status,created_at) VALUES('a4b2-op',4663,'fixture-wallet','a4b2-key','a4b2-fingerprint','swap','prepared',?)`, stamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.db.Exec(`INSERT INTO canary_admission_sources(operation_id,wallet_id,wallet_address,protocol,direction,token_address,contract_address,contract_role,runtime_code_hash,amount,gas_limit,gas_fee_cap,gas_tip_cap,native_balance,slippage_bps,sell_bps,policy_version,quote_block_number,quote_block_hash,expires_at,source_hash,created_at) VALUES('a4b2-op','fixture-wallet','0x1111111111111111111111111111111111111111','PONS_V2_CURVE','BUY','0x2222222222222222222222222222222222222222','0x3333333333333333333333333333333333333333','curve','0x`+strings.Repeat("4",64)+`','100','1','1','1','1000',100,100,1,1,'0x`+strings.Repeat("5",64)+`','2026-10-10T01:00:00Z',?,?)`, sourceHash, stamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.db.Exec(`INSERT INTO manual_operator_authorization_sources VALUES('a4b2-auth',1,'a4b2-op',?,?)`, sourceHash, stamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.db.Exec(`INSERT INTO manual_gate_clock_events(id,chain_id,environment,generation,high_water_at,fault_latched,fault_reason,fault_at,updated_at) VALUES('manual-clock:'||manual_artifact_bytes_sha256(hex(json_object('chain_id',4663,'environment','controlled-fixture','generation',1))),4663,'controlled-fixture',1,?,0,'',NULL,?)`, stamp, stamp); err != nil {
+		t.Fatal(err)
+	}
+	envelope := `{"domain":"RBH-MANUAL-A4-AUTHORIZATION-V1","approval_id":"approval-a4b2","request_id":"request-a4b2","operator_key_id":"key-a4b2","issued_at":"` + stamp + `","expires_at":"2026-10-10T01:00:00Z","authorization_id":"a4b2-auth","authorization_epoch":1,"build_sha":"` + build + `","release_id":"fixture-release","deployment_id":"fixture-deployment","environment":"controlled-fixture","chain_id":4663,"wallet_id":"fixture-wallet","wallet_address":"0x1111111111111111111111111111111111111111","policy_version":1,"policy_hash":"` + policyHash + `","gate_evidence_set_hash":"` + gateHash + `","max_operations":10,"max_total_input":"100","source_hash":"` + sourceHash + `","nonce":"nonce-a4b2","schema_version":"1"}`
 	signature := ed25519.Sign(private, []byte(envelope))
+	if _, err := d.db.Exec(`INSERT INTO manual_operator_trust_root_bootstrap VALUES('key-a4b2',?,?,?, 'fixture-deployment',?)`, hex.EncodeToString(public), strings.Repeat("d", 64), strings.Repeat("e", 64), stamp); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := d.db.Exec(`INSERT INTO manual_operator_trust_roots VALUES('key-a4b2',?,?,?, ?,NULL)`, hex.EncodeToString(public), strings.Repeat("d", 64), strings.Repeat("e", 64), stamp); err != nil {
 		t.Fatal(err)
 	}
@@ -111,6 +131,9 @@ func TestA4B2DirectSQLValidApprovalArmsExactlyOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := d.db.Exec(`INSERT INTO manual_operator_authorization_approvals VALUES('approval-a4b2','request-a4b2','key-a4b2',manual_artifact_bytes_sha256(hex(?)),?,?,?,?)`, envelope, hex.EncodeToString(signature), stamp, "2026-10-10T01:00:00Z", stamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.db.Exec(`INSERT INTO manual_operator_c07_attestations VALUES('a4b2-auth',1,?,?,?)`, gateHash, strings.Repeat("6", 40), stamp); err != nil {
 		t.Fatal(err)
 	}
 	for _, gate := range []string{"C04", "C05", "C07", "C08"} {
@@ -137,5 +160,20 @@ func TestA4B2DirectSQLValidApprovalArmsExactlyOnce(t *testing.T) {
 	var audits int
 	if err := d.db.QueryRow(`SELECT COUNT(*) FROM canary_runtime_audit WHERE authorization_id='a4b2-auth' AND event_type='AUTHORIZATION_STATE_CHANGED'`).Scan(&audits); err != nil || audits != 1 {
 		t.Fatal("audit count", audits, err)
+	}
+}
+
+func TestA4B2HardeningRejectsUnwitnessedRootAndNonCanonicalEnvelope(t *testing.T) {
+	d := metadataDB(t)
+	insertMetadataAuth(t, d.db, "a4b2-hardening", 1)
+	stamp := metadataStamp
+	if _, err := d.db.Exec(`INSERT INTO manual_operator_trust_roots VALUES('unwitnessed',?,?,?, ?,NULL)`, strings.Repeat("1", 64), strings.Repeat("2", 64), strings.Repeat("3", 64), stamp); err == nil {
+		t.Fatal("direct SQL trust-root insertion bypassed bootstrap witness")
+	}
+	// The request table accepts only the exact canonical envelope key set and
+	// types; a valid JSON object with an extra key is still rejected.
+	badEnvelope := `{"domain":"RBH-MANUAL-A4-AUTHORIZATION-V1","extra":"caller"}`
+	if _, err := d.db.Exec(`INSERT INTO manual_operator_authorization_requests VALUES('noncanonical','a4b2-hardening',1,?,?,?)`, strings.Repeat("4", 64), badEnvelope, stamp); err == nil {
+		t.Fatal("non-canonical operator envelope accepted")
 	}
 }
