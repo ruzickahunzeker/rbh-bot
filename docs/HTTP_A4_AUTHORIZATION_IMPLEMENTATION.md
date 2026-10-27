@@ -1,6 +1,6 @@
 # A4-A — durable operator evidence overlay
 
-Status: `A4-A_READY_FOR_REVIEW`  
+Status: `A4-A = PASS`, `A4-A formal closeout = COMPLETE`  
 Base scope: `fdaa3ba31dff2d265b8d56d35c6cee601a5bc119`  
 Historical implementation head before hardening: `4022f6e4379ea2b4d8f70536d48901bea6f163d0`.
 Current reviewed hardening head: `1e3e09ba319ef095c09133cb861fbf3cb86a2d63`.
@@ -18,6 +18,7 @@ enabled by A4-A and belong to the separately reviewed A4-B implementation.
 No HTTP route, signer, submission, permit, broadcaster, mainnet or live path
 is added.
 
+Independent implementation review passed on code identity `1e3e09ba319ef095c09133cb861fbf3cb86a2d63`.
 Focused evidence proves migration 046 is applied, all four overlay tables exist,
 updates/deletes are rejected, and the original no-arm trigger definition is
 still present. This is schema/evidence progress only, not authorization or

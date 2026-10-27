@@ -1,13 +1,13 @@
 {
   "scope": "A4-A_DURABLE_OPERATOR_EVIDENCE_OVERLAY",
-  "status": "A4-A_READY_FOR_REVIEW",
+  "status": "A4-A_PASS",
   "base_scope_head": "fdaa3ba31dff2d265b8d56d35c6cee601a5bc119",
   "migration": "046_manual_operator_authority",
   "implementation_head": "1e3e09ba319ef095c09133cb861fbf3cb86a2d63",
   "code_implementation_head": "1e3e09ba319ef095c09133cb861fbf3cb86a2d63",
   "reviewed_head": "1e3e09ba319ef095c09133cb861fbf3cb86a2d63",
   "scope_document": "docs/HTTP_A4_AUTHORIZATION_SCOPE.md",
-  "implementation_document": {"path": "docs/HTTP_A4_AUTHORIZATION_IMPLEMENTATION.md", "sha256": "14b5bd0ea03b8e0802fd9db160af39c053d431d1de673135bddb690b39168d91"},
+  "implementation_document": {"path": "docs/HTTP_A4_AUTHORIZATION_IMPLEMENTATION.md", "sha256": "be0e77f7d72b0ac581a8c55e3b0040ae3aaf2b090b7fd2c023d9fac723f4245d"},
   "tables": ["manual_operator_trust_roots", "manual_operator_authorization_requests", "manual_operator_authorization_approvals", "manual_operator_revocations"],
   "state_owner": "canary_runtime_authorizations",
   "manual_b1_no_arm": "PRESERVED",
@@ -17,5 +17,8 @@
   "prohibited_paths": {"http": false, "signer": false, "submission": false, "permit": false, "raw_send": false, "mainnet": false, "live": false},
   "production_broadcast": "NOT_CONNECTED",
   "release_ready": false,
-  "independent_review": "PENDING"
+  "independent_review": "PASS",
+  "formal_closeout": "COMPLETE",
+  "closeout_carrier": "ed347a49844437c1f92ae6565d921b71d0174b1f",
+  "A4-B": "NOT_STARTED"
 }
