@@ -18,7 +18,7 @@ func TestHTTPM3B4ProductionGraphRemainsDisconnected(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", ".."))
 	owners := map[string]map[string]bool{
 		"manualLocalSigningWriter": {
-			"internal/tradeapi/manual_local_signing.go":    true,
+			"internal/tradeapi/manual_local_signing.go":     true,
 			"internal/tradeapi/manual_trust_composition.go": true,
 		},
 		"manualNonceClaimWriter": {"internal/tradeapi/manual_nonce_claim.go": true},
