@@ -56,14 +56,8 @@ func (q *manualRecoveryQuerier) QueryRecovery(context.Context, trade.ControlledR
 
 func manualRecoveryFixture(t *testing.T, state, side string) (manualSubmissionFixture, *trade.RecoveryService, *manualRecoveryBackend, trade.RecoveryLeaseFence) {
 	t.Helper()
-	f := newManualSubmissionFixture(t, side)
-	if state == "broadcast_unknown" {
-		f.fake.result, f.fake.err = manualTransportResult{}, errors.New("ambiguous fixture transport")
-	}
-	sub, err := f.e.execute(context.Background(), f.id, f.request, f.permit.ID)
-	if sub.State != state {
-		t.Fatalf("fixture outcome %s: %v", sub.State, err)
-	}
+	template := manualSubmissionFixtureTemplateFor(t, state, side)
+	f := cloneManualSubmissionFixtureBytes(t, template.fixture, template.db)
 	var found int
 	if err := f.e.verifier.store.db.QueryRow(`SELECT COUNT(*) FROM manual_recovery_source WHERE operation_id=?`, f.permit.OperationID).Scan(&found); err != nil || found != 1 {
 		t.Fatalf("retained recovery source count=%d: %v", found, err)
@@ -634,12 +628,8 @@ func TestManualRecoveryLeaseExpiryInMutationCommitWindowRollsBack(t *testing.T) 
 }
 
 func TestManualRecoveryKnownUnsentRetainsFrozenOwnership(t *testing.T) {
-	f := newManualSubmissionFixture(t, "buy")
-	f.fake.result = manualTransportResult{deterministicUnsent: true}
-	sub, err := f.e.execute(context.Background(), f.id, f.request, f.permit.ID)
-	if err != nil || sub.State != "known_unsent" {
-		t.Fatal(sub, err)
-	}
+	template := manualSubmissionFixtureTemplateFor(t, "known_unsent", "buy")
+	f := cloneManualSubmissionFixtureBytes(t, template.fixture, template.db)
 	db := f.e.verifier.store.db
 	var history, recoverable int
 	var lane, risk, usage string

@@ -60,6 +60,16 @@ func corruptExecutionHTTPFixture(t *testing.T, db *sql.DB, table, statement stri
 }
 
 func TestHTTPCExecutionIdentityRejectsCorruptHistory(t *testing.T) {
+	templates := make(map[bool]manualSubmissionFixture, 2)
+	for _, submitted := range []bool{false, true} {
+		f := newManualSubmissionFixture(t, "buy")
+		if submitted {
+			if sub, err := f.e.execute(context.Background(), f.id, f.request, f.permit.ID); err != nil || sub.State != "submitted" {
+				t.Fatalf("local submitted template: %+v %v", sub, err)
+			}
+		}
+		templates[submitted] = f
+	}
 	for _, tc := range []struct {
 		name, table, statement string
 		submitted              bool
@@ -110,12 +120,7 @@ func TestHTTPCExecutionIdentityRejectsCorruptHistory(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			f := newManualSubmissionFixture(t, "buy")
-			if tc.submitted {
-				if sub, err := f.e.execute(context.Background(), f.id, f.request, f.permit.ID); err != nil || sub.State != "submitted" {
-					t.Fatal("local submitted fixture", sub, err)
-				}
-			}
+			f := cloneManualSubmissionFixture(t, templates[tc.submitted])
 			store := f.e.verifier.store
 			h, err := NewWithOptions(store, f.id, testCredential, DefaultPolicy(), nil, Options{ManualIntake: true})
 			if err != nil {
