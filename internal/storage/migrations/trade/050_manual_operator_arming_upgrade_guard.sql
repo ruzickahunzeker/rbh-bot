@@ -82,6 +82,7 @@ WHEN NEW.state='ARMED' AND EXISTS(
     AND json_type(rq.canonical_envelope,'$.max_total_input')='text'
     AND json_extract(rq.canonical_envelope,'$.max_total_input') NOT GLOB '*[^0-9]*'
     AND length(json_extract(rq.canonical_envelope,'$.max_total_input'))>0
+    AND json_extract(rq.canonical_envelope,'$.schema_version')='1'
     AND manual_artifact_bytes_sha256(hex(rq.canonical_envelope))=rq.request_hash
     AND manual_operator_signature_valid(root.public_key_hex,rq.canonical_envelope,ap.signature_hex)=1
     AND ap.envelope_hash=rq.request_hash
