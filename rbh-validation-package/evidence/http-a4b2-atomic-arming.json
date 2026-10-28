@@ -12,6 +12,6 @@
   "transition_audit": "EXACTLY_ONE",
   "authorization_grant": "NOT_GRANTED",
   "prohibited_paths": {"http": false, "signer": false, "submission": false, "permit": false, "raw_send": false, "mainnet": false, "live": false},
-  "hardening": ["authenticated trust-root bootstrap witness", "A3 durable bounded clock", "C07/source identity witnesses", "canonical envelope and nonce binding", "upgrade-time legacy proof revalidation", "cross-authorization source rejection", "guard provenance"],
+  "hardening": ["authenticated trust-root bootstrap witness", "A3 durable bounded clock", "C07/source identity witnesses", "canonical envelope and nonce binding", "upgrade-time legacy proof revalidation", "cross-authorization source rejection", "guard provenance", "tampered-guard migration rollback"],
   "independent_review": "PENDING"
 }

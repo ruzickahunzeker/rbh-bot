@@ -19,6 +19,8 @@ and C07 witnesses, and require the A3 durable clock state for the arming
 window. Migration 050 revalidates pre-existing rows at the arming boundary,
 rejects legacy proof-less roots/attestations, rejects duplicate nonces and
 cross-authorization source adoption, and records the prior guard definition.
+The upgrade fixture also proves a tampered prior guard causes migration 050 to
+roll back without advancing the schema journal.
 No HTTP or SQL grant path is enabled by this slice.
 The ordered aggregate hash and full negative/concurrency evidence remain
 review gates for this branch.

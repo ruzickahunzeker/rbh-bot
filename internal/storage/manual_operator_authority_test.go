@@ -254,3 +254,23 @@ func TestA4B2UpgradeGuardProvenanceIsImmutable(t *testing.T) {
 		}
 	}
 }
+
+func TestA4B2UpgradeRejectsTamperedPriorArmGuard(t *testing.T) {
+	ctx := context.Background()
+	d, err := Open(ctx, TradeOwner, filepath.Join(t.TempDir(), "a4-upgrade.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	migrateTradeThroughTest(t, ctx, d, 49)
+	if _, err := d.db.Exec(`DROP TRIGGER manual_b1_no_arm`); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Migrate(ctx); err == nil {
+		t.Fatal("migration 050 accepted a tampered prior arm guard")
+	}
+	var version int
+	if err := d.db.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&version); err != nil || version != 49 {
+		t.Fatalf("failed upgrade advanced schema version=%d err=%v", version, err)
+	}
+}
