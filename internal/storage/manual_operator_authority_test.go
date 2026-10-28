@@ -285,7 +285,7 @@ func TestA4B2RejectsCrossAuthorizationSourceAdoption(t *testing.T) {
 	if _, err := d.db.Exec(`INSERT INTO canary_admission_sources(operation_id,wallet_id,wallet_address,protocol,direction,token_address,contract_address,contract_role,runtime_code_hash,amount,gas_limit,gas_fee_cap,gas_tip_cap,native_balance,slippage_bps,sell_bps,policy_version,quote_block_number,quote_block_hash,expires_at,source_hash,created_at) VALUES('a4b2-cross-op','fixture-wallet','0x1111111111111111111111111111111111111111','PONS_V2_CURVE','BUY','0x2222222222222222222222222222222222222222','0x3333333333333333333333333333333333333333','curve','0x`+strings.Repeat("4", 64)+`','1','1','1','1','1000',100,100,1,1,'0x`+strings.Repeat("5", 64)+`',?, ?,?)`, metadataStamp, strings.Repeat("c", 64), metadataStamp); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := d.db.Exec(`INSERT INTO canary_authorization_operation_usage VALUES('a4b2-cross-op','a4b2-source-b','1','RESERVED',?,?)`, metadataStamp, metadataStamp); err != nil {
+	if _, err := d.db.Exec(`INSERT INTO canary_authorization_operation_usage VALUES('a4b2-source-b','a4b2-cross-op','1','RESERVED',?,?)`, metadataStamp, metadataStamp); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := d.db.Exec(`INSERT INTO manual_operator_authorization_sources VALUES('a4b2-source-a',1,'a4b2-cross-op',?,?)`, strings.Repeat("c", 64), metadataStamp); err == nil {
