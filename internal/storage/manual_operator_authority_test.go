@@ -244,4 +244,13 @@ func TestA4B2UpgradeGuardProvenanceIsImmutable(t *testing.T) {
 	if _, err := d.db.Exec(`DELETE FROM manual_operator_arm_guard_provenance`); err == nil {
 		t.Fatal("guard provenance delete accepted")
 	}
+	var triggerSQL string
+	if err := d.db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='trigger' AND name='manual_operator_upgrade_arm_guard'`).Scan(&triggerSQL); err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"json_extract", "manual_operator_signature_valid", "root.revoked_at IS NULL", "clock.fault_latched=0", "gate IN ('C04','C05','C08')"} {
+		if !strings.Contains(triggerSQL, required) {
+			t.Fatalf("upgrade arm guard missing %q", required)
+		}
+	}
 }

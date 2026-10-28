@@ -62,11 +62,52 @@ WHEN NEW.state='ARMED' AND EXISTS(
     ON src.authorization_id=NEW.id AND src.authorization_epoch=NEW.epoch
   JOIN manual_operator_c07_attestations c07
     ON c07.authorization_id=NEW.id AND c07.authorization_epoch=NEW.epoch
+  JOIN manual_gate_clock_state clock
+    ON clock.environment=NEW.environment AND clock.chain_id=4663
   WHERE rq.authorization_id=NEW.id
     AND rq.authorization_epoch=NEW.epoch
     AND json(rq.canonical_envelope)=rq.canonical_envelope
     AND (SELECT COUNT(*) FROM json_each(rq.canonical_envelope))=23
     AND (SELECT COUNT(DISTINCT key) FROM json_each(rq.canonical_envelope))=23
+    AND NOT EXISTS(SELECT 1 FROM json_each(rq.canonical_envelope) WHERE key NOT IN
+      ('domain','approval_id','request_id','operator_key_id','issued_at','expires_at',
+       'authorization_id','authorization_epoch','build_sha','release_id','deployment_id',
+       'environment','chain_id','wallet_id','wallet_address','policy_version','policy_hash',
+       'gate_evidence_set_hash','max_operations','max_total_input','source_hash','nonce','schema_version'))
+    AND json_type(rq.canonical_envelope,'$.domain')='text'
+    AND json_type(rq.canonical_envelope,'$.authorization_epoch')='integer'
+    AND json_type(rq.canonical_envelope,'$.chain_id')='integer'
+    AND json_type(rq.canonical_envelope,'$.policy_version')='integer'
+    AND json_type(rq.canonical_envelope,'$.max_operations')='integer'
+    AND json_type(rq.canonical_envelope,'$.max_total_input')='text'
+    AND json_extract(rq.canonical_envelope,'$.max_total_input') NOT GLOB '*[^0-9]*'
+    AND length(json_extract(rq.canonical_envelope,'$.max_total_input'))>0
+    AND manual_artifact_bytes_sha256(hex(rq.canonical_envelope))=rq.request_hash
+    AND manual_operator_signature_valid(root.public_key_hex,rq.canonical_envelope,ap.signature_hex)=1
+    AND ap.envelope_hash=rq.request_hash
+    AND json_extract(rq.canonical_envelope,'$.approval_id')=ap.approval_id
+    AND json_extract(rq.canonical_envelope,'$.request_id')=rq.request_id
+    AND json_extract(rq.canonical_envelope,'$.operator_key_id')=ap.operator_key_id
+    AND json_extract(rq.canonical_envelope,'$.domain')='RBH-MANUAL-A4-AUTHORIZATION-V1'
+    AND json_extract(rq.canonical_envelope,'$.authorization_id')=NEW.id
+    AND json_extract(rq.canonical_envelope,'$.authorization_epoch')=NEW.epoch
+    AND json_extract(rq.canonical_envelope,'$.deployment_id')=NEW.deployment_id
+    AND root.revoked_at IS NULL
+    AND clock.fault_latched=0
+    AND manual_time_cmp(clock.high_water_at,ap.issued_at)>=0
+    AND manual_time_cmp(clock.high_water_at,ap.expires_at)<0
+    AND (SELECT COUNT(*) FROM manual_operator_gate_attestations g
+         WHERE g.authorization_id=NEW.id AND g.authorization_epoch=NEW.epoch)=4
+    AND EXISTS(SELECT 1 FROM manual_operator_gate_attestations g7
+      WHERE g7.authorization_id=NEW.id AND g7.authorization_epoch=NEW.epoch
+        AND g7.gate='C07' AND g7.evidence_hash=c07.evidence_hash
+        AND g7.reviewed_head=c07.reviewed_head AND g7.attested_at=c07.attested_at)
+    AND NOT EXISTS(SELECT 1 FROM manual_operator_gate_attestations g
+      WHERE g.authorization_id=NEW.id AND g.authorization_epoch=NEW.epoch
+        AND g.gate IN ('C04','C05','C08')
+        AND NOT EXISTS(SELECT 1 FROM canary_gate_attestations c
+          WHERE c.gate=g.gate AND c.status='PASS'
+            AND c.evidence_hash=g.evidence_hash AND c.attested_at=g.attested_at))
     AND (SELECT COUNT(*) FROM manual_operator_authorization_requests prior
          WHERE json_extract(prior.canonical_envelope,'$.nonce')=
                json_extract(rq.canonical_envelope,'$.nonce'))=1

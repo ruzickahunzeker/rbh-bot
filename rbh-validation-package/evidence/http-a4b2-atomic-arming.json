@@ -3,7 +3,7 @@
   "status": "A4-B2_HARDENING_IN_PROGRESS",
   "base_head": "243ac43ad71fdb180fa06be00d00e021d9824921",
   "implementation_head": "acc92b5",
-  "implementation_document": {"path": "docs/HTTP_A4B2_ATOMIC_ARMING.md", "sha256": "f68aabd9331e32b9d6fbf56d735e728d472f5de2daf809f42934de9eebbef80e"},
+  "implementation_document": {"path": "docs/HTTP_A4B2_ATOMIC_ARMING.md", "sha256": "bcf432db4a049f9ac710ba0d5b426cdeaaf304b3a2e8829930c32b00288d1e70"},
   "migration": "047_manual_operator_arming + 048_manual_operator_arming_hardening + 049_manual_operator_arming_proof + 050_manual_operator_arming_upgrade_guard",
   "state_owner": "canary_runtime_authorizations",
   "guard": "manual_b1_no_arm_atomic_approval_predicate",
