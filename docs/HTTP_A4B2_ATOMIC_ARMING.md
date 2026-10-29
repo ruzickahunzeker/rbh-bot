@@ -1,6 +1,6 @@
 # A4-B2 — approval-gated atomic arming
 
-Status: `A4-B2_HARDENING_IN_PROGRESS`
+Status: `A4-B2_PASS`
 Scope: durable SQL gate only; no HTTP, signer, submission, permit, broadcast or live.
 
 Migrations `047_manual_operator_arming`, `048_manual_operator_arming_hardening`,
@@ -28,7 +28,9 @@ review gates for this branch.
 The existing authorization row remains the sole state owner and migration010
 transition audit remains same-transaction. Direct SQL valid approval arming,
 unauthorized rejection, upgrade-guard provenance and exactly-one transition
-audit are covered by the controlled fixture. This branch is pending fresh
-independent review; it is not an authorization grant.
+audit are covered by the controlled fixture. Independent review of exact head
+`71b84fd31c204d88e5a56b5a0d131e11866efe96` passed; PR #42 landed in reviewed
+main `0f9caf5ae0e045b324b2877023d6d05a9146749b`. This formal closeout is not
+an authorization grant.
 No approval is provisioned in production and no authorization grant is made by
 this slice.

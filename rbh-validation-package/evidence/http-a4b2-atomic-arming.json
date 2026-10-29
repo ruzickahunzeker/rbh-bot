@@ -1,9 +1,9 @@
 {
   "scope": "A4-B2_APPROVAL_GATED_ATOMIC_ARMING",
-  "status": "A4-B2_HARDENING_IN_PROGRESS",
+  "status": "A4-B2_PASS",
   "base_head": "243ac43ad71fdb180fa06be00d00e021d9824921",
   "implementation_head": "8a02951a85cbf20df012fb1699fd1e8387e013ad",
-  "implementation_document": {"path": "docs/HTTP_A4B2_ATOMIC_ARMING.md", "sha256": "2992a4c0e44168d775ee9ad2d841ed34418dae709de15e462b625b25c6bf732f"},
+  "implementation_document": {"path": "docs/HTTP_A4B2_ATOMIC_ARMING.md", "sha256": "f20f120f1e8ac5719ed2a8c86d3d21796e79b34c6ff17c5f0309eccba238f10f"},
   "migration": "047_manual_operator_arming + 048_manual_operator_arming_hardening + 049_manual_operator_arming_proof + 050_manual_operator_arming_upgrade_guard",
   "state_owner": "canary_runtime_authorizations",
   "guard": "manual_b1_no_arm_atomic_approval_predicate",
@@ -13,5 +13,10 @@
   "authorization_grant": "NOT_GRANTED",
   "prohibited_paths": {"http": false, "signer": false, "submission": false, "permit": false, "raw_send": false, "mainnet": false, "live": false},
   "hardening": ["authenticated trust-root bootstrap witness", "A3 durable bounded clock", "C07/source identity witnesses", "canonical envelope and nonce binding", "upgrade-time legacy proof revalidation scoped to operator-evidence rows", "cross-authorization source rejection", "guard provenance", "tampered-guard migration rollback"],
-  "independent_review": "PENDING"
+  "independent_review": "PASS",
+  "reviewed_main": "0f9caf5ae0e045b324b2877023d6d05a9146749b",
+  "reviewed_head": "71b84fd31c204d88e5a56b5a0d131e11866efe96",
+  "ci_run": "40879408637",
+  "ci_conclusion": "SUCCESS",
+  "pull_request": "42"
 }
