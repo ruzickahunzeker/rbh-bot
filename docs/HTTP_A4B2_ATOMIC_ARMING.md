@@ -1,5 +1,7 @@
 # A4-B2 — approval-gated atomic arming
 
+Status: `A4-B2_PASS`
+
 Status: `A4-B2_HARDENING_IN_PROGRESS`
 Scope: durable SQL gate only; no HTTP, signer, submission, permit, broadcast or live.
 
@@ -28,7 +30,10 @@ review gates for this branch.
 The existing authorization row remains the sole state owner and migration010
 transition audit remains same-transaction. Direct SQL valid approval arming,
 unauthorized rejection, upgrade-guard provenance and exactly-one transition
-audit are covered by the controlled fixture. This branch is pending fresh
-independent review; it is not an authorization grant.
+audit are covered by the controlled fixture. Fresh independent review of exact
+head `71b84fd31c204d88e5a56b5a0d131e11866efe96` passed after GitHub Actions run
+`40843399899` completed successfully (full Go tests/race, vet, staticcheck,
+format and validation package). This formal closeout is not an authorization
+grant.
 No approval is provisioned in production and no authorization grant is made by
 this slice.
