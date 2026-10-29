@@ -40,7 +40,7 @@ func TestA4OperatorAuthorityOverlayIsDurableButNoArm(t *testing.T) {
 		t.Fatal(err)
 	}
 	var version int
-	if err := d.db.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&version); err != nil || version != 49 {
+	if err := d.db.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&version); err != nil || version != 50 {
 		t.Fatal("A4 hardening migration not landed", version, err)
 	}
 	for _, table := range []string{"manual_operator_trust_roots", "manual_operator_trust_root_bootstrap", "manual_operator_authorization_requests", "manual_operator_authorization_approvals", "manual_operator_revocations", "manual_operator_authorization_sources", "manual_operator_c07_attestations"} {
@@ -209,5 +209,86 @@ func TestA4B2HardeningRejectsUnwitnessedRootAndNonCanonicalEnvelope(t *testing.T
 	badEnvelope := `{"domain":"RBH-MANUAL-A4-AUTHORIZATION-V1","extra":"caller"}`
 	if _, err := d.db.Exec(`INSERT INTO manual_operator_authorization_requests VALUES('noncanonical','a4b2-hardening',1,?,?,?)`, strings.Repeat("4", 64), badEnvelope, stamp); err == nil {
 		t.Fatal("non-canonical operator envelope accepted")
+	}
+}
+
+func TestA4B2UnauthorizedArmIsRejectedWithNoTransitionAudit(t *testing.T) {
+	d := metadataDB(t)
+	insertMetadataAuth(t, d.db, "a4b2-unauthorized", 1)
+	policyHash := insertMetadataPolicy(t, d.db)
+	if err := declareMetadataUnit(d.db, "a4b2-unauthorized", 1, policyHash, "native", 18); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.db.Exec(`UPDATE canary_runtime_authorizations SET state='ARMED',updated_at=? WHERE id=? AND state='PENDING'`, metadataStamp, "a4b2-unauthorized"); err == nil {
+		t.Fatal("unauthorized direct SQL arming accepted")
+	}
+	var state string
+	if err := d.db.QueryRow(`SELECT state FROM canary_runtime_authorizations WHERE id=?`, "a4b2-unauthorized").Scan(&state); err != nil || state != "PENDING" {
+		t.Fatalf("state=%s err=%v", state, err)
+	}
+	var audits int
+	if err := d.db.QueryRow(`SELECT COUNT(*) FROM canary_runtime_audit WHERE authorization_id=? AND event_type='AUTHORIZATION_STATE_CHANGED'`, "a4b2-unauthorized").Scan(&audits); err != nil || audits != 0 {
+		t.Fatalf("transition audits=%d err=%v", audits, err)
+	}
+}
+
+func TestA4B2UpgradeGuardProvenanceIsImmutable(t *testing.T) {
+	d := metadataDB(t)
+	var n int
+	if err := d.db.QueryRow(`SELECT COUNT(*) FROM manual_operator_arm_guard_provenance`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("provenance rows=%d err=%v", n, err)
+	}
+	if _, err := d.db.Exec(`UPDATE manual_operator_arm_guard_provenance SET captured_at=?`, metadataStamp); err == nil {
+		t.Fatal("guard provenance update accepted")
+	}
+	if _, err := d.db.Exec(`DELETE FROM manual_operator_arm_guard_provenance`); err == nil {
+		t.Fatal("guard provenance delete accepted")
+	}
+	var triggerSQL string
+	if err := d.db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='trigger' AND name='manual_operator_upgrade_arm_guard'`).Scan(&triggerSQL); err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"json_extract", "manual_operator_signature_valid", "root.revoked_at IS NULL", "clock.fault_latched=0", "gate IN ('C04','C05','C08')"} {
+		if !strings.Contains(triggerSQL, required) {
+			t.Fatalf("upgrade arm guard missing %q", required)
+		}
+	}
+}
+
+func TestA4B2UpgradeRejectsTamperedPriorArmGuard(t *testing.T) {
+	ctx := context.Background()
+	d, err := Open(ctx, TradeOwner, filepath.Join(t.TempDir(), "a4-upgrade.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	migrateTradeThroughTest(t, ctx, d, 49)
+	if _, err := d.db.Exec(`DROP TRIGGER manual_b1_no_arm`); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Migrate(ctx); err == nil {
+		t.Fatal("migration 050 accepted a tampered prior arm guard")
+	}
+	var version int
+	if err := d.db.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&version); err != nil || version != 49 {
+		t.Fatalf("failed upgrade advanced schema version=%d err=%v", version, err)
+	}
+}
+
+func TestA4B2RejectsCrossAuthorizationSourceAdoption(t *testing.T) {
+	d := metadataDB(t)
+	insertMetadataAuth(t, d.db, "a4b2-source-a", 1)
+	insertMetadataAuth(t, d.db, "a4b2-source-b", 2)
+	if _, err := d.db.Exec(`INSERT INTO operations(id,chain_id,wallet_id,idempotency_key,request_fingerprint,kind,status,created_at) VALUES('a4b2-cross-op',4663,'fixture-wallet','cross-key','cross-fingerprint','swap','prepared',?)`, metadataStamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.db.Exec(`INSERT INTO canary_admission_sources(operation_id,wallet_id,wallet_address,protocol,direction,token_address,contract_address,contract_role,runtime_code_hash,amount,gas_limit,gas_fee_cap,gas_tip_cap,native_balance,slippage_bps,sell_bps,policy_version,quote_block_number,quote_block_hash,expires_at,source_hash,created_at) VALUES('a4b2-cross-op','fixture-wallet','0x1111111111111111111111111111111111111111','PONS_V2_CURVE','BUY','0x2222222222222222222222222222222222222222','0x3333333333333333333333333333333333333333','curve','0x`+strings.Repeat("4", 64)+`','1','1','1','1','1000',100,100,1,1,'0x`+strings.Repeat("5", 64)+`',?, ?,?)`, metadataStamp, strings.Repeat("c", 64), metadataStamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.db.Exec(`INSERT INTO canary_authorization_operation_usage VALUES('a4b2-source-b','a4b2-cross-op','1','RESERVED',?,?)`, metadataStamp, metadataStamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.db.Exec(`INSERT INTO manual_operator_authorization_sources VALUES('a4b2-source-a',1,'a4b2-cross-op',?,?)`, strings.Repeat("c", 64), metadataStamp); err == nil {
+		t.Fatal("cross-authorization source adoption accepted")
 	}
 }
