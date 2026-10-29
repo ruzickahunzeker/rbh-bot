@@ -47,8 +47,10 @@ func TestManualB1LegacyStoreCannotArmOrConsumeDeclaredAuthorization(t *testing.T
 	// Controlled corruption fixture: remove only the arming guard and force an
 	// ARM transition, then prove the legacy budget API's INSERT still fails and
 	// its entire transaction cannot leave usage/audit behind. Not real authority.
-	if _, err = s.db.Exec(`DROP TRIGGER manual_b1_no_arm`); err != nil {
-		t.Fatal(err)
+	for _, trigger := range []string{"manual_b1_no_arm", "manual_operator_upgrade_arm_guard"} {
+		if _, err = s.db.Exec(`DROP TRIGGER ` + trigger); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if _, err = s.db.Exec(`UPDATE canary_runtime_authorizations SET state='ARMED' WHERE id=?`, a.ID); err != nil {
 		t.Fatal(err)
