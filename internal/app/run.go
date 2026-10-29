@@ -30,6 +30,21 @@ func Run(service config.Service) error {
 	if err != nil {
 		return err
 	}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	return runConfigured(ctx, cfg)
+}
+
+// runConfigured is the same production startup path with caller-owned lifetime.
+// Tests supply cancellation instead of sending process-wide signals.
+func runConfigured(parent context.Context, cfg config.Config) error {
+	if parent == nil {
+		return errors.New("application context is required")
+	}
+	if err := cfg.ValidateTradeStartupProfile(); err != nil {
+		return err
+	}
+	service := cfg.Service
 	log := observability.Logger(string(service), cfg.LogLevel)
 	if cfg.LiveEnabled {
 		return errors.New("live execution is disabled in PR-001")
@@ -45,7 +60,10 @@ func Run(service config.Service) error {
 		gates = append(gates, "bot_feed_consumer_configured")
 	}
 	if service == config.TradeService {
-		gates = append(gates, "pons_curve_dry_run_configured", "recovery_ready")
+		gates = append(gates, "recovery_ready")
+		if cfg.TradeStartupProfile != config.TradeProfileRecoveryOnly {
+			gates = append(gates, "pons_curve_dry_run_configured")
+		}
 	}
 	ready := health.NewReadiness(gates...)
 	ready.Set("config_valid", true)
@@ -61,12 +79,13 @@ func Run(service config.Service) error {
 	}
 	ready.Set("migrations_current", true)
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := context.WithCancel(parent)
 	defer stop()
 	server := health.New(string(service), cfg.Socket, log, ready)
 	var runner *feedcore.SequencerRunner
 	var botConsumer *botcore.Consumer
 	var canaryProduction *tradecore.ProductionComposition
+	var recoveryLoop *recoveryLifetime
 	var authenticator *ipc.Authenticator
 	if service == config.FeedService || service == config.BotService || service == config.TradeService {
 		authenticator, err = ipc.NewAuthenticator([]byte(cfg.InternalAuthSecret), 30*time.Second)
@@ -115,53 +134,62 @@ func Run(service config.Service) error {
 	}
 	var tradeBackend *tradecore.RPCBackend
 	if service == config.TradeService {
-		if cfg.RPCURL == "" || cfg.DryRunWalletID == "" || !common.IsHexAddress(cfg.DryRunFromAddress) || common.HexToAddress(cfg.DryRunFromAddress) == (common.Address{}) || cfg.ExecutionPrivateKey == "" || cfg.ArtifactEncryptionKey == "" || cfg.ArtifactKeyVersion == "" {
-			return errors.New("trade execution kernel configuration is incomplete")
-		}
 		store, err := tradecore.NewStore(database)
 		if err != nil {
 			return err
 		}
-		if err := store.RegisterDryRunWallet(ctx, cfg.DryRunWalletID, common.HexToAddress(cfg.DryRunFromAddress)); err != nil {
-			return err
+		var artifactCipher tradecore.ArtifactCipher
+		if cfg.TradeStartupProfile == config.TradeProfileRecoveryOnly {
+			artifactCipher, err = loadRecoveryCipher(cfg)
+			if err != nil {
+				return err
+			}
+		} else {
+			if cfg.RPCURL == "" || cfg.DryRunWalletID == "" || !common.IsHexAddress(cfg.DryRunFromAddress) || common.HexToAddress(cfg.DryRunFromAddress) == (common.Address{}) || cfg.ExecutionPrivateKey == "" || cfg.ArtifactEncryptionKey == "" || cfg.ArtifactKeyVersion == "" {
+				return errors.New("trade execution kernel configuration is incomplete")
+			}
+			if err := store.RegisterDryRunWallet(ctx, cfg.DryRunWalletID, common.HexToAddress(cfg.DryRunFromAddress)); err != nil {
+				return err
+			}
+			if err := configureUserTradeAPI(server, database, cfg); err != nil {
+				return err
+			}
+			tradeBackend, err = tradecore.DialRPCBackend(ctx, cfg.RPCURL)
+			if err != nil {
+				return err
+			}
+			defer tradeBackend.Close()
+			engine, err := tradecore.NewEngine(store, tradeBackend)
+			if err != nil {
+				return err
+			}
+			if _, err := engine.Recover(ctx); err != nil {
+				return fmt.Errorf("recover trade dry-runs: %w", err)
+			}
+			server.Handle("POST /internal/trade/dry-run", authenticator.Middleware(tradecore.NewDryRunHTTPHandler(engine)))
+			privateKey, err := crypto.HexToECDSA(cfg.ExecutionPrivateKey)
+			if err != nil {
+				return errors.New("invalid execution signer configuration")
+			}
+			signer, err := tradecore.NewLocalSigner(privateKey)
+			if err != nil || signer.Address() != common.HexToAddress(cfg.DryRunFromAddress) {
+				return errors.New("execution signer does not match configured wallet")
+			}
+			encryptionKey, err := hex.DecodeString(cfg.ArtifactEncryptionKey)
+			if err != nil {
+				return errors.New("invalid artifact encryption configuration")
+			}
+			artifactCipher, err = tradecore.NewAESGCMCipher(cfg.ArtifactKeyVersion, encryptionKey)
+			if err != nil {
+				return errors.New("invalid artifact encryption configuration")
+			}
+			kernel, err := tradecore.NewExecutionKernel(store, tradeBackend, signer, artifactCipher)
+			if err != nil {
+				return err
+			}
+			server.Handle("POST /internal/trade/prepare-execution", authenticator.Middleware(tradecore.NewPrepareExecutionHandler(kernel)))
+			ready.Set("pons_curve_dry_run_configured", true)
 		}
-		if err := configureUserTradeAPI(server, database, cfg); err != nil {
-			return err
-		}
-		tradeBackend, err = tradecore.DialRPCBackend(ctx, cfg.RPCURL)
-		if err != nil {
-			return err
-		}
-		defer tradeBackend.Close()
-		engine, err := tradecore.NewEngine(store, tradeBackend)
-		if err != nil {
-			return err
-		}
-		if _, err := engine.Recover(ctx); err != nil {
-			return fmt.Errorf("recover trade dry-runs: %w", err)
-		}
-		server.Handle("POST /internal/trade/dry-run", authenticator.Middleware(tradecore.NewDryRunHTTPHandler(engine)))
-		privateKey, err := crypto.HexToECDSA(cfg.ExecutionPrivateKey)
-		if err != nil {
-			return errors.New("invalid execution signer configuration")
-		}
-		signer, err := tradecore.NewLocalSigner(privateKey)
-		if err != nil || signer.Address() != common.HexToAddress(cfg.DryRunFromAddress) {
-			return errors.New("execution signer does not match configured wallet")
-		}
-		encryptionKey, err := hex.DecodeString(cfg.ArtifactEncryptionKey)
-		if err != nil {
-			return errors.New("invalid artifact encryption configuration")
-		}
-		artifactCipher, err := tradecore.NewAESGCMCipher(cfg.ArtifactKeyVersion, encryptionKey)
-		if err != nil {
-			return errors.New("invalid artifact encryption configuration")
-		}
-		kernel, err := tradecore.NewExecutionKernel(store, tradeBackend, signer, artifactCipher)
-		if err != nil {
-			return err
-		}
-		server.Handle("POST /internal/trade/prepare-execution", authenticator.Middleware(tradecore.NewPrepareExecutionHandler(kernel)))
 		recoveryRPC, err := tradecore.DialReadOnlyRecoveryRPC(ctx, cfg.RPCURL)
 		if err != nil {
 			return fmt.Errorf("configure read-only recovery RPC: %w", err)
@@ -188,12 +216,15 @@ func Run(service config.Service) error {
 		if err = canaryProduction.ConfigureRecovery(recoveryService, recoveryQuerier, recoveryRPC, tradecore.ProductionRecoveryConfig{Environment: "production", HolderID: holder, LeaseTTL: 30 * time.Second, ScanInterval: time.Second}); err != nil {
 			return fmt.Errorf("configure production recovery lifecycle: %w", err)
 		}
-		if err = canaryProduction.Start(ctx); err != nil {
+		recoveryLoop, err = startRecoveryLifetime(ctx, canaryProduction)
+		if err != nil {
 			return fmt.Errorf("start production recovery lifecycle: %w", err)
 		}
+		// Registered after RPC.Close: always drain before closing RPC/SQLite,
+		// including a listener failure after the durable lease was acquired.
+		defer recoveryLoop.stopAndWait()
 		server.SetMetricsWriter(canaryProduction.WriteMetrics)
 		ready.Set("recovery_ready", canaryProduction.Readiness().RecoveryReady)
-		ready.Set("pons_curve_dry_run_configured", true)
 	}
 
 	listener, err := server.Listen()
@@ -211,7 +242,10 @@ func Run(service config.Service) error {
 		go func() { errCh <- botConsumer.Run(ctx, 100*time.Millisecond) }()
 	}
 	if canaryProduction != nil {
-		go func() { errCh <- canaryProduction.Run(ctx) }()
+		go func() {
+			<-recoveryLoop.done
+			errCh <- recoveryLoop.err
+		}()
 		go monitorRecoveryReadiness(ctx, ready, canaryProduction)
 	}
 

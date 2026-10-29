@@ -35,22 +35,43 @@ func (i Identity) valid() bool {
 
 type Record struct {
 	validationMaxFee   string
-	Validation         *ManualValidation `json:"validation,omitempty"`
-	Admission          *ManualAdmission  `json:"admission,omitempty"`
-	RequestID          string            `json:"request_id"`
-	OperationID        *string           `json:"operation_id"` // C1 identity only, never authorization.
-	Status             string            `json:"status"`
-	Reason             string            `json:"reason_code"`
-	Request            Request           `json:"request"`
-	APIPolicyVersion   uint64            `json:"api_policy_version"`
-	APIPolicyHash      string            `json:"api_policy_hash"`
-	ExpiresAt          string            `json:"expires_at"`
-	CreatedAt          string            `json:"created_at"`
-	DeadlineCapability string            `json:"deadline_capability"`
-	ContractDeadline   bool              `json:"contract_deadline"`
-	SendAuthorized     bool              `json:"send_authorized"`
-	SubmissionQueued   bool              `json:"submission_queued"`
-	Duplicate          bool              `json:"duplicate"`
+	Validation         *ManualValidation  `json:"validation,omitempty"`
+	Admission          *ManualAdmission   `json:"admission,omitempty"`
+	Execution          *ExecutionSnapshot `json:"execution,omitempty"`
+	Progress           RecordProgress     `json:"progress"`
+	RequestID          string             `json:"request_id"`
+	OperationID        *string            `json:"operation_id"` // C1 identity only, never authorization.
+	Status             string             `json:"status"`
+	Reason             string             `json:"reason_code"`
+	Request            Request            `json:"request"`
+	APIPolicyVersion   uint64             `json:"api_policy_version"`
+	APIPolicyHash      string             `json:"api_policy_hash"`
+	ExpiresAt          string             `json:"expires_at"`
+	CreatedAt          string             `json:"created_at"`
+	DeadlineCapability string             `json:"deadline_capability"`
+	ContractDeadline   bool               `json:"contract_deadline"`
+	SendAuthorized     bool               `json:"send_authorized"`
+	SubmissionQueued   bool               `json:"submission_queued"`
+	Duplicate          bool               `json:"duplicate"`
+}
+
+// RecordProgress is a read-only projection of verified durable facts. It is
+// neither a transaction outcome nor permission to sign, submit or send.
+type RecordProgress struct {
+	Stage string `json:"stage"`
+}
+
+func (r *Record) projectProgress() {
+	switch {
+	case r.Status == "REJECTED":
+		r.Progress.Stage = "REJECTED"
+	case r.Admission != nil:
+		r.Progress.Stage = "ADMISSION_RECORDED"
+	case r.Validation != nil:
+		r.Progress.Stage = "VALIDATION_RECORDED"
+	default:
+		r.Progress.Stage = "INTAKE_RECORDED"
+	}
 }
 
 func scanRecord(row interface{ Scan(...any) error }) (Record, string, error) {
@@ -104,6 +125,7 @@ func (s *Store) Reject(ctx context.Context, identity Identity, key string, reque
 		}
 		prior.Duplicate = true
 		_, err = conn.ExecContext(ctx, "COMMIT")
+		prior.projectProgress()
 		return prior, err
 	}
 	if !errors.Is(err, ErrNotFound) {
@@ -133,6 +155,7 @@ func (s *Store) Reject(ctx context.Context, identity Identity, key string, reque
 		return Record{}, err
 	}
 	_, err = conn.ExecContext(ctx, "COMMIT")
+	record.projectProgress()
 	return record, err
 }
 
@@ -167,6 +190,13 @@ func (s *Store) Get(ctx context.Context, identity Identity, id string, byKey boo
 				r.Validation = &result
 			}
 		}
+		r.Execution, err = s.manualExecutionSnapshot(ctx, identity, r.RequestID)
+		if err != nil {
+			return Record{}, err
+		}
+	}
+	if err == nil {
+		r.projectProgress()
 	}
 	return r, err
 }
@@ -196,8 +226,7 @@ func (s *Store) Events(ctx context.Context, identity Identity, id string, after 
 	var e Event
 	query := `SELECT r.sequence,a.event_type,a.reason_code,a.created_at FROM user_http_trade_requests r JOIN canary_runtime_audit a ON a.id='user-http-audit:'||r.id WHERE r.id=? AND r.principal_id=? AND r.wallet_id=? AND r.sequence>?`
 	if record.OperationID != nil {
-		result.Scope = "MANUAL_ORDER_INTAKE_ONLY"
-		query = `SELECT r.sequence,a.event_type,a.reason_code,a.created_at FROM manual_http_order_sources r JOIN canary_runtime_audit a ON a.id='manual-http-audit:'||r.id WHERE r.id=? AND r.principal_id=? AND r.wallet_id=? AND r.sequence>?`
+		return s.manualLifecycleEvents(ctx, identity, id, after)
 	}
 	err = s.db.QueryRowContext(ctx, query, id, identity.PrincipalID, identity.WalletID, after).Scan(&e.Cursor, &e.Type, &e.Reason, &e.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -236,16 +265,17 @@ func (s *Store) Wallet(ctx context.Context, identity Identity) (Wallet, error) {
 	return w, nil
 }
 
-// A single unresolved wallet lane makes all token inventory unavailable for
-// new execution. Counting both layers as blockers avoids double-subtracting
-// the same operation's C07 and execution reservations. No row is mutated.
+// An unresolved lane or retained MANUAL nonce claim makes token inventory
+// unavailable for new execution. This slice does not support MANUAL wallet
+// reuse after canonical settlement. Treating these as blockers, not balances
+// to subtract, avoids double counting C07/execution reservations. No writes.
 func (s *Store) readWalletState(ctx context.Context, identity Identity) (Wallet, bool, error) {
 	w := Wallet{ID: identity.WalletID, Chain: "robinhood"}
 	if s == nil || s.db == nil || ctx == nil || !identity.valid() {
 		return w, false, ErrInvalid
 	}
 	var blocked bool
-	err := s.db.QueryRowContext(ctx, `SELECT w.address,EXISTS(SELECT 1 FROM execution_wallet_lanes WHERE wallet_id=w.id AND state!='idle') OR EXISTS(SELECT 1 FROM execution_reservations WHERE wallet_id=w.id AND status IN ('reserved','signed','frozen')) OR EXISTS(SELECT 1 FROM canary_risk_reservations WHERE wallet_id=w.id AND state IN ('reserved','frozen')) OR EXISTS(SELECT 1 FROM execution_steps WHERE wallet_id=w.id AND status IN ('nonce_reserved','signing','signed','submitted','broadcast_unknown','reconciling','manual_resolution')) FROM dry_run_wallets w WHERE w.id=? AND w.chain_id=4663 AND w.enabled=1`, identity.WalletID).Scan(&w.Address, &blocked)
+	err := s.db.QueryRowContext(ctx, `SELECT w.address,EXISTS(SELECT 1 FROM execution_wallet_lanes WHERE wallet_id=w.id AND state!='idle') OR EXISTS(SELECT 1 FROM execution_reservations WHERE wallet_id=w.id AND status IN ('reserved','signed','frozen')) OR EXISTS(SELECT 1 FROM canary_risk_reservations WHERE wallet_id=w.id AND state IN ('reserved','frozen')) OR EXISTS(SELECT 1 FROM execution_steps WHERE wallet_id=w.id AND status IN ('nonce_reserved','signing','signed','submitted','broadcast_unknown','reconciling','manual_resolution')) OR EXISTS(SELECT 1 FROM manual_nonce_claims WHERE wallet_id=w.id OR wallet_address=lower(w.address)) FROM dry_run_wallets w WHERE w.id=? AND w.chain_id=4663 AND w.enabled=1`, identity.WalletID).Scan(&w.Address, &blocked)
 	if errors.Is(err, sql.ErrNoRows) {
 		return w, false, ErrWallet
 	}

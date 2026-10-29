@@ -16,7 +16,7 @@ jobs:
         with:
           go-version: '1.26.6'
           cache: true
-      - run: go test ./...
+      - run: go test ./... -timeout=25m
       - run: >-
           go test -race -parallel=1 -timeout=15m
           ./internal/storage ./internal/tradeapi
@@ -25,6 +25,53 @@ jobs:
       - run: >-
           go test -race -parallel=1 -timeout=25m ./internal/tradeapi
           -run '^TestHTTPM4B24' -count=1
+      # Partition A's race scope without dropping scenarios. Pure-Go SQLite
+      # schema/fault fixtures must not share one aggregate package deadline.
+      - run: >-
+          go test -race -parallel=1 -timeout=30m
+          ./internal/storage ./internal/trade
+          -run '^(TestManualSubmission|TestManualFirstSubmission|TestControlledSubmission)'
+          -count=1
+      - run: >-
+          go test -race -parallel=1 -timeout=35m ./internal/tradeapi
+          -run '^(TestManualSubmission|TestManualFirstSubmission|TestControlledSubmission)'
+          -skip '^TestManualSubmission(Executor|Bytes|PrivateLocal)'
+          -count=1
+      - run: >-
+          go test -race -parallel=1 -timeout=25m ./internal/tradeapi
+          -run '^TestManualSubmission(Bytes|PrivateLocal)'
+          -count=1
+      - run: >-
+          go test -race -parallel=1 -timeout=25m ./internal/tradeapi
+          -run '^TestManualSubmissionExecutor(ExactFirstOnly|OutcomeDistinctions|FaultDoesNotRecreatePermission)$'
+          -count=1
+      - run: >-
+          go test -race -parallel=1 -timeout=25m ./internal/tradeapi
+          -run '^TestManualSubmissionExecutor'
+          -skip '^TestManualSubmissionExecutor(ExactFirstOnly|OutcomeDistinctions|FaultDoesNotRecreatePermission)$'
+          -count=1
+      - run: >-
+          go test -race -parallel=1 -timeout=15m ./internal/tradeapi
+          -run '^(TestHTTPABC|TestHTTPC1Progress|TestManualExecutionSnapshot|TestManualSignedArtifactReadOnlyRecoveryQuery)'
+          -count=1
+      - run: >-
+          go test -race -parallel=1 -timeout=25m
+          ./internal/storage ./internal/tradeapi
+          -run '^(TestManualRecovery|TestHTTPCExecution)'
+          -count=1
+      # Authenticated POST composition is test-only and uses no network send.
+      - run: >-
+          go test -race -parallel=1 -timeout=30m ./internal/tradeapi
+          -run '^TestLocalPostExecution(FirstOrderThreeSides|AuthenticationAndStrictInput|OutcomeAndLostResponse|IdempotencyConflictAndWalletReuse|NoProductionRegistrationAndNoArm|CanceledBeforeIntakeHasNoNewWork|WaitBudgetExpiresWithoutEconomicAction|TargetParametersNotSeed)$'
+          -count=1
+      - run: >-
+          go test -race -parallel=1 -timeout=30m ./internal/tradeapi
+          -run '^TestLocalPostExecution(ConcurrentTwoHandleDuplicates|AdmissionWinnerOwnsContinuation|FaultReopenNeverResumes|ControlsAtIndependentBoundaries|CancellationAfterClaim|ClaimAuditAlertAndCommitRollback)$'
+          -count=1
+      - run: >-
+          go test -race -parallel=1 -timeout=30m ./internal/tradeapi
+          -run '^TestLocalPostExecution(RecoveryCanonicalReorgReapply|UnknownQueryFrozenAndRecoveryFailure|RevertAndPending)$'
+          -count=1
       - run: go vet ./...
       - run: go install honnef.co/go/tools/cmd/staticcheck@v0.6.1
       - run: staticcheck ./...

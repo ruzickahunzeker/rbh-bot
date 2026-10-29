@@ -240,29 +240,29 @@ func (h *API) submit(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Location", "/v1/trades/"+record.RequestID)
 	if record.OperationID != nil && h.validator != nil {
-		if err := h.validateAndAdmit(r.Context(), &record); err != nil {
-			writeError(w, r, err)
-			return
-		}
-	} else if record.OperationID != nil {
-		// Default-off composition can still return a committed admission's
-		// historical observation; it must not rerun validation or admit anew.
-		history, err := h.store.manualAdmissionHistory(r.Context(), h.identity, record.RequestID)
+		continuation, err := h.validateAndAdmitWithContinuation(r.Context(), &record)
+		// A2 has no execution consumer. Ownership exists only on this original
+		// authenticated stack and is burned on every return, never cached.
+		defer continuation.discard()
 		if err != nil {
 			writeError(w, r, err)
 			return
 		}
-		if history != nil {
-			if err = h.returnExistingAdmission(r.Context(), &record); err != nil {
-				writeError(w, r, err)
-				return
-			}
+	} else if record.OperationID != nil {
+		// Default-off composition reads saved validation and admission history
+		// without rerunning validation or minting permission.
+		stored, err := h.store.Get(r.Context(), h.identity, record.RequestID, false)
+		if err != nil {
+			writeError(w, r, err)
+			return
 		}
+		record.Validation, record.Admission, record.Execution = stored.Validation, stored.Admission, stored.Execution
 	}
 	status := http.StatusServiceUnavailable
 	if record.OperationID != nil {
 		status = http.StatusAccepted
 	}
+	record.projectProgress()
 	writeJSON(w, status, record)
 }
 
@@ -331,7 +331,7 @@ func (h *API) capabilities(w http.ResponseWriter, r *http.Request) {
 	}
 	handling, events := "REJECTION_ONLY", "API_REJECTION_ONLY"
 	if h.manualIntake {
-		stage, handling, events = "HTTP_C1_READY_FOR_REVIEW", "MANUAL_RECORD_ONLY", "MANUAL_ORDER_INTAKE_ONLY"
+		stage, handling, events = "HTTP_C1_READY_FOR_REVIEW", "MANUAL_RECORD_ONLY", "MANUAL_ORDER_LIFECYCLE"
 	}
 	validationCapability := "NOT_CONNECTED"
 	admissionCapability := "NOT_CONNECTED"
@@ -389,6 +389,8 @@ func writeError(w http.ResponseWriter, r *http.Request, err error) {
 		status, code, message = 422, "MANUAL_ADMISSION_REJECTED", "manual admission rejected; durable intake may already exist"
 		if admissionError.Code == "EMERGENCY_STOPPED" || admissionError.Code == "CONTROL_UNAVAILABLE" || admissionError.Code == "CONTROL_UNVERIFIABLE" || admissionError.Code == "CANARY_DISABLED" {
 			status, code, message = 503, "MANUAL_ADMISSION_UNAVAILABLE", "manual admission stopped or control unavailable"
+		} else if admissionError.Code == "MANUAL_WALLET_REUSE_UNSUPPORTED" {
+			status, code, message = 422, "MANUAL_WALLET_REUSE_UNSUPPORTED", "retained MANUAL wallet history cannot authorize another trade in this stage"
 		}
 	case errors.Is(err, chainquery.ErrExpired):
 		status, code, message = 422, "APPLICATION_TTL_EXPIRED", "application TTL expired or unverifiable"

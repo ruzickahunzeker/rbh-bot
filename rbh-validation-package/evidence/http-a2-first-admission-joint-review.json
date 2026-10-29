@@ -1,0 +1,152 @@
+{
+  "scope": "A2_PRIVATE_FIRST_ADMISSION_HANDOFF_FORMAL_CLOSEOUT_DOCS_EVIDENCE_ONLY",
+  "branch": "http-a2-first-admission-closeout",
+  "base": "8c545d1768199c046845cdbf5f57e15ef005c822",
+  "reviewed_head": "8c545d1768199c046845cdbf5f57e15ef005c822",
+  "implementation_and_tests_head": "c2fd02caa33f34808aa241a4203864cf0c63a50c",
+  "implementation_base_and_reviewed_scope_head": "80b35c0d9e3a37baafb11df48f1331cbe7a3feac",
+  "before_closeout_edits": {
+    "worktree": "CLEAN",
+    "ahead_of_reviewed_head": 0,
+    "behind_reviewed_head": 0
+  },
+  "status": {
+    "A1": "PASS",
+    "A2": "PASS",
+    "checkpoint": "A2_FIRST_ADMISSION_HANDOFF_PASS",
+    "review_state": "PASS",
+    "formal_closeout": "COMPLETE_LOCAL_ONLY",
+    "formal_main_or_remote_release_baseline_changed": false,
+    "aggregate_M4_or_production_HTTP_service_PASS": false
+  },
+  "authorization": {
+    "kind": "USER_SEPARATELY_AUTHORIZED_DOCS_EVIDENCE_FORMAL_CLOSEOUT",
+    "permits_code_schema_runtime_or_next_stage_changes": false,
+    "permits_push_PR_or_merge": false
+  },
+  "documents": [
+    {
+      "path": "docs/HTTP_A2_FIRST_ADMISSION_HANDOFF_CLOSEOUT.md",
+      "sha256": "24c7eaf444ccf1a2656eb3791ec366acc8d51b59569094c3a3fbe30de03cd863"
+    },
+    {
+      "path": "docs/HTTP_TRADING_DELIVERY_PLAN.md",
+      "sha256": "37f562af1227da731c37eece2c3aa9ff20afa32c6dd457896d3c88c0a21c768a"
+    }
+  ],
+  "independent_implementation_review": {
+    "reviewer": "a2_implementation_independent_review",
+    "mode": "READ_ONLY_SOURCE_AND_FOCUSED_LOCAL_VALIDATION",
+    "reviewed_head": "8c545d1768199c046845cdbf5f57e15ef005c822",
+    "conclusion": "PASS",
+    "actionable_blockers": 0,
+    "scope": "PRIVATE_FIRST_ADMISSION_OWNERSHIP_ONLY_NO_EXECUTION_CONSUMER_OR_REAL_ACTION_AUTHORITY",
+    "checks": [
+      {
+        "command": "go test ./internal/tradeapi -run '^TestA2' -count=1 -timeout=3m -v",
+        "result": "PASS",
+        "top_level_tests": 8,
+        "seconds": 8.616
+      },
+      {
+        "command": "go test -race ./internal/tradeapi -run '^TestA2' -count=1 -timeout=10m -v",
+        "result": "PASS",
+        "top_level_tests": 8,
+        "seconds": 176.944
+      },
+      {
+        "command": "go test ./internal/tradeapi -run '^(TestA2|TestHTTPC3C(OnePostBuyFixedPercentageSellAndHistoricalQueries|AuthenticationAndSecurityFieldInjectionNeverReachAdmission|ConcurrentTwoHandleHTTPDuplicates)|TestHTTPC3B3Atomic(CanceledCommitAndConnectionControls|CommitWindowControlWriterCannotInterleave)|TestManualSubmissionPrivateLocalDependencyBoundary|TestLocalPostExecutionNoProductionRegistrationAndNoArm)$' -count=1 -timeout=4m -v",
+        "result": "PASS",
+        "top_level_tests": 6,
+        "seconds": 5.864,
+        "selector_limit": "EXACT_TestA2_MATCHES_NONE_AND_OLD_CONCURRENCY_NAME_MATCHES_NONE; ALL_EIGHT_A2_TESTS_EXECUTED_SEPARATELY_AND_CORRECT_CONCURRENCY_NAME_EXECUTED_IN_NEXT_COMMAND"
+      },
+      {
+        "command": "go test ./internal/tradeapi -run '^(TestHTTPC3CConcurrentTwoHandleHTTPDuplicatesOneAdmission|TestUserHTTPTrade(IdempotencyAndExpiry|Contract|AuthenticationScopeAndPolicy))$' -count=1 -timeout=2m -v",
+        "result": "PASS",
+        "top_level_tests": 4,
+        "seconds": 3.100
+      },
+      {"command": "go vet ./internal/tradeapi", "result": "PASS"},
+      {"command": "staticcheck ./internal/tradeapi", "result": "PASS"},
+      {"command": "gofmt -l CHANGED_GO_FILES (must be empty)", "result": "PASS"}
+    ],
+    "environment": "DOCKER_GO_1_26_6_NETWORK_NONE_SOURCE_MODULES_READ_ONLY_CACHE_WRITABLE",
+    "reviewed_manifest": "PASS_197_FILES",
+    "five_source_plus_implementation_doc_hashes": "PASS",
+    "diff_check": "PASS",
+    "all_repository_runtime_ordinary_or_race": "NOT_RUN",
+    "remote_CI": "NOT_RUN",
+    "lexical_guards_are_whole_program_formal_proof": false,
+    "running_test_processes_at_handoff": 0,
+    "reviewer_modified_worktree": false
+  },
+  "accepted_invariants": {
+    "only_fresh_successful_COMMIT_mints": true,
+    "history_rollback_or_failed_COMMIT_mints": false,
+    "value_copies_and_references_share_one_shot_guard": true,
+    "cancel_discard_or_failed_claim_restores_owner": false,
+    "post_commit_projection_failure_burns_all_copies_but_retains_history": true,
+    "public_composite_Duplicate_selects_owner": false,
+    "JSON_queries_duplicates_or_actual_reopen_restore_owner": false,
+    "handoff_cached_or_durably_queued": false,
+    "production_take_calls": 0,
+    "execution_consumer_connected": false,
+    "possession_is_current_permission_or_eventual_execution_guarantee": false
+  },
+  "preserved_historical_evidence": {
+    "implementation_evidence": {
+      "path": "rbh-validation-package/evidence/http-a2-first-admission-handoff.json",
+      "sha256": "3facb4abd72a29eb2abbaeb56017afd6f3c073ac6d184dbc381182ed71b2d98d"
+    },
+    "implementation_document": {
+      "path": "docs/HTTP_A2_FIRST_ADMISSION_HANDOFF.md",
+      "sha256": "ebcf512f8dbc4de89ddb606d3ae9bdd419d2ab938cb72366aa0f21892ba81143"
+    },
+    "scope_document": {
+      "path": "docs/HTTP_A2_FIRST_ADMISSION_HANDOFF_SCOPE.md",
+      "sha256": "3b9cddd1ba216a0b632823b8de2743192083e502ee183d26c658b88aabd49105"
+    },
+    "roadmap_document": {
+      "path": "docs/HTTP_SERVICE_CONTINUOUS_DELIVERY_PLAN.md",
+      "sha256": "b0bf78365f467502a3ae548fef8cdf576d17a0f938918bbd50336ffd2f78c092"
+    },
+    "all_preexisting_evidence_byte_identical_to_reviewed_head": true,
+    "old_READY_NOT_PERFORMED_NOT_STARTED_fields": "HISTORICAL_SNAPSHOTS_SUPERSEDED_FOR_CURRENT_STATUS_ONLY",
+    "author_results_or_earlier_failures_relabelled_independent_PASS": false,
+    "inherited_ephemeral_fixture_signatures_mislabelled_zero": false
+  },
+  "closeout_validation": {
+    "kind": "DOCS_EVIDENCE_MANIFEST_HASH_TEST_MAPPING_AND_BYTE_IDENTITY_ONLY",
+    "Go_tests_build_race_static_checks_rerun": false,
+    "all_existing_197_manifest_entries_preserved": true,
+    "validation_package": "PASS_198_FILES",
+    "document_and_original_source_hashes": "PASS",
+    "review_command_selectors_and_test_mapping": "PASS",
+    "diff_check": "PASS",
+    "production_tests_schema_config_startup_CI_OpenAPI_diff_against_reviewed_head": "EMPTY"
+  },
+  "remaining": [
+    "A3_COMPOSITION_CUSTODY_MANIFEST_TIME_PROVIDER_AND_PRIVATE_BOUNDARY_SCOPE_NOT_ACCEPTED_OR_IMPLEMENTED",
+    "A4_OPERATOR_AUTHORITY_AND_A5_TRANSPORT_REQUIRE_SEPARATE_GATES",
+    "C_PROPOSED_RESPONSE_DEADLINE_CHANGES_NOT_ACCEPTED",
+    "B_WALLET_REUSE_MODEL_NOT_IMPLEMENTED_RETAINED_SECOND_ORDER_REJECTION_STAYS",
+    "PRODUCTION_HTTP_EXECUTION_AND_REAL_ACTION_DEPLOYMENT_NOT_GRANTED"
+  ],
+  "boundaries": {
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "C04_C05_C07_C08_implementation_or_PASS_records_changed": false,
+    "A1_implementation_or_PASS_changed": false,
+    "migrations_001_through_045_changed": false,
+    "no_arm_TTL_wallet_reuse_marker_ambiguity_unknown_freeze_or_recovery_changed": false,
+    "public_Options_routes_JSON_OpenAPI_changed": false,
+    "new_real_signing_nonce_permit_executor_send_replay_or_mainnet_action": false,
+    "deployment_env_keys_RPC_flags_or_grants_provisioned": false,
+    "B_C_branches_modified": false,
+    "A3_A4_A5_implementation_entered": false,
+    "push_PR_merge_performed": false
+  }
+}

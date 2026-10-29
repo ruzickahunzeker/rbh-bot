@@ -213,6 +213,9 @@ func loadManualAdmissionInputsTx(ctx context.Context, conn *sql.Conn, id Identit
 	if control.PolicyVersion != c.PolicyVersion {
 		return v, rejectManualInput("CONTROL_POLICY_MISMATCH")
 	}
+	if err := checkManualWalletReusable(ctx, conn, id); err != nil {
+		return v, err
+	}
 	p, phash, err := loadManualPolicy(ctx, conn, scope.ManualPolicyID, c, stamp)
 	if err != nil {
 		return v, err

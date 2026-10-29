@@ -16,9 +16,12 @@ import (
 // every test signer/send counter are zero.
 func TestHTTPM3B4ProductionGraphRemainsDisconnected(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", ".."))
-	owners := map[string]string{
-		"manualLocalSigningWriter": "internal/tradeapi/manual_local_signing.go",
-		"manualNonceClaimWriter":   "internal/tradeapi/manual_nonce_claim.go",
+	owners := map[string]map[string]bool{
+		"manualLocalSigningWriter": {
+			"internal/tradeapi/manual_local_signing.go":     true,
+			"internal/tradeapi/manual_trust_composition.go": true,
+		},
+		"manualNonceClaimWriter": {"internal/tradeapi/manual_nonce_claim.go": true},
 	}
 	for _, directory := range []string{"cmd", "internal"} {
 		err := filepath.WalkDir(filepath.Join(root, directory), func(path string, entry fs.DirEntry, err error) error {
@@ -42,7 +45,7 @@ func TestHTTPM3B4ProductionGraphRemainsDisconnected(t *testing.T) {
 				if err != nil {
 					return err
 				}
-				if strings.HasSuffix(name, "/internal/manualsign") && rel != "internal/tradeapi/manual_local_signing.go" {
+				if strings.HasSuffix(name, "/internal/manualsign") && rel != "internal/tradeapi/manual_local_signing.go" && rel != "internal/tradeapi/manual_trust_composition.go" {
 					t.Errorf("local signer composed outside its private owner: %s", rel)
 				}
 				if (strings.HasPrefix(rel, "cmd/") || strings.HasPrefix(rel, "internal/app/")) &&
@@ -60,7 +63,7 @@ func TestHTTPM3B4ProductionGraphRemainsDisconnected(t *testing.T) {
 				if !ok {
 					return true
 				}
-				if owner, private := owners[id.Name]; private && rel != owner {
+				if allowed, private := owners[id.Name]; private && !allowed[rel] {
 					t.Errorf("private economic writer referenced outside owner: %s in %s", id.Name, rel)
 				}
 				if strings.HasPrefix(rel, "internal/manualartifact/") || strings.HasPrefix(rel, "internal/manualsign/") || rel == "internal/tradeapi/manual_local_signing.go" || rel == "internal/tradeapi/manual_nonce_claim.go" {

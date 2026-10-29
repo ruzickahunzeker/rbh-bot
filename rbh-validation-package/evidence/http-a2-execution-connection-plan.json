@@ -1,0 +1,80 @@
+{
+  "scope": "CONTINUOUS_DELIVERY_ROADMAP_AND_A2_PRIVATE_HANDOFF_DESIGN_ONLY",
+  "branch": "http-a2-execution-connection-plan",
+  "base": "a562adef68db7ee378562b195dba9b334a029065",
+  "base_is_formal_main": false,
+  "A1_formal_closeout": "COMPLETE_LOCAL_ONLY",
+  "status": "A2_HANDOFF_SCOPE_DESIGN_READY_FOR_REVIEW",
+  "A2_implementation": "NOT_STARTED",
+  "A2_independent_scope_review": "NOT_PERFORMED",
+  "A2_scope_acceptance": "NOT_RECORDED",
+  "documents": [
+    {
+      "path": "docs/HTTP_SERVICE_CONTINUOUS_DELIVERY_PLAN.md",
+      "sha256": "b0bf78365f467502a3ae548fef8cdf576d17a0f938918bbd50336ffd2f78c092"
+    },
+    {
+      "path": "docs/HTTP_A2_FIRST_ADMISSION_HANDOFF_SCOPE.md",
+      "sha256": "3b9cddd1ba216a0b632823b8de2743192083e502ee183d26c658b88aabd49105"
+    }
+  ],
+  "read_only_other_lanes": {
+    "B_head": "f5ef62f913c8acc9e35cbe84f6ba5c9d84b3031e",
+    "C_head": "0cbe3fdef89d1a7864429d4ed315ac65ff53e77e",
+    "branches_edited_merged_or_tasks_dispatched": false,
+    "B_current_wallet_reuse_boundary": "KEEP_RETAINED_GENERATION_EXCLUSION",
+    "C_new_timeout_error_mapping": "PROPOSED_NOT_ACCEPTED"
+  },
+  "inspected_handoff_sources": [
+    {
+      "path": "internal/tradeapi/manual_atomic_admission.go",
+      "sha256": "163b36b7f8df75ad3868fa3842b57662f8f724c59365b6663c08f9feda107677"
+    },
+    {
+      "path": "internal/tradeapi/manual_admission_http.go",
+      "sha256": "3c40fe89e831fa55b7e8bc080dced22f72999a3f8978932cde73740378292d84"
+    }
+  ],
+  "design_findings": {
+    "first_intake_can_differ_from_first_admission": true,
+    "composite_public_Duplicate_is_ownership": false,
+    "proposed_handoff_is_current_permission": false,
+    "proposed_A2_contains_execution_consumer_or_startup_registration": false,
+    "proposed_A2_changes_Options_routes_status_mapping_or_TTL": false,
+    "existing_query_timeout_seconds": 10,
+    "existing_policy_default_TTL_seconds": 30,
+    "existing_policy_default_max_TTL_seconds": 300,
+    "these_constants_prove_production_POST_latency": false,
+    "later_custody_clock_grant_transport_and_reuse_need_own_authority": true
+  },
+  "author_validation": {
+    "environment": "DOCKER_GO_1_26_6_NETWORK_NONE_SOURCE_MODULES_READ_ONLY_CACHE_WRITABLE",
+    "baseline_test_head": "a562adef68db7ee378562b195dba9b334a029065",
+    "command": "go test ./internal/tradeapi -run '^TestLocalPostExecution(AdmissionWinnerOwnsContinuation|ConcurrentTwoHandleDuplicates|FaultReopenNeverResumes)$' -count=1 -timeout=3m -v",
+    "inherited_top_level_tests": 3,
+    "result": "PASS",
+    "seconds": 14.067,
+    "fault_subtests": "NINE_EXPECTED_CONTROLLED_CRASH_WINDOWS_ALL_PASS",
+    "fixture_local_signing_and_fake_submission": true,
+    "claimed_zero_fixture_signer_calls": false,
+    "proves_future_A2_implementation": false,
+    "whole_repository_or_race_or_static_tests_rerun": false,
+    "remote_CI": "NOT_RUN",
+    "source_docs_diff_check": "PASS",
+    "validation_package": "PASS_196_FILES"
+  },
+  "boundaries": {
+    "production_code_tests_schema_config_startup_CI_OpenAPI_changed": false,
+    "migrations_001_through_045_changed": false,
+    "production_HTTP_execution_connected": false,
+    "MANUAL_no_arm_or_C07_risk_invariant_changed": false,
+    "wallet_reuse_enabled": false,
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "live": false,
+    "release_ready": false,
+    "real_send_mainnet_or_grant": false,
+    "push_PR_merge": false,
+    "automation_or_background_job_registered": false
+  }
+}

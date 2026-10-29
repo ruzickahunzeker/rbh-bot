@@ -47,8 +47,8 @@ func (v *manualRuntimeVerifier) measured(ctx context.Context) error {
 	return nil
 }
 
-func (v *manualRuntimeVerifier) authenticate(ctx context.Context, q queryRow, id Identity, request string, g manualRuntimeGate) error {
-	h, err := loadManualSignedArtifactHistory(ctx, q, id, request, v.profile.process.scope, manualArtifactReadCipher{v.decryptor})
+func (v *manualRuntimeVerifier) authenticatePhase(ctx context.Context, q queryRow, id Identity, request string, g manualRuntimeGate, claimed bool) error {
+	h, err := loadManualArtifactPhaseHistory(ctx, q, id, request, v.profile.process.scope, manualArtifactReadCipher{v.decryptor}, claimed)
 	if err != nil {
 		return err
 	}
@@ -95,6 +95,10 @@ func (v *manualRuntimeVerifier) checkObservation(p manualRuntimePrepared, s manu
 const stringZeros64 = "0000000000000000000000000000000000000000000000000000000000000000"
 
 func (v *manualRuntimeVerifier) prepare(ctx context.Context, id Identity, request string, clock *manualRuntimeClock) (manualRuntimePrepared, error) {
+	return v.preparePhase(ctx, id, request, clock, false)
+}
+
+func (v *manualRuntimeVerifier) preparePhase(ctx context.Context, id Identity, request string, clock *manualRuntimeClock, claimed bool) (manualRuntimePrepared, error) {
 	var p manualRuntimePrepared
 	if err := runtimeStopFirst(ctx, v.store.db); err != nil {
 		return p, err
@@ -117,11 +121,11 @@ func (v *manualRuntimeVerifier) prepare(ctx context.Context, id Identity, reques
 		return p, err
 	}
 	defer tx.Rollback()
-	p.gate, err = loadManualRuntimeGate(ctx, tx, id, request, v.profile, clock, s)
+	p.gate, err = loadManualRuntimePhaseGate(ctx, tx, id, request, v.profile, clock, s, claimed)
 	if err != nil {
 		return p, err
 	}
-	if err = v.authenticate(ctx, tx, id, request, p.gate); err != nil {
+	if err = v.authenticatePhase(ctx, tx, id, request, p.gate, claimed); err != nil {
 		return p, err
 	}
 	if _, err = clock.read(ctx); err != nil {
@@ -156,6 +160,10 @@ func (v *manualRuntimeVerifier) prepare(ctx context.Context, id Identity, reques
 // Transaction-local final check never BEGINs/COMMITs, queries RPC or grants
 // permission. Future B23 must freshly prepare and call it on its own writer.
 func (v *manualRuntimeVerifier) finalCheck(ctx context.Context, q queryRow, id Identity, request string, clock *manualRuntimeClock, p manualRuntimePrepared) (manualRuntimeGate, manualRuntimeSample, error) {
+	return v.finalCheckPhase(ctx, q, id, request, clock, p, false)
+}
+
+func (v *manualRuntimeVerifier) finalCheckPhase(ctx context.Context, q queryRow, id Identity, request string, clock *manualRuntimeClock, p manualRuntimePrepared, claimed bool) (manualRuntimeGate, manualRuntimeSample, error) {
 	var zero manualRuntimeGate
 	if err := runtimeStopFirst(ctx, q); err != nil {
 		return zero, manualRuntimeSample{}, err
@@ -167,14 +175,14 @@ func (v *manualRuntimeVerifier) finalCheck(ctx context.Context, q queryRow, id I
 	if err != nil {
 		return zero, s, err
 	}
-	g, err := loadManualRuntimeGate(ctx, q, id, request, v.profile, clock, s)
+	g, err := loadManualRuntimePhaseGate(ctx, q, id, request, v.profile, clock, s, claimed)
 	if err != nil {
 		return g, s, err
 	}
 	if g.source != p.gate.source || g.sourceHash != p.gate.sourceHash || g.clock.generation != p.gate.clock.generation {
 		return g, s, rejectManualInput("RUNTIME_FINAL_SOURCE_DRIFT")
 	}
-	if err = v.authenticate(ctx, q, id, request, g); err != nil {
+	if err = v.authenticatePhase(ctx, q, id, request, g, claimed); err != nil {
 		return g, s, err
 	}
 	if err = v.measured(ctx); err != nil {
@@ -187,7 +195,7 @@ func (v *manualRuntimeVerifier) finalCheck(ctx context.Context, q queryRow, id I
 	if err != nil {
 		return g, s, err
 	}
-	if _, err = loadManualRuntimeGate(ctx, q, id, request, v.profile, clock, s); err != nil {
+	if _, err = loadManualRuntimePhaseGate(ctx, q, id, request, v.profile, clock, s, claimed); err != nil {
 		return g, s, err
 	}
 	if err = v.checkObservation(p, s, g); err != nil {

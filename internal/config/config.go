@@ -12,6 +12,11 @@ const ChainID uint64 = 4663
 
 const CanaryProductionModeDisabled = "DISABLED"
 
+const (
+	TradeProfileLegacy       = "LEGACY"
+	TradeProfileRecoveryOnly = "RECOVERY_ONLY"
+)
+
 type Service string
 
 const (
@@ -43,6 +48,25 @@ type Config struct {
 	TradeAPIValidateOrders   bool
 	TradeAPIValidationPolicy uint64
 	TradeAPIManualAdmission  bool
+	TradeStartupProfile      string
+}
+
+// ValidateTradeStartupProfile checks capability selection, not authorization.
+// An empty profile preserves callers of the original Config API as legacy.
+func (c Config) ValidateTradeStartupProfile() error {
+	if c.TradeStartupProfile == "" || c.TradeStartupProfile == TradeProfileLegacy {
+		return nil
+	}
+	if c.Service != TradeService || c.TradeStartupProfile != TradeProfileRecoveryOnly {
+		return fmt.Errorf("invalid trade startup profile")
+	}
+	if c.LiveEnabled || c.CanaryProductionMode != CanaryProductionModeDisabled ||
+		c.TradeAPIConfigFile != "" || c.TradeAPIReadQueries || c.TradeAPIManualIntake ||
+		c.TradeAPIValidateOrders || c.TradeAPIValidationPolicy != 0 || c.TradeAPIManualAdmission ||
+		c.ExecutionPrivateKey != "" || c.DryRunWalletID != "" || c.DryRunFromAddress != "" {
+		return fmt.Errorf("recovery-only startup rejects execution and user API configuration")
+	}
+	return nil
 }
 
 func Load(service Service) (Config, error) {
@@ -90,7 +114,7 @@ func Load(service Service) (Config, error) {
 		return Config{}, fmt.Errorf("RBH_CONTROLLED_CANARY_PRODUCTION_MODE must be %s in W4-A", CanaryProductionModeDisabled)
 	}
 	name := strings.TrimSuffix(string(service), "-service")
-	return Config{
+	cfg := Config{
 		Service: service, DataDir: dataDir, SocketDir: socketDir,
 		Database: filepath.Join(dataDir, name+".db"),
 		Socket:   filepath.Join(socketDir, string(service)+".sock"),
@@ -110,7 +134,12 @@ func Load(service Service) (Config, error) {
 		TradeAPIValidateOrders:   validateOrders,
 		TradeAPIValidationPolicy: validationPolicy,
 		TradeAPIManualAdmission:  manualAdmission,
-	}, nil
+		TradeStartupProfile:      env("RBH_TRADE_STARTUP_PROFILE", TradeProfileLegacy),
+	}
+	if err := cfg.ValidateTradeStartupProfile(); err != nil {
+		return Config{}, err
+	}
+	return cfg, nil
 }
 
 func env(key, fallback string) string {

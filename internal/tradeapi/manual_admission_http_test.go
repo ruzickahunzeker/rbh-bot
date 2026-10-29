@@ -106,7 +106,7 @@ func TestHTTPC3CDefaultOffAndConstructorScopeDetached(t *testing.T) {
 		t.Fatal("constructor retained mutable caller scope")
 	}
 	cap := call(h, "GET", "/v1/capabilities", "", "")
-	for _, text := range []string{`"manual_order_admission":"DURABLE_ADMISSION_NOT_EXECUTION_OR_SEND_PERMISSION"`, `"send_authorized":false`, `"live":false`, `"submission_enabled":false`, `"events_scope":"MANUAL_ORDER_INTAKE_ONLY"`} {
+	for _, text := range []string{`"manual_order_admission":"DURABLE_ADMISSION_NOT_EXECUTION_OR_SEND_PERMISSION"`, `"send_authorized":false`, `"live":false`, `"submission_enabled":false`, `"events_scope":"MANUAL_ORDER_LIFECYCLE"`} {
 		if cap.Code != 200 || !strings.Contains(cap.Body.String(), text) {
 			t.Fatal("capability overclaim", cap.Body.String())
 		}

@@ -102,42 +102,82 @@ func (s *Store) manualAdmissionHistory(ctx context.Context, id Identity, request
 }
 
 func (h *API) admitManualRecord(ctx context.Context, record *Record) error {
+	continuation, err := h.admitManualRecordWithContinuation(ctx, record)
+	continuation.discard()
+	return err
+}
+
+func (h *API) admitManualRecordWithContinuation(ctx context.Context, record *Record) (*manualAdmissionContinuation, error) {
 	w := &manualAdmissionWriter{store: h.store, now: func() time.Time { return h.now() }}
-	result, err := w.admit(ctx, h.identity, record.RequestID, *h.admissionScope)
+	result, continuation, err := w.admitWithContinuation(ctx, h.identity, record.RequestID, *h.admissionScope)
 	if err != nil {
-		return err
+		continuation.discard()
+		return nil, err
 	}
+	return h.completeManualAdmission(ctx, record, result, continuation)
+}
+
+// Completion owns the tentative local handoff until the historical projection
+// is verified. Every failure burns ALL references, not only the return value.
+func (h *API) completeManualAdmission(ctx context.Context, record *Record, result manualAdmissionResult, continuation *manualAdmissionContinuation) (*manualAdmissionContinuation, error) {
+	keep := false
+	defer func() {
+		if !keep {
+			continuation.discard()
+		}
+	}()
 	// An observation read can fail after admission COMMIT. This is NOT rollback;
 	// the caller keeps Location/idempotency key and can query/retry exact history.
 	stored, err := h.store.Get(ctx, h.identity, record.RequestID, false)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	observation := stored.Admission
 	if observation == nil || observation.ContractHash != result.ContractHash || observation.ReservationID != result.ReservationID || observation.ExpiresAt != result.ExpiresAt {
-		return rejectManualInput("ADMISSION_LEDGER_INCOMPLETE")
+		return nil, rejectManualInput("ADMISSION_LEDGER_INCOMPLETE")
+	}
+	if continuation != nil {
+		if continuation.state == nil {
+			return nil, ErrConflict
+		}
+		owner := continuation.state.identity
+		if result.Duplicate || owner.request != record.RequestID || owner.operation != result.OperationID ||
+			owner.reservation != result.ReservationID || owner.contractHash != result.ContractHash || owner.expiresAt != result.ExpiresAt ||
+			owner.identity.PrincipalID != h.identity.PrincipalID || owner.identity.WalletID != h.identity.WalletID ||
+			common.HexToAddress(owner.identity.WalletAddress) != common.HexToAddress(h.identity.WalletAddress) ||
+			h.admissionScope == nil || owner.scope != *h.admissionScope {
+			return nil, ErrConflict
+		}
 	}
 	observation.Status = result.Status
 	record.Validation = stored.Validation
 	record.Admission = observation
+	record.Execution = stored.Execution
 	record.Duplicate = record.Duplicate || result.Duplicate
-	return nil
+	keep = true
+	return continuation, nil
 }
 
 func (h *API) validateAndAdmit(ctx context.Context, record *Record) error {
+	continuation, err := h.validateAndAdmitWithContinuation(ctx, record)
+	continuation.discard()
+	return err
+}
+
+func (h *API) validateAndAdmitWithContinuation(ctx context.Context, record *Record) (*manualAdmissionContinuation, error) {
 	if h.admissionScope != nil {
 		// Advisory stop-first preflight prevents validation RPC under a known
 		// stop. It grants no permission: C3-B repeats this on its own writer.
 		if _, err := readManualControl(ctx, h.store.db, h.now().UTC()); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	history, err := h.store.manualAdmissionHistory(ctx, h.identity, record.RequestID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if history != nil {
-		return h.returnExistingAdmission(ctx, record)
+		return nil, h.returnExistingAdmission(ctx, record)
 	}
 	validation, err := h.validator.Validate(ctx, h.identity, record.RequestID)
 	if err != nil {
@@ -146,18 +186,18 @@ func (h *API) validateAndAdmit(ctx context.Context, record *Record) error {
 		// no retry of validation or minting of a second economic action.
 		history, historyErr := h.store.manualAdmissionHistory(ctx, h.identity, record.RequestID)
 		if historyErr != nil {
-			return historyErr
+			return nil, historyErr
 		}
 		if history != nil {
-			return h.returnExistingAdmission(ctx, record)
+			return nil, h.returnExistingAdmission(ctx, record)
 		}
-		return err
+		return nil, err
 	}
 	record.Validation = &validation
 	if h.admissionScope != nil {
-		return h.admitManualRecord(ctx, record)
+		return h.admitManualRecordWithContinuation(ctx, record)
 	}
-	return nil
+	return nil, nil
 }
 
 func (h *API) returnExistingAdmission(ctx context.Context, record *Record) error {
@@ -173,6 +213,6 @@ func (h *API) returnExistingAdmission(ctx context.Context, record *Record) error
 	if stored.Admission == nil {
 		return rejectManualInput("ADMISSION_LEDGER_INCOMPLETE")
 	}
-	record.Admission, record.Validation = stored.Admission, stored.Validation
+	record.Admission, record.Validation, record.Execution = stored.Admission, stored.Validation, stored.Execution
 	return nil
 }

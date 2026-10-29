@@ -103,6 +103,18 @@ func (w *ControlledRecoveryWorker) process(ctx context.Context, item ControlledR
 	if err := w.fence(ctx); err != nil {
 		return err
 	}
+	// A vanished unknown transaction must not hide a previously canonical
+	// receipt's reorg. Check retained canonical observations before an early
+	// query-only ambiguity return, and before applying a new-block receipt.
+	prior, err := w.store.ListCanonicalReceiptObservations(ctx, item.AttemptID)
+	if err != nil {
+		return w.alert(ctx, item, "RECOVERY_OBSERVATION_SCAN_FAILED", "WARNING", err)
+	}
+	for _, observation := range prior {
+		if err := w.recovery.CheckReorgWithLease(ctx, item.OperationID, observation, w.leaseFence); err != nil {
+			return w.alert(ctx, item, "RECOVERY_REORG_CHECK_FAILED", "CRITICAL", err)
+		}
+	}
 	if w.beforeQuery != nil {
 		w.beforeQuery(item)
 	}
@@ -209,7 +221,25 @@ func (s *Store) ListControlledRecoveryItems(ctx context.Context) ([]ControlledRe
 		}
 		items = append(items, item)
 	}
-	return items, rows.Err()
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	if err = rows.Close(); err != nil {
+		return nil, err
+	}
+	// A corrupt retained MANUAL item is an error, not invisible lost work.
+	for _, item := range items {
+		var manual, exact int
+		if err = s.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM manual_http_order_sources WHERE operation_id=?),
+ (SELECT COUNT(*) FROM manual_recovery_source WHERE operation_id=? AND attempt_id=? AND tx_hash=? AND submission_state=?)`,
+			item.OperationID, item.OperationID, item.AttemptID, item.TxHash, item.SubmissionState).Scan(&manual, &exact); err != nil {
+			return nil, err
+		}
+		if manual != 0 && exact != 1 {
+			return nil, ErrArtifactIntegrity
+		}
+	}
+	return items, nil
 }
 
 func (s *Store) ListCanonicalReceiptObservations(ctx context.Context, attempt string) ([]ReceiptObservation, error) {
@@ -241,6 +271,19 @@ func (s *Store) RecordControlledRecoveryEvidence(ctx context.Context, item Contr
 		return err
 	}
 	defer tx.Rollback()
+	lease := RecoveryLeaseFence{Environment: environment, HolderID: holder, Epoch: epoch, clock: func() time.Time { return now }}
+	if err = lockManualRecoveryTx(ctx, tx, &lease); err != nil {
+		return err
+	}
+	var manual, exact int
+	if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM manual_http_order_sources WHERE operation_id=?),
+ (SELECT COUNT(*) FROM manual_recovery_source WHERE operation_id=? AND attempt_id=? AND tx_hash=? AND environment=?)`,
+		item.OperationID, item.OperationID, item.AttemptID, item.TxHash, environment).Scan(&manual, &exact); err != nil {
+		return err
+	}
+	if manual != 0 && exact != 1 {
+		return ErrArtifactIntegrity
+	}
 	var expires string
 	if err = tx.QueryRowContext(ctx, `SELECT expires_at FROM canary_worker_leases WHERE role='RECOVERY' AND environment=? AND holder_id=? AND lease_epoch=?`, environment, holder, epoch).Scan(&expires); err != nil {
 		return ErrCanaryRecoveryLeaseLost

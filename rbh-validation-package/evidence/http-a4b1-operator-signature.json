@@ -1,0 +1,19 @@
+{
+  "scope": "A4-B1_OPERATOR_APPROVAL_SIGNATURE_VERIFIER",
+  "status": "A4-B1_PASS",
+  "base_head": "8f407c390f81dc2894ea6c53f23ad5d9302c9156",
+  "implementation_head": "1d7ba07ede12717ab9c1d0308abcb54cfb438eee",
+  "hardening": "FIELD_SPECIFIC_HASH_LENGTH_CANONICAL_AMOUNT_NONZERO_WALLET_VALIDATION",
+  "implementation_document": {"path": "docs/HTTP_A4B1_OPERATOR_SIGNATURE_VERIFIER.md", "sha256": "6483f8ab230ff69532d6cfc13cdf4fc174f2a37683101eb5cf187fc766ab621b"},
+  "domain": "RBH-MANUAL-A4-AUTHORIZATION-V1",
+  "algorithm": "Ed25519",
+  "verification": ["canonical envelope", "hex identity validation", "issued_at lower bound", "expires_at strict upper bound", "signature exactness"],
+  "state_mutation": false,
+  "manual_b1_no_arm": "UNCHANGED",
+  "prohibited_paths": {"http": false, "signer": false, "submission": false, "permit": false, "raw_send": false, "mainnet": false, "live": false},
+  "authorization_grant": "NOT_GRANTED",
+  "independent_review": "PASS",
+  "formal_closeout": "COMPLETE",
+  "code_reviewed_head": "1d7ba07ede12717ab9c1d0308abcb54cfb438eee",
+  "A4-B2": "NOT_STARTED"
+}

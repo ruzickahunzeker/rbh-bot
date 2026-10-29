@@ -210,85 +210,91 @@ func (w *manualAdmissionWriter) at(stage string) error {
 }
 
 func (w *manualAdmissionWriter) admit(ctx context.Context, id Identity, request string, scope manualAdmissionScope) (manualAdmissionResult, error) {
+	result, continuation, err := w.admitWithContinuation(ctx, id, request, scope)
+	continuation.discard() // Original callers request an observation only.
+	return result, err
+}
+
+func (w *manualAdmissionWriter) admitWithContinuation(ctx context.Context, id Identity, request string, scope manualAdmissionScope) (manualAdmissionResult, *manualAdmissionContinuation, error) {
 	var zero manualAdmissionResult
 	if w == nil || w.store == nil || w.store.db == nil || w.now == nil || ctx == nil {
-		return zero, ErrInvalid
+		return zero, nil, ErrInvalid
 	}
 	conn, err := w.store.db.Conn(ctx)
 	if err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	defer conn.Close()
 	if err = verifyManualWriterConnection(ctx, conn); err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	if _, err = conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	defer conn.ExecContext(context.Background(), "ROLLBACK")
 	entry := w.now().UTC()
 	control, err := readManualControl(ctx, conn, entry)
 	if err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	if !id.valid() || !validID(request) || !scope.valid() {
-		return zero, ErrInvalid
+		return zero, nil, ErrInvalid
 	}
 	// Exact durable duplicate before rejecting its own retained wallet lane.
 	cmd, err := scanManualCommand(conn.QueryRowContext(ctx, `SELECT `+manualCommandColumns+` FROM manual_admission_commands WHERE request_id=?`, request))
 	if err == nil {
 		c, err := verifyManualCommandTx(ctx, conn, cmd)
 		if err != nil {
-			return zero, err
+			return zero, nil, err
 		}
 		if cmd.Scope != scope || c.PrincipalID != id.PrincipalID || c.WalletID != id.WalletID || common.HexToAddress(c.WalletAddress) != common.HexToAddress(id.WalletAddress) {
-			return zero, ErrConflict
+			return zero, nil, ErrConflict
 		}
 		unit := manualrisk.Unit{ChainID: c.Input.ChainID, Asset: c.Input.Asset, Decimals: c.Input.Decimals, Kind: manualrisk.TradeInput}
 		if _, _, err = verifyManualAuthorizationUsage(ctx, conn, scope.AuthorizationID, unit); err != nil {
-			return zero, err
+			return zero, nil, err
 		}
 		if _, err = conn.ExecContext(ctx, "COMMIT"); err != nil {
-			return zero, err
+			return zero, nil, err
 		}
 		// History ONLY. Expiry/revoke does not erase history, nor does dedupe
 		// renew permission. Emergency stop retains highest rejection priority.
-		return manualAdmissionResult{c.OperationID, cmd.Reservation, c.BindingHash, c.ExpiresAt, "HISTORICAL_ADMISSION_NOT_PERMISSION", true}, nil
+		return manualAdmissionResult{c.OperationID, cmd.Reservation, c.BindingHash, c.ExpiresAt, "HISTORICAL_ADMISSION_NOT_PERMISSION", true}, nil, nil
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
-		return zero, err
+		return zero, nil, err
 	}
 	v, err := loadManualAdmissionInputsTx(ctx, conn, id, request, scope, w.now)
 	if err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	if v.Control != control {
-		return zero, rejectManualInput("CONTROL_DRIFT")
+		return zero, nil, rejectManualInput("CONTROL_DRIFT")
 	}
 	exposure, err := loadManualExposureTx(ctx, conn, id.WalletID, v.Policy, entry)
 	if err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	if err = checkManualAdmissionExposure(v, exposure); err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	if err = w.at("before_command"); err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	c := v.Contract
 	cmd = manualAdmissionCommand{Operation: c.OperationID, Request: request, Step: c.StepID, Reservation: "manual-risk:" + c.OperationID,
 		Scope: scope, PolicyHash: v.PolicyHash, GateHash: v.Authorization.GateEvidenceSetHash, ContractRaw: encode(c), ContractHash: c.BindingHash, CheckedAt: v.CheckedAt}
 	if _, err = conn.ExecContext(ctx, `INSERT INTO manual_admission_commands(`+manualCommandColumns+`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, cmd.arguments()...); err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	if err = w.at("after_command"); err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	if _, err = verifyManualCommandTx(ctx, conn, cmd); err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	if _, _, err = verifyManualAuthorizationUsage(ctx, conn, scope.AuthorizationID, v.Input.Unit); err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	// Recheck after all writes, directly before COMMIT on THIS writer. Other
 	// stop/revoke writers cannot commit in this interval (BEGIN IMMEDIATE).
@@ -296,33 +302,42 @@ func (w *manualAdmissionWriter) admit(ctx context.Context, id Identity, request 
 	checked, err := canonicalManualTime(v.CheckedAt)
 	expiry, ee := canonicalManualTime(v.Authorization.ExpiresAt)
 	if err != nil || ee != nil || final.Before(entry) || final.Before(checked) || !final.Before(expiry) || ttlRecord(Record{ExpiresAt: c.ExpiresAt}, final) != nil {
-		return zero, rejectManualInput("FINAL_TIME_INVALID_OR_EXPIRED")
+		return zero, nil, rejectManualInput("FINAL_TIME_INVALID_OR_EXPIRED")
 	}
 	last, err := readManualControl(ctx, conn, final)
 	if err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	gate, err := manualGateEvidenceHash(ctx, conn, final)
 	if err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	if gate != cmd.GateHash || last != control {
-		return zero, rejectManualInput("FINAL_CONTROL_OR_GATE_DRIFT")
+		return zero, nil, rejectManualInput("FINAL_CONTROL_OR_GATE_DRIFT")
 	}
 	if _, err = loadManualAuthorizationIdentity(ctx, conn, scope, c, v.Policy, v.PolicyHash, gate, final); err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	if err = w.at("before_commit"); err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	// SQL verification itself consumes time. Check the clock AFTER the last
 	// query/barrier, not before it; equality is expired and clock reversal fails.
 	commitTime := w.now().UTC()
 	if commitTime.Before(final) || commitTime.Before(checked) || !commitTime.Before(expiry) || ttlRecord(Record{ExpiresAt: c.ExpiresAt}, commitTime) != nil {
-		return zero, rejectManualInput("FINAL_TIME_INVALID_OR_EXPIRED")
+		return zero, nil, rejectManualInput("FINAL_TIME_INVALID_OR_EXPIRED")
 	}
 	if _, err = conn.ExecContext(ctx, "COMMIT"); err != nil {
-		return zero, err
+		return zero, nil, err
 	}
-	return manualAdmissionResult{c.OperationID, cmd.Reservation, c.BindingHash, c.ExpiresAt, "ADMITTED_NOT_SIGNED_NOT_SUBMITTED", false}, nil
+	// The only mint site: after this original fresh writer's successful COMMIT.
+	// All identities were loaded and reverified from the immutable source.
+	continuation := &manualAdmissionContinuation{state: &manualAdmissionContinuationState{
+		origin: ctx, identity: manualAdmissionContinuationIdentity{
+			identity: Identity{PrincipalID: c.PrincipalID, WalletID: c.WalletID, WalletAddress: c.WalletAddress},
+			request:  cmd.Request, operation: c.OperationID, reservation: cmd.Reservation,
+			contractHash: c.BindingHash, expiresAt: c.ExpiresAt, scope: cmd.Scope,
+		},
+	}}
+	return manualAdmissionResult{c.OperationID, cmd.Reservation, c.BindingHash, c.ExpiresAt, "ADMITTED_NOT_SIGNED_NOT_SUBMITTED", false}, continuation, nil
 }

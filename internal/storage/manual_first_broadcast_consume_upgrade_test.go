@@ -77,7 +77,7 @@ func TestManualFirstBroadcastConsumeUpgradeFrom042Atomic(t *testing.T) {
 	if err := d.db.QueryRow(`SELECT (SELECT MAX(version) FROM schema_migrations),
 	 (SELECT COUNT(*) FROM manual_first_broadcast_consume_scopes),
 	 (SELECT COUNT(*) FROM sqlite_master WHERE name='manual_first_broadcast_consume_source'),
-	 (SELECT COUNT(*) FROM sqlite_master WHERE name IN ('manual_b1_no_arm','manual_b1_no_permit','manual_b1_no_pass_snapshot','manual_nonce_no_submission_insert','manual_nonce_risk_no_release'))`).Scan(&version, &scopes, &source, &oldGuards); err != nil || version != 43 || scopes != 0 || source != 1 || oldGuards != 5 {
+	 (SELECT COUNT(*) FROM sqlite_master WHERE name IN ('manual_b1_no_arm','manual_b1_no_permit','manual_b1_no_pass_snapshot','manual_nonce_no_submission_insert','manual_nonce_risk_no_release'))`).Scan(&version, &scopes, &source, &oldGuards); err != nil || version < 43 || scopes != 0 || source != 1 || oldGuards != 5 {
 		t.Fatal("unexpected upgraded contract", version, scopes, source, oldGuards, err)
 	}
 }

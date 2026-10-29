@@ -3,6 +3,13 @@
 Historical C1 record. HTTP_MANUAL_PARAMETER_VALIDATION.md documents C2's
 opt-in internal validation overlay; it does not authorize execution or sending.
 
+Superseding integration note: the later A/B/C lifecycle design uses the durable
+`manual_lifecycle_events` journal and `MANUAL_ORDER_LIFECYCLE` response scope,
+with up to 100 events per page and no cursor advance on an empty page. See
+`HTTP_C_EXECUTION_PRESENTATION.md` and `USER_HTTP_TRADING.md`. The intake-only
+scope, test results and limitations below remain historical C1 evidence; they
+are not retroactively claimed as lifecycle/recovery acceptance.
+
 Local branch: `http-manual-order-persistence`.
 Parent HTTP-B: `45139064f58712a0bf7804492446d5413006ad27`.
 Status ceiling: `HTTP_C1_READY_FOR_REVIEW`; no independent PASS claimed.

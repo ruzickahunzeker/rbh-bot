@@ -53,11 +53,9 @@ func TestManualFirstBroadcastUpgradeFrom039AtomicNoRepair(t *testing.T) {
 	if err = d.db.QueryRow(`SELECT json_group_array(json_object('name',name,'sql',sql)) FROM (SELECT name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name)`).Scan(&before); err != nil {
 		t.Fatal(err)
 	}
-	if err = d.Migrate(ctx); err != nil {
-		t.Fatal(err)
-	}
+	migrateTradeThroughTest(t, ctx, d, 40)
 	var version, issuance, permits, snapshots int
-	if err = d.db.QueryRow(`SELECT MAX(version),(SELECT COUNT(*) FROM manual_first_broadcast_issuances),(SELECT COUNT(*) FROM canary_send_permits),(SELECT COUNT(*) FROM canary_runtime_gate_snapshots) FROM schema_migrations`).Scan(&version, &issuance, &permits, &snapshots); err != nil || version != 43 || issuance != 0 || permits != 0 || snapshots != 0 {
+	if err = d.db.QueryRow(`SELECT MAX(version),(SELECT COUNT(*) FROM manual_first_broadcast_issuances),(SELECT COUNT(*) FROM canary_send_permits),(SELECT COUNT(*) FROM canary_runtime_gate_snapshots) FROM schema_migrations`).Scan(&version, &issuance, &permits, &snapshots); err != nil || version != 40 || issuance != 0 || permits != 0 || snapshots != 0 {
 		t.Fatal(version, issuance, permits, snapshots, err)
 	}
 	var after string
@@ -67,7 +65,9 @@ func TestManualFirstBroadcastUpgradeFrom039AtomicNoRepair(t *testing.T) {
 	if before == after {
 		t.Fatal("040 did not add schema")
 	}
-	if err = d.Migrate(ctx); err != nil {
-		t.Fatal("041 not idempotent", err)
+	migrateTradeThroughTest(t, ctx, d, 40)
+	migrateTradeLatestIdempotentTest(t, ctx, d)
+	if err = d.db.QueryRow(`SELECT (SELECT COUNT(*) FROM manual_first_broadcast_issuances),(SELECT COUNT(*) FROM canary_send_permits),(SELECT COUNT(*) FROM canary_runtime_gate_snapshots)`).Scan(&issuance, &permits, &snapshots); err != nil || issuance != 0 || permits != 0 || snapshots != 0 {
+		t.Fatal("later upgrade fabricated first-broadcast work", issuance, permits, snapshots, err)
 	}
 }

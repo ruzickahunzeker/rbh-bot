@@ -1,5 +1,23 @@
 # User HTTP trading — HTTP-A
 
+Current integration note: the initial HTTP-A base/status, missing integrations
+and remaining-slice list below are historical, not current aggregate progress.
+The A/B/C candidate now includes verified execution history and source-bound
+local recovery/journal integration. Scoped independent review of production
+head `4a54c7c5785e75835a53f108056ebc0a3d42fa25` concluded PASS; the test-only
+compatibility delta was separately accepted. This is not aggregate HTTP
+execution acceptance; validation attribution is in the recovery batch evidence.
+See `HTTP_ABC_INTEGRATION.md`, `HTTP_C_EXECUTION_PRESENTATION.md` and the current
+recovery integration handoff. HTTP POST still does not invoke A, sign, allocate
+a nonce or send. No aggregate PASS, production connection, authorization grant,
+live or release-readiness claim is made here. Request fields and fee semantics
+are unchanged.
+
+The later `http-local-post-execution` acceptance composes one authenticated
+POST through local signing/fake submission/recovery only in `*_test.go`.
+See `HTTP_LOCAL_POST_EXECUTION.md`. It adds no production option, route or
+execution enablement; this client-facing API's POST boundary is unchanged.
+
 Historical HTTP-A slice record. The local HTTP-B extension is documented in
 HTTP_READ_ONLY_QUERIES.md; its optional read-only composition does not alter
 the rejection-only POST boundary below.
@@ -64,6 +82,23 @@ by constant-time digest comparison. Only its digest is retained by the handler;
 it is never returned or written to the ledger/audit. One immutable deployment-
 configured caller/wallet scope is supported. Rotating credentials requires
 restart; keep principal identity stable to retain retry/query continuity.
+
+One configured caller/wallet does not promise repeatable trading on that wallet.
+Once a MANUAL nonce claim or signed artifact is retained, this slice does not
+support a second MANUAL admission/execution for that wallet/address, including
+after a canonical success or revert. An idle lane, a settled risk reservation,
+new token/order/key or another wallet-ID alias for the same address does not
+grant reuse. Do not delete old claims/artifacts to make a wallet look reusable.
+Multiple sequential MANUAL operations need a separately designed and reviewed
+wallet-reuse/accounting contract; this slice does not supply it.
+
+Original GET, events and recovery remain available. Default-off duplicate POST
+only reads the original history and does not attempt a new admission, so it is
+not rejected for wallet reuse. An admission-enabled POST retains its existing
+stop-first preflight, including on duplicates: stop/control unavailability has
+503 priority. A genuinely new admission against retained MANUAL wallet history
+returns HTTP 422 `MANUAL_WALLET_REUSE_UNSUPPORTED`, never automatic re-signing,
+replay, nonce allocation or permission to rotate the idempotency key and retry.
 
 This is a local contract, not public TLS, multi-tenant auth or Internet exposure.
 Public routing/TLS/rate limiting and additional caller scopes require a separate
@@ -187,21 +222,99 @@ GET /v1/trades/by-idempotency-key    (Idempotency-Key header)
 GET /v1/trades/{request_id}/events?after=<canonical cursor>
 ```
 
+`POST` and both trade `GET` responses include `progress.stage`, a read-only
+projection of verified durable milestones: `REJECTED`, `INTAKE_RECORDED`,
+`VALIDATION_RECORDED`, or `ADMISSION_RECORDED`. The existing top-level
+`status`/`reason_code` remain historical intake fields. A progress stage is
+not execution authorization, a signed artifact, a submission, receipt or trade
+success. `ADMISSION_RECORDED` only means the existing admission history was
+verified; duplicates and GET return historical observation, never renewed
+permission. The progress stage does not yet represent submission or canonical
+outcomes. HTTP 202 alone does not imply a send or queued transaction.
+
+The local A/B/C integration also includes an optional `execution` snapshot on
+both trade GET routes and duplicate POST responses. It is a verified historical
+view, not an execution command. Each stage must follow the immutable request,
+execution, nonce, signed artifact and first-submission identity; an unrelated
+latest attempt is not a substitute. Stages that never occurred are omitted.
+Missing or contradictory provenance for an existing downstream result fails the
+query rather than returning an unverified successful-looking snapshot.
+
+Read its attempt, submission, receipt and position-effect observations separately:
+
+| Observation | Meaning; not permission |
+| --- | --- |
+| `attempt_status=signed`, `tx_hash` present, no submission | Signed artifact identity only; no proof of propagation |
+| `submission_state=submitting` | In-progress durable submission record; no receipt/canonical success implied |
+| `submission_state=submitted` | Submission outcome only; receipt and canonical effect remain separate |
+| `submission_state=broadcast_unknown` | The system cannot durably prove no invocation/propagation; wallet lane and reservation remain frozen, not automatic resend/replay permission |
+| `submission_state=known_unsent` | In this MANUAL scope, known-unsent ownership is still retained/frozen; no automatic retry or release |
+| `submission_state=manual_resolution` | Contradictory/unresolved evidence needs separate resolution; no automatic retry |
+| `receipt_state=observed` | Receipt observation only, not canonical confirmation or applied position |
+| `receipt_state=canonical_success` | Current canonical successful receipt; inspect the position effect separately |
+| `receipt_state=canonical_revert` | Canonical reverted transaction; not a successful trade and no new position effect |
+| `receipt_state=orphaned`, `position_effect_state=rolled_back` | Previous canonical effect was rolled back; prior success is not permanent |
+| Later `canonical_success` and `active` | Re-canonicalized current facts; not a second transaction or a new finality guarantee |
+
+Queries remain historical after emergency stop, authorization revoke/expiry,
+application TTL expiry or deployment drift. They never renew `expires_at`, mint
+permission, sign, send, replay, rebuild or allocate another nonce. A duplicate
+POST in the default-off history composition reads the same execution facts as
+the two GET routes; an admission-enabled POST still checks its own admission
+controls. Neither HTTP 200/202 nor a recorded hash enables live or marks release
+readiness. Raw transaction bytes, ciphertext, encryption nonces, private keys
+and permits are never part of this public snapshot.
+
+This integration candidate still requires the B/C completion and review tracked
+in `HTTP_ABC_INTEGRATION.md`. Receipt/reorg serialization contract tests alone
+are not evidence of actual recovery; that acceptance requires B's source-bound
+reconciliation tests and the integrated HTTP recovery harness.
+
 All require Bearer auth and return only the configured caller/wallet scope.
-Queries return 200 for a stored rejection. Events are explicitly
-API_REJECTION_ONLY, not a receipt/canonical/reorg feed or recovery health claim.
-AUTOINCREMENT cursor is preserved across SQLite reopen and VACUUM. Capabilities
-marks missing validation/query/execution integrations instead of claiming live
-readiness. Wallet listing reads the durable ID/address binding; it is not a
-balance query. Balances/token metadata/reference fees are not implemented here.
+Queries return 200 for a stored rejection. `API_REJECTION_ONLY` remains the
+rejection-event scope. The integrated MANUAL journal response uses
+`MANUAL_ORDER_LIFECYCLE`; the former `MANUAL_ORDER_INTAKE_ONLY` scope described
+the historical C1-only implementation, not the completed lifecycle journal.
+
+MANUAL lifecycle events come from the durable append-only
+`manual_lifecycle_events` journal, not a timestamp-sorted union of unrelated
+tables. The original intake sequence is preserved. Later source-bound lifecycle
+events append in strictly increasing per-request cursor order with the
+corresponding durable transition. Submission, receipt, canonical, rollback and
+reapply events are observations, never new execution or retry commands.
+
+Each page returns at most 100 events with `cursor > after`, ordered by cursor.
+Poll with the response's `next_cursor` for the same request. It is the last
+event actually returned; an empty page leaves it equal to the input `after`.
+Thus an empty poll must not skip a later transition. Do not derive cursors from
+timestamps, combine cursors from different requests or assume row IDs in other
+tables are journal cursors. Cursor ordering survives SQLite close/reopen and
+later appends. Journal history does not claim that a recovery worker is healthy
+or available. Original C1 evidence is historical and is not retroactively
+upgraded by the new scope.
+
+Capabilities mark missing validation/query/execution integrations instead of
+claiming live readiness. Wallet listing reads the durable ID/address binding;
+it is neither a balance query nor proof that the wallet can execute again.
+The optional read-only balance/token/fee composition is described in
+`HTTP_READ_ONLY_QUERIES.md`; the original HTTP-A-only omissions above are
+historical. With retained MANUAL nonce history, balance references report
+`wallet_lane_blocked=true` and zero sellable/unreserved token references even
+if canonical settlement left the lane idle. Confirmed on-chain balance or
+allowance is not reusable execution budget. `available_native` remains null;
+no balance response allocates a reservation or grants admission/send permission.
 
 Errors: 400 INVALID_REQUEST, 401 UNAUTHORIZED, 403 WALLET_SCOPE_DENIED or
 WALLET_UNAVAILABLE, 404 REQUEST_NOT_FOUND, 409 IDEMPOTENCY_CONFLICT,
-413 REQUEST_TOO_LARGE, 415 UNSUPPORTED_MEDIA_TYPE, 422 API_POLICY_REJECTED,
+413 REQUEST_TOO_LARGE, 415 UNSUPPORTED_MEDIA_TYPE, 422 API_POLICY_REJECTED or
+MANUAL_WALLET_REUSE_UNSUPPORTED,
 503 API_UNAVAILABLE. A valid rejected order returns 503 SUBMISSION_DISABLED
 inside its redacted Record. No error contains raw SQL, secrets or artifact bytes.
 
 ## Remaining slices and review gate
+
+Historical HTTP-A list, superseded for current progress by the integration
+handoff; the current A/B/C candidate still awaits fresh independent review.
 
 1. Independent review of HTTP-A; branch-only READY_FOR_REVIEW, not PASS.
 2. Read-only token/balance/fee queries and verified protocol/source resolution.

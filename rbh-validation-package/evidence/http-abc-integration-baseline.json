@@ -1,0 +1,104 @@
+{
+  "scope": "LOCAL_ABC_DEVELOPMENT_BASELINE_ASSEMBLY",
+  "branch": "http-abc-local-integration",
+  "worktree": "/root/http/worktrees/http-abc-local-integration",
+  "status": "ABC_LOCAL_BASELINE_PREPARED",
+  "common_ancestor": "404bbff12826ba8bd6c6552512704b28fb0c9d96",
+  "integration_code_head": "3ce8105c7ccc4bb0c307d5c20d945094b14e7e51",
+  "integration_test_head": "71a48b244bde8ff03d2920852e4c7bdef7080e95",
+  "source_heads": {
+    "A": "c0945efb514d47d1c808668e9eb4e00966533fbb",
+    "B": "e77e8f39de12874ba216ec13e9c9749e73566700",
+    "C": "f0f9442eff50b142fd97ef97872a00fbc2305bd4"
+  },
+  "initial_C_input_before_test_only_followup": "29a0b8cfd700ccbb3f216b071f6152a4e29319d5",
+  "review_state": {
+    "A": "INDEPENDENT_PASS_PRIVATE_LOCAL_HARNESS_SCOPE_ONLY",
+    "B": "NOT_PERFORMED",
+    "C": "NOT_PERFORMED",
+    "ABC": "NOT_PERFORMED"
+  },
+  "schema": {
+    "highest_version": 44,
+    "changed_migrations_relative_to_A": [],
+    "next_migration_owner": "B",
+    "next_expected_version_recheck_before_creation": 45,
+    "new_recovery_migration_created": false
+  },
+  "shared_response": {
+    "progress": "INTAKE_VALIDATION_ADMISSION_MILESTONE_ONLY",
+    "execution": "OPTIONAL_GET_DIAGNOSTIC_DURABLE_SNAPSHOT",
+    "top_level_status": "HISTORICAL_INTAKE_STATUS",
+    "signed_hash_implies_send": false,
+    "submitted_implies_receipt_success": false,
+    "post_drives_A_executor": false
+  },
+  "pending_B_work": [
+    "REPLACE_LATEST_ATTEMPT_SELECTION_WITH_VERIFIED_IMMUTABLE_A_BINDING",
+    "DURABLE_ORDERED_LIFECYCLE_JOURNAL_AND_COMPATIBLE_CURSOR",
+    "NARROW_SCHEMA_BOUND_RECEIPT_CANONICAL_REORG_AND_ACCOUNTING_TRANSITIONS",
+    "MANUAL_SUBMITTED_UNKNOWN_RECOVERY_LEASE_FAULT_AND_RESTART_ACCEPTANCE"
+  ],
+  "pending_C_work": [
+    "CONSUME_B_VERIFIED_HISTORY_CONTRACT",
+    "SUBMISSION_RECEIPT_CANONICAL_REORG_PRESENTATION_AND_OPENAPI",
+    "CLIENT_QUERY_DUPLICATE_AUTHORIZATION_AND_PAGINATION_ACCEPTANCE"
+  ],
+  "test_mapping": {
+    "coexisting_progress_and_execution_no_intake_replay": "TestHTTPABCIntakeProgressAndExecution",
+    "signature_hash_is_not_submission": "TestHTTPABCSignatureIsNotSubmission",
+    "submitted_GET_after_stop_revoke_no_new_invocation_scope_and_redaction": "TestHTTPABCSubmittedHistoryAfterStopAndRevoke"
+  },
+  "author_validation": {
+    "environment": "GO_1_26_6_DOCKER_NETWORK_NONE_SOURCE_READ_ONLY",
+    "test_code_head": "3ce8105c7ccc4bb0c307d5c20d945094b14e7e51",
+    "later_changes": "C_PROGRESS_TEST_ONLY_FOLLOWUP_PLUS_DOCS_EVIDENCE_CHECKSUM_AND_CI_SELECTION_NO_PRODUCTION_GO_OR_SQL_CHANGES",
+    "C_followup_test_head": "71a48b244bde8ff03d2920852e4c7bdef7080e95",
+    "C_followup_focused_and_race_recheck": "PASS",
+    "C_followup_focused_command": "go test ./internal/tradeapi -run '^(TestHTTPABC|TestHTTPC1Progress)' -count=1 -timeout=5m",
+    "C_followup_focused_seconds": 3.326,
+    "C_followup_race_command": "go test -race ./internal/tradeapi -run '^TestHTTPC1ProgressProjectionValidationAndAdmission$' -count=1 -timeout=5m",
+    "C_followup_race_seconds": 15.371,
+    "C_followup_vet_staticcheck_format": "PASS",
+    "focused": "PASS",
+    "focused_command": "go test ./internal/tradeapi -run '^(TestHTTPABC|TestHTTPC1Progress|TestManualExecutionSnapshot|TestManualSignedArtifactReadOnlyRecoveryQuery)' -count=1 -timeout=10m -v",
+    "focused_top_level_tests": 8,
+    "focused_seconds": 4.731,
+    "new_integration_race": "PASS",
+    "new_integration_race_command": "go test -race ./internal/tradeapi -run '^TestHTTPABC' -count=1 -timeout=10m",
+    "new_integration_race_seconds": 123.882,
+    "full_ordinary": "PASS",
+    "full_ordinary_exit_code": 0,
+    "full_ordinary_command": "go test ./... -count=1 -timeout=30m",
+    "full_ordinary_completed_package_seconds": {"storage": 35.910, "trade": 378.504, "tradeapi": 912.243},
+    "build": "PASS",
+    "vet": "PASS",
+    "staticcheck": "PASS",
+    "format": "PASS",
+    "openapi_yaml_and_execution_references": "PASS",
+    "ci_yaml_and_integration_race_selection": "PASS",
+    "expected_curve": "PASS",
+    "expected_curve_events": 5,
+    "offline_reference_model": "PASS",
+    "offline_reference_model_tests": 39,
+    "validation_package": "PASS",
+    "validation_package_files": 189,
+    "remote_ci": "NOT_RUN",
+    "ci_integration_race_group_configured": true,
+    "whole_repository_race": "NOT_RUN"
+  },
+  "boundaries": {
+    "production_broadcast": "NOT_CONNECTED",
+    "controlled_canary_authorization": "NOT_GRANTED",
+    "new_A_executor_production_caller": false,
+    "http_submission_execution": "NOT_CONNECTED",
+    "replay_execution": "NOT_CONNECTED",
+    "real_chain_tests_executed": false,
+    "new_chain_or_protocol": false,
+    "live": false,
+    "release_ready": false,
+    "aggregate_M4_pass": false,
+    "ABC_ready_for_independent_review": false,
+    "remote_push_pr_or_merge_performed": false
+  }
+}

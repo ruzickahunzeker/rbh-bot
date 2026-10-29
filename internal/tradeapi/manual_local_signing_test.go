@@ -480,7 +480,8 @@ func TestHTTPM3B3CLocalCompositionDisconnected(t *testing.T) {
 			t.Fatal(err)
 		}
 		ast.Inspect(f, func(n ast.Node) bool {
-			if id, ok := n.(*ast.Ident); ok && id.Name == "manualLocalSigningWriter" && name != "manual_local_signing.go" {
+			// The accepted A3 bundle is the sole new private dependency owner.
+			if id, ok := n.(*ast.Ident); ok && id.Name == "manualLocalSigningWriter" && name != "manual_local_signing.go" && name != "manual_trust_composition.go" {
 				t.Errorf("local writer wired into %s", name)
 			}
 			return true

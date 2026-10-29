@@ -5,9 +5,80 @@ authorization. The desired outcome is a normal one-request HTTP trading API
 that reuses the completed RBH core. No client-side dry-run/prepare prerequisite;
 internal quote/simulation and security gates remain required.
 
-## Current checkpoints
+Current local checkpoint: **A2 = PASS**, checkpoint
+`A2_FIRST_ADMISSION_HANDOFF_PASS`, review_state PASS, formal closeout
+COMPLETE_LOCAL_ONLY. Independent read-only implementation review of exact
+`8c545d1768199c046845cdbf5f57e15ef005c822` concluded scoped PASS, blockers 0.
+The separately user-authorized closeout changes docs/evidence/checksum only;
+see `HTTP_A2_FIRST_ADMISSION_HANDOFF_CLOSEOUT.md` and additive
+`evidence/http-a2-first-admission-joint-review.json`. All reviewed production
+code/tests and original implementation/scope evidence remain byte-identical.
+Earlier READY/NOT_PERFORMED fields in those snapshots are historical, not
+the current A2 status. This does not replace formal main or authorize a push,
+PR, merge, deployment, runtime grant or next-stage implementation.
 
-Current B2.4 formal closeout (2026-10-25): PR #38 merged hardening head
+A2 closes only the private one-shot fresh-admission handoff, not its consumer:
+unique post-COMMIT ownership, shared-copy cancellation/discard behavior,
+post-commit projection failure burn, and no owner restored by historical
+duplicates, queries or restart. Production POST still discards the handoff;
+no binding/signing/permit/executor/send consumer is connected. A1 stays PASS.
+Production HTTP execution and reusable-wallet trading remain incomplete;
+production broadcast NOT_CONNECTED, authorization NOT_GRANTED,
+live=false, release_ready=false. A3 composition/custody/time-provider scope,
+A4 operator authority, A5 transport and B wallet reuse are later separate
+gates, not permissions implied by this closeout.
+
+Previous local checkpoint: **A1 = PASS**, checkpoint
+`A1_DISABLED_COMPOSITION_PASS`, review_state PASS, formal closeout
+COMPLETE_LOCAL_ONLY. Independent implementation review of exact
+`c305b06dcaab875aa82c49fc79fcb95420e00306` concluded scoped PASS, blockers 0.
+The separately authorized closeout is docs/evidence/checksum only; see
+`HTTP_A1_RECOVERY_ONLY_CLOSEOUT.md` and additive
+`evidence/http-a1-recovery-only-joint-review.json`. No formal main baseline,
+remote merge or runtime authority is changed. Explicit RECOVERY_ONLY startup
+is implemented; LEGACY stays the default. This profile deliberately has no
+`/v1/` user API or legacy dry-run/prepare handlers and no signer/send capability.
+Production POST execution and reusable-wallet trading remain incomplete;
+production broadcast NOT_CONNECTED, authorization NOT_GRANTED,
+live=false, release_ready=false. A later scope decision is not implementation
+permission. Earlier pending-review snapshots below and in the original A1
+implementation document/evidence remain historical, not the current A1 status.
+
+Previous local first-order continuation: the accepted `http-local-post-execution` batch implements
+only a test-compiled authenticated first-order POST composition. Production API
+options/startup/transport and migrations stay unchanged. See
+`HTTP_LOCAL_POST_EXECUTION.md` for the exact scope, response/restart limitations
+and acceptance map, and `HTTP_WALLET_REUSE_DESIGN.md` for the separate unresolved
+repeat-trading decision. Production POST still does not invoke A. No local
+harness result promotes aggregate M4 or real trading readiness.
+
+Latest local recovery/history batch: production/schema head
+`4a54c7c5785e75835a53f108056ebc0a3d42fa25`, test-only compatibility head
+`02495884b4399ecb51e3f3577e59e4cffd085a22`, on `http-abc-local-integration`.
+Scoped independent review concluded PASS for both code and the test-only delta,
+not aggregate M4 or production HTTP execution. Exact history, typed MANUAL
+recovery and durable lifecycle events are integrated; POST still stops at
+intake/validation/admission. Reusing a wallet with a retained MANUAL nonce claim
+is explicitly unsupported, including after canonical settlement, until a
+separately reviewed reorg/risk model exists. See
+`HTTP_ABC_RECOVERY_INTEGRATION.md` and its additive evidence for the current
+validation ledger (including the failed first full run and separate rechecks),
+remaining boundaries and the next batch proposal. Earlier snapshots below are
+historical; no main/release or runtime permission is replaced.
+
+The earlier local A/B/C development baseline was assembled on
+`http-abc-local-integration`, code commit
+`3ce8105c7ccc4bb0c307d5c20d945094b14e7e51`. See
+`HTTP_ABC_INTEGRATION.md` for the pinned source commits, coordinator/B/C thread
+links, continuation worktrees, shared Record contract and pending deliverables.
+A's independent PASS at `c0945ef` is recorded separately; B/C and the combined
+integration had no independent PASS at that historical handoff. This was a local
+development handoff,
+not a replacement main/release baseline or production-send authorization.
+
+## Earlier admission checkpoints (historical)
+
+Earlier B2.4 formal closeout (2026-10-25): PR #38 merged hardening head
 `aa15f8a` into `main@869bdba`; PR #39 merged the separate closeout at
 `main@d0f24f6` with the exact closeout tree. CI #187 and #190 succeeded.
 M1/M2/M3/M4-A/B1/B2.1/B2.2/B2.3 have PASS records. Independent review of the

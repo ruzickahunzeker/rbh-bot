@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: EVM Bot user HTTP trading contract — HTTP-A/B/C1/C2/C3-C
-  version: 0.5.0
+  version: 0.5.2
   description: >-
     Local Unix-domain HTTP contract, execution/submission disabled. Valid new
     POSTs create immutable rejection records by default, or explicit opt-in
@@ -12,6 +12,11 @@ info:
     Admission observations never authorize execution/send. No signing, nonce
     allocation or sending is reachable.
     No client-facing dry-run step. Live execution is not implemented here.
+    The A/B/C integration candidate remains pending fresh review. A wallet with
+    a retained MANUAL nonce claim or signed artifact cannot admit/execute a
+    second MANUAL operation in this slice, including after canonical settlement
+    or revert. Historical GET/events/recovery and default-off duplicate reads
+    remain available; neither an idle lane nor a confirmed balance grants reuse.
 security:
   - bearerAuth: []
 paths:
@@ -34,7 +39,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/RecordedOrder'
         '422':
-          description: TTL expired/unverifiable or validation/admission rejected; intake/validation may already be durable
+          description: >-
+            TTL expired/unverifiable or validation/admission rejected;
+            intake/validation may already be durable. MANUAL_WALLET_REUSE_UNSUPPORTED
+            specifically rejects a new admission for a wallet/address with
+            retained MANUAL nonce/artifact history, even after canonical outcome.
+            Default-off historical duplicates do not create an admission and do
+            not receive this error merely for reading the original record.
           headers:
             Location:
               description: Durable request path when intake already succeeded; reuse original idempotency key
@@ -43,6 +54,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                retainedManualWallet:
+                  value:
+                    error:
+                      code: MANUAL_WALLET_REUSE_UNSUPPORTED
+                      message: retained MANUAL wallet history cannot authorize another trade in this stage
         '502':
           description: Unverifiable chain observation; source/resolution may already be durable
           content:
@@ -50,7 +67,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '503':
-          description: Durable SUBMISSION_DISABLED record, or unavailable/stopped admission/API error; committed phases remain queryable
+          description: Durable SUBMISSION_DISABLED record, or unavailable/stopped admission/API error; stop-first admission preflight takes priority over wallet-reuse rejection, including admission-enabled duplicate POSTs; committed phases remain queryable
           content:
             application/json:
               schema:
@@ -75,7 +92,7 @@ paths:
           $ref: '#/components/responses/Error'
   /v1/trades/{request_id}:
     get:
-      summary: Query intake/rejection and historical validation/admission, not transaction outcome
+      summary: Query verified intake and execution history without authorizing an action
       parameters:
         - $ref: '#/components/parameters/RequestID'
       responses:
@@ -89,7 +106,7 @@ paths:
           $ref: '#/components/responses/Error'
   /v1/trades/{request_id}/events:
     get:
-      summary: Request-scoped intake/rejection audit only, not recovery service events
+      summary: Read caller-scoped durable lifecycle history, never command recovery or sending
       parameters:
         - $ref: '#/components/parameters/RequestID'
         - name: after
@@ -98,26 +115,49 @@ paths:
             type: integer
             minimum: 0
             maximum: 9223372036854775807
+          description: Exclusive request-scoped cursor; use the preceding response next_cursor, not a timestamp or another request cursor
       responses:
         '200':
-          description: Intake/rejection audit events and durable request-scoped next_cursor
+          description: >-
+            At most 100 append-only journal events in strictly increasing
+            request-scoped cursor order. MANUAL_ORDER_LIFECYCLE uses the durable
+            manual_lifecycle_events journal and preserves the original intake
+            sequence. API_REJECTION_ONLY remains the rejection scope. This is
+            recorded history, not recovery availability or action permission.
           content:
             application/json:
               schema:
                 type: object
+                required: [scope, events, next_cursor]
                 properties:
                   scope:
-                    enum: [API_REJECTION_ONLY, MANUAL_ORDER_INTAKE_ONLY]
+                    enum: [API_REJECTION_ONLY, MANUAL_ORDER_INTAKE_ONLY, MANUAL_ORDER_LIFECYCLE]
+                    description: MANUAL_ORDER_INTAKE_ONLY describes the historical C1-only response; journal-backed MANUAL responses use MANUAL_ORDER_LIFECYCLE
                   events:
                     type: array
+                    maxItems: 100
                     items:
                       type: object
+                      required: [cursor, type, reason_code, created_at]
                       properties:
-                        cursor: {type: integer}
-                        type: {enum: [USER_HTTP_TRADE_REJECTED, MANUAL_HTTP_ORDER_RECORDED]}
-                        reason_code: {enum: [SUBMISSION_DISABLED, VALIDATION_NOT_CONNECTED]}
+                        cursor:
+                          type: integer
+                          minimum: 1
+                          maximum: 9223372036854775807
+                          description: Per-request durable order, retained across restart; not a cross-request cursor
+                        type:
+                          type: string
+                          description: Verified durable event type; includes intake and source-bound submission/receipt/canonical/reorg lifecycle facts, not commands
+                          examples: [USER_HTTP_TRADE_REJECTED, MANUAL_HTTP_ORDER_RECORDED]
+                        reason_code:
+                          type: string
+                          description: Durable event reason, not intake-only or current execution permission
                         created_at: {type: string, format: date-time}
-                  next_cursor: {type: integer}
+                  next_cursor:
+                    type: integer
+                    minimum: 0
+                    maximum: 9223372036854775807
+                    description: Last event actually returned, or unchanged input after on an empty page; never advances over unseen events
         default:
           $ref: '#/components/responses/Error'
   /v1/capabilities:
@@ -133,7 +173,7 @@ paths:
       summary: Durable wallet identity in caller scope, no balances
       responses:
         '200':
-          description: Caller-scoped wallet ID, chain and address
+          description: Caller-scoped wallet ID, chain and address; listing does not authorize reuse of a retained MANUAL wallet
         default:
           $ref: '#/components/responses/Error'
   /v1/tokens/{address}:
@@ -166,7 +206,9 @@ paths:
         '200':
           description: >-
             Native balance and optional token/allowance at one block/hash;
-            unresolved lane forces sellable/unreserved token reference to zero.
+            an unresolved lane or retained MANUAL nonce claim forces
+            wallet_lane_blocked=true and sellable/unreserved token reference to
+            zero, including after canonical settlement leaves the lane idle.
             available_native=null, not an execution reservation or permission.
         default:
           $ref: '#/components/responses/Error'
@@ -224,6 +266,7 @@ components:
           minLength: 1
           maxLength: 128
           pattern: '^[A-Za-z0-9._:-]+$'
+          description: Configured caller-owned wallet; a retained MANUAL nonce claim or signed artifact forbids a second MANUAL admission/execution in this slice, even after canonical settlement/revert or through an address alias
         token:
           type: string
           pattern: '^0x[a-fA-F0-9]{40}$'
@@ -281,7 +324,10 @@ components:
         tip_gwei: [max_gwei]
     RejectedRecord:
       type: object
+      required: [request_id, status, reason_code, progress, request, expires_at, created_at, send_authorized, submission_queued]
       properties:
+        progress:
+          $ref: '#/components/schemas/TradeProgress'
         request_id: {type: string}
         operation_id: {type: 'null'}
         status: {const: REJECTED}
@@ -303,8 +349,12 @@ components:
         - $ref: '#/components/schemas/RecordedOrder'
     RecordedOrder:
       type: object
-      required: [request_id, operation_id, status, reason_code, request, expires_at, created_at, send_authorized, submission_queued]
+      required: [request_id, operation_id, status, reason_code, progress, request, expires_at, created_at, send_authorized, submission_queued]
       properties:
+        progress:
+          $ref: '#/components/schemas/TradeProgress'
+        execution:
+          $ref: '#/components/schemas/ExecutionSnapshot'
         request_id: {type: string}
         operation_id: {type: string, pattern: '^manual_op_req_[a-f0-9]{64}$'}
         status: {const: RECORDED}
@@ -326,6 +376,60 @@ components:
           $ref: '#/components/schemas/ManualValidation'
         admission:
           $ref: '#/components/schemas/ManualAdmission'
+    TradeProgress:
+      type: object
+      additionalProperties: false
+      required: [stage]
+      description: Read-only durable milestone, not a transaction outcome or execution/send permission
+      properties:
+        stage:
+          enum: [REJECTED, INTAKE_RECORDED, VALIDATION_RECORDED, ADMISSION_RECORDED]
+    ExecutionSnapshot:
+      type: object
+      additionalProperties: false
+      required: [operation_status, step_status]
+      description: >-
+        Optional read-only verified execution history on both trade GET routes
+        and duplicate POST responses. These observations follow the immutable
+        request/execution/nonce/artifact/first-submission identity, not the latest
+        unrelated database row. Missing stages are omitted; contradictory
+        provenance fails the request instead of presenting unverified success.
+        A tx_hash can exist on a signed attempt before submission. Interpret
+        submission, receipt and position-effect observations separately; this
+        object grants no signing, sending, replay or retry permission. Reads and
+        duplicates do not renew TTL or perform economic work. The progress stage
+        continues to describe the intake/validation/admission milestone.
+      properties:
+        operation_status: {type: string}
+        step_status: {type: string}
+        trade_step_status: {type: string}
+        attempt_status: {type: string}
+        submission_state:
+          type: string
+          enum: [submitting, submitted, broadcast_unknown, reconciling, manual_resolution, expired_prebroadcast, known_unsent]
+          description: >-
+            Durable submission observation, not receipt success. broadcast_unknown
+            means non-invocation/non-propagation cannot be durably proved; it is
+            not evidence that sending probably occurred. known_unsent retains
+            frozen ownership in this MANUAL scope. Neither state permits
+            automatic resend, replacement, replay or release.
+        tx_hash:
+          type: string
+          description: Exact signed artifact identity; presence alone does not prove send, propagation, receipt success or canonical effect
+        receipt_state:
+          type: string
+          enum: [observed, canonical_success, canonical_revert, orphaned]
+          description: >-
+            observed does not imply canonicality. canonical_revert is a reverted
+            receipt, not a successful trade. orphaned supersedes the earlier
+            canonical observation; later re-canonicalization may change it again.
+        position_effect_state:
+          type: string
+          enum: [active, rolled_back]
+          description: >-
+            Current durable effect state, independently observed from receipt
+            state. rolled_back is visible after earlier application; reapplication
+            returns active. This is not a permanent success or finality flag.
     ManualAdmission:
       type: object
       additionalProperties: false
