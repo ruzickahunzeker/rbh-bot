@@ -48,6 +48,17 @@ CREATE TRIGGER manual_operator_upgrade_arm_guard
 BEFORE UPDATE OF state ON canary_runtime_authorizations
 WHEN NEW.state='ARMED' AND EXISTS(
   SELECT 1 FROM manual_authorization_units WHERE authorization_id=NEW.id
+) AND (
+  EXISTS(
+    SELECT 1 FROM manual_operator_authorization_requests
+    WHERE authorization_id=NEW.id
+  ) OR EXISTS(
+    SELECT 1 FROM manual_operator_authorization_sources
+    WHERE authorization_id=NEW.id
+  ) OR EXISTS(
+    SELECT 1 FROM manual_operator_c07_attestations
+    WHERE authorization_id=NEW.id
+  )
 ) AND NOT EXISTS(
   SELECT 1
   FROM manual_operator_authorization_requests rq
