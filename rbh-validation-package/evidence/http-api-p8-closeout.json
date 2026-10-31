@@ -1,0 +1,27 @@
+{
+  "scope": "HTTP_API_P8_CONTROLLED_CANARY_AUTHORIZATION_BOUNDARY",
+  "status": "P8_PASS",
+  "reviewed_head": "d4f78af",
+  "independent_review_receipt": "411dcb4",
+  "closeout_branch": "http-p8-canary-authorization-closeout",
+  "ordinary_harness": "PASS",
+  "race_harness": "PASS",
+  "authorization_grant": "NOT_GRANTED",
+  "production_broadcast": "NOT_CONNECTED",
+  "canary_mode": "DISABLED",
+  "epoch_semantics": "IMMUTABLE_ROW_STATE_INVALIDATION_HIGHER_GLOBAL_EPOCH_ON_NEW_AUTH",
+  "budget_conservation": "PASS",
+  "emergency_stop": "FAIL_CLOSED_HIGHEST_PRIORITY",
+  "broadcast_unknown": "FROZEN_QUERY_FIRST",
+  "live": false,
+  "release_ready": false,
+  "prohibited_paths": {
+    "authorization_grant_route": false,
+    "RawBroadcaster": false,
+    "SendRawTransaction": false,
+    "mainnet": false,
+    "bsc_flap": false,
+    "live_enable": false
+  },
+  "next_stage": "P9_NOT_STARTED"
+}

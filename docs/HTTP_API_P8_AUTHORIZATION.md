@@ -1,6 +1,8 @@
 # HTTP API P8 — controlled authorization harness
 
-Status: `P8_READY_FOR_REVIEW`
+Status: `P8_PASS`
+
+Formal closeout: `COMPLETE_LOCAL_ONLY`
 
 P8 scope and controlled harness evidence are complete. The harness verifies
 durable authorization identity, immutable epoch and revoke/expiry state
