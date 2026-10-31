@@ -21,18 +21,14 @@ prove the full P4 race acceptance. The timeout is already recorded in
 visible until the full-race qualification is resolved or the acceptance scope
 is explicitly revised by a new review.
 
-## Blocker 2 — production composition contradicts P2 query independence
+## Resolved finding — production composition wording
 
-`docs/HTTP_API_P2_QUERY.md` describes a read-only query path that does not
-require signer or active authorization. However,
-`internal/app/run.go` validates RPC, dry-run wallet/from-address, execution
-private key, and artifact encryption configuration before calling
-`configureUserTradeAPI`. As a result, a production process cannot start the
-HTTP query surface with only query dependencies. The route remains on the
-existing UDS and does not expose send methods, but the composition contract is
-not yet true. The fix must either split query composition from signer
-requirements or revise the P2 contract and evidence; it must not wire a
-broadcaster or enable live.
+The original review wording overstated the current P2 composition. The query
+adapter and handlers are signer-free, while `internal/app/run.go` still shares
+legacy execution prerequisites before registering `/v1`. The P2 and replan
+documents now state this limitation explicitly and defer query-only startup
+separation to a later composition slice. No production code or send path is
+changed by this documentation correction.
 
 Required state while blocked:
 

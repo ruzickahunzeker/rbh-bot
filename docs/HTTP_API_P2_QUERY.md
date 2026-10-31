@@ -3,9 +3,12 @@
 Status: `P2_READY_FOR_REVIEW`
 
 This slice verifies the existing read-only chain/profile adapter used by the
-HTTP API. It does not grant execution permission and does not connect signer,
-SubmissionService, RawBroadcaster, `SendRawTransaction`, nonce allocation, or
-production startup.
+HTTP API. The adapter and HTTP read handlers do not grant execution permission
+and do not depend on signer, SubmissionService, RawBroadcaster,
+`SendRawTransaction`, or nonce allocation. The current trade-service process
+still shares a legacy execution composition and therefore requires its
+execution configuration before mounting `/v1`; separating that startup
+composition is a later production-composition slice.
 
 The supported profile is Robinhood chain 4663 with native-quote Pons v2 Curve.
 The controlled RPC client pins observations to one block/header and verifies
@@ -25,7 +28,9 @@ GET /v1/fees?chain=robinhood
 Wallet lane and frozen reservation state are rechecked after RPC observation.
 An ambiguous or frozen wallet therefore exposes zero sellable/unreserved token
 reference and never becomes a new economic action. The query layer does not
-require active authorization and remains available while admission is stopped.
+require active authorization and remains available while admission is stopped
+once the process composition is running. The current startup prerequisite is
+recorded explicitly and is not evidence of query authorization.
 
 Validation evidence on controlled fixtures:
 

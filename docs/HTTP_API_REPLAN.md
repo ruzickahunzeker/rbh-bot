@@ -123,6 +123,11 @@ HTTP state machine or bypass shared gates. Solana is outside this API.
 9. **P8 canary:** explicit allowlists, budgets, deployment identity, and
    authorization only after every prior independent review and closeout.
 
+The P2 adapter is read-only and signer-free. The existing trade-service startup
+still shares execution configuration with the HTTP registration point; a
+future composition slice must split query-only startup before claiming that a
+production query process can run without signer configuration.
+
 Every gate requires focused ordinary tests, race/fault/restart evidence, and
 independent review. A stage cannot imply authorization for a later stage.
 
