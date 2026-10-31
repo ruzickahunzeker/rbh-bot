@@ -1,0 +1,28 @@
+{
+  "scope": "HTTP_API_P6_RECOVERY_LIFECYCLE_COMPOSITION",
+  "status": "P6_PASS",
+  "reviewed_head": "4dff713",
+  "independent_review_receipt": "c2b073c",
+  "closeout_branch": "http-p6-recovery-closeout",
+  "ordinary_tests": "PASS",
+  "race_tests": "PASS",
+  "sqlite_rediscovery": "SUBMITTED_AND_BROADCAST_UNKNOWN",
+  "recovery_lease_fencing": "PASS",
+  "shutdown_drain": "PASS",
+  "canonical_reorg_exactly_once": "PASS",
+  "submission_lease_independent": "PASS",
+  "production_broadcast": "NOT_CONNECTED",
+  "controlled_canary_authorization": "NOT_GRANTED",
+  "live": false,
+  "release_ready": false,
+  "prohibited_paths": {
+    "signer": false,
+    "SubmissionService": false,
+    "RawBroadcaster": false,
+    "SendRawTransaction": false,
+    "permit_send": false,
+    "nonce_allocation": false,
+    "mainnet": false
+  },
+  "next_stage": "P7_NOT_STARTED"
+}

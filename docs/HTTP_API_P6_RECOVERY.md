@@ -1,6 +1,8 @@
 # HTTP API P6 — recovery lifecycle composition
 
-Status: `P6_READY_FOR_REVIEW`
+Status: `P6_PASS`
+
+Formal closeout: `COMPLETE_LOCAL_ONLY`
 
 P6 verifies the production lifecycle composition of the existing controlled
 recovery worker. It uses the durable `RECOVERY` lease and the existing
