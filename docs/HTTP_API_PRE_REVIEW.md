@@ -27,11 +27,17 @@ P4 signing ordinary                                 PASS
 P4 signing C-group race                             PASS
 P4 signing D-group race                             PASS
 P4 immediate-callback isolated race                 PASS
+production graph/default-off guard tests             PASS
 ```
 
 The combined P4 `^TestHTTPM3B3` race invocation timed out at 25 minutes. The
 timeout is retained as a qualification; it is not converted into a PASS. The
 same callback test passes in isolation and the bounded C/D groups pass.
+
+The production graph/default-off guard run passed the route composition,
+default-off startup, no-grant/no-permit, and no-economic-dependency tests.
+The HTTP handler remains mounted only on the existing local UDS server and
+does not expose the local signer or submission methods.
 
 The branch is ready for a separately authorized read-only independent review.
 It must not be used to infer P5 submission readiness.
