@@ -34,6 +34,7 @@ func Run(service config.Service) error {
 	if cfg.LiveEnabled {
 		return errors.New("live execution is disabled in PR-001")
 	}
+	queryOnly := tradeAPIQueryOnly(service, cfg)
 	if err := os.MkdirAll(cfg.DataDir, 0o750); err != nil {
 		return fmt.Errorf("create data directory: %w", err)
 	}
@@ -45,7 +46,11 @@ func Run(service config.Service) error {
 		gates = append(gates, "bot_feed_consumer_configured")
 	}
 	if service == config.TradeService {
-		gates = append(gates, "pons_curve_dry_run_configured", "recovery_ready")
+		if queryOnly {
+			gates = append(gates, "trade_api_query_ready")
+		} else {
+			gates = append(gates, "pons_curve_dry_run_configured", "recovery_ready")
+		}
 	}
 	ready := health.NewReadiness(gates...)
 	ready.Set("config_valid", true)
@@ -115,8 +120,8 @@ func Run(service config.Service) error {
 	}
 	var tradeBackend *tradecore.RPCBackend
 	if service == config.TradeService {
-		if cfg.RPCURL == "" || cfg.DryRunWalletID == "" || !common.IsHexAddress(cfg.DryRunFromAddress) || common.HexToAddress(cfg.DryRunFromAddress) == (common.Address{}) || cfg.ExecutionPrivateKey == "" || cfg.ArtifactEncryptionKey == "" || cfg.ArtifactKeyVersion == "" {
-			return errors.New("trade execution kernel configuration is incomplete")
+		if cfg.RPCURL == "" || cfg.DryRunWalletID == "" || !common.IsHexAddress(cfg.DryRunFromAddress) || common.HexToAddress(cfg.DryRunFromAddress) == (common.Address{}) {
+			return errors.New("trade wallet/query configuration is incomplete")
 		}
 		store, err := tradecore.NewStore(database)
 		if err != nil {
@@ -128,72 +133,78 @@ func Run(service config.Service) error {
 		if err := configureUserTradeAPI(server, database, cfg); err != nil {
 			return err
 		}
-		tradeBackend, err = tradecore.DialRPCBackend(ctx, cfg.RPCURL)
-		if err != nil {
-			return err
+		if queryOnly {
+			ready.Set("trade_api_query_ready", true)
+		} else if cfg.ExecutionPrivateKey == "" || cfg.ArtifactEncryptionKey == "" || cfg.ArtifactKeyVersion == "" {
+			return errors.New("trade execution kernel configuration is incomplete")
+		} else {
+			tradeBackend, err = tradecore.DialRPCBackend(ctx, cfg.RPCURL)
+			if err != nil {
+				return err
+			}
+			defer tradeBackend.Close()
+			engine, err := tradecore.NewEngine(store, tradeBackend)
+			if err != nil {
+				return err
+			}
+			if _, err := engine.Recover(ctx); err != nil {
+				return fmt.Errorf("recover trade dry-runs: %w", err)
+			}
+			server.Handle("POST /internal/trade/dry-run", authenticator.Middleware(tradecore.NewDryRunHTTPHandler(engine)))
+			privateKey, err := crypto.HexToECDSA(cfg.ExecutionPrivateKey)
+			if err != nil {
+				return errors.New("invalid execution signer configuration")
+			}
+			signer, err := tradecore.NewLocalSigner(privateKey)
+			if err != nil || signer.Address() != common.HexToAddress(cfg.DryRunFromAddress) {
+				return errors.New("execution signer does not match configured wallet")
+			}
+			encryptionKey, err := hex.DecodeString(cfg.ArtifactEncryptionKey)
+			if err != nil {
+				return errors.New("invalid artifact encryption configuration")
+			}
+			artifactCipher, err := tradecore.NewAESGCMCipher(cfg.ArtifactKeyVersion, encryptionKey)
+			if err != nil {
+				return errors.New("invalid artifact encryption configuration")
+			}
+			kernel, err := tradecore.NewExecutionKernel(store, tradeBackend, signer, artifactCipher)
+			if err != nil {
+				return err
+			}
+			server.Handle("POST /internal/trade/prepare-execution", authenticator.Middleware(tradecore.NewPrepareExecutionHandler(kernel)))
+			recoveryRPC, err := tradecore.DialReadOnlyRecoveryRPC(ctx, cfg.RPCURL)
+			if err != nil {
+				return fmt.Errorf("configure read-only recovery RPC: %w", err)
+			}
+			defer recoveryRPC.Close()
+			effectResolver, err := tradecore.NewPonsCurveEffectResolver(store)
+			if err != nil {
+				return err
+			}
+			recoveryService, err := tradecore.NewRecoveryServiceWithCipher(store, artifactCipher, recoveryRPC, effectResolver, tradecore.CanonicalPolicy{})
+			if err != nil {
+				return err
+			}
+			recoveryQuerier, err := tradecore.NewProductionRecoveryQuerier(store, artifactCipher, recoveryRPC)
+			if err != nil {
+				return err
+			}
+			canaryProduction, err = tradecore.NewProductionComposition(store, cfg.CanaryProductionMode)
+			if err != nil {
+				return fmt.Errorf("configure controlled canary production lifecycle: %w", err)
+			}
+			hostname, _ := os.Hostname()
+			holder := fmt.Sprintf("%s:%d", hostname, os.Getpid())
+			if err = canaryProduction.ConfigureRecovery(recoveryService, recoveryQuerier, recoveryRPC, tradecore.ProductionRecoveryConfig{Environment: "production", HolderID: holder, LeaseTTL: 30 * time.Second, ScanInterval: time.Second}); err != nil {
+				return fmt.Errorf("configure production recovery lifecycle: %w", err)
+			}
+			if err = canaryProduction.Start(ctx); err != nil {
+				return fmt.Errorf("start production recovery lifecycle: %w", err)
+			}
+			server.SetMetricsWriter(canaryProduction.WriteMetrics)
+			ready.Set("recovery_ready", canaryProduction.Readiness().RecoveryReady)
+			ready.Set("pons_curve_dry_run_configured", true)
 		}
-		defer tradeBackend.Close()
-		engine, err := tradecore.NewEngine(store, tradeBackend)
-		if err != nil {
-			return err
-		}
-		if _, err := engine.Recover(ctx); err != nil {
-			return fmt.Errorf("recover trade dry-runs: %w", err)
-		}
-		server.Handle("POST /internal/trade/dry-run", authenticator.Middleware(tradecore.NewDryRunHTTPHandler(engine)))
-		privateKey, err := crypto.HexToECDSA(cfg.ExecutionPrivateKey)
-		if err != nil {
-			return errors.New("invalid execution signer configuration")
-		}
-		signer, err := tradecore.NewLocalSigner(privateKey)
-		if err != nil || signer.Address() != common.HexToAddress(cfg.DryRunFromAddress) {
-			return errors.New("execution signer does not match configured wallet")
-		}
-		encryptionKey, err := hex.DecodeString(cfg.ArtifactEncryptionKey)
-		if err != nil {
-			return errors.New("invalid artifact encryption configuration")
-		}
-		artifactCipher, err := tradecore.NewAESGCMCipher(cfg.ArtifactKeyVersion, encryptionKey)
-		if err != nil {
-			return errors.New("invalid artifact encryption configuration")
-		}
-		kernel, err := tradecore.NewExecutionKernel(store, tradeBackend, signer, artifactCipher)
-		if err != nil {
-			return err
-		}
-		server.Handle("POST /internal/trade/prepare-execution", authenticator.Middleware(tradecore.NewPrepareExecutionHandler(kernel)))
-		recoveryRPC, err := tradecore.DialReadOnlyRecoveryRPC(ctx, cfg.RPCURL)
-		if err != nil {
-			return fmt.Errorf("configure read-only recovery RPC: %w", err)
-		}
-		defer recoveryRPC.Close()
-		effectResolver, err := tradecore.NewPonsCurveEffectResolver(store)
-		if err != nil {
-			return err
-		}
-		recoveryService, err := tradecore.NewRecoveryServiceWithCipher(store, artifactCipher, recoveryRPC, effectResolver, tradecore.CanonicalPolicy{})
-		if err != nil {
-			return err
-		}
-		recoveryQuerier, err := tradecore.NewProductionRecoveryQuerier(store, artifactCipher, recoveryRPC)
-		if err != nil {
-			return err
-		}
-		canaryProduction, err = tradecore.NewProductionComposition(store, cfg.CanaryProductionMode)
-		if err != nil {
-			return fmt.Errorf("configure controlled canary production lifecycle: %w", err)
-		}
-		hostname, _ := os.Hostname()
-		holder := fmt.Sprintf("%s:%d", hostname, os.Getpid())
-		if err = canaryProduction.ConfigureRecovery(recoveryService, recoveryQuerier, recoveryRPC, tradecore.ProductionRecoveryConfig{Environment: "production", HolderID: holder, LeaseTTL: 30 * time.Second, ScanInterval: time.Second}); err != nil {
-			return fmt.Errorf("configure production recovery lifecycle: %w", err)
-		}
-		if err = canaryProduction.Start(ctx); err != nil {
-			return fmt.Errorf("start production recovery lifecycle: %w", err)
-		}
-		server.SetMetricsWriter(canaryProduction.WriteMetrics)
-		ready.Set("recovery_ready", canaryProduction.Readiness().RecoveryReady)
-		ready.Set("pons_curve_dry_run_configured", true)
 	}
 
 	listener, err := server.Listen()
@@ -235,6 +246,11 @@ func Run(service config.Service) error {
 	case <-ctx.Done():
 		return shutdownApplication(server, canaryProduction)
 	}
+}
+
+func tradeAPIQueryOnly(service config.Service, cfg config.Config) bool {
+	return service == config.TradeService && cfg.TradeAPIConfigFile != "" && cfg.TradeAPIReadQueries &&
+		!cfg.TradeAPIManualIntake && !cfg.TradeAPIValidateOrders && !cfg.TradeAPIManualAdmission
 }
 
 func writeFeedMetrics(ctx context.Context, writer io.Writer, store *feedcore.Store) error {
