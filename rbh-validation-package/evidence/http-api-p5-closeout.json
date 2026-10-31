@@ -1,0 +1,30 @@
+{
+  "scope": "HTTP_API_P5_CONTROLLED_LOCAL_SUBMISSION",
+  "status": "P5_PASS",
+  "reviewed_head": "ada1d96",
+  "independent_review_receipt": "e277e84",
+  "closeout_branch": "http-p5-submission-closeout",
+  "ordinary_tests": "PASS",
+  "race_tests": "PASS",
+  "go_vet": "PASS",
+  "gofmt": "PASS",
+  "permit_semantics": "FIRST_BROADCAST_AND_UNKNOWN_REPLAY_ONE_SHOT",
+  "ambiguity_boundary": "SEND_INTENT_AT",
+  "known_unsent": "DURABLY_PROVEN_NON_PROPAGATION_ONLY",
+  "broadcast_unknown": "FROZEN_QUERY_FIRST_NO_AUTOMATIC_RESEND",
+  "exact_artifact_replay": "PASS",
+  "lease_fencing": "PASS",
+  "production_broadcast": "NOT_CONNECTED",
+  "controlled_canary_authorization": "NOT_GRANTED",
+  "live": false,
+  "release_ready": false,
+  "prohibited_paths": {
+    "SubmissionService_production_wiring": false,
+    "RawBroadcaster_production_wiring": false,
+    "SendRawTransaction": false,
+    "mainnet": false,
+    "new_nonce": false,
+    "live_enable": false
+  },
+  "next_stage": "P6_NOT_STARTED"
+}

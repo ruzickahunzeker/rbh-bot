@@ -1,6 +1,8 @@
 # HTTP API P5 — controlled local submission worker
 
-Status: `P5_READY_FOR_REVIEW`
+Status: `P5_PASS`
+
+Formal closeout: `COMPLETE_LOCAL_ONLY`
 
 The existing `ControlledSubmissionWorker` now has a focused review record. It
 discovers durable `ISSUED` permits from SQLite, validates the independent
