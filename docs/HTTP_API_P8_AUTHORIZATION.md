@@ -3,7 +3,8 @@
 Status: `P8_READY_FOR_REVIEW`
 
 P8 scope and controlled harness evidence are complete. The harness verifies
-durable authorization identity, epoch/revoke behavior, C04/C05/C07/C08 gate
+durable authorization identity, immutable epoch and revoke/expiry state
+behavior, C04/C05/C07/C08 gate
 binding, atomic max-operation and total-input budget accounting, emergency-stop
 priority, duplicate/restart behavior, and permit/ambiguity boundaries.
 

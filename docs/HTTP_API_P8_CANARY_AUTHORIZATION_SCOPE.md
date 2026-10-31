@@ -28,8 +28,9 @@ C04/C05/C07/C08 gate attestations
 
 Deployment identity changes invalidate the prior authorization. Restart does
 not reset usage. Duplicate requests do not consume budget twice. Revocation or
-expiry increments the authorization epoch and fails all new admission,
-signing, and submission gates closed.
+expiry changes the durable authorization state so all new admission, signing,
+and submission gates fail closed. The immutable row epoch is not rewritten;
+the next newly created authorization receives a higher global epoch.
 
 Authorization is never inferred from HTTP configuration, API credentials,
 readiness, a historical admission decision, or a local permit. It requires an
@@ -69,15 +70,16 @@ loss, RPC disagreement, or readiness loss stop new admission/sign/send. They
 must not release a `broadcast_unknown` lane or reservation. Recovery continues
 query-first and reconciles receipt/canonical/reorg state.
 
-Rollback means revoke authorization, advance epoch, drain submission work, and
-retain durable evidence. It never rebuilds, resigns, replaces, fee-bumps, or
-allocates a new nonce.
+Rollback means revoke authorization, require a higher epoch for any later newly
+created authorization, drain submission work, and retain durable evidence. It
+never rebuilds, resigns, replaces, fee-bumps, or allocates a new nonce.
 
 ## Acceptance evidence
 
 Before any authorization grant, P8 must prove:
 
-- immutable deployment identity and epoch invalidation;
+- immutable deployment identity, immutable row epoch, and higher-epoch
+  replacement authorization after revocation/expiry;
 - wallet/chain/protocol/contract/token/policy binding;
 - atomic max-operations and total-input budget conservation;
 - emergency-stop highest-priority behavior and fail-closed read failures;
