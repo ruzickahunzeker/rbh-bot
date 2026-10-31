@@ -2,7 +2,7 @@
 
 Status: `READY_FOR_INDEPENDENT_REVIEW`
 
-Reviewed branch: `http-api-p0-p4-review-gates`
+Reviewed branch: `http-api-p0-p4-review-gates` (historical pre-hardening snapshot)
 
 The branch contains the docs-only API replan plus P2 query, P3 admission, and
 P4 controlled-signing review records. No production startup, broadcaster,
