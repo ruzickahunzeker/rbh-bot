@@ -1,6 +1,8 @@
 # HTTP API P9 controlled canary preflight
 
-Status: `P9_READY_FOR_REVIEW`
+Status: `P9_PASS`
+
+Formal closeout: `COMPLETE_LOCAL_ONLY`
 
 P9 preflight is a read-only evidence package. It verifies the final reviewed
 composition and durable controls without creating an authorization record,
