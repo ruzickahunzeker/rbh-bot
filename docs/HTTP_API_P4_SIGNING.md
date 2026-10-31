@@ -31,10 +31,14 @@ go test -race ./internal/tradeapi \
   PASS (13.131s)
 ```
 
-The combined `^TestHTTPM3B3` race invocation timed out at 25 minutes while
-running `TestHTTPM3B3DImmediateCallbackAfterSignerChecks`. The same test passes
-in isolation, and the bounded C/D race groups pass. This timeout remains an
-open review qualification; it is not relabeled as a full-race PASS.
+The combined race invocation completed successfully after the extended timeout
+was raised to 45 minutes. The earlier 25-minute timeout remains historical
+evidence and is not used as a current failure.
+
+```text
+go test -race ./internal/tradeapi -run '^TestHTTPM3B3' -count=1 -timeout=45m
+  PASS (2313.955s)
+```
 
 The required safety state remains:
 
