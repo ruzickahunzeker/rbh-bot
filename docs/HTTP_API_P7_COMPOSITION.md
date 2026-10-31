@@ -1,6 +1,8 @@
 # HTTP API P7 — production composition implementation
 
-Status: `P7_READY_FOR_REVIEW`
+Status: `P7_PASS`
+
+Formal closeout: `COMPLETE_LOCAL_ONLY`
 
 P7 adds an explicit query-only composition boundary to the existing
 trade-service startup. When the API is configured for read-only queries with
