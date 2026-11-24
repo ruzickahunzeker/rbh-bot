@@ -1,0 +1,36 @@
+# Base Mainnet (OP Stack L2, chain_id=8453) isolated instance template.
+# SAFETY INVARIANT: live_enabled and canary_production_mode MUST stay disabled
+# until Step 5 Preflight passes and explicit operator authorization is granted.
+chain_id: 8453
+chain_slug: base
+network_kind: mainnet
+live_enabled: false
+canary_production_mode: DISABLED
+trade_startup_profile: QUERY_AND_RECOVERY
+
+submission:
+  mode: public
+  replacement_mode: DISABLED
+
+fees:
+  zero_base_fee: false
+  min_effective_gas_price_wei: "1000000" # 0.001 gwei
+  estimate_includes_l1_fee: false
+  op_stack_gas_price_oracle: "0x420000000000000000000000000000000000000F"
+  l1_fee_buffer_bps: 2000
+
+finality:
+  execution_continuity_tag: latest
+  execution_continuity_min_blocks: 1
+  exposure_settlement_tag: finalized
+  exposure_settlement_min_blocks: 0
+
+timeouts:
+  pre_send_rpc_budget: 3s
+  broadcast_rpc_timeout: 5s
+  http_write_timeout: 15s
+  bot_client_timeout: 25s
+
+sockets:
+  business_socket: /var/run/evm-bot/trade-base.sock
+  admin_socket: /var/run/evm-bot/trade-base-admin.sock

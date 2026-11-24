@@ -116,8 +116,10 @@ func (r *Router) HandleCommand(ctx context.Context, chatID int64, text string) (
 			newChain = 4663
 		case "bsc", "56":
 			newChain = 56
+		case "base", "8453":
+			newChain = 8453
 		default:
-			return "Unsupported chain. Use rbh or bsc.", nil
+			return "Unsupported chain. Use rbh, bsc, or base.", nil
 		}
 		if _, err := r.db.ExecContext(ctx,
 			`UPDATE telegram_allowlist SET active_chain_id = ?, updated_at = ? WHERE chat_id = ?`,

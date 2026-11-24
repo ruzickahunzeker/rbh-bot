@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/ruzickahunzeker/rbh-bot/internal/chainquery"
+	basechain "github.com/ruzickahunzeker/rbh-bot/internal/chains/base"
 	"github.com/ruzickahunzeker/rbh-bot/internal/chains/bsc"
 	"github.com/ruzickahunzeker/rbh-bot/internal/chains/robinhood"
 	"github.com/ruzickahunzeker/rbh-bot/internal/config"
@@ -12,6 +13,7 @@ import (
 	pancakev3 "github.com/ruzickahunzeker/rbh-bot/internal/protocols/pancakeswap/v3"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/pons/v2curve"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/ports"
+	univ3 "github.com/ruzickahunzeker/rbh-bot/internal/protocols/uniswap/v3"
 	"github.com/ruzickahunzeker/rbh-bot/internal/registry"
 	"github.com/ruzickahunzeker/rbh-bot/internal/storage"
 	"github.com/ruzickahunzeker/rbh-bot/internal/tradeapi"
@@ -84,6 +86,14 @@ func buildChainRegistry(chainID uint64) (*registry.Registry, error) {
 			map[string]registry.TrustedSpender{
 				pancakev2.ProtocolID: {Address: bsc.PancakeV2Router},
 				pancakev3.ProtocolID: {Address: bsc.PancakeV3SmartRouter},
+			},
+		)
+	case config.BaseChainID:
+		return registry.New(
+			basechain.Profile(),
+			[]ports.ProtocolAdapter{univ3.NewBaseAdapter()},
+			map[string]registry.TrustedSpender{
+				univ3.ProtocolID: {Address: basechain.UniswapV3SwapRouter02},
 			},
 		)
 	default:

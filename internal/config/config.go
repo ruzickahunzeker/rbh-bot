@@ -11,18 +11,21 @@ import (
 )
 
 const (
-	ChainID    uint64 = 4663
-	BSCChainID uint64 = 56
+	ChainID     uint64 = 4663
+	BSCChainID  uint64 = 56
+	BaseChainID uint64 = 8453
 )
 
 func IsSupportedChainID(chainID uint64) bool {
-	return chainID == ChainID || chainID == BSCChainID
+	return chainID == ChainID || chainID == BSCChainID || chainID == BaseChainID
 }
 
 func DefaultChainSlug(chainID uint64) string {
 	switch chainID {
 	case BSCChainID:
 		return "bsc"
+	case BaseChainID:
+		return "base"
 	default:
 		return "rbh"
 	}

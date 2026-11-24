@@ -129,6 +129,12 @@ func TestLoadRejectsWrongChain(t *testing.T) {
 	if cfg.ChainID != BSCChainID || cfg.ChainSlug != "bsc" {
 		t.Fatalf("unexpected BSC config: chain_id=%d slug=%q", cfg.ChainID, cfg.ChainSlug)
 	}
+	t.Setenv("RBH_CHAIN_ID", "8453")
+	t.Setenv("RBH_CHAIN_SLUG", "")
+	cfgBase, err := Load(FeedService)
+	if err != nil || cfgBase.ChainID != BaseChainID || cfgBase.ChainSlug != "base" {
+		t.Fatalf("unexpected Base config: %+v err=%v", cfgBase, err)
+	}
 }
 
 func TestHTTPBReadQueriesDefaultOffAndMalformedRejected(t *testing.T) {

@@ -339,8 +339,11 @@ func (s *Store) Wallet(ctx context.Context, identity Identity) (Wallet, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return w, ErrWallet
 		}
-		if cid == 56 {
+		switch cid {
+		case 56:
 			w.Chain = "bsc"
+		case 8453:
+			w.Chain = "base"
 		}
 	}
 	if err != nil {
