@@ -42,6 +42,7 @@ type bloomSettings struct {
 	GasTier           string
 	AntiMEV           bool
 	ConfirmBeforeLive bool
+	AutoTPSL          bool
 }
 
 type chatSession struct {
@@ -77,30 +78,34 @@ func (r *Router) loadBloomSettings(ctx context.Context, chatID int64) bloomSetti
 		AntiMEV:           true,
 		ConfirmBeforeLive: true,
 	}
-	var antiMEV, confirm int
+	var antiMEV, confirm, autoTPSL int
 	err := r.readDB.QueryRowContext(ctx,
-		`SELECT buy_presets_csv, buy_slippage_bps, sell_slippage_bps, gas_tier, anti_mev, confirm_before_live
+		`SELECT buy_presets_csv, buy_slippage_bps, sell_slippage_bps, gas_tier, anti_mev, confirm_before_live, auto_tpsl
 		 FROM bloom_user_settings WHERE chat_id = ?`,
 		chatID,
-	).Scan(&st.BuyPresetsCSV, &st.BuySlippageBps, &st.SellSlippageBps, &st.GasTier, &antiMEV, &confirm)
+	).Scan(&st.BuyPresetsCSV, &st.BuySlippageBps, &st.SellSlippageBps, &st.GasTier, &antiMEV, &confirm, &autoTPSL)
 	if err == nil {
 		st.AntiMEV = antiMEV == 1
 		st.ConfirmBeforeLive = confirm == 1
+		st.AutoTPSL = autoTPSL == 1
 	}
 	return st
 }
 
 func (r *Router) saveBloomSettings(ctx context.Context, chatID int64, st bloomSettings) error {
-	antiInt, confInt := 0, 0
+	antiInt, confInt, autoInt := 0, 0, 0
 	if st.AntiMEV {
 		antiInt = 1
 	}
 	if st.ConfirmBeforeLive {
 		confInt = 1
 	}
+	if st.AutoTPSL {
+		autoInt = 1
+	}
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO bloom_user_settings(chat_id, buy_presets_csv, buy_slippage_bps, sell_slippage_bps, gas_tier, anti_mev, confirm_before_live, updated_at)
-		 VALUES(?,?,?,?,?,?,?,?)
+		`INSERT INTO bloom_user_settings(chat_id, buy_presets_csv, buy_slippage_bps, sell_slippage_bps, gas_tier, anti_mev, confirm_before_live, auto_tpsl, updated_at)
+		 VALUES(?,?,?,?,?,?,?,?,?)
 		 ON CONFLICT(chat_id) DO UPDATE SET
 		   buy_presets_csv=excluded.buy_presets_csv,
 		   buy_slippage_bps=excluded.buy_slippage_bps,
@@ -108,8 +113,9 @@ func (r *Router) saveBloomSettings(ctx context.Context, chatID int64, st bloomSe
 		   gas_tier=excluded.gas_tier,
 		   anti_mev=excluded.anti_mev,
 		   confirm_before_live=excluded.confirm_before_live,
+		   auto_tpsl=excluded.auto_tpsl,
 		   updated_at=excluded.updated_at`,
-		chatID, st.BuyPresetsCSV, st.BuySlippageBps, st.SellSlippageBps, st.GasTier, antiInt, confInt,
+		chatID, st.BuyPresetsCSV, st.BuySlippageBps, st.SellSlippageBps, st.GasTier, antiInt, confInt, autoInt,
 		r.now().UTC().Format(time.RFC3339Nano),
 	)
 	return err
@@ -243,6 +249,25 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 
 	case strings.HasPrefix(data, "set:"):
 		return r.handleSettingToggle(ctx, sess, strings.TrimPrefix(data, "set:")), nil
+
+	case strings.HasPrefix(data, "cw:del:"):
+		addrHex := strings.TrimPrefix(data, "cw:del:")
+		if wb, ok := r.backend.(WatchlistManagerBackend); ok && common.IsHexAddress(addrHex) {
+			_ = wb.RemoveWatchedWallet(ctx, sess.ChainID, common.HexToAddress(addrHex))
+		}
+		rep := r.renderCopyCard(ctx, sess)
+		rep.AlertText = "Removed watched wallet"
+		return rep, nil
+
+	case strings.HasPrefix(data, "co:del:"):
+		orderID := strings.TrimPrefix(data, "co:del:")
+		_, _ = r.db.ExecContext(ctx,
+			`UPDATE conditional_orders SET state = 'CANCELLED', updated_at = ? WHERE order_id = ? AND chain_id = ? AND state = 'ACTIVE'`,
+			r.now().UTC().Format(time.RFC3339Nano), orderID, sess.ChainID,
+		)
+		rep := r.renderOrdersCard(ctx, sess)
+		rep.AlertText = "Cancelled order " + orderID
+		return rep, nil
 
 	case strings.HasPrefix(data, "tc:"):
 		// tc:<tokKey>:<buy|sell>
@@ -466,6 +491,29 @@ func (r *Router) executeShadowBuyButton(ctx context.Context, sess chatSession, t
 		amtWei.String(), outRaw.String(), spot.String(), "bloom-ui:"+proto, nowUTC.Format(time.RFC3339Nano),
 	)
 	banner := fmt.Sprintf("✅ [SHADOW BUY] %s %s -> +%s raw via %s", amtNativeStr, chainNativeSymbol(sess.ChainID), outRaw.String(), proto)
+	if st := r.loadBloomSettings(ctx, sess.ChatID); st.AutoTPSL {
+		tpPrice := new(big.Int).Mul(spot, big.NewInt(2)) // +100%
+		slPrice := new(big.Int).Mul(spot, big.NewInt(70))
+		slPrice.Div(slPrice, big.NewInt(100)) // -30%
+		if slPrice.Sign() <= 0 {
+			slPrice = big.NewInt(1)
+		}
+		expStr := nowUTC.Add(24 * time.Hour).Format(time.RFC3339Nano)
+		nowStr := nowUTC.Format(time.RFC3339Nano)
+		tpID := fmt.Sprintf("atp-%d-%d", sess.ChainID, nowUTC.UnixNano())
+		slID := fmt.Sprintf("asl-%d-%d", sess.ChainID, nowUTC.UnixNano()+1)
+		_, _ = r.db.ExecContext(ctx,
+			`INSERT INTO conditional_orders(order_id, chain_id, wallet_id, token, order_kind, trigger_price_wei, amount_raw, sell_bps, idempotency_key, state, expires_at, created_at, updated_at)
+			 VALUES(?,?,?,?,?,'take_profit',?,'0',5000,?,'ACTIVE',?,?,?)`,
+			tpID, sess.ChainID, sess.WalletID, strings.ToLower(tok.Hex()), tpPrice.String(), "auto-"+tpID, expStr, nowStr, nowStr,
+		)
+		_, _ = r.db.ExecContext(ctx,
+			`INSERT INTO conditional_orders(order_id, chain_id, wallet_id, token, order_kind, trigger_price_wei, amount_raw, sell_bps, idempotency_key, state, expires_at, created_at, updated_at)
+			 VALUES(?,?,?,?,?,'stop_loss',?,'0',10000,?,'ACTIVE',?,?,?)`,
+			slID, sess.ChainID, sess.WalletID, strings.ToLower(tok.Hex()), slPrice.String(), "auto-"+slID, expStr, nowStr, nowStr,
+		)
+		banner += "\n🎯 Auto TP (+100%/50%) & SL (-30%/100%) armed!"
+	}
 	rep := r.renderTokenCard(ctx, sess, tok, "buy", true, banner)
 	rep.AlertText = "Shadow Buy filled!"
 	return rep
@@ -570,6 +618,7 @@ func (r *Router) renderPositionsCard(ctx context.Context, sess chatSession) Repl
 
 func (r *Router) renderCopyCard(ctx context.Context, sess chatSession) Reply {
 	lines := []string{fmt.Sprintf("👥 Copy Trade Watchlist | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID)}
+	var buttons [][]InlineButton
 	if wb, ok := r.backend.(WatchlistManagerBackend); ok {
 		list, err := wb.ListWatchedWallets(ctx, sess.ChainID)
 		if err != nil {
@@ -578,26 +627,33 @@ func (r *Router) renderCopyCard(ctx context.Context, sess chatSession) Reply {
 			lines = append(lines, "No watched wallets yet.\nUse: /watch <0xAddress>")
 		} else {
 			for i, addr := range list {
+				short := addr
+				if len(short) > 12 {
+					short = short[:6] + "..." + short[len(short)-4:]
+				}
 				lines = append(lines, fmt.Sprintf("%d. 🟢 %s", i+1, addr))
+				if i < 6 {
+					buttons = append(buttons, []InlineButton{{Text: fmt.Sprintf("🗑️ Remove #%d (%s)", i+1, short), CallbackData: "cw:del:" + addr}})
+				}
 			}
-			lines = append(lines, "", "Add: /watch <0x...> | Remove: /unwatch <0x...>")
+			lines = append(lines, "", "Add new: /watch <0x...>")
 		}
 	}
+	buttons = append(buttons, []InlineButton{{Text: "🔄 Refresh", CallbackData: "copy"}, {Text: "⬅️ Menu", CallbackData: "menu"}})
 	return Reply{
 		Text:         strings.Join(lines, "\n"),
 		EditOriginal: true,
-		Buttons: [][]InlineButton{
-			{{Text: "🔄 Refresh", CallbackData: "copy"}, {Text: "⬅️ Menu", CallbackData: "menu"}},
-		},
+		Buttons:      buttons,
 	}
 }
 
 func (r *Router) renderOrdersCard(ctx context.Context, sess chatSession) Reply {
 	lines := []string{fmt.Sprintf("📈 Limit / TP / SL Orders | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID)}
+	var buttons [][]InlineButton
 	rows, err := r.readDB.QueryContext(ctx,
 		`SELECT order_id, order_kind, token, trigger_price_wei, sell_bps, state
 		 FROM conditional_orders WHERE chain_id = ? AND state IN ('ACTIVE', 'TRIGGERED')
-		 ORDER BY created_at DESC LIMIT 10`,
+		 ORDER BY created_at DESC LIMIT 8`,
 		sess.ChainID,
 	)
 	cnt := 0
@@ -608,19 +664,21 @@ func (r *Router) renderOrdersCard(ctx context.Context, sess chatSession) Reply {
 			var bps uint64
 			if rows.Scan(&oid, &kind, &tok, &trig, &bps, &st) == nil {
 				cnt++
-				lines = append(lines, fmt.Sprintf("%d. [%s] %s %s trig=%s sell=%d%% (%s)", cnt, st, kind, tok[:10]+"...", trig, bps/100, oid))
+				lines = append(lines, fmt.Sprintf("%d. [%s] %s %s trig=%s sell=%d%%", cnt, st, kind, tok[:10]+"...", trig, bps/100))
+				if st == "ACTIVE" && len("co:del:"+oid) <= 64 {
+					buttons = append(buttons, []InlineButton{{Text: fmt.Sprintf("❌ Cancel #%d (%s)", cnt, kind), CallbackData: "co:del:" + oid}})
+				}
 			}
 		}
 	}
 	if cnt == 0 {
 		lines = append(lines, "No active orders.\nCreate: /tp <token> <price_wei> [pct] or /sl <token> <price_wei> [pct]")
 	}
+	buttons = append(buttons, []InlineButton{{Text: "🔄 Refresh", CallbackData: "orders"}, {Text: "⬅️ Menu", CallbackData: "menu"}})
 	return Reply{
 		Text:         strings.Join(lines, "\n"),
 		EditOriginal: true,
-		Buttons: [][]InlineButton{
-			{{Text: "🔄 Refresh", CallbackData: "orders"}, {Text: "⬅️ Menu", CallbackData: "menu"}},
-		},
+		Buttons:      buttons,
 	}
 }
 
@@ -640,6 +698,7 @@ func (r *Router) renderSettingsCard(ctx context.Context, sess chatSession, alert
 		fmt.Sprintf("Gas Tier: %s", strings.ToUpper(st.GasTier)),
 		fmt.Sprintf("Anti-MEV: %s", mevStr),
 		fmt.Sprintf("Live Confirm: %s", confStr),
+		fmt.Sprintf("Auto TP/SL (+100%%/-30%%): %s", boolOnOff(st.AutoTPSL)),
 		fmt.Sprintf("Buy Presets: %s %s", st.BuyPresetsCSV, chainNativeSymbol(sess.ChainID)),
 	}, "\n")
 	return Reply{
@@ -649,7 +708,7 @@ func (r *Router) renderSettingsCard(ctx context.Context, sess chatSession, alert
 		Buttons: [][]InlineButton{
 			{{Text: fmt.Sprintf("Buy Slip: %.0f%%", float64(st.BuySlippageBps)/100.0), CallbackData: "set:slip_buy"}, {Text: fmt.Sprintf("Sell Slip: %.0f%%", float64(st.SellSlippageBps)/100.0), CallbackData: "set:slip_sell"}},
 			{{Text: "⛽ Gas: " + strings.ToUpper(st.GasTier), CallbackData: "set:gas"}, {Text: "🛡️ Anti-MEV", CallbackData: "set:mev"}},
-			{{Text: "Confirm Live: " + boolOnOff(st.ConfirmBeforeLive), CallbackData: "set:confirm"}},
+			{{Text: "Confirm Live: " + boolOnOff(st.ConfirmBeforeLive), CallbackData: "set:confirm"}, {Text: "🎯 Auto TP/SL: " + boolOnOff(st.AutoTPSL), CallbackData: "set:auto_tpsl"}},
 			{{Text: "⬅️ Menu", CallbackData: "menu"}},
 		},
 	}
@@ -696,6 +755,9 @@ func (r *Router) handleSettingToggle(ctx context.Context, sess chatSession, key 
 	case "confirm":
 		st.ConfirmBeforeLive = !st.ConfirmBeforeLive
 		alert = "Live confirm " + boolOnOff(st.ConfirmBeforeLive)
+	case "auto_tpsl":
+		st.AutoTPSL = !st.AutoTPSL
+		alert = "Auto TP/SL " + boolOnOff(st.AutoTPSL)
 	case "mev":
 		if sess.ChainID == 56 {
 			st.AntiMEV = true

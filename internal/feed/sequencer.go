@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/0xfnzero/rbh-parser-sdk/feed/sequencer"
@@ -120,7 +121,11 @@ func (r *SequencerRunner) Handle(ctx context.Context, received sequencer.FeedTra
 	}
 	observations, err := r.normalizer.Normalize(received.Transaction, received.Sender, SourceSequencer, received.SequenceNumber, received.ReceivedAt)
 	if err != nil {
-		return err
+		if strings.Contains(err.Error(), "malformed transaction calldata") {
+			observations = nil
+		} else {
+			return err
+		}
 	}
 	r.mu.RLock()
 	ws := r.watchlist

@@ -460,7 +460,7 @@ func (u *UDSBackend) CheckStatus(ctx context.Context) (string, error) {
 		if sock == "" {
 			return "unconfigured"
 		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://unix/healthz", nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://unix/health", nil)
 		if err != nil {
 			return "err"
 		}

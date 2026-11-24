@@ -117,6 +117,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 	var evmRunner *feedcore.EVMReceiptRunner
 	var botConsumer *botcore.Consumer
 	var botMultiRuntime *botcore.MultiChainRuntime
+	var priceTickWorker *botcore.PriceTickWorker
 	var tgPoller *telegram.Poller
 	var canaryProduction *tradecore.ProductionComposition
 	var recoveryLoop *recoveryLifetime
@@ -308,6 +309,21 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 						_ = pollerRef.SendMessage(context.Background(), cid, msg)
 					}
 				})
+				priceTickWorker, err = botcore.NewPriceTickWorker(store, shadowEngine, udsBackend, func(ord botcore.ConditionalOrder, spotWei, simOut *big.Int) {
+					msg := fmt.Sprintf("🎯 [%s EXECUTED] chain=%d order=%s\ntoken=%s\nspot=%s sim_out=%s",
+						strings.ToUpper(string(ord.Kind)), ord.ChainID, ord.OrderID, strings.ToLower(ord.Token.Hex()), spotWei.String(), simOut.String())
+					for _, cid := range allowed {
+						_ = pollerRef.SendMessage(context.Background(), cid, msg)
+					}
+				})
+				if err != nil {
+					return fmt.Errorf("initialize price tick worker: %w", err)
+				}
+			} else {
+				priceTickWorker, err = botcore.NewPriceTickWorker(store, shadowEngine, udsBackend, nil)
+				if err != nil {
+					return fmt.Errorf("initialize price tick worker: %w", err)
+				}
 			}
 			botConsumer = nil
 		}
@@ -519,6 +535,13 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		go func() {
 			defer bgWG.Done()
 			reportErr(botMultiRuntime.Run(ctx, 500*time.Millisecond))
+		}()
+	}
+	if priceTickWorker != nil {
+		bgWG.Add(1)
+		go func() {
+			defer bgWG.Done()
+			reportErr(priceTickWorker.Run(ctx, 10*time.Second))
 		}()
 	}
 	if tgPoller != nil {
