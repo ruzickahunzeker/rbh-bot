@@ -31,6 +31,16 @@ type Backend interface {
 	ConfigureCopyStrategy(ctx context.Context, chainID uint64, trader common.Address, amountRaw *big.Int) error
 }
 
+// QuoteBackend is optionally implemented by Backend to serve /quote via local UDS POST /v1/quotes.
+type QuoteBackend interface {
+	QuoteToken(ctx context.Context, chainID uint64, walletID, protocol string, token common.Address, side string, amountRaw *big.Int) (string, error)
+}
+
+// HoneypotBackend is optionally implemented by Backend to serve /honeypot via eth_simulateV1.
+type HoneypotBackend interface {
+	CheckHoneypot(ctx context.Context, chainID uint64, token common.Address) (string, error)
+}
+
 // TradeUpdateFeed abstracts GET /v1/trade-updates?after_seq=... plus 410 Gone reconciliation.
 type TradeUpdateFeed interface {
 	FetchUpdates(ctx context.Context, chainID uint64, afterSeq int64, limit int) (events []UpdateNotice, nextSeq int64, err error)
@@ -102,10 +112,49 @@ func (r *Router) HandleCommand(ctx context.Context, chatID int64, text string) (
 
 	parts := strings.Fields(strings.TrimSpace(text))
 	if len(parts) == 0 {
-		return "Commands: /chain <rbh|bsc>, /wallets, /positions <token>, /buy <token> <wei>, /sell <token> <pct%|amount_raw>, /watch <wallet>, /copy <wallet> <wei>", nil
+		return helpText(), nil
 	}
 	cmd := strings.ToLower(parts[0])
 	switch cmd {
+	case "/start", "/help":
+		return helpText(), nil
+	case "/quote":
+		qb, ok := r.backend.(QuoteBackend)
+		if !ok {
+			return "Quote backend is not enabled.", nil
+		}
+		var proto, side string
+		var tokStr, amtStr string
+		switch len(parts) {
+		case 3:
+			// Shorthand: /quote <token> <amount_raw> -> default buy on chain's primary DEX
+			tokStr, amtStr, side = parts[1], parts[2], "buy"
+			proto = defaultProtocolForChain(chainID)
+		case 5:
+			// Full form: /quote <protocol> <token> <buy|sell> <amount_raw>
+			proto, tokStr, side, amtStr = strings.ToLower(parts[1]), parts[2], strings.ToLower(parts[3]), parts[4]
+		default:
+			return "Usage: /quote <token> <amount_wei>  OR  /quote <pancake-v2|pancake-v3|uniswap-v3> <token> <buy|sell> <amount_raw>", nil
+		}
+		if !common.IsHexAddress(tokStr) || (side != "buy" && side != "sell") {
+			return "Invalid token address or side (buy|sell).", nil
+		}
+		amt, ok := new(big.Int).SetString(amtStr, 10)
+		if !ok || amt.Sign() <= 0 {
+			return "Invalid positive amount_raw.", nil
+		}
+		return qb.QuoteToken(ctx, chainID, walletID, proto, common.HexToAddress(tokStr), side, amt)
+
+	case "/honeypot":
+		hb, ok := r.backend.(HoneypotBackend)
+		if !ok {
+			return "Honeypot simulator is not enabled.", nil
+		}
+		if len(parts) != 2 || !common.IsHexAddress(parts[1]) {
+			return "Usage: /honeypot <token_address>", nil
+		}
+		return hb.CheckHoneypot(ctx, chainID, common.HexToAddress(parts[1]))
+
 	case "/chain":
 		if len(parts) != 2 {
 			return "Usage: /chain <rbh|bsc>", nil
@@ -232,6 +281,30 @@ func (r *Router) HandleCommand(ctx context.Context, chatID int64, text string) (
 
 	default:
 		return "Unknown command.", nil
+	}
+}
+
+func helpText() string {
+	return strings.Join([]string{
+		"evm-bot Read-Only / Shadow Commands:",
+		"/chain <rbh|bsc|base> - switch active chain",
+		"/wallets - list registered wallets",
+		"/positions <token> - atomic Multicall3 balance + allowance",
+		"/quote <token> <amount_wei> - live DEX quote",
+		"/honeypot <token> - eth_simulateV1 Buy->Approve->Sell tax/honeypot check",
+		"/watch <wallet> - persist & sync wallet to feed Watchlist",
+		"/copy <wallet> <wei> - configure copy strategy",
+	}, "\n")
+}
+
+func defaultProtocolForChain(chainID uint64) string {
+	switch chainID {
+	case 56:
+		return "pancake-v2"
+	case 8453:
+		return "uniswap-v3"
+	default:
+		return "pons-v2-curve"
 	}
 }
 

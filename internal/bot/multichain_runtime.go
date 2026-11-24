@@ -33,13 +33,39 @@ type ShadowQuoter interface {
 // MultiChainRuntime orchestrates multi-chain feed outbox ingestion, net trigger_id deduplication,
 // and either zero-private-key Paper/Shadow live-quote execution or serial wallet trade dispatch.
 type MultiChainRuntime struct {
-	store     *Store
-	streams   []FeedStreamConfig
-	shadow    *PaperShadowEngine
-	quoter    ShadowQuoter
-	submitter TradeSubmitter
-	batchSize int
-	now       func() time.Time
+	store        *Store
+	streams      []FeedStreamConfig
+	shadow       *PaperShadowEngine
+	quoter       ShadowQuoter
+	submitter    TradeSubmitter
+	onShadowFill func(chainID uint64, walletID string, token common.Address, side string, amountInRaw, outRaw *big.Int)
+	batchSize    int
+	now          func() time.Time
+}
+
+// SetOnShadowFill registers an optional callback invoked after each durable Paper/Shadow fill
+// (e.g., to push real-time notifications to Telegram operators).
+func (r *MultiChainRuntime) SetOnShadowFill(fn func(chainID uint64, walletID string, token common.Address, side string, amountInRaw, outRaw *big.Int)) {
+	if r != nil {
+		r.onShadowFill = fn
+	}
+}
+
+// Run polls all configured feed streams continuously until ctx is cancelled.
+func (r *MultiChainRuntime) Run(ctx context.Context, interval time.Duration) error {
+	if interval <= 0 {
+		interval = 500 * time.Millisecond
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		_, _ = r.RunOnce(ctx)
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+		}
+	}
 }
 
 func NewMultiChainRuntime(
@@ -141,11 +167,12 @@ func (r *MultiChainRuntime) RunOnce(ctx context.Context) (int, error) {
 
 func (r *MultiChainRuntime) dispatchShadowLane(ctx context.Context, stream FeedStreamConfig, now time.Time) error {
 	adapter := &shadowSubmitterAdapter{
-		store:     r.store,
-		shadow:    r.shadow,
-		quoter:    r.quoter,
-		amountRaw: stream.FixedAmountRaw,
-		now:       now,
+		store:        r.store,
+		shadow:       r.shadow,
+		quoter:       r.quoter,
+		amountRaw:    stream.FixedAmountRaw,
+		onShadowFill: r.onShadowFill,
+		now:          now,
 	}
 	for {
 		dispatched, _, err := r.store.DispatchNextForWallet(ctx, stream.ChainID, stream.WalletID, adapter, now)
@@ -164,12 +191,13 @@ func (r *MultiChainRuntime) dispatchShadowLane(ctx context.Context, stream FeedS
 }
 
 type shadowSubmitterAdapter struct {
-	store     *Store
-	shadow    *PaperShadowEngine
-	quoter    ShadowQuoter
-	amountRaw *big.Int
-	now       time.Time
-	lastKey   string
+	store        *Store
+	shadow       *PaperShadowEngine
+	quoter       ShadowQuoter
+	amountRaw    *big.Int
+	onShadowFill func(chainID uint64, walletID string, token common.Address, side string, amountInRaw, outRaw *big.Int)
+	now          time.Time
+	lastKey      string
 }
 
 func (a *shadowSubmitterAdapter) SubmitCopyJob(ctx context.Context, chainID uint64, walletID, idempotencyKey string) (string, bool, error) {
@@ -204,6 +232,9 @@ func (a *shadowSubmitterAdapter) SubmitCopyJob(ctx context.Context, chainID uint
 	fillID := "shadow-" + idempotencyKey
 	if err := a.shadow.RecordShadowFill(ctx, fillID, chainID, walletID, tokenAddr, side, amtIn, outRaw, spotWei, idempotencyKey, a.now); err != nil {
 		return "", false, err
+	}
+	if a.onShadowFill != nil {
+		a.onShadowFill(chainID, walletID, tokenAddr, side, amtIn, outRaw)
 	}
 	return fillID, false, nil
 }

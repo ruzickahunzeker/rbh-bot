@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -114,6 +116,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 	var runner *feedcore.SequencerRunner
 	var evmRunner *feedcore.EVMReceiptRunner
 	var botConsumer *botcore.Consumer
+	var botMultiRuntime *botcore.MultiChainRuntime
 	var tgPoller *telegram.Poller
 	var canaryProduction *tradecore.ProductionComposition
 	var recoveryLoop *recoveryLifetime
@@ -171,7 +174,8 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		if err != nil {
 			return err
 		}
-		source, err := botcore.NewHTTPOutboxSource(filepath.Join(cfg.SocketDir, string(config.FeedService)+".sock"), authenticator)
+		feedSock := filepath.Join(cfg.SocketDir, string(config.FeedService)+".sock")
+		source, err := botcore.NewHTTPOutboxSource(feedSock, authenticator)
 		if err != nil {
 			return err
 		}
@@ -179,11 +183,25 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		if err != nil {
 			return err
 		}
+		var udsBackend *telegram.UDSBackend
+		if cfg.TelegramBotToken != "" || cfg.PaperShadowEnabled {
+			udsBackend = telegram.NewUDSBackendWithWatchlist(map[uint64]telegram.ChainUDSConfig{
+				config.ChainID: {
+					ChainSlug:   "rbh",
+					TradeSocket: cfg.TradeSocketRBH,
+					BearerToken: cfg.TradeAPITokenRBH,
+					FeedSocket:  feedSock,
+				},
+				config.BSCChainID: {
+					ChainSlug:   "bsc",
+					TradeSocket: cfg.TradeSocketBSC,
+					BearerToken: cfg.TradeAPITokenBSC,
+					FeedSocket:  feedSock,
+					RPCURL:      cfg.RPCURL,
+				},
+			}, database, authenticator)
+		}
 		if cfg.TelegramBotToken != "" {
-			udsBackend := telegram.NewUDSBackend(map[uint64]telegram.ChainUDSConfig{
-				config.ChainID:    {TradeSocket: cfg.TradeSocketRBH, BearerToken: cfg.TradeAPITokenRBH},
-				config.BSCChainID: {TradeSocket: cfg.TradeSocketBSC, BearerToken: cfg.TradeAPITokenBSC},
-			})
 			tgRouter, err := telegram.NewRouter(database, udsBackend, nil)
 			if err != nil {
 				return fmt.Errorf("initialize telegram router: %w", err)
@@ -197,6 +215,51 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			if err != nil {
 				return fmt.Errorf("initialize telegram poller: %w", err)
 			}
+		}
+		if cfg.PaperShadowEnabled {
+			shadowEngine, err := botcore.NewPaperShadowEngine(store, true)
+			if err != nil {
+				return fmt.Errorf("initialize paper shadow engine: %w", err)
+			}
+			walletID := cfg.DryRunWalletID
+			if walletID == "" {
+				walletID = "wallet-readonly"
+			}
+			botMultiRuntime, err = botcore.NewMultiChainRuntime(
+				store,
+				[]botcore.FeedStreamConfig{
+					{
+						ChainID:        cfg.ChainID,
+						FeedInstanceID: "feed-" + cfg.ChainSlug,
+						Source:         source,
+						PrincipalID:    "operator-local",
+						StrategyID:     "shadow-" + cfg.ChainSlug,
+						WalletID:       walletID,
+						FixedAmountRaw: big.NewInt(10_000_000_000_000_000), // 0.01 native unit shadow copy
+						MaxSignalAge:   60 * time.Second,
+					},
+				},
+				shadowEngine,
+				udsBackend,
+				nil,
+				100,
+				nil,
+			)
+			if err != nil {
+				return fmt.Errorf("initialize multi-chain shadow runtime: %w", err)
+			}
+			if tgPoller != nil && len(cfg.TelegramAllowedChatIDs) > 0 {
+				allowed := append([]int64(nil), cfg.TelegramAllowedChatIDs...)
+				pollerRef := tgPoller
+				botMultiRuntime.SetOnShadowFill(func(chainID uint64, wID string, tok common.Address, side string, amtIn, outRaw *big.Int) {
+					msg := fmt.Sprintf("[SHADOW COPY] chain=%d wallet=%s\nside=%s token=%s\nin=%s quoted_out=%s",
+						chainID, wID, side, strings.ToLower(tok.Hex()), amtIn.String(), outRaw.String())
+					for _, cid := range allowed {
+						_ = pollerRef.SendMessage(context.Background(), cid, msg)
+					}
+				})
+			}
+			botConsumer = nil
 		}
 		server.SetMetricsWriter(func(_ context.Context, writer io.Writer) error {
 			return writeRuntimeMetrics(writer, database, authenticator)
@@ -399,6 +462,13 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		go func() {
 			defer bgWG.Done()
 			reportErr(botConsumer.Run(ctx, 100*time.Millisecond))
+		}()
+	}
+	if botMultiRuntime != nil {
+		bgWG.Add(1)
+		go func() {
+			defer bgWG.Done()
+			reportErr(botMultiRuntime.Run(ctx, 500*time.Millisecond))
 		}()
 	}
 	if tgPoller != nil {
