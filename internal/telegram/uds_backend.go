@@ -216,6 +216,38 @@ func (u *UDSBackend) fetchQuote(ctx context.Context, chainID uint64, walletID, p
 	return qResp, err
 }
 
+// ProbeTokenQuote tries the chain's supported protocols in priority order (Launchpads -> DEX)
+// to auto-detect where token is currently tradable and return a structured live quote.
+func (u *UDSBackend) ProbeTokenQuote(ctx context.Context, chainID uint64, walletID string, token common.Address, side string, amountRaw *big.Int) (protocol string, poolPhase string, expectedOut *big.Int, quoteBlock uint64, err error) {
+	var candidates []string
+	switch chainID {
+	case 56:
+		candidates = []string{"four-meme", "flap", "pancake-v2", "pancake-v3"}
+	case 8453:
+		candidates = []string{"uniswap-v3"}
+	default:
+		candidates = []string{"pons-v2-curve"}
+	}
+	var lastErr error
+	for _, proto := range candidates {
+		q, qErr := u.fetchQuote(ctx, chainID, walletID, proto, token, side, amountRaw)
+		if qErr != nil {
+			lastErr = qErr
+			continue
+		}
+		outVal, ok := new(big.Int).SetString(q.ExpectedOutRaw, 10)
+		if !ok || outVal.Sign() <= 0 {
+			lastErr = errors.New("zero quote output")
+			continue
+		}
+		return q.Protocol, q.PoolPhase, outVal, q.QuoteBlockNumber, nil
+	}
+	if lastErr == nil {
+		lastErr = errors.New("no tradable route found")
+	}
+	return "", "", nil, 0, lastErr
+}
+
 func (u *UDSBackend) QuoteToken(ctx context.Context, chainID uint64, walletID, protocol string, token common.Address, side string, amountRaw *big.Int) (string, error) {
 	q, err := u.fetchQuote(ctx, chainID, walletID, protocol, token, side, amountRaw)
 	if err != nil {
