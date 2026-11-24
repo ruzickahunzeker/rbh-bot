@@ -203,3 +203,76 @@ func TestStep15LocalQuotesApprovalsAndPositions(t *testing.T) {
 		t.Fatalf("expected 410 CURSOR_OUT_OF_RANGE, got %d %s", gw.Code, gw.Body.String())
 	}
 }
+
+func TestBSCMultiChainWalletTradeIntakeAndAuditUpdates(t *testing.T) {
+	ctx := context.Background()
+	db, err := storage.Open(ctx, storage.TradeOwner, filepath.Join(t.TempDir(), "trade-bsc.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := db.VerifyOrInitChainIdentity(ctx, storage.ChainIdentity{ChainID: 56, ChainSlug: "bsc", NetworkKind: "mainnet"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	store, err := NewStore(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	walletAddr := common.HexToAddress("0x1000000000000000000000000000000000000056")
+	testNow := time.Date(2026, 11, 24, 16, 0, 0, 0, time.UTC)
+	if err := store.RegisterMultiChainWallet(ctx, 56, "w-bsc-1", walletAddr, testNow); err != nil {
+		t.Fatalf("RegisterMultiChainWallet failed: %v", err)
+	}
+	api, err := New(store, Identity{PrincipalID: "p-bsc", WalletID: "w-bsc-1", WalletAddress: walletAddr.Hex()}, testCredential, DefaultPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	api.now = func() time.Time { return testNow }
+
+	bscReg, err := registry.New(
+		evm.ChainProfile{ChainID: 56, ChainSlug: "bsc", NetworkKind: "mainnet", NativeSymbol: "BNB"},
+		nil,
+		map[string]registry.TrustedSpender{"pancake-v2": {Address: common.HexToAddress("0x10ED43C718714eb63d5aA57B78B54704E256024E")}},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ext, err := NewLocalV2Extension(bscReg, nil, func() time.Time { return testNow })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := api.AttachLocalV2(ext); err != nil {
+		t.Fatal(err)
+	}
+
+	wrongReq := httptest.NewRequest(http.MethodPost, "/v1/trades", bytes.NewReader([]byte(`{"chain":"robinhood","wallet_id":"w-bsc-1","token":"0x2000000000000000000000000000000000000002","side":"buy","amount":"0.01","slippage_percent":"1"}`)))
+	wrongReq.Header.Set("Authorization", "Bearer "+testCredential)
+	wrongReq.Header.Set("Content-Type", "application/json")
+	wrongReq.Header.Set("Idempotency-Key", "bsc-wrong-1")
+	ww := httptest.NewRecorder()
+	api.ServeHTTP(ww, wrongReq)
+	if ww.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422 rejecting robinhood order on BSC instance, got %d %s", ww.Code, ww.Body.String())
+	}
+
+	okReq := httptest.NewRequest(http.MethodPost, "/v1/trades", bytes.NewReader([]byte(`{"chain":"bsc","wallet_id":"w-bsc-1","token":"0x2000000000000000000000000000000000000002","side":"buy","amount":"0.01","slippage_percent":"1"}`)))
+	okReq.Header.Set("Authorization", "Bearer "+testCredential)
+	okReq.Header.Set("Content-Type", "application/json")
+	okReq.Header.Set("Idempotency-Key", "bsc-ok-1")
+	ow := httptest.NewRecorder()
+	api.ServeHTTP(ow, okReq)
+	if ow.Code != http.StatusServiceUnavailable || !strings.Contains(ow.Body.String(), `"CONTRACT_DEADLINE_UNIX"`) {
+		t.Fatalf("expected disabled-send intake rejection journal with CONTRACT_DEADLINE_UNIX on BSC, got %d %s", ow.Code, ow.Body.String())
+	}
+
+	uReq := httptest.NewRequest(http.MethodGet, "/v1/trade-updates?after_seq=0&limit=10", nil)
+	uReq.Header.Set("Authorization", "Bearer "+testCredential)
+	uw := httptest.NewRecorder()
+	api.ServeHTTP(uw, uReq)
+	if uw.Code != http.StatusOK || !strings.Contains(uw.Body.String(), `"operation_kind":"trade"`) {
+		t.Fatalf("expected BSC trade event in /v1/trade-updates, got %d %s", uw.Code, uw.Body.String())
+	}
+}

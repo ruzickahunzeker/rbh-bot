@@ -46,6 +46,7 @@ type UpdateNotice struct {
 
 type Router struct {
 	db      *sql.DB
+	readDB  *sql.DB
 	backend Backend
 	now     func() time.Time
 }
@@ -58,10 +59,14 @@ func NewRouter(database *storage.Database, backend Backend, now func() time.Time
 	if err != nil {
 		return nil, err
 	}
+	rdb, err := database.ReadDB(storage.BotOwner)
+	if err != nil || rdb == nil {
+		rdb = db
+	}
 	if now == nil {
 		now = time.Now
 	}
-	return &Router{db: db, backend: backend, now: now}, nil
+	return &Router{db: db, readDB: rdb, backend: backend, now: now}, nil
 }
 
 // AllowChat registers or updates a whitelisted Telegram chat_id in bot.db.
@@ -84,7 +89,7 @@ func (r *Router) HandleCommand(ctx context.Context, chatID int64, text string) (
 	var role, walletID string
 	var chainID uint64
 	var enabled int
-	err := r.db.QueryRowContext(ctx,
+	err := r.readDB.QueryRowContext(ctx,
 		`SELECT role, active_chain_id, active_wallet_id, enabled FROM telegram_allowlist WHERE chat_id = ?`,
 		chatID,
 	).Scan(&role, &chainID, &walletID, &enabled)
@@ -179,6 +184,9 @@ func (r *Router) HandleCommand(ctx context.Context, chatID int64, text string) (
 			}
 			sellAmt = new(big.Int).Mul(tokBal, new(big.Int).SetUint64(pct))
 			sellAmt.Div(sellAmt, big.NewInt(100))
+			if sellAmt.Sign() <= 0 {
+				return "Calculated sell amount rounds to zero.", nil
+			}
 		} else {
 			amt, ok := new(big.Int).SetString(parts[2], 10)
 			if !ok || amt.Sign() <= 0 {

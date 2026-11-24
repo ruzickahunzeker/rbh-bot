@@ -88,6 +88,20 @@ func TestPancakeV3AdapterResolveQuoteBuildAndDecode(t *testing.T) {
 	if err != nil || tx.To != bsc.PancakeV3SmartRouter || tx.Value.Cmp(req.AmountInRaw) != 0 {
 		t.Fatalf("BuildUnsigned failed: tx=%+v err=%v", tx, err)
 	}
+	// U-P0-3: Verify outer selector is SmartRouter.multicall(uint256,bytes[]) = 0x5ae401dc
+	// and inner swap selector is IV3SwapRouter.exactInputSingle = 0x04e45aaf.
+	if !bytes.Equal(tx.Calldata[:4], []byte{0x5a, 0xe4, 0x01, 0xdc}) {
+		t.Fatalf("expected SmartRouter.multicall selector 0x5ae401dc, got 0x%x", tx.Calldata[:4])
+	}
+	if !bytes.Equal(routerABI.Methods["exactInputSingle"].ID, []byte{0x04, 0xe4, 0x5a, 0xaf}) {
+		t.Fatalf("expected IV3SwapRouter.exactInputSingle selector 0x04e45aaf, got 0x%x", routerABI.Methods["exactInputSingle"].ID)
+	}
+	reqSell := req
+	reqSell.Side = ports.SideSell
+	sellTx, err := adapter.BuildUnsigned(reqSell, quote)
+	if err != nil || sellTx.Value.Sign() != 0 || !bytes.Contains(sellTx.Calldata, []byte{0x49, 0x40, 0x4b, 0x7c}) {
+		t.Fatalf("expected V3 sell multicall to bundle unwrapWETH9 (0x49404b7c), err=%v", err)
+	}
 	reqNoDeadline := req
 	reqNoDeadline.ContractExpiry = 0
 	if _, err := adapter.BuildUnsigned(reqNoDeadline, quote); err == nil {

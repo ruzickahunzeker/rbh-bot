@@ -226,15 +226,14 @@ func (h *API) handleContinuationOrInFlight(r *http.Request, record *Record, cont
 		return nil
 	}
 	if continuation != nil {
-		if err := h.executionPipeline.executeWinningContinuation(r.Context(), continuation); err != nil {
-			return err
+		// U-P0-2: C3-C durable admission has ALREADY committed in SQLite. Even if a downstream
+		// continuation step times out or hits an RPC error, reload the durable Record and return
+		// nil so HTTP responds 202 Accepted with true durable state rather than misleading 503.
+		_ = h.executionPipeline.executeWinningContinuation(r.Context(), continuation)
+		if current, err := h.store.Get(context.WithoutCancel(r.Context()), h.identity, record.RequestID, false); err == nil {
+			current.Duplicate = record.Duplicate
+			*record = current
 		}
-		current, err := h.store.Get(context.WithoutCancel(r.Context()), h.identity, record.RequestID, false)
-		if err != nil {
-			return err
-		}
-		current.Duplicate = record.Duplicate
-		*record = current
 		return nil
 	}
 	// Duplicate POST for the same Idempotency-Key while original winning stack is still active.

@@ -107,6 +107,20 @@ func scanRecord(row interface{ Scan(...any) error }) (Record, string, error) {
 }
 
 const selectRecord = `SELECT id,outcome,reason_code,request_json,api_policy_version,api_policy_hash,expires_at,created_at,deadline_capability,request_fingerprint FROM user_http_trade_requests `
+const selectMultiChainRecord = `SELECT id,outcome,reason_code,request_json,api_policy_version,api_policy_hash,expires_at,created_at,deadline_capability,request_fingerprint FROM multichain_http_trade_requests `
+
+// RegisterMultiChainWallet registers an enabled wallet in multichain_wallets for non-4663 chains (e.g. BSC chain_id=56).
+func (s *Store) RegisterMultiChainWallet(ctx context.Context, chainID uint64, walletID string, addr common.Address, now time.Time) error {
+	if s == nil || s.db == nil || chainID == 0 || !validID(walletID) || addr == (common.Address{}) {
+		return ErrInvalid
+	}
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO multichain_wallets(id, chain_id, address, enabled, created_at) VALUES(?,?,?,1,?)
+		 ON CONFLICT(id) DO UPDATE SET address=excluded.address, enabled=1`,
+		walletID, chainID, addr.Hex(), now.UTC().Format(time.RFC3339Nano),
+	)
+	return err
+}
 
 // Reject serializes duplicate resolution and first creation across SQLite
 // handles. Clock and defaults are consulted only for a genuinely new request.
@@ -137,6 +151,9 @@ func (s *Store) Reject(ctx context.Context, identity Identity, key string, reque
 	if errors.Is(err, ErrNotFound) {
 		prior, priorFingerprint, err = scanManualRecord(conn.QueryRowContext(ctx, selectManualRecord+`WHERE m.principal_id=? AND m.idempotency_key=?`, identity.PrincipalID, key))
 	}
+	if errors.Is(err, ErrNotFound) {
+		prior, priorFingerprint, err = scanRecord(conn.QueryRowContext(ctx, selectMultiChainRecord+`WHERE principal_id=? AND idempotency_key=?`, identity.PrincipalID, key))
+	}
 	if err == nil {
 		if priorFingerprint != fingerprint {
 			return Record{}, ErrConflict
@@ -152,6 +169,48 @@ func (s *Store) Reject(ctx context.Context, identity Identity, key string, reque
 	ttl, err := policy.apply(r)
 	if err != nil {
 		return Record{}, err
+	}
+	if policy.expectedChain() != "robinhood" {
+		var address string
+		var chainID uint64
+		if err = conn.QueryRowContext(ctx, `SELECT chain_id, address FROM multichain_wallets WHERE id=? AND enabled=1`, identity.WalletID).Scan(&chainID, &address); errors.Is(err, sql.ErrNoRows) {
+			return Record{}, ErrWallet
+		} else if err != nil {
+			return Record{}, err
+		}
+		if !common.IsHexAddress(address) || common.HexToAddress(address) != common.HexToAddress(identity.WalletAddress) {
+			return Record{}, ErrWallet
+		}
+		stamp := now().UTC()
+		if stamp.IsZero() || stamp.Year() < 1970 || stamp.Year() > 9998 {
+			return Record{}, ErrInvalid
+		}
+		expAt := stamp.Add(time.Duration(ttl) * time.Second)
+		policyJSON := encode(policy)
+		record := Record{
+			RequestID:          "req_" + hash([]byte(identity.PrincipalID+"\x00"+key)),
+			Status:             "REJECTED",
+			Reason:             "SUBMISSION_DISABLED",
+			Request:            r,
+			APIPolicyVersion:   policy.Version,
+			APIPolicyHash:      hash([]byte(policyJSON)),
+			CreatedAt:          stamp.Format(time.RFC3339Nano),
+			ExpiresAt:          expAt.Format(time.RFC3339Nano),
+			DeadlineCapability: "CONTRACT_DEADLINE_UNIX",
+			ContractDeadline:   true,
+		}
+		_, err = conn.ExecContext(ctx,
+			`INSERT INTO multichain_http_trade_requests(id,principal_id,idempotency_key,chain_id,chain,wallet_id,wallet_address,source,request_fingerprint,request_json,api_policy_version,api_policy_hash,api_policy_json,expires_at,created_at,outcome,reason_code,deadline_capability,contract_deadline,send_authorized,submission_queued)
+			 VALUES(?,?,?,?,?,?,?,'MANUAL',?,?,?,?,?,?,?,'REJECTED','SUBMISSION_DISABLED','CONTRACT_DEADLINE_UNIX',?,0,0)`,
+			record.RequestID, identity.PrincipalID, key, chainID, r.Chain, r.WalletID, address, fingerprint, encoded,
+			policy.Version, record.APIPolicyHash, policyJSON, record.ExpiresAt, record.CreatedAt, expAt.Unix(),
+		)
+		if err != nil {
+			return Record{}, err
+		}
+		_, err = conn.ExecContext(ctx, "COMMIT")
+		record.projectProgress()
+		return record, err
 	}
 	var address string
 	if err = conn.QueryRowContext(ctx, `SELECT address FROM dry_run_wallets WHERE id=? AND chain_id=4663 AND enabled=1`, identity.WalletID).Scan(&address); errors.Is(err, sql.ErrNoRows) {
@@ -188,6 +247,9 @@ func (s *Store) Get(ctx context.Context, identity Identity, id string, byKey boo
 	r, _, err := scanRecord(s.db.QueryRowContext(ctx, selectRecord+`WHERE principal_id=? AND wallet_id=? AND `+field+`=?`, identity.PrincipalID, identity.WalletID, id))
 	if errors.Is(err, ErrNotFound) {
 		r, _, err = scanManualRecord(s.db.QueryRowContext(ctx, selectManualRecord+`WHERE m.principal_id=? AND m.wallet_id=? AND m.`+field+`=?`, identity.PrincipalID, identity.WalletID, id))
+	}
+	if errors.Is(err, ErrNotFound) {
+		r, _, err = scanRecord(s.db.QueryRowContext(ctx, selectMultiChainRecord+`WHERE principal_id=? AND wallet_id=? AND `+field+`=?`, identity.PrincipalID, identity.WalletID, id))
 	}
 	if err == nil && r.OperationID != nil {
 		r.Admission, err = s.manualAdmissionHistory(ctx, identity, r.RequestID)
@@ -272,7 +334,14 @@ func (s *Store) Wallet(ctx context.Context, identity Identity) (Wallet, error) {
 	w.ID, w.Chain = identity.WalletID, "robinhood"
 	err := s.db.QueryRowContext(ctx, `SELECT address FROM dry_run_wallets WHERE id=? AND chain_id=4663 AND enabled=1`, identity.WalletID).Scan(&w.Address)
 	if errors.Is(err, sql.ErrNoRows) {
-		return w, ErrWallet
+		var cid uint64
+		err = s.db.QueryRowContext(ctx, `SELECT chain_id, address FROM multichain_wallets WHERE id=? AND enabled=1`, identity.WalletID).Scan(&cid, &w.Address)
+		if errors.Is(err, sql.ErrNoRows) {
+			return w, ErrWallet
+		}
+		if cid == 56 {
+			w.Chain = "bsc"
+		}
 	}
 	if err != nil {
 		return w, err

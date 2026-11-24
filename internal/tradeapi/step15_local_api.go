@@ -164,6 +164,9 @@ func (h *API) AttachLocalV2(ext *LocalV2Extension) error {
 	if h == nil || ext == nil {
 		return ErrInvalid
 	}
+	if h.policy.AllowedChain == "" && ext.reg.Chain().ChainID != 0 && ext.reg.Chain().ChainID != 4663 {
+		h.policy.AllowedChain = ext.reg.Chain().ChainSlug
+	}
 	h.mux.HandleFunc("POST /v1/quotes", func(w http.ResponseWriter, r *http.Request) { h.handleQuotePreflight(w, r, ext) })
 	h.mux.HandleFunc("POST /v1/approvals", func(w http.ResponseWriter, r *http.Request) { h.handleCreateApproval(w, r, ext) })
 	h.mux.HandleFunc("GET /v1/approvals/by-idempotency-key", func(w http.ResponseWriter, r *http.Request) { h.handleApprovalByKey(w, r) })

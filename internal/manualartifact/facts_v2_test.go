@@ -36,6 +36,19 @@ func TestFactsV2AndV1AADCoexistenceAndDeadlineDerivation(t *testing.T) {
 	if !strings.HasPrefix(string(aadV2), "evm:56:op-bsc-1:step-1:attempt-1:manual:v2:") {
 		t.Fatalf("unexpected AAD v2 prefix: %s", string(aadV2))
 	}
+	// U-P1-4: Mixed-case EIP-55 vs lowercase WalletAddress MUST produce identical AADv2.
+	f2Upper := f2
+	f2Upper.WalletAddress = "0x10000000000000000000000000000000000000aB"
+	f2Lower := f2
+	f2Lower.WalletAddress = "0x10000000000000000000000000000000000000ab"
+	aadUpper, err := f2Upper.AADv2()
+	if err != nil {
+		t.Fatal(err)
+	}
+	aadLower, err := f2Lower.AADv2()
+	if err != nil || !bytes.Equal(aadUpper, aadLower) {
+		t.Fatalf("expected case-insensitive normalized WalletAddress AADv2: %s vs %s", aadUpper, aadLower)
+	}
 
 	// Encrypt and decrypt v2 artifact using AESGCMKeyring; cross-chain AAD tampering must fail.
 	ring, err := trade.NewAESGCMKeyring("v2", map[string][]byte{

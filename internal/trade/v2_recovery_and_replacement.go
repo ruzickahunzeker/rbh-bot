@@ -315,6 +315,18 @@ func (s *Store) TryUnfreezeAmbiguousNonce(
 	walletHex := strings.ToLower(wallet.Hex())
 
 	if finalizedWinningTxHash != (common.Hash{}) {
+		// U-P1-2: Verify winning tx_hash is NOT an initial/speed_up swap attempt when caller claims originalTxOnChain==false.
+		var winKind string
+		err := tx.QueryRowContext(ctx,
+			`SELECT attempt_kind FROM trade_step_attempts WHERE wallet_address = ? AND nonce = ? AND tx_hash = ?`,
+			walletHex, claimNonce, winHex,
+		).Scan(&winKind)
+		if err == nil && winKind != "cancel" {
+			return false, errors.New("winning tx at nonce is a non-cancel swap attempt; cannot archive as cancelled")
+		}
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return false, err
+		}
 		if _, err := tx.ExecContext(ctx,
 			`UPDATE trade_step_attempts SET state = 'FINALIZED', updated_at = ?
 			 WHERE wallet_address = ? AND nonce = ? AND tx_hash = ?`,

@@ -49,6 +49,7 @@ type Policy struct {
 	MaxTTLSeconds     uint64 `json:"max_ttl_seconds"`
 	MaxSlippageBPS    uint64 `json:"max_slippage_bps"`
 	MaxFeeGwei        string `json:"max_fee_gwei"`
+	AllowedChain      string `json:"allowed_chain,omitempty"`
 }
 
 func DefaultPolicy() Policy {
@@ -209,8 +210,15 @@ func (p Policy) validate() error {
 	return nil
 }
 
+func (p Policy) expectedChain() string {
+	if p.AllowedChain == "" {
+		return "robinhood"
+	}
+	return p.AllowedChain
+}
+
 func (p Policy) apply(r Request) (uint64, error) {
-	if r.Chain != "robinhood" {
+	if r.Chain != p.expectedChain() {
 		return 0, ErrPolicy
 	}
 	_, slip, _ := decimal(r.SlippagePercent, 2, true)

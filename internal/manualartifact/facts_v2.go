@@ -7,7 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
 const (
@@ -55,7 +58,8 @@ func DeriveContractDeadline(capability, expiresAt string) (int64, error) {
 
 func (f FactsV2) Validate() error {
 	if f.Version != 2 || f.ChainID == 0 || f.ProtocolID == "" || f.AdapterRevision == "" ||
-		f.OperationID == "" || f.ExecutionStepID == "" || f.AttemptID == "" || f.WalletAddress == "" {
+		f.OperationID == "" || f.ExecutionStepID == "" || f.AttemptID == "" || !common.IsHexAddress(f.WalletAddress) ||
+		common.HexToAddress(f.WalletAddress) == (common.Address{}) {
 		return errors.New("incomplete FactsV2 identity")
 	}
 	expectedDeadline, err := DeriveContractDeadline(f.DeadlineCapability, f.ExpiresAt)
@@ -68,11 +72,13 @@ func (f FactsV2) Validate() error {
 	return nil
 }
 
-// CanonicalJSONAndHash returns the canonical JSON bytes and lowercase SHA-256 hex digest.
+// CanonicalJSONAndHash normalizes WalletAddress to lowercase 0x-hex and returns
+// the canonical JSON bytes and lowercase SHA-256 hex digest.
 func (f FactsV2) CanonicalJSONAndHash() ([]byte, string, error) {
 	if err := f.Validate(); err != nil {
 		return nil, "", err
 	}
+	f.WalletAddress = strings.ToLower(common.HexToAddress(f.WalletAddress).Hex())
 	raw, err := json.Marshal(f)
 	if err != nil {
 		return nil, "", err

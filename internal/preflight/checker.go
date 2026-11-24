@@ -112,7 +112,33 @@ func Run(ctx context.Context, in Input) (Report, error) {
 		add("sqlite_migrations_and_pragmas", true, "WAL + FULL + foreign_keys=1 + journal_size_limit verified")
 	}
 
-	// 5. Online VACUUM INTO hot backup + offline read-only restore verification (AT-24).
+	// 5. Durable Emergency-Stop roundtrip on target chain_id (U-P0-1 / U-P1-3).
+	if owner == storage.TradeOwner {
+		if sqlDB, sErr := db.SQLDB(owner); sErr == nil {
+			tbl := "canary_control_state"
+			if in.Config.ChainID != 0 && in.Config.ChainID != config.ChainID {
+				tbl = "multichain_control_state"
+			}
+			nowStr := time.Now().UTC().Format(time.RFC3339Nano)
+			_, stopErr := sqlDB.ExecContext(ctx,
+				`INSERT INTO `+tbl+`(singleton, chain_id, mode, policy_version, emergency_stopped, reason, authorization_ref, effective_at, updated_at)
+				 VALUES(1, ?, 'DISABLED', 1, 1, 'preflight-drill', 'preflight', ?, ?)
+				 ON CONFLICT(singleton) DO UPDATE SET emergency_stopped = 1, reason = 'preflight-drill', updated_at = excluded.updated_at`,
+				in.Config.ChainID, nowStr, nowStr,
+			)
+			if stopErr != nil {
+				add("emergency_stop_roundtrip", false, fmt.Sprintf("persist emergency-stop failed: %v", stopErr))
+			} else if _, resErr := sqlDB.ExecContext(ctx,
+				`UPDATE `+tbl+` SET emergency_stopped = 0, reason = '', updated_at = ? WHERE singleton = 1`, nowStr,
+			); resErr != nil {
+				add("emergency_stop_roundtrip", false, fmt.Sprintf("clear emergency-stop failed: %v", resErr))
+			} else {
+				add("emergency_stop_roundtrip", true, fmt.Sprintf("durable emergency-stop/resume verified in %s for chain_id=%d", tbl, in.Config.ChainID))
+			}
+		}
+	}
+
+	// 6. Online VACUUM INTO hot backup + offline read-only restore verification (AT-24).
 	if in.BackupDir == "" {
 		add("vacuum_backup_restore", false, "backup_dir is required for Step 5 restore drill")
 	} else {

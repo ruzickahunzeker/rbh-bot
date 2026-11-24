@@ -44,7 +44,7 @@ func newAdminServer(serviceName, socketPath string, chainID uint64, log *slog.Lo
 	admin.SetSocketMode(0o600)
 
 	admin.Handle("GET /admin/v1/control/status", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		stopped, reason, updated, err := readDurableEmergencyStop(r.Context(), database, control)
+		stopped, reason, updated, err := readDurableEmergencyStop(r.Context(), database, chainID, control)
 		if err != nil {
 			writeAdminJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 			return
@@ -220,6 +220,13 @@ func abortPreSignOperation(ctx context.Context, database *storage.Database, oper
 	return tx.Commit()
 }
 
+func controlStateTableForChain(chainID uint64) string {
+	if chainID == 0 || chainID == 4663 {
+		return "canary_control_state"
+	}
+	return "multichain_control_state"
+}
+
 func persistDurableEmergencyStop(ctx context.Context, database *storage.Database, chainID uint64, stopped bool, reason string, now time.Time) error {
 	if database == nil {
 		return errors.New("database is unavailable")
@@ -229,39 +236,41 @@ func persistDurableEmergencyStop(ctx context.Context, database *storage.Database
 		// Non-trade services do not own canary_control_state.
 		return nil
 	}
+	tbl := controlStateTableForChain(chainID)
 	nowStr := now.UTC().Format(time.RFC3339Nano)
 	if stopped {
 		_, err = sqlDB.ExecContext(ctx,
-			`INSERT INTO canary_control_state(singleton, chain_id, mode, policy_version, emergency_stopped, reason, authorization_ref, effective_at, updated_at)
+			`INSERT INTO `+tbl+`(singleton, chain_id, mode, policy_version, emergency_stopped, reason, authorization_ref, effective_at, updated_at)
 			 VALUES(1, ?, 'DISABLED', 1, 1, ?, 'operator-admin-stop', ?, ?)
 			 ON CONFLICT(singleton) DO UPDATE SET emergency_stopped = 1, reason = excluded.reason, updated_at = excluded.updated_at`,
 			chainID, reason, nowStr, nowStr,
 		)
 		if err != nil {
-			return fmt.Errorf("persist emergency stop in canary_control_state: %w", err)
+			return fmt.Errorf("persist emergency stop in %s: %w", tbl, err)
 		}
 		return nil
 	}
 	res, err := sqlDB.ExecContext(ctx,
-		`UPDATE canary_control_state SET emergency_stopped = 0, reason = '', updated_at = ? WHERE singleton = 1`,
+		`UPDATE `+tbl+` SET emergency_stopped = 0, reason = '', updated_at = ? WHERE singleton = 1`,
 		nowStr,
 	)
 	if err != nil {
-		return fmt.Errorf("clear emergency stop in canary_control_state: %w", err)
+		return fmt.Errorf("clear emergency stop in %s: %w", tbl, err)
 	}
 	rows, _ := res.RowsAffected()
 	if rows == 0 {
-		return errors.New("canary_control_state row not initialized; cannot resume")
+		return fmt.Errorf("%s row not initialized; cannot resume", tbl)
 	}
 	return nil
 }
 
-func readDurableEmergencyStop(ctx context.Context, database *storage.Database, control *runtimeEmergencyControl) (bool, string, time.Time, error) {
+func readDurableEmergencyStop(ctx context.Context, database *storage.Database, chainID uint64, control *runtimeEmergencyControl) (bool, string, time.Time, error) {
 	if database != nil {
 		if sqlDB, err := database.SQLDB(storage.TradeOwner); err == nil {
+			tbl := controlStateTableForChain(chainID)
 			var stoppedInt int
 			var reason, updatedStr string
-			err := sqlDB.QueryRowContext(ctx, `SELECT emergency_stopped, reason, updated_at FROM canary_control_state WHERE singleton = 1`).Scan(&stoppedInt, &reason, &updatedStr)
+			err := sqlDB.QueryRowContext(ctx, `SELECT emergency_stopped, reason, updated_at FROM `+tbl+` WHERE singleton = 1`).Scan(&stoppedInt, &reason, &updatedStr)
 			if err == nil {
 				ts, _ := time.Parse(time.RFC3339Nano, updatedStr)
 				return stoppedInt != 0, reason, ts, nil

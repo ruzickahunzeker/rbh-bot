@@ -35,7 +35,9 @@ const pancakeV3QuoterV2ABIJSON = `[
 ]`
 
 const pancakeV3RouterABIJSON = `[
-  {"name":"exactInputSingle","type":"function","stateMutability":"payable","inputs":[{"name":"params","type":"tuple","components":[{"name":"tokenIn","type":"address"},{"name":"tokenOut","type":"address"},{"name":"fee","type":"uint24"},{"name":"recipient","type":"address"},{"name":"deadline","type":"uint256"},{"name":"amountIn","type":"uint256"},{"name":"amountOutMinimum","type":"uint256"},{"name":"sqrtPriceLimitX96","type":"uint160"}]}],"outputs":[{"name":"amountOut","type":"uint256"}]}
+  {"name":"exactInputSingle","type":"function","stateMutability":"payable","inputs":[{"name":"params","type":"tuple","components":[{"name":"tokenIn","type":"address"},{"name":"tokenOut","type":"address"},{"name":"fee","type":"uint24"},{"name":"recipient","type":"address"},{"name":"amountIn","type":"uint256"},{"name":"amountOutMinimum","type":"uint256"},{"name":"sqrtPriceLimitX96","type":"uint160"}]}],"outputs":[{"name":"amountOut","type":"uint256"}]},
+  {"name":"unwrapWETH9","type":"function","stateMutability":"payable","inputs":[{"name":"amountMinimum","type":"uint256"},{"name":"recipient","type":"address"}],"outputs":[]},
+  {"name":"multicall","type":"function","stateMutability":"payable","inputs":[{"name":"deadline","type":"uint256"},{"name":"data","type":"bytes[]"}],"outputs":[{"name":"results","type":"bytes[]"}]}
 ]`
 
 var (
@@ -45,6 +47,9 @@ var (
 	erc20TransferTopic  = crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)"))
 	wbnbDepositTopic    = crypto.Keccak256Hash([]byte("Deposit(address,uint256)"))
 	wbnbWithdrawalTopic = crypto.Keccak256Hash([]byte("Withdrawal(address,uint256)"))
+	// smartRouterAddressThis is Constants.ADDRESS_THIS (address(2)) used by PancakeSwap V3 SmartRouter
+	// when routing token->WBNB output into the router prior to unwrapWETH9.
+	smartRouterAddressThis = common.HexToAddress("0x0000000000000000000000000000000000000002")
 )
 
 func mustParseABI(src string) abi.ABI {
@@ -68,7 +73,6 @@ type exactInputSingleParams struct {
 	TokenOut          common.Address
 	Fee               *big.Int
 	Recipient         common.Address
-	Deadline          *big.Int
 	AmountIn          *big.Int
 	AmountOutMinimum  *big.Int
 	SqrtPriceLimitX96 *big.Int
@@ -227,7 +231,8 @@ func (a *Adapter) Quote(ctx context.Context, rpc ports.ReadOnlyRPC, req ports.Qu
 	}, nil
 }
 
-// BuildUnsigned constructs PancakeSwap V3 SmartRouter.exactInputSingle calldata with mandatory deadline.
+// BuildUnsigned constructs BSC PancakeSwap V3 SmartRouter multicall(uint256 deadline, bytes[] data)
+// wrapping IV3SwapRouter.exactInputSingle (selector 0x04e45aaf) and unwrapWETH9 on sells (U-P0-3).
 func (a *Adapter) BuildUnsigned(req ports.QuoteRequest, quote ports.QuoteResult) (ports.UnsignedTx, error) {
 	if req.Route.Token == (common.Address{}) || req.Recipient == (common.Address{}) || req.AmountInRaw == nil || req.AmountInRaw.Sign() <= 0 {
 		return ports.UnsignedTx{}, errors.New("incomplete pancake-v3 build inputs")
@@ -238,25 +243,50 @@ func (a *Adapter) BuildUnsigned(req ports.QuoteRequest, quote ports.QuoteResult)
 	if quote.MinOutRaw == nil || quote.MinOutRaw.Sign() < 0 {
 		return ports.UnsignedTx{}, errors.New("invalid minOut")
 	}
-	tokenIn, tokenOut := a.wbnb, req.Route.Token
-	value := new(big.Int).Set(req.AmountInRaw)
-	if req.Side == ports.SideSell {
-		tokenIn, tokenOut = req.Route.Token, a.wbnb
+	tier := feeTierFromRoute(req.Route, a.feeTier)
+	var (
+		subcalls [][]byte
+		value    *big.Int
+	)
+	switch req.Side {
+	case ports.SideBuy:
+		swapCall, err := routerABI.Pack("exactInputSingle", exactInputSingleParams{
+			TokenIn:           a.wbnb,
+			TokenOut:          req.Route.Token,
+			Fee:               big.NewInt(int64(tier)),
+			Recipient:         req.Recipient,
+			AmountIn:          new(big.Int).Set(req.AmountInRaw),
+			AmountOutMinimum:  new(big.Int).Set(quote.MinOutRaw),
+			SqrtPriceLimitX96: big.NewInt(0),
+		})
+		if err != nil {
+			return ports.UnsignedTx{}, err
+		}
+		subcalls = [][]byte{swapCall}
+		value = new(big.Int).Set(req.AmountInRaw)
+	case ports.SideSell:
+		swapCall, err := routerABI.Pack("exactInputSingle", exactInputSingleParams{
+			TokenIn:           req.Route.Token,
+			TokenOut:          a.wbnb,
+			Fee:               big.NewInt(int64(tier)),
+			Recipient:         smartRouterAddressThis,
+			AmountIn:          new(big.Int).Set(req.AmountInRaw),
+			AmountOutMinimum:  new(big.Int).Set(quote.MinOutRaw),
+			SqrtPriceLimitX96: big.NewInt(0),
+		})
+		if err != nil {
+			return ports.UnsignedTx{}, err
+		}
+		unwrapCall, err := routerABI.Pack("unwrapWETH9", new(big.Int).Set(quote.MinOutRaw), req.Recipient)
+		if err != nil {
+			return ports.UnsignedTx{}, err
+		}
+		subcalls = [][]byte{swapCall, unwrapCall}
 		value = big.NewInt(0)
-	} else if req.Side != ports.SideBuy {
+	default:
 		return ports.UnsignedTx{}, errors.New("unsupported side")
 	}
-	tier := feeTierFromRoute(req.Route, a.feeTier)
-	calldata, err := routerABI.Pack("exactInputSingle", exactInputSingleParams{
-		TokenIn:           tokenIn,
-		TokenOut:          tokenOut,
-		Fee:               big.NewInt(int64(tier)),
-		Recipient:         req.Recipient,
-		Deadline:          big.NewInt(req.ContractExpiry),
-		AmountIn:          new(big.Int).Set(req.AmountInRaw),
-		AmountOutMinimum:  new(big.Int).Set(quote.MinOutRaw),
-		SqrtPriceLimitX96: big.NewInt(0),
-	})
+	calldata, err := routerABI.Pack("multicall", big.NewInt(req.ContractExpiry), subcalls)
 	if err != nil {
 		return ports.UnsignedTx{}, err
 	}
@@ -277,6 +307,7 @@ func (a *Adapter) DecodeEffects(route ports.ResolvedRoute, wallet common.Address
 	}
 	netToken := big.NewInt(0)
 	netNative := big.NewInt(0)
+	netWBNB := big.NewInt(0)
 	for _, lg := range receipt.Logs {
 		if lg == nil || len(lg.Data) != 32 || len(lg.Topics) < 2 {
 			continue
@@ -293,6 +324,18 @@ func (a *Adapter) DecodeEffects(route ports.ResolvedRoute, wallet common.Address
 			}
 			continue
 		}
+		if lg.Address == a.wbnb && len(lg.Topics) == 3 && lg.Topics[0] == erc20TransferTopic {
+			from := common.BytesToAddress(lg.Topics[1].Bytes())
+			to := common.BytesToAddress(lg.Topics[2].Bytes())
+			amt := new(big.Int).SetBytes(lg.Data)
+			if to == wallet {
+				netWBNB.Add(netWBNB, amt)
+			}
+			if from == wallet {
+				netWBNB.Sub(netWBNB, amt)
+			}
+			continue
+		}
 		if lg.Address == a.wbnb && len(lg.Topics) == 2 {
 			actor := common.BytesToAddress(lg.Topics[1].Bytes())
 			amt := new(big.Int).SetBytes(lg.Data)
@@ -302,6 +345,9 @@ func (a *Adapter) DecodeEffects(route ports.ResolvedRoute, wallet common.Address
 				netNative.Sub(netNative, amt)
 			}
 		}
+	}
+	if netNative.Sign() == 0 && netWBNB.Sign() != 0 {
+		netNative = netWBNB
 	}
 	return ports.DecodedEffects{
 		WalletAddress:      wallet,

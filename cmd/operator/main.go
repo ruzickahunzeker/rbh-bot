@@ -67,6 +67,13 @@ func runPreflight(args []string) error {
 	chainID := fs.Uint64("chain-id", 4663, "target EIP-155 chain_id (4663 or 56)")
 	chainSlug := fs.String("chain-slug", "rbh", "target chain slug (rbh or bsc)")
 	backupDir := fs.String("backup-dir", "", "directory for VACUUM INTO restore drill")
+	socketPath := fs.String("socket", "", "optional business socket path")
+	adminSocket := fs.String("admin-socket", "", "optional admin socket path")
+	liveEnabled := fs.Bool("live-enabled", false, "configured live_enabled flag")
+	preSendBudget := fs.Duration("pre-send-budget", 3*time.Second, "PreSendRPCBudget")
+	broadcastTimeout := fs.Duration("broadcast-timeout", 5*time.Second, "BroadcastRPCTimeout")
+	httpWriteTimeout := fs.Duration("http-write-timeout", 15*time.Second, "HTTPWriteTimeout")
+	botClientTimeout := fs.Duration("bot-client-timeout", 25*time.Second, "BotClientTimeout")
 	targetPublic := fs.Bool("target-public", false, "whether configured broadcast target is public mempool")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -78,15 +85,17 @@ func runPreflight(args []string) error {
 		Config: config.Config{
 			Service:              config.TradeService,
 			Database:             *dbPath,
+			Socket:               *socketPath,
+			AdminSocket:          *adminSocket,
 			ChainID:              *chainID,
 			ChainSlug:            *chainSlug,
 			NetworkKind:          "mainnet",
-			LiveEnabled:          false,
+			LiveEnabled:          *liveEnabled,
 			CanaryProductionMode: config.CanaryProductionModeDisabled,
-			PreSendRPCBudget:     3 * time.Second,
-			BroadcastRPCTimeout:  5 * time.Second,
-			HTTPWriteTimeout:     15 * time.Second,
-			BotClientTimeout:     25 * time.Second,
+			PreSendRPCBudget:     *preSendBudget,
+			BroadcastRPCTimeout:  *broadcastTimeout,
+			HTTPWriteTimeout:     *httpWriteTimeout,
+			BotClientTimeout:     *botClientTimeout,
 		},
 		BackupDir:    *backupDir,
 		TargetPublic: *targetPublic,

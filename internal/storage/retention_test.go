@@ -49,4 +49,13 @@ func TestRetentionNeverDeletesUnconsumedEventsAndAdvancesFloor(t *testing.T) {
 	if remaining != 3 {
 		t.Fatalf("expected 3 unconsumed events preserved, got %d", remaining)
 	}
+
+	// U-P1-1: Passing minConsumerSeq=100, cutoffSeq=50 when MAX(event_seq)=5 must cap floor at 6 (max_seq+1).
+	res2, err := db.PruneTradeAuditEvents(ctx, 100, 50, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res2.NewMinRetained != 6 {
+		t.Fatalf("expected min_retained_seq capped at max_seq+1 (6), got %d", res2.NewMinRetained)
+	}
 }

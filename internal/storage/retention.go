@@ -45,6 +45,21 @@ func (d *Database) PruneTradeAuditEvents(ctx context.Context, minConsumerSeq, cu
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	// U-P1-1: Cap safePruneMaxSeq at current MAX(event_seq) so min_retained_seq never exceeds
+	// max_seq + 1 (which would otherwise trap /v1/trade-updates consumers in an infinite 410 Gone loop).
+	var maxSeq int64
+	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(event_seq), 0) FROM trade_audit_events`).Scan(&maxSeq); err != nil {
+		return RetentionResult{}, err
+	}
+	if safePruneMaxSeq > maxSeq {
+		safePruneMaxSeq = maxSeq
+	}
+	if safePruneMaxSeq <= 0 {
+		var currentFloor int64
+		_ = tx.QueryRowContext(ctx, `SELECT min_retained_seq FROM trade_audit_retention_floor WHERE id = 1`).Scan(&currentFloor)
+		return RetentionResult{PrunedRows: 0, NewMinRetained: currentFloor}, nil
+	}
+
 	res, err := tx.ExecContext(ctx, `DELETE FROM trade_audit_events WHERE event_seq <= ?`, safePruneMaxSeq)
 	if err != nil {
 		return RetentionResult{}, err
