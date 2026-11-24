@@ -9,6 +9,7 @@ import (
 	"github.com/ruzickahunzeker/rbh-bot/internal/config"
 	"github.com/ruzickahunzeker/rbh-bot/internal/ipc"
 	pancakev2 "github.com/ruzickahunzeker/rbh-bot/internal/protocols/pancakeswap/v2"
+	pancakev3 "github.com/ruzickahunzeker/rbh-bot/internal/protocols/pancakeswap/v3"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/pons/v2curve"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/ports"
 	"github.com/ruzickahunzeker/rbh-bot/internal/registry"
@@ -79,9 +80,10 @@ func buildChainRegistry(chainID uint64) (*registry.Registry, error) {
 	case config.BSCChainID:
 		return registry.New(
 			bsc.Profile(),
-			[]ports.ProtocolAdapter{pancakev2.NewAdapter()},
+			[]ports.ProtocolAdapter{pancakev2.NewAdapter(), pancakev3.NewAdapter()},
 			map[string]registry.TrustedSpender{
 				pancakev2.ProtocolID: {Address: bsc.PancakeV2Router},
+				pancakev3.ProtocolID: {Address: bsc.PancakeV3SmartRouter},
 			},
 		)
 	default:
