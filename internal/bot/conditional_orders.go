@@ -165,6 +165,77 @@ func (s *Store) EvaluatePriceTick(ctx context.Context, chainID uint64, token com
 	return triggered, nil
 }
 
+// ListTriggeredOrders returns all TRIGGERED orders for chainID awaiting trade submission
+// (enabling crash recovery if bot-service restarted right after EvaluatePriceTick committed).
+func (s *Store) ListTriggeredOrders(ctx context.Context, chainID uint64) ([]ConditionalOrder, error) {
+	if s == nil || s.db == nil {
+		return nil, ErrBotStoreUnavailable
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT order_id, wallet_id, token, order_kind, trigger_price_wei, amount_raw, sell_bps, idempotency_key, expires_at
+		 FROM conditional_orders
+		 WHERE chain_id = ? AND state = 'TRIGGERED'
+		 ORDER BY triggered_at ASC, rowid ASC`, chainID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []ConditionalOrder
+	for rows.Next() {
+		var o ConditionalOrder
+		var tokHex, kindStr, trigStr, amtStr, expStr string
+		if err := rows.Scan(&o.OrderID, &o.WalletID, &tokHex, &kindStr, &trigStr, &amtStr, &o.SellBps, &o.IdempotencyKey, &expStr); err != nil {
+			return nil, err
+		}
+		o.ChainID = chainID
+		o.Token = common.HexToAddress(tokHex)
+		o.Kind = ConditionalOrderKind(kindStr)
+		o.TriggerPriceWei, _ = new(big.Int).SetString(trigStr, 10)
+		o.AmountRaw, _ = new(big.Int).SetString(amtStr, 10)
+		o.ExpiresAt, _ = time.Parse(fixedUTCTimestamp, expStr)
+		o.State = "TRIGGERED"
+		out = append(out, o)
+	}
+	return out, rows.Err()
+}
+
+// CancelConditionalOrder transitions an ACTIVE conditional order to CANCELLED (e.g. OCO sibling cancellation).
+func (s *Store) CancelConditionalOrder(ctx context.Context, orderID string, now time.Time) error {
+	if s == nil || s.db == nil || strings.TrimSpace(orderID) == "" {
+		return ErrBotStoreUnavailable
+	}
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE conditional_orders SET state = 'CANCELLED', updated_at = ? WHERE order_id = ? AND state = 'ACTIVE'`,
+		formatFixedUTC(now), orderID,
+	)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+// MarkConditionalOrderExecuted transitions a TRIGGERED order to EXECUTED once submitted to trade-service.
+func (s *Store) MarkConditionalOrderExecuted(ctx context.Context, orderID string, now time.Time) error {
+	if s == nil || s.db == nil || strings.TrimSpace(orderID) == "" {
+		return ErrBotStoreUnavailable
+	}
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE conditional_orders SET state = 'EXECUTED', updated_at = ? WHERE order_id = ? AND state = 'TRIGGERED'`,
+		formatFixedUTC(now), orderID,
+	)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
 // PaperShadowEngine records zero-broadcast simulated fills when explicitly enabled (default OFF).
 type PaperShadowEngine struct {
 	store   *Store

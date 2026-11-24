@@ -48,4 +48,25 @@ func TestStep5PreflightBSCPassesAndRejectsPublicFallbackOrWrongChain(t *testing.
 	if repWrong, err := Run(ctx, Input{Config: wrongChainCfg, BackupDir: t.TempDir(), TargetPublic: false}); err == nil || repWrong.Passed {
 		t.Fatalf("expected cross-chain DB reuse to fail preflight: %+v", repWrong)
 	}
+
+	// 4. Base Mainnet (chain_id=8453) passes all Step 5 Preflight checks + VACUUM INTO restore drill.
+	baseDir := t.TempDir()
+	baseChainCfg := config.Config{
+		Service:              config.TradeService,
+		Database:             filepath.Join(baseDir, "trade-base.db"),
+		Socket:               filepath.Join(baseDir, "trade-base.sock"),
+		AdminSocket:          filepath.Join(baseDir, "trade-base-admin.sock"),
+		ChainID:              config.BaseChainID,
+		ChainSlug:            "base",
+		NetworkKind:          "mainnet",
+		LiveEnabled:          false,
+		CanaryProductionMode: config.CanaryProductionModeDisabled,
+		PreSendRPCBudget:     3 * time.Second,
+		BroadcastRPCTimeout:  5 * time.Second,
+		HTTPWriteTimeout:     15 * time.Second,
+		BotClientTimeout:     25 * time.Second,
+	}
+	if repBase, err := Run(ctx, Input{Config: baseChainCfg, BackupDir: t.TempDir(), TargetPublic: true}); err != nil || !repBase.Passed {
+		t.Fatalf("expected clean Base (8453) preflight to pass: rep=%+v err=%v", repBase, err)
+	}
 }

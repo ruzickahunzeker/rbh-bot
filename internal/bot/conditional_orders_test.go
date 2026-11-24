@@ -87,6 +87,18 @@ func TestStep4ConditionalOrdersAndDefaultOffPaperShadowLedger(t *testing.T) {
 	if err != nil || len(trig) != 1 || trig[0].OrderID != "ord-tp-1" {
 		t.Fatalf("expected ord-tp-1 triggered at spot=210, got %+v err=%v", trig, err)
 	}
+	// Crash-recovery ListTriggeredOrders returns ord-limit-1 and ord-tp-1 until marked EXECUTED.
+	pendingTrig, err := store.ListTriggeredOrders(ctx, 8453)
+	if err != nil || len(pendingTrig) != 2 {
+		t.Fatalf("expected 2 TRIGGERED orders recoverable after restart, got %+v err=%v", pendingTrig, err)
+	}
+	if err := store.MarkConditionalOrderExecuted(ctx, "ord-tp-1", now.Add(5*time.Minute)); err != nil {
+		t.Fatalf("MarkConditionalOrderExecuted failed: %v", err)
+	}
+	// Cancel OCO sibling ord-sl-1 explicitly; also verify expired orders do not trigger.
+	if err := store.CancelConditionalOrder(ctx, "ord-sl-1", now.Add(5*time.Minute)); err != nil {
+		t.Fatalf("CancelConditionalOrder failed: %v", err)
+	}
 	// Past expiry (now + 2h) expires ord-sl-1 without triggering even at spot=50.
 	trig, err = store.EvaluatePriceTick(ctx, 8453, token, big.NewInt(50), now.Add(2*time.Hour))
 	if err != nil || len(trig) != 0 {

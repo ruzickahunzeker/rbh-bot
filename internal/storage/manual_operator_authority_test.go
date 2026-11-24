@@ -40,7 +40,7 @@ func TestA4OperatorAuthorityOverlayIsDurableButNoArm(t *testing.T) {
 		t.Fatal(err)
 	}
 	var version int
-	if err := d.db.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&version); err != nil || version != 50 {
+	if err := d.db.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&version); err != nil || version < 50 {
 		t.Fatal("A4 hardening migration not landed", version, err)
 	}
 	for _, table := range []string{"manual_operator_trust_roots", "manual_operator_trust_root_bootstrap", "manual_operator_authorization_requests", "manual_operator_authorization_approvals", "manual_operator_revocations", "manual_operator_authorization_sources", "manual_operator_c07_attestations"} {

@@ -58,14 +58,14 @@ func usage() {
   operator admin emergency-stop --socket <admin.sock> [--reason <text>]
   operator admin resume --socket <admin.sock>
   operator admin backup --socket <admin.sock> --dest <absolute-path>
-  operator preflight --db <path> --chain-id <4663|56> --chain-slug <rbh|bsc> --backup-dir <dir>`)
+  operator preflight --db <path> --chain-id <4663|56|8453> --chain-slug <rbh|bsc|base> --backup-dir <dir>`)
 }
 
 func runPreflight(args []string) error {
 	fs := flag.NewFlagSet("preflight", flag.ContinueOnError)
 	dbPath := fs.String("db", "", "path to SQLite database")
-	chainID := fs.Uint64("chain-id", 4663, "target EIP-155 chain_id (4663 or 56)")
-	chainSlug := fs.String("chain-slug", "rbh", "target chain slug (rbh or bsc)")
+	chainID := fs.Uint64("chain-id", 4663, "target EIP-155 chain_id (4663, 56, or 8453)")
+	chainSlug := fs.String("chain-slug", "rbh", "target chain slug (rbh, bsc, or base)")
 	backupDir := fs.String("backup-dir", "", "directory for VACUUM INTO restore drill")
 	socketPath := fs.String("socket", "", "optional business socket path")
 	adminSocket := fs.String("admin-socket", "", "optional admin socket path")
