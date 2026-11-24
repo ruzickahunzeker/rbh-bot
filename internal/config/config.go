@@ -181,68 +181,70 @@ func (c Config) ValidateTradeStartupProfile() error {
 }
 
 func Load(service Service) (Config, error) {
-	dataDir := env("RBH_DATA_DIR", "./data")
-	socketDir := env("RBH_SOCKET_DIR", filepath.Join(dataDir, "run"))
-	chainID, err := strconv.ParseUint(env("RBH_CHAIN_ID", "4663"), 10, 64)
+	dataDir := envPref("EVM_DATA_DIR", "RBH_DATA_DIR", "./data")
+	socketDir := envPref("EVM_SOCKET_DIR", "RBH_SOCKET_DIR", filepath.Join(dataDir, "run"))
+	chainID, err := strconv.ParseUint(envPref("EVM_CHAIN_ID", "RBH_CHAIN_ID", "4663"), 10, 64)
 	if err != nil || !IsSupportedChainID(chainID) {
-		return Config{}, fmt.Errorf("RBH_CHAIN_ID must be a supported chain (%d or %d)", ChainID, BSCChainID)
+		return Config{}, fmt.Errorf("EVM_CHAIN_ID/RBH_CHAIN_ID must be a supported chain (%d, %d, or %d)", ChainID, BSCChainID, BaseChainID)
 	}
-	live, err := strconv.ParseBool(env("RBH_LIVE_ENABLED", "false"))
+	live, err := strconv.ParseBool(envPref("EVM_LIVE_ENABLED", "RBH_LIVE_ENABLED", "false"))
 	if err != nil {
-		return Config{}, fmt.Errorf("RBH_LIVE_ENABLED: %w", err)
+		return Config{}, fmt.Errorf("EVM_LIVE_ENABLED: %w", err)
 	}
-	canaryMode := env("RBH_CONTROLLED_CANARY_PRODUCTION_MODE", CanaryProductionModeDisabled)
-	readQueries, err := strconv.ParseBool(env("RBH_TRADE_API_READ_QUERIES", "false"))
+	canaryMode := envPref("EVM_CONTROLLED_CANARY_PRODUCTION_MODE", "RBH_CONTROLLED_CANARY_PRODUCTION_MODE", CanaryProductionModeDisabled)
+	readQueries, err := strconv.ParseBool(envPref("EVM_TRADE_API_READ_QUERIES", "RBH_TRADE_API_READ_QUERIES", "false"))
 	if err != nil {
-		return Config{}, fmt.Errorf("invalid RBH_TRADE_API_READ_QUERIES")
+		return Config{}, fmt.Errorf("invalid EVM_TRADE_API_READ_QUERIES")
 	}
-	manualIntake, err := strconv.ParseBool(env("RBH_TRADE_API_MANUAL_INTAKE", "false"))
+	manualIntake, err := strconv.ParseBool(envPref("EVM_TRADE_API_MANUAL_INTAKE", "RBH_TRADE_API_MANUAL_INTAKE", "false"))
 	if err != nil {
-		return Config{}, fmt.Errorf("invalid RBH_TRADE_API_MANUAL_INTAKE")
+		return Config{}, fmt.Errorf("invalid EVM_TRADE_API_MANUAL_INTAKE")
 	}
-	if service == TradeService && manualIntake && os.Getenv("RBH_TRADE_API_CONFIG_FILE") == "" {
-		return Config{}, fmt.Errorf("manual intake requires RBH_TRADE_API_CONFIG_FILE")
+	tradeAPIConfigFile := envPref("EVM_TRADE_API_CONFIG_FILE", "RBH_TRADE_API_CONFIG_FILE", "")
+	if service == TradeService && manualIntake && tradeAPIConfigFile == "" {
+		return Config{}, fmt.Errorf("manual intake requires EVM_TRADE_API_CONFIG_FILE")
 	}
-	validateOrders, err := strconv.ParseBool(env("RBH_TRADE_API_VALIDATE_ORDERS", "false"))
+	validateOrders, err := strconv.ParseBool(envPref("EVM_TRADE_API_VALIDATE_ORDERS", "RBH_TRADE_API_VALIDATE_ORDERS", "false"))
 	if err != nil {
-		return Config{}, fmt.Errorf("invalid RBH_TRADE_API_VALIDATE_ORDERS")
+		return Config{}, fmt.Errorf("invalid EVM_TRADE_API_VALIDATE_ORDERS")
 	}
-	validationPolicy, err := strconv.ParseUint(env("RBH_TRADE_API_VALIDATION_POLICY_VERSION", "0"), 10, 63)
+	validationPolicy, err := strconv.ParseUint(envPref("EVM_TRADE_API_VALIDATION_POLICY_VERSION", "RBH_TRADE_API_VALIDATION_POLICY_VERSION", "0"), 10, 63)
 	if err != nil {
-		return Config{}, fmt.Errorf("invalid RBH_TRADE_API_VALIDATION_POLICY_VERSION")
+		return Config{}, fmt.Errorf("invalid EVM_TRADE_API_VALIDATION_POLICY_VERSION")
 	}
-	if service == TradeService && validateOrders && (!manualIntake || validationPolicy == 0 || os.Getenv("RBH_TRADE_API_CONFIG_FILE") == "") {
+	if service == TradeService && validateOrders && (!manualIntake || validationPolicy == 0 || tradeAPIConfigFile == "") {
 		return Config{}, fmt.Errorf("validation requires scoped manual intake and explicit durable policy version")
 	}
-	manualAdmission, err := strconv.ParseBool(env("RBH_TRADE_API_MANUAL_ADMISSION", "false"))
+	manualAdmission, err := strconv.ParseBool(envPref("EVM_TRADE_API_MANUAL_ADMISSION", "RBH_TRADE_API_MANUAL_ADMISSION", "false"))
 	if err != nil {
-		return Config{}, fmt.Errorf("invalid RBH_TRADE_API_MANUAL_ADMISSION")
+		return Config{}, fmt.Errorf("invalid EVM_TRADE_API_MANUAL_ADMISSION")
 	}
-	if service == TradeService && manualAdmission && (!manualIntake || !validateOrders || validationPolicy == 0 || os.Getenv("RBH_TRADE_API_CONFIG_FILE") == "" || live) {
+	if service == TradeService && manualAdmission && (!manualIntake || !validateOrders || validationPolicy == 0 || tradeAPIConfigFile == "" || live) {
 		return Config{}, fmt.Errorf("manual admission requires scoped intake/validation configuration and live disabled")
 	}
 	if service == TradeService && canaryMode != CanaryProductionModeDisabled {
-		return Config{}, fmt.Errorf("RBH_CONTROLLED_CANARY_PRODUCTION_MODE must be %s in W4-A", CanaryProductionModeDisabled)
+		return Config{}, fmt.Errorf("EVM_CONTROLLED_CANARY_PRODUCTION_MODE must be %s in W4-A", CanaryProductionModeDisabled)
 	}
-	rpcURL := env("EVM_RPC_URL", os.Getenv("ROBINHOOD_RPC_URL"))
+	rpcURL := envPref("EVM_RPC_URL", "ROBINHOOD_RPC_URL", "")
 	paperShadow, _ := strconv.ParseBool(env("EVM_PAPER_SHADOW_ENABLED", "false"))
 	allowedChats, err := parseInt64CSV(os.Getenv("TELEGRAM_ALLOWED_CHAT_IDS"))
 	if err != nil {
 		return Config{}, fmt.Errorf("invalid TELEGRAM_ALLOWED_CHAT_IDS: %w", err)
 	}
+	tradeStartupProfile := envPref("EVM_TRADE_STARTUP_PROFILE", "RBH_TRADE_STARTUP_PROFILE", TradeProfileLegacy)
 	name := strings.TrimSuffix(string(service), "-service")
 	cfg := Config{
 		Service: service, DataDir: dataDir, SocketDir: socketDir,
-		Database: filepath.Join(dataDir, name+".db"),
+		Database:                 filepath.Join(dataDir, name+".db"),
 		Socket:                   filepath.Join(socketDir, string(service)+".sock"),
-		AdminSocket:              os.Getenv("RBH_ADMIN_SOCKET"),
-		LogLevel:                 strings.ToUpper(env("RBH_LOG_LEVEL", "INFO")),
+		AdminSocket:              envPref("EVM_ADMIN_SOCKET", "RBH_ADMIN_SOCKET", ""),
+		LogLevel:                 strings.ToUpper(envPref("EVM_LOG_LEVEL", "RBH_LOG_LEVEL", "INFO")),
 		ChainID:                  chainID,
-		ChainSlug:                env("RBH_CHAIN_SLUG", DefaultChainSlug(chainID)),
-		NetworkKind:              env("RBH_NETWORK_KIND", "mainnet"),
+		ChainSlug:                envPref("EVM_CHAIN_SLUG", "RBH_CHAIN_SLUG", DefaultChainSlug(chainID)),
+		NetworkKind:              envPref("EVM_NETWORK_KIND", "RBH_NETWORK_KIND", "mainnet"),
 		EnforceChainIdentity:     service == TradeService || service == FeedService,
 		LiveEnabled:              live,
-		InternalAuthSecret:       os.Getenv("RBH_INTERNAL_AUTH_SECRET"),
+		InternalAuthSecret:       envPref("EVM_INTERNAL_AUTH_SECRET", "RBH_INTERNAL_AUTH_SECRET", ""),
 		RPCURL:                   rpcURL,
 		WSURL:                    os.Getenv("EVM_WS_URL"),
 		TelegramBotToken:         strings.TrimSpace(os.Getenv("TELEGRAM_BOT_TOKEN")),
@@ -252,20 +254,20 @@ func Load(service Service) (Config, error) {
 		TradeAPITokenRBH:         os.Getenv("EVM_TRADE_API_TOKEN_RBH"),
 		TradeSocketBSC:           os.Getenv("EVM_TRADE_SOCKET_BSC"),
 		TradeAPITokenBSC:         os.Getenv("EVM_TRADE_API_TOKEN_BSC"),
-		DryRunWalletID:           os.Getenv("RBH_DRY_RUN_WALLET_ID"),
-		DryRunFromAddress:        os.Getenv("RBH_DRY_RUN_FROM_ADDRESS"),
-		ExecutionPrivateKey:      os.Getenv("RBH_EXECUTION_PRIVATE_KEY"),
-		ArtifactEncryptionKey:    os.Getenv("RBH_ARTIFACT_ENCRYPTION_KEY"),
-		ArtifactKeyVersion:       env("RBH_ARTIFACT_KEY_VERSION", "v1"),
-		ArtifactHistoricalKeys:   os.Getenv("RBH_ARTIFACT_HISTORICAL_KEYS"),
+		DryRunWalletID:           envPref("EVM_DRY_RUN_WALLET_ID", "RBH_DRY_RUN_WALLET_ID", ""),
+		DryRunFromAddress:        envPref("EVM_DRY_RUN_FROM_ADDRESS", "RBH_DRY_RUN_FROM_ADDRESS", ""),
+		ExecutionPrivateKey:      envPref("EVM_EXECUTION_PRIVATE_KEY", "RBH_EXECUTION_PRIVATE_KEY", ""),
+		ArtifactEncryptionKey:    envPref("EVM_ARTIFACT_ENCRYPTION_KEY", "RBH_ARTIFACT_ENCRYPTION_KEY", ""),
+		ArtifactKeyVersion:       envPref("EVM_ARTIFACT_KEY_VERSION", "RBH_ARTIFACT_KEY_VERSION", "v1"),
+		ArtifactHistoricalKeys:   envPref("EVM_ARTIFACT_HISTORICAL_KEYS", "RBH_ARTIFACT_HISTORICAL_KEYS", ""),
 		CanaryProductionMode:     canaryMode,
-		TradeAPIConfigFile:       os.Getenv("RBH_TRADE_API_CONFIG_FILE"),
+		TradeAPIConfigFile:       tradeAPIConfigFile,
 		TradeAPIReadQueries:      readQueries,
 		TradeAPIManualIntake:     manualIntake,
 		TradeAPIValidateOrders:   validateOrders,
 		TradeAPIValidationPolicy: validationPolicy,
 		TradeAPIManualAdmission:  manualAdmission,
-		TradeStartupProfile:      env("RBH_TRADE_STARTUP_PROFILE", TradeProfileLegacy),
+		TradeStartupProfile:      tradeStartupProfile,
 	}
 	if err := cfg.ValidateTradeStartupProfile(); err != nil {
 		return Config{}, err
@@ -279,6 +281,18 @@ func Load(service Service) (Config, error) {
 func env(key, fallback string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return fallback
+}
+
+func envPref(primary, legacy, fallback string) string {
+	if value := os.Getenv(primary); value != "" {
+		return value
+	}
+	if legacy != "" {
+		if value := os.Getenv(legacy); value != "" {
+			return value
+		}
 	}
 	return fallback
 }

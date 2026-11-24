@@ -12,9 +12,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ruzickahunzeker/rbh-bot/internal/config"
 	"github.com/ruzickahunzeker/rbh-bot/internal/preflight"
 	"github.com/ruzickahunzeker/rbh-bot/internal/storage"
+	tradecore "github.com/ruzickahunzeker/rbh-bot/internal/trade"
+	"github.com/ruzickahunzeker/rbh-bot/internal/tradeapi"
 )
 
 func main() {
@@ -24,13 +27,24 @@ func main() {
 	}
 	switch os.Args[1] {
 	case "db":
-		if len(os.Args) < 3 || os.Args[2] != "bind-chain" {
+		if len(os.Args) < 3 {
 			usage()
 			os.Exit(2)
 		}
-		if err := runBindChain(os.Args[3:]); err != nil {
-			fmt.Fprintf(os.Stderr, "operator db bind-chain: %v\n", err)
-			os.Exit(1)
+		switch os.Args[2] {
+		case "bind-chain":
+			if err := runBindChain(os.Args[3:]); err != nil {
+				fmt.Fprintf(os.Stderr, "operator db bind-chain: %v\n", err)
+				os.Exit(1)
+			}
+		case "register-wallet":
+			if err := runRegisterWallet(os.Args[3:]); err != nil {
+				fmt.Fprintf(os.Stderr, "operator db register-wallet: %v\n", err)
+				os.Exit(1)
+			}
+		default:
+			usage()
+			os.Exit(2)
 		}
 	case "admin":
 		if len(os.Args) < 3 {
@@ -55,10 +69,55 @@ func main() {
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
   operator db bind-chain --db <path> --owner <trade-service|feed-service|bot-service> --expected-chain-id <id> --chain-slug <slug> [--network-kind mainnet]
+  operator db register-wallet --db <path> --chain-id <4663|56|8453> --wallet-id <id> --address <0x...>
   operator admin emergency-stop --socket <admin.sock> [--reason <text>]
   operator admin resume --socket <admin.sock>
   operator admin backup --socket <admin.sock> --dest <absolute-path>
   operator preflight --db <path> --chain-id <4663|56|8453> --chain-slug <rbh|bsc|base> --backup-dir <dir>`)
+}
+
+func runRegisterWallet(args []string) error {
+	fs := flag.NewFlagSet("register-wallet", flag.ContinueOnError)
+	dbPath := fs.String("db", "", "path to trade SQLite database")
+	chainID := fs.Uint64("chain-id", 0, "EIP-155 chain_id (4663, 56, or 8453)")
+	walletID := fs.String("wallet-id", "", "wallet identifier")
+	addrHex := fs.String("address", "", "wallet 0x hex address")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *dbPath == "" || *chainID == 0 || *walletID == "" || !common.IsHexAddress(*addrHex) {
+		return fmt.Errorf("--db, --chain-id, --wallet-id, and valid --address are required")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	db, err := storage.Open(ctx, storage.TradeOwner, *dbPath)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	if err := db.Migrate(ctx); err != nil {
+		return err
+	}
+	addr := common.HexToAddress(*addrHex)
+	if *chainID == config.ChainID {
+		store, err := tradecore.NewStore(db)
+		if err != nil {
+			return err
+		}
+		if err := store.RegisterDryRunWallet(ctx, *walletID, addr); err != nil {
+			return err
+		}
+	} else {
+		store, err := tradeapi.NewStore(db)
+		if err != nil {
+			return err
+		}
+		if err := store.RegisterMultiChainWallet(ctx, *chainID, *walletID, addr, time.Now().UTC()); err != nil {
+			return err
+		}
+	}
+	fmt.Printf("registered wallet %s (%s) on chain_id=%d in %s\n", *walletID, addr.Hex(), *chainID, *dbPath)
+	return nil
 }
 
 func runPreflight(args []string) error {

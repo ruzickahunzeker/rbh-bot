@@ -276,46 +276,55 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			server.Handle("POST /internal/trade/prepare-execution", ipc.RequestContext(authenticator.Middleware(tradecore.NewPrepareExecutionHandler(kernel))))
 			ready.Set("pons_curve_dry_run_configured", true)
 		}
-		recoveryRPC, err := tradecore.DialReadOnlyRecoveryRPC(ctx, cfg.RPCURL)
-		if err != nil {
-			return fmt.Errorf("configure read-only recovery RPC: %w", err)
-		}
-		defer recoveryRPC.Close()
-		effectResolver, err := tradecore.NewPonsCurveEffectResolver(store)
-		if err != nil {
-			return err
-		}
-		recoveryService, err := tradecore.NewRecoveryServiceWithCipher(store, artifactCipher, recoveryRPC, effectResolver, tradecore.CanonicalPolicy{})
-		if err != nil {
-			return err
-		}
-		recoveryQuerier, err := tradecore.NewProductionRecoveryQuerier(store, artifactCipher, recoveryRPC)
-		if err != nil {
-			return err
-		}
-		canaryProduction, err = tradecore.NewProductionComposition(store, cfg.CanaryProductionMode)
-		if err != nil {
-			return fmt.Errorf("configure controlled canary production lifecycle: %w", err)
-		}
-		hostname, _ := os.Hostname()
-		holder := fmt.Sprintf("%s:%d", hostname, os.Getpid())
-		if err = canaryProduction.ConfigureRecovery(recoveryService, recoveryQuerier, recoveryRPC, tradecore.ProductionRecoveryConfig{Environment: "production", HolderID: holder, LeaseTTL: 30 * time.Second, ScanInterval: time.Second}); err != nil {
-			return fmt.Errorf("configure production recovery lifecycle: %w", err)
-		}
-		recoveryLoop, err = startRecoveryLifetime(ctx, canaryProduction)
-		if err != nil {
-			return fmt.Errorf("start production recovery lifecycle: %w", err)
-		}
-		// Registered after RPC.Close: always drain before closing RPC/SQLite,
-		// including a listener failure after the durable lease was acquired.
-		defer recoveryLoop.stopAndWait()
-		server.SetMetricsWriter(func(metricCtx context.Context, writer io.Writer) error {
-			if err := canaryProduction.WriteMetrics(metricCtx, writer); err != nil {
+		if cfg.TradeStartupProfile == config.TradeProfileQueryAndRecovery && cfg.ChainID != config.ChainID {
+			// Non-Robinhood chains (e.g. BSC 56, Base 8453) in read-only QUERY_AND_RECOVERY mode
+			// do not bind to the Robinhood V1 Pons-Curve canary_control_state(4663) recovery worker.
+			server.SetMetricsWriter(func(_ context.Context, writer io.Writer) error {
+				return writeRuntimeMetrics(writer, database, authenticator)
+			})
+			ready.Set("recovery_ready", true)
+		} else {
+			recoveryRPC, err := tradecore.DialReadOnlyRecoveryRPC(ctx, cfg.RPCURL)
+			if err != nil {
+				return fmt.Errorf("configure read-only recovery RPC: %w", err)
+			}
+			defer recoveryRPC.Close()
+			effectResolver, err := tradecore.NewPonsCurveEffectResolver(store)
+			if err != nil {
 				return err
 			}
-			return writeRuntimeMetrics(writer, database, authenticator)
-		})
-		ready.Set("recovery_ready", canaryProduction.Readiness().RecoveryReady)
+			recoveryService, err := tradecore.NewRecoveryServiceWithCipher(store, artifactCipher, recoveryRPC, effectResolver, tradecore.CanonicalPolicy{})
+			if err != nil {
+				return err
+			}
+			recoveryQuerier, err := tradecore.NewProductionRecoveryQuerier(store, artifactCipher, recoveryRPC)
+			if err != nil {
+				return err
+			}
+			canaryProduction, err = tradecore.NewProductionComposition(store, cfg.CanaryProductionMode)
+			if err != nil {
+				return fmt.Errorf("configure controlled canary production lifecycle: %w", err)
+			}
+			hostname, _ := os.Hostname()
+			holder := fmt.Sprintf("%s:%d", hostname, os.Getpid())
+			if err = canaryProduction.ConfigureRecovery(recoveryService, recoveryQuerier, recoveryRPC, tradecore.ProductionRecoveryConfig{Environment: "production", HolderID: holder, LeaseTTL: 30 * time.Second, ScanInterval: time.Second}); err != nil {
+				return fmt.Errorf("configure production recovery lifecycle: %w", err)
+			}
+			recoveryLoop, err = startRecoveryLifetime(ctx, canaryProduction)
+			if err != nil {
+				return fmt.Errorf("start production recovery lifecycle: %w", err)
+			}
+			// Registered after RPC.Close: always drain before closing RPC/SQLite,
+			// including a listener failure after the durable lease was acquired.
+			defer recoveryLoop.stopAndWait()
+			server.SetMetricsWriter(func(metricCtx context.Context, writer io.Writer) error {
+				if err := canaryProduction.WriteMetrics(metricCtx, writer); err != nil {
+					return err
+				}
+				return writeRuntimeMetrics(writer, database, authenticator)
+			})
+			ready.Set("recovery_ready", canaryProduction.Readiness().RecoveryReady)
+		}
 	}
 
 	if cfg.HTTPWriteTimeout > 0 {
