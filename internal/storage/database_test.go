@@ -12,9 +12,9 @@ import (
 
 func TestOpenMigrateAndValidateEveryOwner(t *testing.T) {
 	wantMigrations := map[Owner]int{
-		FeedOwner:  4,
-		BotOwner:   3,
-		TradeOwner: 50, // 015..051 additive; 014 remains on its independent branch.
+		FeedOwner:  5,
+		BotOwner:   4,
+		TradeOwner: 51, // 015..052 additive; 014 remains on its independent branch.
 	}
 	for _, owner := range []Owner{FeedOwner, BotOwner, TradeOwner} {
 		t.Run(string(owner), func(t *testing.T) {
