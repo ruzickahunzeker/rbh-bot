@@ -99,7 +99,7 @@ func TestBloomUIFlowStartPasteCAShadowBuySellAndSettings(t *testing.T) {
 
 	// 4. One-tap Shadow Buy 0.1 BNB -> fills 1,000,000 raw tokens.
 	buyRep, err := router.HandleCallback(ctx, 7131128175, buy01CB)
-	if err != nil || !strings.Contains(buyRep.Text, "[模拟买入]") || !strings.Contains(buyRep.Text, "模拟持仓: 1000000") {
+	if err != nil || !strings.Contains(buyRep.Text, "[模拟买入]") || !strings.Contains(buyRep.Text, "raw=1000000") {
 		t.Fatalf("shadow buy button failed: %+v err=%v", buyRep, err)
 	}
 
@@ -124,7 +124,7 @@ func TestBloomUIFlowStartPasteCAShadowBuySellAndSettings(t *testing.T) {
 	}
 	now = now.Add(time.Second)
 	sellRep, err := router.HandleCallback(ctx, 7131128175, sell50CB)
-	if err != nil || !strings.Contains(sellRep.Text, "[模拟卖出 50%]") || !strings.Contains(sellRep.Text, "模拟持仓: 500000") {
+	if err != nil || !strings.Contains(sellRep.Text, "[模拟卖出 50%]") || !strings.Contains(sellRep.Text, "raw=500000") {
 		t.Fatalf("shadow sell 50%% failed: %+v err=%v", sellRep, err)
 	}
 
@@ -136,5 +136,19 @@ func TestBloomUIFlowStartPasteCAShadowBuySellAndSettings(t *testing.T) {
 	setRep, err = router.HandleCallback(ctx, 7131128175, "set:confirm")
 	if err != nil || !strings.Contains(setRep.Text, "极速直发") {
 		t.Fatalf("set:confirm toggle failed: %+v err=%v", setRep, err)
+	}
+
+	// 8. Interactive input (in:presets) & Daily Report (/report) & Wallet switcher (sw_w:).
+	if promptRep, err := router.HandleCallback(ctx, 7131128175, "in:presets"); err != nil || !strings.Contains(promptRep.Text, "快捷买入金额") {
+		t.Fatalf("in:presets prompt failed: %+v err=%v", promptRep, err)
+	}
+	if appliedRep, err := router.HandleMessage(ctx, 7131128175, "0.02,0.05,0.2,0.5"); err != nil || !strings.Contains(appliedRep.Text, "0.02,0.05,0.2,0.5") {
+		t.Fatalf("in:presets reply failed: %+v err=%v", appliedRep, err)
+	}
+	if reportRep, err := router.HandleMessage(ctx, 7131128175, "/report"); err != nil || !strings.Contains(reportRep.Text, "今日交易复盘") {
+		t.Fatalf("/report failed: %+v err=%v", reportRep, err)
+	}
+	if swRep, err := router.HandleCallback(ctx, 7131128175, "sw_w:wallet-bsc-2"); err != nil || !strings.Contains(swRep.Text, "wallet-bsc-2") {
+		t.Fatalf("sw_w failed: %+v err=%v", swRep, err)
 	}
 }

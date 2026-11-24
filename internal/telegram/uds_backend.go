@@ -37,11 +37,18 @@ type ChainUDSConfig struct {
 // UDSBackend implements Backend, QuoteBackend, HoneypotBackend, and bot.ShadowQuoter
 // by talking strictly over local Unix Domain Sockets (and read-only RPC for eth_simulateV1).
 type UDSBackend struct {
-	chains   map[uint64]ChainUDSConfig
-	db       *sql.DB
-	auth     *ipc.Authenticator
-	watchMu  sync.Mutex
-	watchVer int64
+	chains    map[uint64]ChainUDSConfig
+	db        *sql.DB
+	auth      *ipc.Authenticator
+	watchMu   sync.Mutex
+	watchVer  int64
+	metaMu    sync.RWMutex
+	metaCache map[string]tokenMeta
+}
+
+type tokenMeta struct {
+	symbol   string
+	decimals uint8
 }
 
 func NewUDSBackend(chains map[uint64]ChainUDSConfig) *UDSBackend {
@@ -60,10 +67,11 @@ func NewUDSBackendWithWatchlist(chains map[uint64]ChainUDSConfig, database *stor
 		db, _ = database.SQLDB(storage.BotOwner)
 	}
 	return &UDSBackend{
-		chains:   cp,
-		db:       db,
-		auth:     auth,
-		watchVer: time.Now().UTC().Unix(),
+		chains:    cp,
+		db:        db,
+		auth:      auth,
+		watchVer:  time.Now().UTC().Unix(),
+		metaCache: make(map[string]tokenMeta),
 	}
 }
 
@@ -514,6 +522,76 @@ func (u *UDSBackend) CheckStatus(ctx context.Context) (string, error) {
 // SyncWatchlist pushes the current watched wallets + armed sniper tokens to feed-<chain>.sock.
 func (u *UDSBackend) SyncWatchlist(ctx context.Context, chainID uint64) error {
 	return u.pushWatchlistSnapshot(ctx, chainID, "")
+}
+
+// ReadTokenMetadata fetches ERC-20 symbol() & decimals() via read-only eth_call with in-memory caching.
+func (u *UDSBackend) ReadTokenMetadata(ctx context.Context, chainID uint64, token common.Address) (string, uint8) {
+	key := fmt.Sprintf("%d:%s", chainID, strings.ToLower(token.Hex()))
+	u.metaMu.RLock()
+	if cached, ok := u.metaCache[key]; ok {
+		u.metaMu.RUnlock()
+		return cached.symbol, cached.decimals
+	}
+	u.metaMu.RUnlock()
+
+	meta := tokenMeta{symbol: "TOKEN", decimals: 18}
+	cfg, ok := u.chains[chainID]
+	if !ok || cfg.RPCURL == "" {
+		return meta.symbol, meta.decimals
+	}
+	callRPC := func(dataHex string) []byte {
+		body, _ := json.Marshal(map[string]any{
+			"jsonrpc": "2.0", "id": 1, "method": "eth_call",
+			"params": []any{map[string]string{"to": token.Hex(), "data": dataHex}, "latest"},
+		})
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.RPCURL, bytes.NewReader(body))
+		if err != nil {
+			return nil
+		}
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := (&http.Client{Timeout: 4 * time.Second}).Do(req)
+		if err != nil {
+			return nil
+		}
+		defer resp.Body.Close()
+		raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		var env struct {
+			Result string `json:"result"`
+		}
+		if json.Unmarshal(raw, &env) != nil || len(env.Result) < 4 {
+			return nil
+		}
+		return common.FromHex(env.Result)
+	}
+
+	if decBytes := callRPC("0x313ce567"); len(decBytes) >= 32 {
+		d := new(big.Int).SetBytes(decBytes[len(decBytes)-32:]).Uint64()
+		if d <= 36 {
+			meta.decimals = uint8(d)
+		}
+	}
+	if symBytes := callRPC("0x95d89b41"); len(symBytes) >= 32 {
+		if len(symBytes) >= 64 {
+			offset := new(big.Int).SetBytes(symBytes[0:32]).Uint64()
+			if offset+32 <= uint64(len(symBytes)) {
+				length := new(big.Int).SetBytes(symBytes[offset : offset+32]).Uint64()
+				if length > 0 && length <= 32 && offset+32+length <= uint64(len(symBytes)) {
+					if clean := strings.TrimSpace(string(symBytes[offset+32 : offset+32+length])); clean != "" {
+						meta.symbol = clean
+					}
+				}
+			}
+		} else {
+			if clean := strings.TrimRight(string(symBytes), "\x00"); strings.TrimSpace(clean) != "" {
+				meta.symbol = strings.TrimSpace(clean)
+			}
+		}
+	}
+
+	u.metaMu.Lock()
+	u.metaCache[key] = meta
+	u.metaMu.Unlock()
+	return meta.symbol, meta.decimals
 }
 
 func (u *UDSBackend) ConfigureCopyStrategy(_ context.Context, _ uint64, _ common.Address, _ *big.Int) error {

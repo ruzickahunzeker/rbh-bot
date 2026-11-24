@@ -38,9 +38,17 @@ type MultiChainRuntime struct {
 	shadow       *PaperShadowEngine
 	quoter       ShadowQuoter
 	submitter    TradeSubmitter
+	sniper       *SniperEngine
 	onShadowFill func(chainID uint64, walletID string, token common.Address, side string, amountInRaw, outRaw *big.Int)
 	batchSize    int
 	now          func() time.Time
+}
+
+// SetSniperEngine attaches a SniperEngine to react to feed-bsc launch/migration events.
+func (r *MultiChainRuntime) SetSniperEngine(eng *SniperEngine) {
+	if r != nil {
+		r.sniper = eng
+	}
 }
 
 // SetOnShadowFill registers an optional callback invoked after each durable Paper/Shadow fill
@@ -120,6 +128,20 @@ func (r *MultiChainRuntime) RunOnce(ctx context.Context) (int, error) {
 			var payload feed.NormalizedSwapPayload
 			if err := json.Unmarshal(item.PayloadJSON, &payload); err != nil {
 				return totalProcessed, fmt.Errorf("decode swap payload offset=%d: %w", item.Offset, err)
+			}
+			// Route Sniper launch/migration events directly to SniperEngine without polluting copy-trade signals.
+			if payload.Side == string(SniperLaunch) || payload.Side == string(SniperMigration) {
+				if r.sniper != nil && common.IsHexAddress(payload.Token) {
+					_, _ = r.sniper.MatchAndTrigger(ctx, stream.ChainID, common.HexToAddress(payload.Token), SniperTriggerKind(payload.Side), now)
+				}
+				_, _ = r.store.db.ExecContext(ctx,
+					`INSERT INTO bot_feed_cursors(chain_id, feed_instance_id, last_feed_offset, updated_at)
+					 VALUES(?,?,?,?)
+					 ON CONFLICT(chain_id, feed_instance_id) DO UPDATE SET last_feed_offset = MAX(last_feed_offset, excluded.last_feed_offset), updated_at = excluded.updated_at`,
+					stream.ChainID, stream.FeedInstanceID, item.Offset, formatFixedUTC(now),
+				)
+				totalProcessed++
+				continue
 			}
 			stage := payload.Stage
 			if stage == "" {

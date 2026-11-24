@@ -1,6 +1,7 @@
 package trade
 
 import (
+	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"math/big"
@@ -8,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/ports"
 )
@@ -119,3 +121,41 @@ func TestLiveExecutionPolicySafetyRails(t *testing.T) {
 		t.Fatalf("expected valid order to pass, got %v", err)
 	}
 }
+
+func TestWithdrawGuardAllowlistAndCap(t *testing.T) {
+	allowed := "0x1111111111111111111111111111111111111111"
+	other := "0x2222222222222222222222222222222222222222"
+
+	gEmpty, err := NewWithdrawGuard("", big.NewInt(1e18))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := gEmpty.Validate(crypto.PubkeyToAddress(mustGenKey(t).PublicKey), big.NewInt(1e15)); !errors.Is(err, ErrWithdrawDisabled) {
+		t.Fatalf("expected ErrWithdrawDisabled, got %v", err)
+	}
+
+	g, err := NewWithdrawGuard(allowed, big.NewInt(5e17))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := g.Validate(commonHex(other), big.NewInt(1e17)); !errors.Is(err, ErrWithdrawNotAllowed) {
+		t.Fatalf("expected ErrWithdrawNotAllowed, got %v", err)
+	}
+	if err := g.Validate(commonHex(allowed), big.NewInt(6e17)); !errors.Is(err, ErrWithdrawCapExceeded) {
+		t.Fatalf("expected ErrWithdrawCapExceeded, got %v", err)
+	}
+	if err := g.Validate(commonHex(allowed), big.NewInt(2e17)); err != nil {
+		t.Fatalf("expected whitelisted withdraw to pass, got %v", err)
+	}
+}
+
+func mustGenKey(t *testing.T) *ecdsa.PrivateKey {
+	t.Helper()
+	k, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return k
+}
+
+func commonHex(s string) common.Address { return common.HexToAddress(s) }

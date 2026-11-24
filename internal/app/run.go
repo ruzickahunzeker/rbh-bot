@@ -310,7 +310,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 					}
 				})
 				priceTickWorker, err = botcore.NewPriceTickWorker(store, shadowEngine, udsBackend, func(ord botcore.ConditionalOrder, spotWei, simOut *big.Int) {
-					msg := fmt.Sprintf("🎯 [%s EXECUTED] chain=%d order=%s\ntoken=%s\nspot=%s sim_out=%s",
+					msg := fmt.Sprintf("🎯 [%s 已触发执行] 链=%d 订单=%s\n合约=%s\n现价=%s 模拟成交=%s",
 						strings.ToUpper(string(ord.Kind)), ord.ChainID, ord.OrderID, strings.ToLower(ord.Token.Hex()), spotWei.String(), simOut.String())
 					for _, cid := range allowed {
 						_ = pollerRef.SendMessage(context.Background(), cid, msg)
@@ -318,6 +318,15 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 				})
 				if err != nil {
 					return fmt.Errorf("initialize price tick worker: %w", err)
+				}
+				if sniperEng, sErr := botcore.NewSniperEngine(store, shadowEngine, udsBackend, func(task botcore.SniperTask, simOut *big.Int) {
+					msg := fmt.Sprintf("🎯 [狙击已触发 %s] 链=%d 任务=%s\n合约=%s\n投入=%s 模拟成交=%s",
+						strings.ToUpper(string(task.TriggerKind)), task.ChainID, task.TaskID, strings.ToLower(task.Token.Hex()), task.AmountInWei.String(), simOut.String())
+					for _, cid := range allowed {
+						_ = pollerRef.SendMessage(context.Background(), cid, msg)
+					}
+				}); sErr == nil {
+					botMultiRuntime.SetSniperEngine(sniperEng)
 				}
 			} else {
 				priceTickWorker, err = botcore.NewPriceTickWorker(store, shadowEngine, udsBackend, nil)

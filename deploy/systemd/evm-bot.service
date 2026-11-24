@@ -1,0 +1,18 @@
+[Unit]
+Description=evm-bot Multi-Chain Telegram & Strategy Control Plane (BSC + RBH)
+After=network-online.target evm-trade-bsc.service evm-feed-bsc.service evm-trade-rbh.service evm-feed-rbh.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/evm-bot
+EnvironmentFile=/root/evm-bot/data/env/bot.env
+ExecStart=/root/evm-bot/bin/bot-service
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
