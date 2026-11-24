@@ -9,6 +9,8 @@ import (
 	"github.com/ruzickahunzeker/rbh-bot/internal/chains/robinhood"
 	"github.com/ruzickahunzeker/rbh-bot/internal/config"
 	"github.com/ruzickahunzeker/rbh-bot/internal/ipc"
+	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/flap"
+	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/fourmeme"
 	pancakev2 "github.com/ruzickahunzeker/rbh-bot/internal/protocols/pancakeswap/v2"
 	pancakev3 "github.com/ruzickahunzeker/rbh-bot/internal/protocols/pancakeswap/v3"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/pons/v2curve"
@@ -86,10 +88,17 @@ func buildChainRegistry(chainID uint64) (*registry.Registry, error) {
 	case config.BSCChainID:
 		return registry.New(
 			bsc.Profile(),
-			[]ports.ProtocolAdapter{pancakev2.NewAdapter(), pancakev3.NewAdapter()},
+			[]ports.ProtocolAdapter{
+				pancakev2.NewAdapter(),
+				pancakev3.NewAdapter(),
+				fourmeme.NewAdapter(),
+				flap.NewAdapter(),
+			},
 			map[string]registry.TrustedSpender{
 				pancakev2.ProtocolID: {Address: bsc.PancakeV2Router},
 				pancakev3.ProtocolID: {Address: bsc.PancakeV3SmartRouter},
+				fourmeme.ProtocolID:  {Address: bsc.FourMemeTokenManager2},
+				flap.ProtocolID:      {Address: bsc.FlapPortal},
 			},
 		)
 	case config.BaseChainID:

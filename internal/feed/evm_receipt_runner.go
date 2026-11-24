@@ -23,6 +23,12 @@ var (
 	v2SwapTopic = crypto.Keccak256Hash([]byte("Swap(address,uint256,uint256,uint256,uint256,address)"))
 	// V3 Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)
 	v3SwapTopic = crypto.Keccak256Hash([]byte("Swap(address,address,int256,int256,uint160,uint128,int24)"))
+	// Four.meme V2 TokenPurchase / TokenSale
+	fourMemePurchaseTopic = crypto.Keccak256Hash([]byte("TokenPurchase(address,address,uint256,uint256,uint256,uint256,uint256,uint256)"))
+	fourMemeSaleTopic     = crypto.Keccak256Hash([]byte("TokenSale(address,address,uint256,uint256,uint256,uint256,uint256,uint256)"))
+	// Flap.sh Portal TokenBought / TokenSold
+	flapBoughtTopic = crypto.Keccak256Hash([]byte("TokenBought(uint256,address,address,uint256,uint256,uint256,uint256)"))
+	flapSoldTopic   = crypto.Keccak256Hash([]byte("TokenSold(uint256,address,address,uint256,uint256,uint256,uint256)"))
 	// ERC-20 Transfer(address indexed from, address indexed to, uint256 value)
 	erc20TransferTopic = crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)"))
 )
@@ -270,6 +276,10 @@ func (r *EVMReceiptRunner) extractBlockObservations(blockNum uint64, receipts []
 				poolVer = "v2"
 			case v3SwapTopic:
 				poolVer = "v3"
+			case fourMemePurchaseTopic, fourMemeSaleTopic:
+				poolVer = "four-meme"
+			case flapBoughtTopic, flapSoldTopic:
+				poolVer = "flap"
 			default:
 				continue
 			}

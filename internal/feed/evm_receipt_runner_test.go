@@ -145,3 +145,118 @@ func TestEVMReceiptRunnerV2V3SwapDecodeAndWatchlistFilter(t *testing.T) {
 		t.Fatalf("unexpected swap payloads: p1=%+v p2=%+v", p1, p2)
 	}
 }
+
+func TestEVMReceiptRunnerBSCLaunchpadsDecode(t *testing.T) {
+	ctx := context.Background()
+	db, err := storage.Open(ctx, storage.FeedOwner, filepath.Join(t.TempDir(), "feed-launchpads.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := db.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	store, err := NewStore(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ws, err := NewWatchlistStore(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	trader := common.HexToAddress("0x000000000000000000000000000000000000CAFE")
+	fourTok := common.HexToAddress("0x0000000000000000000000000000000000004444")
+	flapTok := common.HexToAddress("0x0000000000000000000000000000000000007777")
+	fourMgr := common.HexToAddress("0x5c952063c7fc8610FFDB798152D69F0B9550762b")
+	flapPortal := common.HexToAddress("0xe2cE6ab80874Fa9Fa2aAE65D277Dd6B8e65C9De0")
+	wbnb := common.HexToAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
+
+	if err := ws.Replace(ctx, WatchlistSnapshot{Version: 1, Wallets: []string{trader.Hex()}}); err != nil {
+		t.Fatal(err)
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Method string `json:"method"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		w.Header().Set("Content-Type", "application/json")
+		switch req.Method {
+		case "eth_blockNumber":
+			_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": 1, "result": "0x2711"})
+		case "eth_getBlockReceipts":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"jsonrpc": "2.0", "id": 1,
+				"result": []any{
+					map[string]any{
+						"transactionHash": common.HexToHash("0x4444").Hex(),
+						"blockNumber":     "0x2711",
+						"from":            trader.Hex(),
+						"status":          "0x1",
+						"logs": []any{
+							map[string]any{
+								"address":  fourTok.Hex(),
+								"topics":   []string{erc20TransferTopic.Hex(), common.BytesToHash(fourMgr.Bytes()).Hex(), common.BytesToHash(trader.Bytes()).Hex()},
+								"data":     "0x" + common.Bytes2Hex(common.LeftPadBytes(big.NewInt(1_000_000).Bytes(), 32)),
+								"logIndex": "0x0",
+							},
+							map[string]any{
+								"address":  fourMgr.Hex(),
+								"topics":   []string{fourMemePurchaseTopic.Hex()},
+								"data":     "0x" + common.Bytes2Hex(make([]byte, 8*32)),
+								"logIndex": "0x1",
+							},
+						},
+					},
+					map[string]any{
+						"transactionHash": common.HexToHash("0x7777").Hex(),
+						"blockNumber":     "0x2711",
+						"from":            trader.Hex(),
+						"status":          "0x1",
+						"logs": []any{
+							map[string]any{
+								"address":  flapTok.Hex(),
+								"topics":   []string{erc20TransferTopic.Hex(), common.BytesToHash(flapPortal.Bytes()).Hex(), common.BytesToHash(trader.Bytes()).Hex()},
+								"data":     "0x" + common.Bytes2Hex(common.LeftPadBytes(big.NewInt(2_500_000).Bytes(), 32)),
+								"logIndex": "0x2",
+							},
+							map[string]any{
+								"address":  flapPortal.Hex(),
+								"topics":   []string{flapBoughtTopic.Hex()},
+								"data":     "0x" + common.Bytes2Hex(make([]byte, 7*32)),
+								"logIndex": "0x3",
+							},
+						},
+					},
+				},
+			})
+		}
+	}))
+	defer srv.Close()
+
+	runner, err := NewEVMReceiptRunner(56, wbnb, srv.URL, store, ws, 5*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := runner.PollOnce(ctx, time.Date(2026, 11, 24, 18, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("PollOnce: %v", err)
+	}
+	if res.InsertedObservations != 2 {
+		t.Fatalf("expected 2 launchpad observations, got %+v", res)
+	}
+	items, err := store.ReadOutboxAfter(ctx, 0, 10)
+	if err != nil || len(items) != 2 {
+		t.Fatalf("ReadOutboxAfter: len=%d err=%v", len(items), err)
+	}
+	var pFour, pFlap NormalizedSwapPayload
+	_ = json.Unmarshal(items[0].PayloadJSON, &pFour)
+	_ = json.Unmarshal(items[1].PayloadJSON, &pFlap)
+	if pFour.PoolVersion != "four-meme" || pFour.Side != "buy" || pFour.TokenDeltaRaw != "1000000" {
+		t.Fatalf("unexpected four-meme payload: %+v", pFour)
+	}
+	if pFlap.PoolVersion != "flap" || pFlap.Side != "buy" || pFlap.TokenDeltaRaw != "2500000" {
+		t.Fatalf("unexpected flap payload: %+v", pFlap)
+	}
+}

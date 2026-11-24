@@ -22,9 +22,12 @@ var (
 	Multicall3Address = common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")
 	PancakeV2Router     = common.HexToAddress("0x10ED43C718714eb63d5aA57B78B54704E256024E")
 	PancakeV2Factory    = common.HexToAddress("0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73")
-	PancakeV3Factory    = common.HexToAddress("0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865")
-	PancakeV3QuoterV2   = common.HexToAddress("0xB048Bbc1Ee6b733FFfCFb9e9CeF7375518e25997")
-	PancakeV3SmartRouter = common.HexToAddress("0x13f4EA83D0bd40E75C8222255bc855a974568Dd4")
+	PancakeV3Factory      = common.HexToAddress("0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865")
+	PancakeV3QuoterV2     = common.HexToAddress("0xB048Bbc1Ee6b733FFfCFb9e9CeF7375518e25997")
+	PancakeV3SmartRouter  = common.HexToAddress("0x13f4EA83D0bd40E75C8222255bc855a974568Dd4")
+	FourMemeTokenManager2 = common.HexToAddress("0x5c952063c7fc8610FFDB798152D69F0B9550762b")
+	FourMemeHelper3       = common.HexToAddress("0xF251F83e40a78868FcfA3FA4599Dad6494E46034")
+	FlapPortal            = common.HexToAddress("0xe2cE6ab80874Fa9Fa2aAE65D277Dd6B8e65C9De0")
 
 	// DefaultMinGasPriceWei is 0.1 gwei (validators currently accept 0.05-0.1 gwei floor).
 	DefaultMinGasPriceWei = big.NewInt(100_000_000)
