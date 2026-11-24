@@ -107,7 +107,114 @@ func newAdminServer(serviceName, socketPath string, chainID uint64, log *slog.Lo
 			"size_bytes": size,
 		})
 	}))
+
+	admin.Handle("GET /admin/v1/diagnostics/stuck", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		items, err := listStuckOperations(r.Context(), database)
+		if err != nil {
+			writeAdminJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+			return
+		}
+		writeAdminJSON(w, http.StatusOK, map[string]any{"stuck_operations": items})
+	}))
+
+	admin.Handle("POST /admin/v1/operations/{operation_id}/abort-pre-sign", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		opID := r.PathValue("operation_id")
+		var body struct {
+			Reason string `json:"reason"`
+		}
+		_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&body)
+		if body.Reason == "" {
+			body.Reason = "operator_abort_pre_sign"
+		}
+		if err := abortPreSignOperation(r.Context(), database, opID, body.Reason, time.Now().UTC()); err != nil {
+			writeAdminJSON(w, http.StatusConflict, map[string]any{"error": err.Error()})
+			return
+		}
+		writeAdminJSON(w, http.StatusOK, map[string]any{
+			"operation_id": opID,
+			"status":       "aborted_pre_sign",
+			"reason":       body.Reason,
+		})
+	}))
 	return admin
+}
+
+type stuckOperationDiagnostic struct {
+	OperationID       string `json:"operation_id"`
+	WalletID          string `json:"wallet_id"`
+	ReservationID     string `json:"reservation_id"`
+	ReservationState  string `json:"reservation_state"`
+	HasSigningIntent  bool   `json:"has_signing_intent"`
+	CanAbortPreSign   bool   `json:"can_abort_pre_sign"`
+}
+
+func listStuckOperations(ctx context.Context, database *storage.Database) ([]stuckOperationDiagnostic, error) {
+	if database == nil {
+		return nil, errors.New("database is unavailable")
+	}
+	readDB, err := database.ReadDB(storage.TradeOwner)
+	if err != nil {
+		return []stuckOperationDiagnostic{}, nil
+	}
+	rows, err := readDB.QueryContext(ctx, `
+		SELECT r.operation_id, r.wallet_id, r.id, r.state,
+		       EXISTS(SELECT 1 FROM manual_signing_intents si WHERE si.operation_id = r.operation_id)
+		FROM canary_risk_reservations r
+		WHERE r.state IN ('reserved', 'frozen')
+		ORDER BY r.created_at ASC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]stuckOperationDiagnostic, 0)
+	for rows.Next() {
+		var item stuckOperationDiagnostic
+		var hasIntent int
+		if err := rows.Scan(&item.OperationID, &item.WalletID, &item.ReservationID, &item.ReservationState, &hasIntent); err != nil {
+			return nil, err
+		}
+		item.HasSigningIntent = hasIntent != 0
+		item.CanAbortPreSign = item.ReservationState == "reserved" && !item.HasSigningIntent
+		out = append(out, item)
+	}
+	return out, rows.Err()
+}
+
+func abortPreSignOperation(ctx context.Context, database *storage.Database, operationID, reason string, now time.Time) error {
+	if database == nil || operationID == "" {
+		return errors.New("operation_id is required")
+	}
+	sqlDB, err := database.SQLDB(storage.TradeOwner)
+	if err != nil {
+		return err
+	}
+	tx, err := sqlDB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var resID, resState string
+	if err := tx.QueryRowContext(ctx, `SELECT id, state FROM canary_risk_reservations WHERE operation_id = ?`, operationID).Scan(&resID, &resState); err != nil {
+		return fmt.Errorf("lookup reservation for %s: %w", operationID, err)
+	}
+	if resState != "reserved" {
+		return fmt.Errorf("operation %s reservation state is %s, not reserved", operationID, resState)
+	}
+	// Trigger manual_pre_send_abort_forbids_signing_intent also enforces this at SQLite layer.
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO manual_pre_send_aborts(operation_id, reservation_id, reason, aborted_at) VALUES(?,?,?,?)`,
+		operationID, resID, reason, now.UTC().Format(time.RFC3339Nano),
+	); err != nil {
+		return fmt.Errorf("record pre-sign abort for %s: %w", operationID, err)
+	}
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE canary_risk_reservations SET state = 'released', updated_at = ? WHERE id = ? AND state = 'reserved'`,
+		now.UTC().Format(time.RFC3339Nano), resID,
+	); err != nil {
+		return fmt.Errorf("release reservation %s: %w", resID, err)
+	}
+	return tx.Commit()
 }
 
 func persistDurableEmergencyStop(ctx context.Context, database *storage.Database, chainID uint64, stopped bool, reason string, now time.Time) error {
