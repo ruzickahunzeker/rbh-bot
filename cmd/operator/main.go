@@ -12,6 +12,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/ruzickahunzeker/rbh-bot/internal/config"
+	"github.com/ruzickahunzeker/rbh-bot/internal/preflight"
 	"github.com/ruzickahunzeker/rbh-bot/internal/storage"
 )
 
@@ -39,6 +41,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "operator admin %s: %v\n", os.Args[2], err)
 			os.Exit(1)
 		}
+	case "preflight":
+		if err := runPreflight(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "operator preflight: %v\n", err)
+			os.Exit(1)
+		}
 	default:
 		usage()
 		os.Exit(2)
@@ -50,7 +57,44 @@ func usage() {
   operator db bind-chain --db <path> --owner <trade-service|feed-service|bot-service> --expected-chain-id <id> --chain-slug <slug> [--network-kind mainnet]
   operator admin emergency-stop --socket <admin.sock> [--reason <text>]
   operator admin resume --socket <admin.sock>
-  operator admin backup --socket <admin.sock> --dest <absolute-path>`)
+  operator admin backup --socket <admin.sock> --dest <absolute-path>
+  operator preflight --db <path> --chain-id <4663|56> --chain-slug <rbh|bsc> --backup-dir <dir>`)
+}
+
+func runPreflight(args []string) error {
+	fs := flag.NewFlagSet("preflight", flag.ContinueOnError)
+	dbPath := fs.String("db", "", "path to SQLite database")
+	chainID := fs.Uint64("chain-id", 4663, "target EIP-155 chain_id (4663 or 56)")
+	chainSlug := fs.String("chain-slug", "rbh", "target chain slug (rbh or bsc)")
+	backupDir := fs.String("backup-dir", "", "directory for VACUUM INTO restore drill")
+	targetPublic := fs.Bool("target-public", false, "whether configured broadcast target is public mempool")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *dbPath == "" || *backupDir == "" {
+		return fmt.Errorf("--db and --backup-dir are required")
+	}
+	rep, err := preflight.Run(context.Background(), preflight.Input{
+		Config: config.Config{
+			Service:              config.TradeService,
+			Database:             *dbPath,
+			ChainID:              *chainID,
+			ChainSlug:            *chainSlug,
+			NetworkKind:          "mainnet",
+			LiveEnabled:          false,
+			CanaryProductionMode: config.CanaryProductionModeDisabled,
+			PreSendRPCBudget:     3 * time.Second,
+			BroadcastRPCTimeout:  5 * time.Second,
+			HTTPWriteTimeout:     15 * time.Second,
+			BotClientTimeout:     25 * time.Second,
+		},
+		BackupDir:    *backupDir,
+		TargetPublic: *targetPublic,
+	})
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	_ = enc.Encode(rep)
+	return err
 }
 
 func runBindChain(args []string) error {

@@ -1,0 +1,34 @@
+# BNB Smart Chain (chain_id=56) isolated instance template.
+# SAFETY INVARIANT: live_enabled and canary_production_mode MUST stay disabled
+# until Step 5 Preflight passes and explicit operator authorization is granted.
+chain_id: 56
+chain_slug: bsc
+network_kind: mainnet
+live_enabled: false
+canary_production_mode: DISABLED
+trade_startup_profile: QUERY_AND_RECOVERY
+
+submission:
+  mode: private_only
+  forbid_public_fallback: true
+  replacement_mode: DISABLED
+
+fees:
+  zero_base_fee: true
+  min_effective_gas_price_wei: "100000000" # 0.1 gwei BEP-226 floor
+
+finality:
+  execution_continuity_tag: safe
+  execution_continuity_min_blocks: 2  # BEP-126 Fast Finality
+  exposure_settlement_tag: finalized
+  exposure_settlement_min_blocks: 15
+
+timeouts:
+  pre_send_rpc_budget: 3s
+  broadcast_rpc_timeout: 5s
+  http_write_timeout: 15s
+  bot_client_timeout: 25s
+
+sockets:
+  business_socket: /var/run/evm-bot/trade-bsc.sock
+  admin_socket: /var/run/evm-bot/trade-bsc-admin.sock

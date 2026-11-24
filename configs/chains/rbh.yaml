@@ -1,0 +1,28 @@
+# Robinhood Chain (chain_id=4663) isolated instance template.
+# SAFETY INVARIANT: live_enabled and canary_production_mode MUST stay disabled
+# until Step 5 Preflight passes and explicit operator authorization is granted.
+chain_id: 4663
+chain_slug: rbh
+network_kind: mainnet
+live_enabled: false
+canary_production_mode: DISABLED
+trade_startup_profile: QUERY_AND_RECOVERY
+
+submission:
+  mode: public
+  replacement_mode: DISABLED
+
+fees:
+  zero_base_fee: false
+  estimate_includes_l1_fee: true
+  node_interface_address: "0x00000000000000000000000000000000000000C8"
+
+timeouts:
+  pre_send_rpc_budget: 3s
+  broadcast_rpc_timeout: 5s
+  http_write_timeout: 15s
+  bot_client_timeout: 25s
+
+sockets:
+  business_socket: /var/run/evm-bot/trade-rbh.sock
+  admin_socket: /var/run/evm-bot/trade-rbh-admin.sock
