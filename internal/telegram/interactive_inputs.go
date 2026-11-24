@@ -82,6 +82,10 @@ func (r *Router) handlePendingInputReply(ctx context.Context, sess chatSession, 
 		return Reply{}, false
 	}
 	switch action {
+	case "cp_amt", "cp_ratio", "cp_mcap", "cp_rng":
+		return r.handleCopyProfilePendingInput(ctx, sess, action, targetKey, input)
+	case "wm_import", "br_quote":
+		return r.handleWalletOrBridgePendingInput(ctx, sess, action, targetKey, input)
 	case "buy":
 		if amt := parseNativeToWei(input); amt == nil || amt.Sign() <= 0 {
 			return Reply{Text: "❌ 金额格式无效，请输入正数（例如 0.25）。"}, true

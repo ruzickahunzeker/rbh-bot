@@ -22,12 +22,14 @@ type InlineButton struct {
 }
 
 // Reply is a rich Telegram response supporting Inline Keyboards, in-place message editing,
-// and callback toast notifications.
+// callback toast notifications, optional HTML parse mode, and auto-delete for sensitive secrets.
 type Reply struct {
-	Text         string
-	Buttons      [][]InlineButton
-	EditOriginal bool
-	AlertText    string
+	Text          string
+	Buttons       [][]InlineButton
+	EditOriginal  bool
+	AlertText     string
+	ParseMode     string
+	AutoDeleteSec int
 }
 
 // ProbeQuoteBackend is optionally implemented by Backend for Paste-CA auto-routing and one-tap Shadow trades.
@@ -234,28 +236,19 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 		}, nil
 
 	case data == "wallets":
-		wallets, err := r.backend.ListWallets(ctx, sess.ChainID)
-		var body string
-		var btns [][]InlineButton
-		if err != nil {
-			body = fmt.Sprintf("👛 钱包管理 (%s %d)\n查询失败: %v", chainDisplayName(sess.ChainID), sess.ChainID, err)
-		} else if len(wallets) == 0 {
-			body = fmt.Sprintf("👛 钱包管理 (%s %d)\n暂无已注册钱包。", chainDisplayName(sess.ChainID), sess.ChainID)
-		} else {
-			body = fmt.Sprintf("👛 钱包管理 (%s %d)\n当前活跃: %s\n\n%s", chainDisplayName(sess.ChainID), sess.ChainID, sess.WalletID, strings.Join(wallets, "\n"))
-			for _, w := range wallets {
-				fields := strings.Fields(w)
-				if len(fields) > 0 && fields[0] != sess.WalletID && len("sw_w:"+fields[0]) <= 64 {
-					btns = append(btns, []InlineButton{{Text: "✅ 切换为 " + fields[0], CallbackData: "sw_w:" + fields[0]}})
-				}
-			}
-		}
-		btns = append(btns, []InlineButton{{Text: "🔄 刷新", CallbackData: "wallets"}, {Text: "⬅️ 返回主菜单", CallbackData: "menu"}})
-		return Reply{
-			Text:         body,
-			EditOriginal: true,
-			Buttons:      btns,
-		}, nil
+		return r.renderWalletManagerCard(ctx, sess, ""), nil
+
+	case strings.HasPrefix(data, "wm:"):
+		return r.handleWalletManagerCallback(ctx, sess, data), nil
+
+	case strings.HasPrefix(data, "br:"):
+		return r.handleBridgeCallback(ctx, sess, data), nil
+
+	case strings.HasPrefix(data, "cp:"):
+		return r.handleCopyProfileCallback(ctx, sess, data), nil
+
+	case strings.HasPrefix(data, "sp:"):
+		return r.handleSniperDetailCallback(ctx, sess, data), nil
 
 	case strings.HasPrefix(data, "sw_w:"):
 		newWalletID := strings.TrimPrefix(data, "sw_w:")
@@ -481,8 +474,9 @@ func (r *Router) renderMainMenu(ctx context.Context, sess chatSession, edit bool
 			chainTopSwitcherRow(sess.ChainID, "sw_c:prev", "sw_c:next"),
 			{{Text: "📊 持仓与盈亏", CallbackData: "positions"}, {Text: "🎯 狙击任务", CallbackData: "sniper"}},
 			{{Text: "👥 聪明钱跟单", CallbackData: "copy"}, {Text: "📈 限价/止盈止损", CallbackData: "orders"}},
-			{{Text: "👛 钱包管理", CallbackData: "wallets"}, {Text: "⚙️ 交易设置", CallbackData: "settings"}},
-			{{Text: "📡 系统状态", CallbackData: "status"}, {Text: "📑 今日复盘", CallbackData: "report"}},
+			{{Text: "👛 钱包管理", CallbackData: "wallets"}, {Text: "🌉 跨链桥", CallbackData: "br:home"}},
+			{{Text: "⚙️ 交易设置", CallbackData: "settings"}, {Text: "📡 系统状态", CallbackData: "status"}},
+			{{Text: "📑 今日复盘", CallbackData: "report"}},
 		},
 	}
 }
@@ -817,9 +811,14 @@ func (r *Router) renderCopyCard(ctx context.Context, sess chatSession) Reply {
 				if len(short) > 12 {
 					short = short[:6] + "..." + short[len(short)-4:]
 				}
-				lines = append(lines, fmt.Sprintf("%d. 🟢 %s", i+1, addr))
+				prof := r.ensureCopyProfile(ctx, sess.ChainID, addr, sess.WalletID)
+				statusDot := "🟢"
+				if !prof.Enabled {
+					statusDot = "⏸️"
+				}
+				lines = append(lines, fmt.Sprintf("%d. %s %s | %s %s | 跟卖:%s", i+1, statusDot, short, prof.BuyAmountNative, chainNativeSymbol(sess.ChainID), boolOnOff(prof.CopySell)))
 				if i < 6 {
-					buttons = append(buttons, []InlineButton{{Text: fmt.Sprintf("🗑️ 移除 #%d (%s)", i+1, short), CallbackData: "cw:del:" + addr}})
+					buttons = append(buttons, []InlineButton{{Text: fmt.Sprintf("⚙️ 配置 #%d (%s)", i+1, short), CallbackData: "cp:open:" + prof.ProfileKey}})
 				}
 			}
 			lines = append(lines, "", "添加新地址：/watch <0x...>")
@@ -895,8 +894,8 @@ func (r *Router) renderSniperCard(ctx context.Context, sess chatSession) Reply {
 				}
 				amtVal, _ := new(big.Int).SetString(amt, 10)
 				lines = append(lines, fmt.Sprintf("%d. [%s] %s %s 金额=%s %s", cnt, st, strings.ToUpper(kind), short, formatWeiToNative(amtVal), chainNativeSymbol(sess.ChainID)))
-				if st == "ARMED" && len("sn:del:"+tid) <= 64 {
-					buttons = append(buttons, []InlineButton{{Text: fmt.Sprintf("❌ 撤防 #%d (%s)", cnt, short), CallbackData: "sn:del:" + tid}})
+				if st == "ARMED" && len("sp:open:"+tid) <= 64 {
+					buttons = append(buttons, []InlineButton{{Text: fmt.Sprintf("⚙️ 配置 #%d (%s)", cnt, short), CallbackData: "sp:open:" + tid}})
 				}
 			}
 		}

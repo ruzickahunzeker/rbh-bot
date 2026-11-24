@@ -152,3 +152,79 @@ func TestBloomUIFlowStartPasteCAShadowBuySellAndSettings(t *testing.T) {
 		t.Fatalf("sw_w failed: %+v err=%v", swRep, err)
 	}
 }
+
+func TestM20ToM25FullPanels(t *testing.T) {
+	ctx := context.Background()
+	db, err := storage.Open(ctx, storage.BotOwner, filepath.Join(t.TempDir(), "bot-m25.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := db.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 11, 25, 7, 45, 0, 0, time.UTC)
+	router, err := NewRouter(db, &bloomStubBackend{}, func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := router.AllowChat(ctx, 7131128175, "op", "operator", 56, "wallet-bsc-readonly"); err != nil {
+		t.Fatal(err)
+	}
+
+	// 1. Top L/R chain bar + 5 buy presets + Limit Mode in Token Card
+	ca := "0x55d398326f99059fF775485246999027B3197955"
+	card, err := router.HandleMessage(ctx, 7131128175, ca)
+	if err != nil || len(card.Buttons[0]) != 3 || card.Buttons[0][0].Text != "◀️" || card.Buttons[0][2].Text != "▶️" {
+		t.Fatalf("expected top L/R chain switcher row, got %+v err=%v", card.Buttons, err)
+	}
+	tokKey := strings.Split(card.Buttons[1][0].CallbackData, ":")[1]
+	limCard, err := router.HandleCallback(ctx, 7131128175, "tc:"+tokKey+":limit")
+	if err != nil || !strings.Contains(limCard.Text, "代币交易卡") {
+		t.Fatalf("limit mode failed: %+v err=%v", limCard, err)
+	}
+	loRep, err := router.HandleCallback(ctx, 7131128175, "lo:buy:"+tokKey+":-10")
+	if err != nil || !strings.Contains(loRep.Text, "已挂单") {
+		t.Fatalf("relative limit buy failed: %+v err=%v", loRep, err)
+	}
+	if gasRep, err := router.HandleCallback(ctx, 7131128175, "tc_g:"+tokKey+":buy"); err != nil || !strings.Contains(gasRep.AlertText, "极速") {
+		t.Fatalf("in-card gas toggle failed: %+v err=%v", gasRep, err)
+	}
+
+	// 2. Copy Profile Detail Card (M22)
+	prof := router.ensureCopyProfile(ctx, 56, "0x000000000000000000000000000000000000cafe", "wallet-bsc-readonly")
+	cpRep, err := router.HandleCallback(ctx, 7131128175, "cp:open:"+prof.ProfileKey)
+	if err != nil || !strings.Contains(cpRep.Text, "跟单策略配置") {
+		t.Fatalf("copy profile card failed: %+v err=%v", cpRep, err)
+	}
+	if cpRep, err = router.HandleCallback(ctx, 7131128175, "cp:pool:"+prof.ProfileKey); err != nil || !strings.Contains(cpRep.AlertText, "内盘") {
+		t.Fatalf("copy pool filter toggle failed: %+v err=%v", cpRep, err)
+	}
+
+	// 3. Sniper Detail Card (M23)
+	if _, err := router.HandleCommand(ctx, 7131128175, "/snipe "+ca+" 50000000000000000 migration"); err != nil {
+		t.Fatalf("/snipe failed: %v", err)
+	}
+	var tid string
+	_ = router.readDB.QueryRowContext(ctx, `SELECT task_id FROM sniper_tasks LIMIT 1`).Scan(&tid)
+	spRep, err := router.HandleCallback(ctx, 7131128175, "sp:open:"+tid)
+	if err != nil || !strings.Contains(spRep.Text, "狙击任务详情") {
+		t.Fatalf("sniper detail card failed: %+v err=%v", spRep, err)
+	}
+	if spRep, err = router.HandleCallback(ctx, 7131128175, "sp:tpsl:"+tid); err != nil || !strings.Contains(spRep.AlertText, "已更新") {
+		t.Fatalf("sniper tpsl toggle failed: %+v err=%v", spRep, err)
+	}
+
+	// 4. Bridge powered by Houdini (M25)
+	brRep, err := router.HandleCallback(ctx, 7131128175, "br:home")
+	if err != nil || !strings.Contains(brRep.Text, "Bridge powered by Houdini") {
+		t.Fatalf("bridge home failed: %+v err=%v", brRep, err)
+	}
+	if _, err := router.HandleCallback(ctx, 7131128175, "br:in:BNB:ETH:1"); err != nil {
+		t.Fatalf("bridge input prompt failed: %v", err)
+	}
+	qRep, err := router.HandleMessage(ctx, 7131128175, "0.5 0x1111111111111111111111111111111111111111")
+	if err != nil || !strings.Contains(qRep.Text, "Bridge powered by Houdini") || !strings.Contains(qRep.Text, "0.5 BNB") {
+		t.Fatalf("bridge quote failed: %+v err=%v", qRep, err)
+	}
+}

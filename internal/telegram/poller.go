@@ -162,12 +162,66 @@ func (p *Poller) SendReply(ctx context.Context, chatID int64, rep Reply) error {
 		"chat_id": chatID,
 		"text":    rep.Text,
 	}
+	if rep.ParseMode != "" {
+		payload["parse_mode"] = rep.ParseMode
+	}
 	if len(rep.Buttons) > 0 {
 		payload["reply_markup"] = map[string]any{
 			"inline_keyboard": rep.Buttons,
 		}
 	}
+	if rep.AutoDeleteSec > 0 {
+		msgID, err := p.postTelegramReturnMsgID(ctx, "/sendMessage", payload)
+		if err != nil {
+			return err
+		}
+		if msgID > 0 {
+			go func(cid, mid int64, delay time.Duration) {
+				timer := time.NewTimer(delay)
+				defer timer.Stop()
+				<-timer.C
+				_ = p.DeleteMessage(context.Background(), cid, mid)
+			}(chatID, msgID, time.Duration(rep.AutoDeleteSec)*time.Second)
+		}
+		return nil
+	}
 	return p.postTelegram(ctx, "/sendMessage", payload)
+}
+
+func (p *Poller) DeleteMessage(ctx context.Context, chatID, messageID int64) error {
+	return p.postTelegram(ctx, "/deleteMessage", map[string]any{
+		"chat_id":    chatID,
+		"message_id": messageID,
+	})
+}
+
+func (p *Poller) postTelegramReturnMsgID(ctx context.Context, methodPath string, payload map[string]any) (int64, error) {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return 0, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+methodPath, bytes.NewReader(body))
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := p.http.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("telegram %s status %d", methodPath, resp.StatusCode)
+	}
+	var env struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			MessageID int64 `json:"message_id"`
+		} `json:"result"`
+	}
+	_ = json.Unmarshal(raw, &env)
+	return env.Result.MessageID, nil
 }
 
 func (p *Poller) EditReply(ctx context.Context, chatID int64, messageID int64, rep Reply) error {
