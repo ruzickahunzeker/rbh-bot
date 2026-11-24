@@ -1,4 +1,6 @@
 .env
+.env.*
+data/
 .DS_Store
 *.db
 *.db-shm

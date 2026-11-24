@@ -25,6 +25,7 @@ import (
 	"github.com/ruzickahunzeker/rbh-bot/internal/ipc"
 	"github.com/ruzickahunzeker/rbh-bot/internal/observability"
 	"github.com/ruzickahunzeker/rbh-bot/internal/storage"
+	"github.com/ruzickahunzeker/rbh-bot/internal/telegram"
 	tradecore "github.com/ruzickahunzeker/rbh-bot/internal/trade"
 	"github.com/ruzickahunzeker/rbh-bot/internal/tradeapi"
 )
@@ -113,6 +114,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 	var runner *feedcore.SequencerRunner
 	var evmRunner *feedcore.EVMReceiptRunner
 	var botConsumer *botcore.Consumer
+	var tgPoller *telegram.Poller
 	var canaryProduction *tradecore.ProductionComposition
 	var recoveryLoop *recoveryLifetime
 	var authenticator *ipc.Authenticator
@@ -176,6 +178,25 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		botConsumer, err = botcore.NewConsumer(store, source, 100)
 		if err != nil {
 			return err
+		}
+		if cfg.TelegramBotToken != "" {
+			udsBackend := telegram.NewUDSBackend(map[uint64]telegram.ChainUDSConfig{
+				config.ChainID:    {TradeSocket: cfg.TradeSocketRBH, BearerToken: cfg.TradeAPITokenRBH},
+				config.BSCChainID: {TradeSocket: cfg.TradeSocketBSC, BearerToken: cfg.TradeAPITokenBSC},
+			})
+			tgRouter, err := telegram.NewRouter(database, udsBackend, nil)
+			if err != nil {
+				return fmt.Errorf("initialize telegram router: %w", err)
+			}
+			for _, chatID := range cfg.TelegramAllowedChatIDs {
+				if err := tgRouter.AllowChat(ctx, chatID, "configured-operator", "operator", cfg.ChainID, cfg.DryRunWalletID); err != nil {
+					return fmt.Errorf("seed telegram allowlist chat %d: %w", chatID, err)
+				}
+			}
+			tgPoller, err = telegram.NewPoller(cfg.TelegramBotToken, tgRouter, log)
+			if err != nil {
+				return fmt.Errorf("initialize telegram poller: %w", err)
+			}
 		}
 		server.SetMetricsWriter(func(_ context.Context, writer io.Writer) error {
 			return writeRuntimeMetrics(writer, database, authenticator)
@@ -369,6 +390,13 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		go func() {
 			defer bgWG.Done()
 			reportErr(botConsumer.Run(ctx, 100*time.Millisecond))
+		}()
+	}
+	if tgPoller != nil {
+		bgWG.Add(1)
+		go func() {
+			defer bgWG.Done()
+			reportErr(tgPoller.Run(ctx))
 		}()
 	}
 	if canaryProduction != nil {

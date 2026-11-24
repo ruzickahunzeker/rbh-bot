@@ -62,6 +62,14 @@ type Config struct {
 	LiveEnabled              bool
 	InternalAuthSecret       string
 	RPCURL                   string
+	WSURL                    string
+	TelegramBotToken         string
+	TelegramAllowedChatIDs   []int64
+	PaperShadowEnabled       bool
+	TradeSocketRBH           string
+	TradeAPITokenRBH         string
+	TradeSocketBSC           string
+	TradeAPITokenBSC         string
 	DryRunWalletID           string
 	DryRunFromAddress        string
 	ExecutionPrivateKey      string
@@ -216,6 +224,12 @@ func Load(service Service) (Config, error) {
 	if service == TradeService && canaryMode != CanaryProductionModeDisabled {
 		return Config{}, fmt.Errorf("RBH_CONTROLLED_CANARY_PRODUCTION_MODE must be %s in W4-A", CanaryProductionModeDisabled)
 	}
+	rpcURL := env("EVM_RPC_URL", os.Getenv("ROBINHOOD_RPC_URL"))
+	paperShadow, _ := strconv.ParseBool(env("EVM_PAPER_SHADOW_ENABLED", "false"))
+	allowedChats, err := parseInt64CSV(os.Getenv("TELEGRAM_ALLOWED_CHAT_IDS"))
+	if err != nil {
+		return Config{}, fmt.Errorf("invalid TELEGRAM_ALLOWED_CHAT_IDS: %w", err)
+	}
 	name := strings.TrimSuffix(string(service), "-service")
 	cfg := Config{
 		Service: service, DataDir: dataDir, SocketDir: socketDir,
@@ -229,7 +243,15 @@ func Load(service Service) (Config, error) {
 		EnforceChainIdentity:     service == TradeService || service == FeedService,
 		LiveEnabled:              live,
 		InternalAuthSecret:       os.Getenv("RBH_INTERNAL_AUTH_SECRET"),
-		RPCURL:                   os.Getenv("ROBINHOOD_RPC_URL"),
+		RPCURL:                   rpcURL,
+		WSURL:                    os.Getenv("EVM_WS_URL"),
+		TelegramBotToken:         strings.TrimSpace(os.Getenv("TELEGRAM_BOT_TOKEN")),
+		TelegramAllowedChatIDs:   allowedChats,
+		PaperShadowEnabled:       paperShadow,
+		TradeSocketRBH:           os.Getenv("EVM_TRADE_SOCKET_RBH"),
+		TradeAPITokenRBH:         os.Getenv("EVM_TRADE_API_TOKEN_RBH"),
+		TradeSocketBSC:           os.Getenv("EVM_TRADE_SOCKET_BSC"),
+		TradeAPITokenBSC:         os.Getenv("EVM_TRADE_API_TOKEN_BSC"),
 		DryRunWalletID:           os.Getenv("RBH_DRY_RUN_WALLET_ID"),
 		DryRunFromAddress:        os.Getenv("RBH_DRY_RUN_FROM_ADDRESS"),
 		ExecutionPrivateKey:      os.Getenv("RBH_EXECUTION_PRIVATE_KEY"),
@@ -259,4 +281,25 @@ func env(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func parseInt64CSV(raw string) ([]int64, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]int64, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		v, err := strconv.ParseInt(p, 10, 64)
+		if err != nil || v == 0 {
+			return nil, fmt.Errorf("invalid chat id %q", p)
+		}
+		out = append(out, v)
+	}
+	return out, nil
 }
