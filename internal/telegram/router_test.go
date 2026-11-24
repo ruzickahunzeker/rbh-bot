@@ -107,3 +107,70 @@ func TestStep3BTelegramAllowlistMultiChainExactSellAnd410Reconcile(t *testing.T)
 		t.Fatalf("expected resumed poll from 42->43, got events=%+v reconciled=%v err=%v", events, reconciled, err)
 	}
 }
+
+func TestRouterConditionalOrdersWatchlistAndStatus(t *testing.T) {
+	ctx := context.Background()
+	db, err := storage.Open(ctx, storage.BotOwner, filepath.Join(t.TempDir(), "bot-m8.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := db.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	backend := NewUDSBackendWithWatchlist(map[uint64]ChainUDSConfig{
+		56:   {ChainSlug: "bsc", TradeSocket: "/tmp/nonexistent-bsc.sock"},
+		4663: {ChainSlug: "rbh", TradeSocket: "/tmp/nonexistent-rbh.sock"},
+	}, db, nil)
+	now := time.Date(2026, 11, 24, 23, 59, 0, 0, time.UTC)
+	router, err := NewRouter(db, backend, func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := router.AllowChat(ctx, 7131128175, "op", "operator", 56, "wallet-bsc-readonly"); err != nil {
+		t.Fatal(err)
+	}
+
+	// 1. /watch -> /watchlist -> /unwatch -> /watchlist
+	trader := "0x000000000000000000000000000000000000cafe"
+	if resp, err := router.HandleCommand(ctx, 7131128175, "/watch "+trader); err != nil || !strings.Contains(resp, "synced") {
+		t.Fatalf("/watch failed: resp=%q err=%v", resp, err)
+	}
+	if resp, err := router.HandleCommand(ctx, 7131128175, "/watchlist"); err != nil || !strings.Contains(resp, trader) {
+		t.Fatalf("/watchlist missing trader: resp=%q err=%v", resp, err)
+	}
+	if resp, err := router.HandleCommand(ctx, 7131128175, "/unwatch "+trader); err != nil || !strings.Contains(resp, "Removed") {
+		t.Fatalf("/unwatch failed: resp=%q err=%v", resp, err)
+	}
+	if resp, err := router.HandleCommand(ctx, 7131128175, "/watchlist"); err != nil || !strings.Contains(resp, "empty") {
+		t.Fatalf("/watchlist should be empty: resp=%q err=%v", resp, err)
+	}
+
+	// 2. /tp -> /sl -> /orders -> /cancelorder
+	token := "0x55d398326f99059ff775485246999027b3197955"
+	tpResp, err := router.HandleCommand(ctx, 7131128175, "/tp "+token+" 2000000000 50")
+	if err != nil || !strings.Contains(tpResp, "take_profit") || !strings.Contains(tpResp, "sell=50%") {
+		t.Fatalf("/tp failed: resp=%q err=%v", tpResp, err)
+	}
+	now = now.Add(time.Second)
+	slResp, err := router.HandleCommand(ctx, 7131128175, "/sl "+token+" 500000000 100")
+	if err != nil || !strings.Contains(slResp, "stop_loss") || !strings.Contains(slResp, "sell=100%") {
+		t.Fatalf("/sl failed: resp=%q err=%v", slResp, err)
+	}
+	ordersResp, err := router.HandleCommand(ctx, 7131128175, "/orders")
+	if err != nil || !strings.Contains(ordersResp, "take_profit") || !strings.Contains(ordersResp, "stop_loss") {
+		t.Fatalf("/orders missing entries: resp=%q err=%v", ordersResp, err)
+	}
+	// Extract order_id from tpResp ("Created take_profit order <id> on chain 56...")
+	fields := strings.Fields(tpResp)
+	orderID := fields[3]
+	if cancelResp, err := router.HandleCommand(ctx, 7131128175, "/cancelorder "+orderID); err != nil || !strings.Contains(cancelResp, "cancelled") {
+		t.Fatalf("/cancelorder failed: resp=%q err=%v", cancelResp, err)
+	}
+
+	// 3. /status reports both BSC and RBH
+	statusResp, err := router.HandleCommand(ctx, 7131128175, "/status")
+	if err != nil || !strings.Contains(statusResp, "BSC (56)") || !strings.Contains(statusResp, "RBH (4663)") {
+		t.Fatalf("/status failed: resp=%q err=%v", statusResp, err)
+	}
+}

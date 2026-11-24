@@ -175,6 +175,14 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			return err
 		}
 		feedSock := filepath.Join(cfg.SocketDir, string(config.FeedService)+".sock")
+		feedSockBSC := cfg.FeedSocketBSC
+		if feedSockBSC == "" && cfg.ChainID == config.BSCChainID {
+			feedSockBSC = feedSock
+		}
+		feedSockRBH := cfg.FeedSocketRBH
+		if feedSockRBH == "" && cfg.ChainID == config.ChainID {
+			feedSockRBH = feedSock
+		}
 		source, err := botcore.NewHTTPOutboxSource(feedSock, authenticator)
 		if err != nil {
 			return err
@@ -190,13 +198,13 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 					ChainSlug:   "rbh",
 					TradeSocket: cfg.TradeSocketRBH,
 					BearerToken: cfg.TradeAPITokenRBH,
-					FeedSocket:  feedSock,
+					FeedSocket:  feedSockRBH,
 				},
 				config.BSCChainID: {
 					ChainSlug:   "bsc",
 					TradeSocket: cfg.TradeSocketBSC,
 					BearerToken: cfg.TradeAPITokenBSC,
-					FeedSocket:  feedSock,
+					FeedSocket:  feedSockBSC,
 					RPCURL:      cfg.RPCURL,
 				},
 			}, database, authenticator)
@@ -225,20 +233,62 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			if walletID == "" {
 				walletID = "wallet-readonly"
 			}
+			var streams []botcore.FeedStreamConfig
+			if feedSockBSC != "" {
+				bscSrc, err := botcore.NewHTTPOutboxSource(feedSockBSC, authenticator)
+				if err != nil {
+					return err
+				}
+				bscWallet := walletID
+				if cfg.ChainID != config.BSCChainID {
+					bscWallet = "wallet-bsc-readonly"
+				}
+				streams = append(streams, botcore.FeedStreamConfig{
+					ChainID:        config.BSCChainID,
+					FeedInstanceID: "feed-bsc",
+					Source:         bscSrc,
+					PrincipalID:    "operator-local",
+					StrategyID:     "shadow-bsc",
+					WalletID:       bscWallet,
+					FixedAmountRaw: big.NewInt(10_000_000_000_000_000), // 0.01 BNB
+					MaxSignalAge:   60 * time.Second,
+				})
+			}
+			if feedSockRBH != "" {
+				rbhSrc, err := botcore.NewHTTPOutboxSource(feedSockRBH, authenticator)
+				if err != nil {
+					return err
+				}
+				rbhWallet := walletID
+				if cfg.ChainID != config.ChainID {
+					rbhWallet = "wallet-rbh-readonly"
+				}
+				streams = append(streams, botcore.FeedStreamConfig{
+					ChainID:        config.ChainID,
+					FeedInstanceID: "feed-rbh",
+					Source:         rbhSrc,
+					PrincipalID:    "operator-local",
+					StrategyID:     "shadow-rbh",
+					WalletID:       rbhWallet,
+					FixedAmountRaw: big.NewInt(10_000_000_000_000_000), // 0.01 ETH
+					MaxSignalAge:   60 * time.Second,
+				})
+			}
+			if len(streams) == 0 {
+				streams = append(streams, botcore.FeedStreamConfig{
+					ChainID:        cfg.ChainID,
+					FeedInstanceID: "feed-" + cfg.ChainSlug,
+					Source:         source,
+					PrincipalID:    "operator-local",
+					StrategyID:     "shadow-" + cfg.ChainSlug,
+					WalletID:       walletID,
+					FixedAmountRaw: big.NewInt(10_000_000_000_000_000),
+					MaxSignalAge:   60 * time.Second,
+				})
+			}
 			botMultiRuntime, err = botcore.NewMultiChainRuntime(
 				store,
-				[]botcore.FeedStreamConfig{
-					{
-						ChainID:        cfg.ChainID,
-						FeedInstanceID: "feed-" + cfg.ChainSlug,
-						Source:         source,
-						PrincipalID:    "operator-local",
-						StrategyID:     "shadow-" + cfg.ChainSlug,
-						WalletID:       walletID,
-						FixedAmountRaw: big.NewInt(10_000_000_000_000_000), // 0.01 native unit shadow copy
-						MaxSignalAge:   60 * time.Second,
-					},
-				},
+				streams,
 				shadowEngine,
 				udsBackend,
 				nil,

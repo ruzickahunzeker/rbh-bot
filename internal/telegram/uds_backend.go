@@ -322,7 +322,6 @@ func (u *UDSBackend) SubmitManualTrade(_ context.Context, _ uint64, _, _ string,
 // PUT /internal/v1/watchlist snapshot to feed-<chain>.sock.
 func (u *UDSBackend) AddWatchedWallet(ctx context.Context, chainID uint64, trader common.Address) error {
 	traderHex := strings.ToLower(trader.Hex())
-	var wallets []string
 	if u.db != nil {
 		id := fmt.Sprintf("ww-%d-%s", chainID, traderHex[2:10])
 		if _, err := u.db.ExecContext(ctx,
@@ -332,18 +331,57 @@ func (u *UDSBackend) AddWatchedWallet(ctx context.Context, chainID uint64, trade
 		); err != nil {
 			return fmt.Errorf("persist watched wallet: %w", err)
 		}
-		rows, err := u.db.QueryContext(ctx, `SELECT address FROM watched_wallets WHERE chain_id = ? AND enabled = 1`, chainID)
-		if err == nil {
-			defer rows.Close()
-			for rows.Next() {
-				var addr string
-				if rows.Scan(&addr) == nil {
-					wallets = append(wallets, addr)
-				}
-			}
+	}
+	return u.pushWatchlistSnapshot(ctx, chainID, traderHex)
+}
+
+// RemoveWatchedWallet disables trader in bot.db watched_wallets and pushes the updated
+// snapshot to feed-<chain>.sock.
+func (u *UDSBackend) RemoveWatchedWallet(ctx context.Context, chainID uint64, trader common.Address) error {
+	traderHex := strings.ToLower(trader.Hex())
+	if u.db != nil {
+		if _, err := u.db.ExecContext(ctx,
+			`UPDATE watched_wallets SET enabled = 0 WHERE chain_id = ? AND address = ?`,
+			chainID, traderHex,
+		); err != nil {
+			return fmt.Errorf("disable watched wallet: %w", err)
 		}
-	} else {
-		wallets = []string{traderHex}
+	}
+	return u.pushWatchlistSnapshot(ctx, chainID, "")
+}
+
+// ListWatchedWallets returns all enabled watched wallet addresses for chainID.
+func (u *UDSBackend) ListWatchedWallets(ctx context.Context, chainID uint64) ([]string, error) {
+	if u.db == nil {
+		return nil, nil
+	}
+	rows, err := u.db.QueryContext(ctx, `SELECT address FROM watched_wallets WHERE chain_id = ? AND enabled = 1 ORDER BY address ASC`, chainID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var addr string
+		if err := rows.Scan(&addr); err == nil {
+			out = append(out, addr)
+		}
+	}
+	return out, rows.Err()
+}
+
+func (u *UDSBackend) pushWatchlistSnapshot(ctx context.Context, chainID uint64, fallbackSingle string) error {
+	var wallets []string
+	if u.db != nil {
+		list, err := u.ListWatchedWallets(ctx, chainID)
+		if err == nil {
+			wallets = list
+		}
+	} else if fallbackSingle != "" {
+		wallets = []string{fallbackSingle}
+	}
+	if wallets == nil {
+		wallets = []string{}
 	}
 
 	cfg, ok := u.chains[chainID]
@@ -381,6 +419,51 @@ func (u *UDSBackend) AddWatchedWallet(ctx context.Context, chainID uint64, trade
 		return fmt.Errorf("feed watchlist push status %d: %s", resp.StatusCode, string(raw))
 	}
 	return nil
+}
+
+// CheckStatus probes /healthz on each configured chain's TradeSocket and FeedSocket
+// and reports active watchlist + conditional order counts from bot.db.
+func (u *UDSBackend) CheckStatus(ctx context.Context) (string, error) {
+	probe := func(sock string) string {
+		if sock == "" {
+			return "unconfigured"
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://unix/healthz", nil)
+		if err != nil {
+			return "err"
+		}
+		resp, err := u.udsClient(sock).Do(req)
+		if err != nil {
+			return "DOWN"
+		}
+		defer resp.Body.Close()
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1024))
+		if resp.StatusCode == http.StatusOK {
+			return "OK"
+		}
+		return fmt.Sprintf("HTTP %d", resp.StatusCode)
+	}
+
+	var lines []string
+	lines = append(lines, "evm-bot Multi-Chain Status (live_enabled=false):")
+	for _, cid := range []uint64{56, 4663, 8453} {
+		cfg, ok := u.chains[cid]
+		if !ok {
+			continue
+		}
+		slug := cfg.ChainSlug
+		if slug == "" {
+			slug = fmt.Sprintf("chain-%d", cid)
+		}
+		var watchedCnt, activeOrdCnt int
+		if u.db != nil {
+			_ = u.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM watched_wallets WHERE chain_id = ? AND enabled = 1`, cid).Scan(&watchedCnt)
+			_ = u.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM conditional_orders WHERE chain_id = ? AND state = 'ACTIVE'`, cid).Scan(&activeOrdCnt)
+		}
+		lines = append(lines, fmt.Sprintf("- %s (%d): trade=%s feed=%s watched=%d active_orders=%d",
+			strings.ToUpper(slug), cid, probe(cfg.TradeSocket), probe(cfg.FeedSocket), watchedCnt, activeOrdCnt))
+	}
+	return strings.Join(lines, "\n"), nil
 }
 
 func (u *UDSBackend) ConfigureCopyStrategy(_ context.Context, _ uint64, _ common.Address, _ *big.Int) error {

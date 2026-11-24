@@ -41,6 +41,17 @@ type HoneypotBackend interface {
 	CheckHoneypot(ctx context.Context, chainID uint64, token common.Address) (string, error)
 }
 
+// WatchlistManagerBackend is optionally implemented by Backend to serve /watchlist and /unwatch.
+type WatchlistManagerBackend interface {
+	ListWatchedWallets(ctx context.Context, chainID uint64) ([]string, error)
+	RemoveWatchedWallet(ctx context.Context, chainID uint64, trader common.Address) error
+}
+
+// StatusBackend is optionally implemented by Backend to serve /status.
+type StatusBackend interface {
+	CheckStatus(ctx context.Context) (string, error)
+}
+
 // TradeUpdateFeed abstracts GET /v1/trade-updates?after_seq=... plus 410 Gone reconciliation.
 type TradeUpdateFeed interface {
 	FetchUpdates(ctx context.Context, chainID uint64, afterSeq int64, limit int) (events []UpdateNotice, nextSeq int64, err error)
@@ -263,6 +274,127 @@ func (r *Router) HandleCommand(ctx context.Context, chatID int64, text string) (
 		}
 		return fmt.Sprintf("Watched wallet %s synced on chain %d.", strings.ToLower(parts[1]), chainID), nil
 
+	case "/unwatch":
+		if role != "operator" {
+			return "Permission denied: operator role required.", nil
+		}
+		wb, ok := r.backend.(WatchlistManagerBackend)
+		if !ok {
+			return "Watchlist manager is not enabled.", nil
+		}
+		if len(parts) != 2 || !common.IsHexAddress(parts[1]) {
+			return "Usage: /unwatch <wallet_address>", nil
+		}
+		if err := wb.RemoveWatchedWallet(ctx, chainID, common.HexToAddress(parts[1])); err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("Removed watched wallet %s on chain %d.", strings.ToLower(parts[1]), chainID), nil
+
+	case "/watchlist":
+		wb, ok := r.backend.(WatchlistManagerBackend)
+		if !ok {
+			return "Watchlist manager is not enabled.", nil
+		}
+		list, err := wb.ListWatchedWallets(ctx, chainID)
+		if err != nil {
+			return "", err
+		}
+		if len(list) == 0 {
+			return fmt.Sprintf("Chain %d watchlist is empty.", chainID), nil
+		}
+		return fmt.Sprintf("Chain %d watchlist (%d):\n%s", chainID, len(list), strings.Join(list, "\n")), nil
+
+	case "/tp", "/sl":
+		if role != "operator" {
+			return "Permission denied: operator role required.", nil
+		}
+		if len(parts) < 3 || len(parts) > 4 || !common.IsHexAddress(parts[1]) {
+			return fmt.Sprintf("Usage: %s <token_address> <trigger_price_wei> [sell_pct_1_to_100]", cmd), nil
+		}
+		trigPrice, ok := new(big.Int).SetString(parts[2], 10)
+		if !ok || trigPrice.Sign() <= 0 {
+			return "Invalid positive trigger_price_wei.", nil
+		}
+		sellPct := uint64(100)
+		if len(parts) == 4 {
+			pctStr := strings.TrimSuffix(parts[3], "%")
+			p, err := strconv.ParseUint(pctStr, 10, 64)
+			if err != nil || p == 0 || p > 100 {
+				return "Sell percentage must be between 1 and 100.", nil
+			}
+			sellPct = p
+		}
+		kind := "take_profit"
+		if cmd == "/sl" {
+			kind = "stop_loss"
+		}
+		nowUTC := r.now().UTC()
+		orderID := fmt.Sprintf("%s-%d-%d", strings.TrimPrefix(cmd, "/"), chainID, nowUTC.UnixNano())
+		idemKey := "tg-" + orderID
+		expiresAt := nowUTC.Add(24 * time.Hour)
+		if _, err := r.db.ExecContext(ctx,
+			`INSERT INTO conditional_orders(order_id, chain_id, wallet_id, token, order_kind, trigger_price_wei, amount_raw, sell_bps, idempotency_key, state, expires_at, created_at, updated_at)
+			 VALUES(?,?,?,?,?,?,?,?,?,'ACTIVE',?,?,?)`,
+			orderID, chainID, walletID, strings.ToLower(common.HexToAddress(parts[1]).Hex()),
+			kind, trigPrice.String(), "0", sellPct*100, idemKey,
+			expiresAt.Format(time.RFC3339Nano), nowUTC.Format(time.RFC3339Nano), nowUTC.Format(time.RFC3339Nano),
+		); err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("Created %s order %s on chain %d\ntoken=%s trigger_wei=%s sell=%d%% ttl=24h",
+			kind, orderID, chainID, strings.ToLower(parts[1]), trigPrice.String(), sellPct), nil
+
+	case "/orders":
+		rows, err := r.readDB.QueryContext(ctx,
+			`SELECT order_id, order_kind, token, trigger_price_wei, sell_bps, state
+			 FROM conditional_orders
+			 WHERE chain_id = ? AND state IN ('ACTIVE', 'TRIGGERED')
+			 ORDER BY created_at DESC LIMIT 20`,
+			chainID,
+		)
+		if err != nil {
+			return "", err
+		}
+		defer rows.Close()
+		var lines []string
+		for rows.Next() {
+			var oid, kind, tok, trig, st string
+			var sellBps uint64
+			if err := rows.Scan(&oid, &kind, &tok, &trig, &sellBps, &st); err == nil {
+				lines = append(lines, fmt.Sprintf("- %s [%s] %s tok=%s trig=%s sell=%d%%", oid, st, kind, tok, trig, sellBps/100))
+			}
+		}
+		if len(lines) == 0 {
+			return fmt.Sprintf("No active conditional orders on chain %d.", chainID), nil
+		}
+		return fmt.Sprintf("Chain %d conditional orders:\n%s", chainID, strings.Join(lines, "\n")), nil
+
+	case "/cancelorder":
+		if role != "operator" {
+			return "Permission denied: operator role required.", nil
+		}
+		if len(parts) != 2 {
+			return "Usage: /cancelorder <order_id>", nil
+		}
+		res, err := r.db.ExecContext(ctx,
+			`UPDATE conditional_orders SET state = 'CANCELLED', updated_at = ? WHERE order_id = ? AND chain_id = ? AND state = 'ACTIVE'`,
+			r.now().UTC().Format(time.RFC3339Nano), parts[1], chainID,
+		)
+		if err != nil {
+			return "", err
+		}
+		if n, _ := res.RowsAffected(); n == 0 {
+			return fmt.Sprintf("Order %s not found or not ACTIVE on chain %d.", parts[1], chainID), nil
+		}
+		return fmt.Sprintf("Order %s cancelled on chain %d.", parts[1], chainID), nil
+
+	case "/status":
+		sb, ok := r.backend.(StatusBackend)
+		if !ok {
+			return fmt.Sprintf("Active chain=%d wallet=%s (status backend not configured)", chainID, walletID), nil
+		}
+		return sb.CheckStatus(ctx)
+
 	case "/copy":
 		if role != "operator" {
 			return "Permission denied: operator role required.", nil
@@ -286,13 +418,20 @@ func (r *Router) HandleCommand(ctx context.Context, chatID int64, text string) (
 
 func helpText() string {
 	return strings.Join([]string{
-		"evm-bot Read-Only / Shadow Commands:",
-		"/chain <rbh|bsc|base> - switch active chain",
+		"evm-bot Multi-Chain Commands (BSC 56 + RBH 4663):",
+		"/status - check BSC + RBH service health & counters",
+		"/chain <bsc|rbh> - switch active chain",
 		"/wallets - list registered wallets",
 		"/positions <token> - atomic Multicall3 balance + allowance",
-		"/quote <token> <amount_wei> - live DEX quote",
-		"/honeypot <token> - eth_simulateV1 Buy->Approve->Sell tax/honeypot check",
-		"/watch <wallet> - persist & sync wallet to feed Watchlist",
+		"/quote <token> <amount_wei> - live DEX/Launchpad quote",
+		"/honeypot <token> - eth_simulateV1 Buy->Approve->Sell check",
+		"/watch <wallet> - add & sync wallet to feed Watchlist",
+		"/unwatch <wallet> - remove wallet from Watchlist",
+		"/watchlist - list watched wallets on active chain",
+		"/tp <token> <price_wei> [pct] - create Take-Profit order",
+		"/sl <token> <price_wei> [pct] - create Stop-Loss order",
+		"/orders - list active conditional orders",
+		"/cancelorder <order_id> - cancel an active order",
 		"/copy <wallet> <wei> - configure copy strategy",
 	}, "\n")
 }

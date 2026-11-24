@@ -68,8 +68,10 @@ type Config struct {
 	PaperShadowEnabled       bool
 	TradeSocketRBH           string
 	TradeAPITokenRBH         string
+	FeedSocketRBH            string
 	TradeSocketBSC           string
 	TradeAPITokenBSC         string
+	FeedSocketBSC            string
 	DryRunWalletID           string
 	DryRunFromAddress        string
 	ExecutionPrivateKey      string
@@ -252,8 +254,10 @@ func Load(service Service) (Config, error) {
 		PaperShadowEnabled:       paperShadow,
 		TradeSocketRBH:           os.Getenv("EVM_TRADE_SOCKET_RBH"),
 		TradeAPITokenRBH:         os.Getenv("EVM_TRADE_API_TOKEN_RBH"),
+		FeedSocketRBH:            os.Getenv("EVM_FEED_SOCKET_RBH"),
 		TradeSocketBSC:           os.Getenv("EVM_TRADE_SOCKET_BSC"),
 		TradeAPITokenBSC:         os.Getenv("EVM_TRADE_API_TOKEN_BSC"),
+		FeedSocketBSC:            os.Getenv("EVM_FEED_SOCKET_BSC"),
 		DryRunWalletID:           envPref("EVM_DRY_RUN_WALLET_ID", "RBH_DRY_RUN_WALLET_ID", ""),
 		DryRunFromAddress:        envPref("EVM_DRY_RUN_FROM_ADDRESS", "RBH_DRY_RUN_FROM_ADDRESS", ""),
 		ExecutionPrivateKey:      envPref("EVM_EXECUTION_PRIVATE_KEY", "RBH_EXECUTION_PRIVATE_KEY", ""),
