@@ -216,8 +216,31 @@ func (p *Poller) postTelegram(ctx context.Context, methodPath string, payload ma
 	return nil
 }
 
+// RegisterCommands populates Telegram's left-of-input-box "/" quick command menu via setMyCommands.
+func (p *Poller) RegisterCommands(ctx context.Context) error {
+	cmds := []map[string]string{
+		{"command": "start", "description": "打开 Bloom 交易主面板"},
+		{"command": "status", "description": "查看 BSC + RBH 服务状态"},
+		{"command": "wallets", "description": "查看已注册钱包列表"},
+		{"command": "positions", "description": "查询代币余额与授权"},
+		{"command": "quote", "description": "实时 DEX/内盘报价"},
+		{"command": "honeypot", "description": "貔貅与税率模拟检测"},
+		{"command": "watch", "description": "添加聪明钱监控地址"},
+		{"command": "watchlist", "description": "查看当前监控列表"},
+		{"command": "orders", "description": "查看止盈/止损条件单"},
+		{"command": "tp", "description": "创建止盈条件单"},
+		{"command": "sl", "description": "创建止损条件单"},
+		{"command": "chain", "description": "切换链 (bsc / rbh)"},
+		{"command": "help", "description": "查看全部指令帮助"},
+	}
+	return p.postTelegram(ctx, "/setMyCommands", map[string]any{"commands": cmds})
+}
+
 // Run runs the continuous Telegram Long-Polling loop until ctx is cancelled.
 func (p *Poller) Run(ctx context.Context) error {
+	if err := p.RegisterCommands(ctx); err != nil {
+		p.log.Warn("telegram setMyCommands failed (non-fatal)", "err", err)
+	}
 	for {
 		if _, err := p.PollOnce(ctx, 20); err != nil {
 			if ctx.Err() != nil {

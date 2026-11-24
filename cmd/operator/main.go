@@ -60,6 +60,15 @@ func main() {
 			fmt.Fprintf(os.Stderr, "operator preflight: %v\n", err)
 			os.Exit(1)
 		}
+	case "wallet":
+		if len(os.Args) < 3 {
+			usage()
+			os.Exit(2)
+		}
+		if err := runWallet(os.Args[2], os.Args[3:]); err != nil {
+			fmt.Fprintf(os.Stderr, "operator wallet %s: %v\n", os.Args[2], err)
+			os.Exit(1)
+		}
 	default:
 		usage()
 		os.Exit(2)
@@ -70,10 +79,68 @@ func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
   operator db bind-chain --db <path> --owner <trade-service|feed-service|bot-service> --expected-chain-id <id> --chain-slug <slug> [--network-kind mainnet]
   operator db register-wallet --db <path> --chain-id <4663|56|8453> --wallet-id <id> --address <0x...>
+  operator wallet create --dir <keystore-dir> --wallet-id <id> --chain-id <56|4663> [--db <trade.db>]
+  operator wallet import --dir <keystore-dir> --wallet-id <id> --chain-id <56|4663> [--db <trade.db>]
+  operator wallet list --dir <keystore-dir>
   operator admin emergency-stop --socket <admin.sock> [--reason <text>]
   operator admin resume --socket <admin.sock>
   operator admin backup --socket <admin.sock> --dest <absolute-path>
   operator preflight --db <path> --chain-id <4663|56|8453> --chain-slug <rbh|bsc|base> --backup-dir <dir>`)
+}
+
+func runWallet(action string, args []string) error {
+	fs := flag.NewFlagSet("wallet-"+action, flag.ContinueOnError)
+	dir := fs.String("dir", "", "directory for AES-256-GCM 0600 wallet keystores")
+	walletID := fs.String("wallet-id", "", "wallet identifier")
+	chainID := fs.Uint64("chain-id", 0, "EIP-155 chain_id (56 or 4663)")
+	dbPath := fs.String("db", "", "optional trade.db path to also register wallet metadata")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *dir == "" {
+		return fmt.Errorf("--dir is required")
+	}
+	switch action {
+	case "list":
+		list, err := tradecore.ListEncryptedWallets(*dir)
+		if err != nil {
+			return err
+		}
+		if len(list) == 0 {
+			fmt.Println("no encrypted wallets found")
+			return nil
+		}
+		for _, w := range list {
+			fmt.Printf("%s chain_id=%d address=%s file=%s\n", w.WalletID, w.ChainID, w.Address.Hex(), w.FilePath)
+		}
+		return nil
+	case "create", "import":
+		pass := os.Getenv("EVM_WALLET_PASSPHRASE")
+		if len(pass) < 8 {
+			return fmt.Errorf("set EVM_WALLET_PASSPHRASE (>= 8 chars) in environment; never pass passphrases as CLI flags")
+		}
+		var sum tradecore.KeystoreSummary
+		var err error
+		if action == "create" {
+			sum, err = tradecore.CreateEncryptedWallet(*dir, *walletID, *chainID, pass)
+		} else {
+			privHex := os.Getenv("EVM_IMPORT_PRIVATE_KEY")
+			if privHex == "" {
+				return fmt.Errorf("set EVM_IMPORT_PRIVATE_KEY in environment; never pass private keys as CLI flags")
+			}
+			sum, err = tradecore.ImportEncryptedWallet(*dir, *walletID, *chainID, privHex, pass)
+		}
+		if err != nil {
+			return err
+		}
+		fmt.Printf("encrypted wallet %s (chain_id=%d address=%s) saved to %s (mode 0600)\n", sum.WalletID, sum.ChainID, sum.Address.Hex(), sum.FilePath)
+		if *dbPath != "" {
+			return runRegisterWallet([]string{"--db", *dbPath, "--chain-id", fmt.Sprintf("%d", *chainID), "--wallet-id", *walletID, "--address", sum.Address.Hex()})
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported wallet action %q (use create|import|list)", action)
+	}
 }
 
 func runRegisterWallet(args []string) error {

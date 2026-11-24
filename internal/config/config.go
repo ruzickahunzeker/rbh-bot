@@ -72,6 +72,8 @@ type Config struct {
 	TradeSocketBSC           string
 	TradeAPITokenBSC         string
 	FeedSocketBSC            string
+	PrivateRelayURLs         []string // comma-separated EVM_PRIVATE_RELAY_URLS for BSC private_only
+	MaxOrderNativeWei        string   // EVM_MAX_ORDER_WEI hard safety cap per live order
 	DryRunWalletID           string
 	DryRunFromAddress        string
 	ExecutionPrivateKey      string
@@ -258,6 +260,8 @@ func Load(service Service) (Config, error) {
 		TradeSocketBSC:           os.Getenv("EVM_TRADE_SOCKET_BSC"),
 		TradeAPITokenBSC:         os.Getenv("EVM_TRADE_API_TOKEN_BSC"),
 		FeedSocketBSC:            os.Getenv("EVM_FEED_SOCKET_BSC"),
+		PrivateRelayURLs:         splitNonEmptyCSV(os.Getenv("EVM_PRIVATE_RELAY_URLS")),
+		MaxOrderNativeWei:        env("EVM_MAX_ORDER_WEI", "50000000000000000"), // default 0.05 native unit cap
 		DryRunWalletID:           envPref("EVM_DRY_RUN_WALLET_ID", "RBH_DRY_RUN_WALLET_ID", ""),
 		DryRunFromAddress:        envPref("EVM_DRY_RUN_FROM_ADDRESS", "RBH_DRY_RUN_FROM_ADDRESS", ""),
 		ExecutionPrivateKey:      envPref("EVM_EXECUTION_PRIVATE_KEY", "RBH_EXECUTION_PRIVATE_KEY", ""),
@@ -320,4 +324,14 @@ func parseInt64CSV(raw string) ([]int64, error) {
 		out = append(out, v)
 	}
 	return out, nil
+}
+
+func splitNonEmptyCSV(raw string) []string {
+	var out []string
+	for _, p := range strings.Split(raw, ",") {
+		if t := strings.TrimSpace(p); t != "" {
+			out = append(out, t)
+		}
+	}
+	return out
 }
