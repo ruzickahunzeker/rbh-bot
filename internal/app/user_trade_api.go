@@ -66,7 +66,11 @@ func configureUserTradeAPIWithHandle(server routeRegistrar, database *storage.Da
 	if err != nil {
 		return nil, err
 	}
-	ext, err := tradeapi.NewLocalV2Extension(reg, nil, nil)
+	var localProvider tradeapi.LocalV2Provider
+	if cfg.TradeAPIReadQueries && cfg.RPCURL != "" {
+		localProvider = tradeapi.NewRPCLocalV2Provider(cfg.RPCURL, reg, database, userAPI.WalletAddress(), 0)
+	}
+	ext, err := tradeapi.NewLocalV2Extension(reg, localProvider, nil)
 	if err != nil {
 		return nil, err
 	}
