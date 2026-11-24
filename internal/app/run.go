@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -43,6 +44,9 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		return errors.New("application context is required")
 	}
 	if err := cfg.ValidateTradeStartupProfile(); err != nil {
+		return err
+	}
+	if err := cfg.ValidateTimeouts(); err != nil {
 		return err
 	}
 	service := cfg.Service
@@ -237,27 +241,61 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		// Registered after RPC.Close: always drain before closing RPC/SQLite,
 		// including a listener failure after the durable lease was acquired.
 		defer recoveryLoop.stopAndWait()
-		server.SetMetricsWriter(canaryProduction.WriteMetrics)
+		server.SetMetricsWriter(func(metricCtx context.Context, writer io.Writer) error {
+			if err := canaryProduction.WriteMetrics(metricCtx, writer); err != nil {
+				return err
+			}
+			return writeRuntimeMetrics(writer, database, authenticator)
+		})
 		ready.Set("recovery_ready", canaryProduction.Readiness().RecoveryReady)
 	}
 
+	if cfg.HTTPWriteTimeout > 0 {
+		server.SetTimeouts(0, cfg.HTTPWriteTimeout, 0)
+	}
 	listener, err := server.Listen()
 	if err != nil {
 		return err
 	}
+	var adminServer *health.Server
+	var adminListener net.Listener
+	if cfg.AdminSocket != "" {
+		adminControl := &runtimeEmergencyControl{}
+		adminServer = newAdminServer(string(service), cfg.AdminSocket, log, database, adminControl)
+		adminListener, err = adminServer.Listen()
+		if err != nil {
+			_ = listener.Close()
+			return fmt.Errorf("listen admin socket: %w", err)
+		}
+		defer func() { _ = adminListener.Close() }()
+	}
+
 	ready.Set("socket_bound", true)
-	errCh := make(chan error, 4)
+	errCh := make(chan error, 8)
+	reportErr := func(e error) {
+		select {
+		case errCh <- e:
+		default:
+		}
+	}
 	var bgWG sync.WaitGroup
 	bgWG.Add(1)
 	go func() {
 		defer bgWG.Done()
-		errCh <- server.Serve(listener)
+		reportErr(server.Serve(listener))
 	}()
+	if adminServer != nil && adminListener != nil {
+		bgWG.Add(1)
+		go func() {
+			defer bgWG.Done()
+			reportErr(adminServer.Serve(adminListener))
+		}()
+	}
 	if runner != nil {
 		bgWG.Add(2)
 		go func() {
 			defer bgWG.Done()
-			errCh <- runner.Run(ctx)
+			reportErr(runner.Run(ctx))
 		}()
 		go func() {
 			defer bgWG.Done()
@@ -268,7 +306,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		bgWG.Add(1)
 		go func() {
 			defer bgWG.Done()
-			errCh <- botConsumer.Run(ctx, 100*time.Millisecond)
+			reportErr(botConsumer.Run(ctx, 100*time.Millisecond))
 		}()
 	}
 	if canaryProduction != nil {
@@ -276,7 +314,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		go func() {
 			defer bgWG.Done()
 			<-recoveryLoop.done
-			errCh <- recoveryLoop.err
+			reportErr(recoveryLoop.err)
 		}()
 		go func() {
 			defer bgWG.Done()
@@ -287,6 +325,11 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 	drainAll := func() error {
 		stop()
 		err := shutdownApplication(server, canaryProduction)
+		if adminServer != nil {
+			if adminErr := shutdownServer(adminServer); adminErr != nil {
+				err = errors.Join(err, adminErr)
+			}
+		}
 		if recoveryLoop != nil {
 			recoveryLoop.stopAndWait()
 		}
@@ -313,6 +356,21 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 	case <-ctx.Done():
 		return drainAll()
 	}
+}
+
+func writeRuntimeMetrics(writer io.Writer, database *storage.Database, authenticator *ipc.Authenticator) error {
+	if database != nil {
+		if _, err := fmt.Fprintf(writer, "# TYPE rbh_sqlite_wal_bytes gauge\nrbh_sqlite_wal_bytes %d\n", database.WALSizeBytes()); err != nil {
+			return err
+		}
+	}
+	if authenticator != nil {
+		size, capacity := authenticator.ReplayCacheStats()
+		if _, err := fmt.Fprintf(writer, "# TYPE rbh_ipc_replay_cache_size gauge\nrbh_ipc_replay_cache_size %d\n# TYPE rbh_ipc_replay_cache_capacity gauge\nrbh_ipc_replay_cache_capacity %d\n", size, capacity); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func writeFeedMetrics(ctx context.Context, writer io.Writer, store *feedcore.Store) error {

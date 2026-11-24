@@ -248,9 +248,12 @@ func (d *Database) Validate(ctx context.Context) error {
 	if !strings.EqualFold(mode, "wal") {
 		return fmt.Errorf("PRAGMA journal_mode=%s, want wal", mode)
 	}
-	if d.readDB != nil {
+	d.readMu.Lock()
+	rdb := d.readDB
+	d.readMu.Unlock()
+	if rdb != nil {
 		var queryOnly int
-		if err := d.readDB.QueryRowContext(ctx, "PRAGMA query_only").Scan(&queryOnly); err != nil {
+		if err := rdb.QueryRowContext(ctx, "PRAGMA query_only").Scan(&queryOnly); err != nil {
 			return fmt.Errorf("read pool PRAGMA query_only: %w", err)
 		}
 		if queryOnly != 1 {

@@ -2,14 +2,13 @@ package app
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 
 	"github.com/ruzickahunzeker/rbh-bot/internal/config"
 	"github.com/ruzickahunzeker/rbh-bot/internal/trade"
 )
 
-// A1 supports one configured historical key version, not key rotation/keyring.
+// recoveryCipher wraps a multi-version AES-GCM keyring in decrypt-only mode.
 // The legacy interface includes Encrypt; this recovery capability rejects it.
 type recoveryCipher struct{ cipher *trade.AESGCMCipher }
 
@@ -25,12 +24,16 @@ func loadRecoveryCipher(cfg config.Config) (trade.ArtifactCipher, error) {
 	if cfg.RPCURL == "" || cfg.ArtifactKeyVersion == "" {
 		return nil, errors.New("recovery configuration is incomplete")
 	}
-	key, err := hex.DecodeString(cfg.ArtifactEncryptionKey)
+	keys, err := cfg.ParseArtifactKeyring()
 	if err != nil {
 		return nil, errors.New("invalid recovery encryption configuration")
 	}
-	defer clear(key)
-	cipher, err := trade.NewAESGCMCipher(cfg.ArtifactKeyVersion, key)
+	defer func() {
+		for _, k := range keys {
+			clear(k)
+		}
+	}()
+	cipher, err := trade.NewAESGCMKeyring(cfg.ArtifactKeyVersion, keys)
 	if err != nil {
 		return nil, errors.New("invalid recovery encryption configuration")
 	}

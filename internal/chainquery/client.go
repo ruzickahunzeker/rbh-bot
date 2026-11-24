@@ -91,6 +91,8 @@ func (c *Client) rpc(ctx context.Context, method string, params any, out any) er
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
+		// Drain bounded error body so HTTP/1.1 Keep-Alive connections remain reusable.
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
 		return ErrUnavailable
 	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, (1<<20)+1))
