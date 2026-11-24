@@ -16,6 +16,8 @@ import (
 	parser "github.com/0xfnzero/rbh-parser-sdk/rbhparser"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	basechain "github.com/ruzickahunzeker/rbh-bot/internal/chains/base"
+	"github.com/ruzickahunzeker/rbh-bot/internal/chains/bsc"
 	botcore "github.com/ruzickahunzeker/rbh-bot/internal/bot"
 	"github.com/ruzickahunzeker/rbh-bot/internal/config"
 	feedcore "github.com/ruzickahunzeker/rbh-bot/internal/feed"
@@ -109,6 +111,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 	defer stop()
 	server := health.New(string(service), cfg.Socket, log, ready)
 	var runner *feedcore.SequencerRunner
+	var evmRunner *feedcore.EVMReceiptRunner
 	var botConsumer *botcore.Consumer
 	var canaryProduction *tradecore.ProductionComposition
 	var recoveryLoop *recoveryLifetime
@@ -149,6 +152,13 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			return fmt.Errorf("initialize feed watchlist store: %w", err)
 		}
 		runner.SetWatchlist(watchlistStore)
+		if cfg.ChainID != config.ChainID && cfg.RPCURL != "" {
+			evmRunner, err = feedcore.NewEVMReceiptRunner(cfg.ChainID, wrappedNativeForChain(cfg.ChainID), cfg.RPCURL, store, watchlistStore, 0)
+			if err != nil {
+				return err
+			}
+			runner = nil
+		}
 		watchlistHandler := ipc.RequestContext(authenticator.Middleware(feedcore.NewWatchlistHTTPHandler(watchlistStore)))
 		server.Handle("GET /internal/feed/outbox", ipc.RequestContext(authenticator.Middleware(feedcore.NewOutboxHTTPHandler(store))))
 		server.Handle("GET /internal/v1/watchlist", watchlistHandler)
@@ -343,6 +353,17 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			monitorFeedReadiness(ctx, ready, runner)
 		}()
 	}
+	if evmRunner != nil {
+		bgWG.Add(2)
+		go func() {
+			defer bgWG.Done()
+			reportErr(evmRunner.Run(ctx, 500*time.Millisecond))
+		}()
+		go func() {
+			defer bgWG.Done()
+			monitorEVMFeedReadiness(ctx, ready, evmRunner)
+		}()
+	}
 	if botConsumer != nil {
 		bgWG.Add(1)
 		go func() {
@@ -446,6 +467,31 @@ func monitorFeedReadiness(ctx context.Context, ready *health.Readiness, runner *
 			return
 		case <-ticker.C:
 		}
+	}
+}
+
+func monitorEVMFeedReadiness(ctx context.Context, ready *health.Readiness, runner *feedcore.EVMReceiptRunner) {
+	ticker := time.NewTicker(250 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		ready.Set("feed_stream_healthy", runner.Ready(ctx))
+		select {
+		case <-ctx.Done():
+			ready.Set("feed_stream_healthy", false)
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+func wrappedNativeForChain(chainID uint64) common.Address {
+	switch chainID {
+	case config.BSCChainID:
+		return bsc.WBNBAddress
+	case config.BaseChainID:
+		return basechain.WETHAddress
+	default:
+		return common.Address{}
 	}
 }
 

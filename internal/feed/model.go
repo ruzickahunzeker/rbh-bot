@@ -33,8 +33,12 @@ type Observation struct {
 	ObservedAt       time.Time
 }
 
+func isSupportedFeedChain(chainID uint64) bool {
+	return chainID == ChainID || chainID == 56 || chainID == 8453
+}
+
 func (o Observation) Validate() error {
-	if o.ChainID != ChainID || (o.Source != SourceSequencer && o.Source != SourceRPC) || o.TransactionHash == (common.Hash{}) {
+	if !isSupportedFeedChain(o.ChainID) || (o.Source != SourceSequencer && o.Source != SourceRPC) || o.TransactionHash == (common.Hash{}) {
 		return ErrInvalidObservation
 	}
 	if strings.TrimSpace(o.StableActionPath) == "" || len(o.StableActionPath) > 256 || !json.Valid(o.PayloadJSON) {
