@@ -160,4 +160,22 @@ func TestStep15LocalQuotesApprovalsAndPositions(t *testing.T) {
 	if pw2.Code != http.StatusOK || !strings.Contains(pw2.Body.String(), `"token_balance_raw":"950000000000000000000"`) {
 		t.Fatalf("expected 200 OK exact position, got %d %s", pw2.Code, pw2.Body.String())
 	}
+
+	// 5. AT-26: GET /v1/trade-updates?after_seq=0 returns durable approval event with operation_kind="approval",
+	// and out-of-range cursor returns 410 Gone (CURSOR_OUT_OF_RANGE).
+	uReq := httptest.NewRequest(http.MethodGet, "/v1/trade-updates?after_seq=0&limit=10", nil)
+	uReq.Header.Set("Authorization", "Bearer "+testCredential)
+	uw := httptest.NewRecorder()
+	api.ServeHTTP(uw, uReq)
+	if uw.Code != http.StatusOK || !strings.Contains(uw.Body.String(), `"operation_kind":"approval"`) || !strings.Contains(uw.Body.String(), appr.RequestID) {
+		t.Fatalf("GET /v1/trade-updates failed: %d %s", uw.Code, uw.Body.String())
+	}
+	// Out-of-range cursor (after_seq > max_seq) must return 410 Gone.
+	goneReq := httptest.NewRequest(http.MethodGet, "/v1/trade-updates?after_seq=999", nil)
+	goneReq.Header.Set("Authorization", "Bearer "+testCredential)
+	gw := httptest.NewRecorder()
+	api.ServeHTTP(gw, goneReq)
+	if gw.Code != http.StatusGone || !strings.Contains(gw.Body.String(), "CURSOR_OUT_OF_RANGE") {
+		t.Fatalf("expected 410 CURSOR_OUT_OF_RANGE, got %d %s", gw.Code, gw.Body.String())
+	}
 }

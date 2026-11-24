@@ -286,7 +286,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 	var adminListener net.Listener
 	if cfg.AdminSocket != "" {
 		adminControl := &runtimeEmergencyControl{}
-		adminServer = newAdminServer(string(service), cfg.AdminSocket, cfg.ChainID, log, database, adminControl)
+		adminServer = newAdminServer(string(service), cfg.AdminSocket, cfg.ChainID, log, database, adminControl, nil)
 		adminListener, err = adminServer.Listen()
 		if err != nil {
 			_ = listener.Close()

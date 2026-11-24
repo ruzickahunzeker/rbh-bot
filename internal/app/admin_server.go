@@ -37,7 +37,7 @@ func (c *runtimeEmergencyControl) Snapshot() (stopped bool, reason string, updat
 	return c.stopped.Load(), c.reason, c.updated
 }
 
-func newAdminServer(serviceName, socketPath string, chainID uint64, log *slog.Logger, database *storage.Database, control *runtimeEmergencyControl) *health.Server {
+func newAdminServer(serviceName, socketPath string, chainID uint64, log *slog.Logger, database *storage.Database, control *runtimeEmergencyControl, isInFlight func(string) bool) *health.Server {
 	ready := health.NewReadiness("admin_ready")
 	ready.Set("admin_ready", true)
 	admin := health.New(serviceName+"-admin", socketPath, log, ready)
@@ -126,7 +126,7 @@ func newAdminServer(serviceName, socketPath string, chainID uint64, log *slog.Lo
 		if body.Reason == "" {
 			body.Reason = "operator_abort_pre_sign"
 		}
-		if err := abortPreSignOperation(r.Context(), database, opID, body.Reason, time.Now().UTC()); err != nil {
+		if err := abortPreSignOperation(r.Context(), database, opID, body.Reason, isInFlight, time.Now().UTC()); err != nil {
 			writeAdminJSON(w, http.StatusConflict, map[string]any{"error": err.Error()})
 			return
 		}
@@ -180,9 +180,12 @@ func listStuckOperations(ctx context.Context, database *storage.Database) ([]stu
 	return out, rows.Err()
 }
 
-func abortPreSignOperation(ctx context.Context, database *storage.Database, operationID, reason string, now time.Time) error {
+func abortPreSignOperation(ctx context.Context, database *storage.Database, operationID, reason string, isInFlight func(string) bool, now time.Time) error {
 	if database == nil || operationID == "" {
 		return errors.New("operation_id is required")
+	}
+	if isInFlight != nil && isInFlight(operationID) {
+		return fmt.Errorf("operation %s has an active in-memory continuation", operationID)
 	}
 	sqlDB, err := database.SQLDB(storage.TradeOwner)
 	if err != nil {
