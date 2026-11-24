@@ -20,9 +20,21 @@ type SequencerStatus struct {
 type SequencerRunner struct {
 	store      *Store
 	normalizer *IntentNormalizer
+	watchlist  *WatchlistStore
 
 	mu     sync.RWMutex
 	status SequencerStatus
+}
+
+// SetWatchlist attaches a persistent watchlist filter so unrelated swaps are filtered
+// before hitting SQLite outbox storage while sequencer sequence numbers still advance.
+func (r *SequencerRunner) SetWatchlist(ws *WatchlistStore) {
+	if r == nil {
+		return
+	}
+	r.mu.Lock()
+	r.watchlist = ws
+	r.mu.Unlock()
 }
 
 func NewSequencerRunner(value *parser.Parser, store *Store) (*SequencerRunner, error) {
@@ -109,6 +121,19 @@ func (r *SequencerRunner) Handle(ctx context.Context, received sequencer.FeedTra
 	observations, err := r.normalizer.Normalize(received.Transaction, received.Sender, SourceSequencer, received.SequenceNumber, received.ReceivedAt)
 	if err != nil {
 		return err
+	}
+	r.mu.RLock()
+	ws := r.watchlist
+	r.mu.RUnlock()
+	if ws != nil && ws.Initialized() {
+		filtered := observations[:0]
+		senderHex := received.Sender.Hex()
+		for _, obs := range observations {
+			if ws.MatchesPayload(senderHex, obs.PayloadJSON) {
+				filtered = append(filtered, obs)
+			}
+		}
+		observations = filtered
 	}
 	if _, err := r.store.CommitSequencer(ctx, observations, received.SequenceNumber); err != nil {
 		return err

@@ -14,9 +14,11 @@ import (
 var ErrReceiptProcessorUnavailable = errors.New("receipt processor unavailable")
 
 type ReceiptProcessor struct {
-	parser *parser.Parser
-	gate   *ReceiptGate
-	store  *Store
+	parser    *parser.Parser
+	gate      *ReceiptGate
+	store     *Store
+	chainID   uint64
+	watchlist *WatchlistStore
 }
 
 func NewReceiptProcessor(value *parser.Parser, store *Store) (*ReceiptProcessor, error) {
@@ -27,10 +29,25 @@ func NewReceiptProcessor(value *parser.Parser, store *Store) (*ReceiptProcessor,
 		value = parser.New()
 	}
 	return &ReceiptProcessor{
-		parser: value,
-		gate:   NewReceiptGateWithAuditSink(value, store),
-		store:  store,
+		parser:  value,
+		gate:    NewReceiptGateWithAuditSink(value, store),
+		store:   store,
+		chainID: ChainID,
 	}, nil
+}
+
+// SetChainID overrides the default Robinhood ChainID (4663) for multi-chain feed instances.
+func (p *ReceiptProcessor) SetChainID(chainID uint64) {
+	if p != nil && chainID > 0 {
+		p.chainID = chainID
+	}
+}
+
+// SetWatchlist attaches a persistent watchlist filter for receipt-derived observations.
+func (p *ReceiptProcessor) SetWatchlist(ws *WatchlistStore) {
+	if p != nil {
+		p.watchlist = ws
+	}
 }
 
 // Process persists the receipt audit before parser invocation, then atomically
@@ -55,8 +72,15 @@ func (p *ReceiptProcessor) Process(ctx context.Context, receipt *gethtypes.Recei
 			}
 			return CommitResult{}, fmt.Errorf("marshal receipt event: %w", err)
 		}
+		cid := p.chainID
+		if cid == 0 {
+			cid = ChainID
+		}
+		if p.watchlist != nil && p.watchlist.Initialized() && !p.watchlist.MatchesPayload("", payload) {
+			continue
+		}
 		observation := Observation{
-			ChainID:          ChainID,
+			ChainID:          cid,
 			Source:           SourceRPC,
 			SourceSequence:   result.BlockNumber,
 			TransactionHash:  result.TransactionHash,

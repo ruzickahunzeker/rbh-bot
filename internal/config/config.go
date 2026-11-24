@@ -10,7 +10,23 @@ import (
 	"time"
 )
 
-const ChainID uint64 = 4663
+const (
+	ChainID    uint64 = 4663
+	BSCChainID uint64 = 56
+)
+
+func IsSupportedChainID(chainID uint64) bool {
+	return chainID == ChainID || chainID == BSCChainID
+}
+
+func DefaultChainSlug(chainID uint64) string {
+	switch chainID {
+	case BSCChainID:
+		return "bsc"
+	default:
+		return "rbh"
+	}
+}
 
 const CanaryProductionModeDisabled = "DISABLED"
 
@@ -157,8 +173,8 @@ func Load(service Service) (Config, error) {
 	dataDir := env("RBH_DATA_DIR", "./data")
 	socketDir := env("RBH_SOCKET_DIR", filepath.Join(dataDir, "run"))
 	chainID, err := strconv.ParseUint(env("RBH_CHAIN_ID", "4663"), 10, 64)
-	if err != nil || chainID != ChainID {
-		return Config{}, fmt.Errorf("RBH_CHAIN_ID must be %d", ChainID)
+	if err != nil || !IsSupportedChainID(chainID) {
+		return Config{}, fmt.Errorf("RBH_CHAIN_ID must be a supported chain (%d or %d)", ChainID, BSCChainID)
 	}
 	live, err := strconv.ParseBool(env("RBH_LIVE_ENABLED", "false"))
 	if err != nil {
@@ -205,7 +221,7 @@ func Load(service Service) (Config, error) {
 		AdminSocket:              os.Getenv("RBH_ADMIN_SOCKET"),
 		LogLevel:                 strings.ToUpper(env("RBH_LOG_LEVEL", "INFO")),
 		ChainID:                  chainID,
-		ChainSlug:                env("RBH_CHAIN_SLUG", "rbh"),
+		ChainSlug:                env("RBH_CHAIN_SLUG", DefaultChainSlug(chainID)),
 		NetworkKind:              env("RBH_NETWORK_KIND", "mainnet"),
 		EnforceChainIdentity:     service == TradeService || service == FeedService,
 		LiveEnabled:              live,

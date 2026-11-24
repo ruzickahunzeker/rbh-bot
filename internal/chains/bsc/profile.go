@@ -21,6 +21,7 @@ var (
 	WBNBAddress       = common.HexToAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
 	Multicall3Address = common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")
 	PancakeV2Router   = common.HexToAddress("0x10ED43C718714eb63d5aA57B78B54704E256024E")
+	PancakeV2Factory  = common.HexToAddress("0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73")
 
 	// DefaultMinGasPriceWei is 0.1 gwei (validators currently accept 0.05-0.1 gwei floor).
 	DefaultMinGasPriceWei = big.NewInt(100_000_000)

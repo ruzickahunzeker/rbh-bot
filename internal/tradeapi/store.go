@@ -10,7 +10,10 @@ import (
 	"github.com/ruzickahunzeker/rbh-bot/internal/storage"
 )
 
-type Store struct{ db *sql.DB }
+type Store struct {
+	db       *sql.DB
+	database *storage.Database
+}
 
 func NewStore(database *storage.Database) (*Store, error) {
 	if database == nil {
@@ -20,7 +23,21 @@ func NewStore(database *storage.Database) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Store{db: db}, nil
+	return &Store{db: db, database: database}, nil
+}
+
+// reader returns the query_only=1 read-only SQLite connection pool when available,
+// falling back to the primary writer handle for in-memory test databases.
+func (s *Store) reader() *sql.DB {
+	if s != nil && s.database != nil {
+		if rdb, err := s.database.ReadDB(storage.TradeOwner); err == nil && rdb != nil {
+			return rdb
+		}
+	}
+	if s != nil {
+		return s.db
+	}
+	return nil
 }
 
 type Identity struct {

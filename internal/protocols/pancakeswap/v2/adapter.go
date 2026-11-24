@@ -6,6 +6,7 @@ package v2
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -23,8 +24,13 @@ const (
 )
 
 const pancakeV2RouterABIJSON = `[
+  {"name":"getAmountsOut","type":"function","stateMutability":"view","inputs":[{"name":"amountIn","type":"uint256"},{"name":"path","type":"address[]"}],"outputs":[{"name":"amounts","type":"uint256[]"}]},
   {"name":"swapExactETHForTokensSupportingFeeOnTransferTokens","type":"function","inputs":[{"name":"amountOutMin","type":"uint256"},{"name":"path","type":"address[]"},{"name":"to","type":"address"},{"name":"deadline","type":"uint256"}],"outputs":[]},
   {"name":"swapExactTokensForETHSupportingFeeOnTransferTokens","type":"function","inputs":[{"name":"amountIn","type":"uint256"},{"name":"amountOutMin","type":"uint256"},{"name":"path","type":"address[]"},{"name":"to","type":"address"},{"name":"deadline","type":"uint256"}],"outputs":[]}
+]`
+
+const pancakeV2FactoryABIJSON = `[
+  {"name":"getPair","type":"function","stateMutability":"view","inputs":[{"name":"tokenA","type":"address"},{"name":"tokenB","type":"address"}],"outputs":[{"name":"pair","type":"address"}]}
 ]`
 
 const erc20ApproveABIJSON = `[
@@ -32,9 +38,12 @@ const erc20ApproveABIJSON = `[
 ]`
 
 var (
-	routerABI          = mustParseABI(pancakeV2RouterABIJSON)
-	erc20ABI           = mustParseABI(erc20ApproveABIJSON)
-	erc20TransferTopic = crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)"))
+	routerABI           = mustParseABI(pancakeV2RouterABIJSON)
+	factoryABI          = mustParseABI(pancakeV2FactoryABIJSON)
+	erc20ABI            = mustParseABI(erc20ApproveABIJSON)
+	erc20TransferTopic  = crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)"))
+	wbnbDepositTopic    = crypto.Keccak256Hash([]byte("Deposit(address,uint256)"))
+	wbnbWithdrawalTopic = crypto.Keccak256Hash([]byte("Withdrawal(address,uint256)"))
 )
 
 func mustParseABI(src string) abi.ABI {
@@ -48,6 +57,7 @@ func mustParseABI(src string) abi.ABI {
 type Adapter struct {
 	chainID uint64
 	router  common.Address
+	factory common.Address
 	wbnb    common.Address
 }
 
@@ -55,6 +65,7 @@ func NewAdapter() *Adapter {
 	return &Adapter{
 		chainID: bsc.ChainID,
 		router:  bsc.PancakeV2Router,
+		factory: bsc.PancakeV2Factory,
 		wbnb:    bsc.WBNBAddress,
 	}
 }
@@ -74,6 +85,8 @@ func (a *Adapter) Describe() ports.AdapterDescriptor {
 	}
 }
 
+// Resolve verifies router, token, and real PancakeSwap V2 Factory pair contract existence
+// pinned to blockHash, returning the canonical V2 pair address as PoolOrCurve.
 func (a *Adapter) Resolve(ctx context.Context, rpc ports.ReadOnlyRPC, token common.Address, blockNumber uint64, blockHash common.Hash) (ports.ResolvedRoute, error) {
 	if rpc == nil || token == (common.Address{}) || token == a.wbnb || blockHash == (common.Hash{}) {
 		return ports.ResolvedRoute{}, errors.New("invalid BSC pancake-v2 resolve inputs")
@@ -86,6 +99,26 @@ func (a *Adapter) Resolve(ctx context.Context, rpc ports.ReadOnlyRPC, token comm
 	if err != nil || len(tokenCode) == 0 {
 		return ports.ResolvedRoute{}, errors.New("target token has no runtime code")
 	}
+	calldata, err := factoryABI.Pack("getPair", a.wbnb, token)
+	if err != nil {
+		return ports.ResolvedRoute{}, err
+	}
+	rawPair, err := rpc.CallContractAt(ctx, a.factory, calldata, blockHash)
+	if err != nil {
+		return ports.ResolvedRoute{}, fmt.Errorf("pancake-v2 factory.getPair failed: %w", err)
+	}
+	unpacked, err := factoryABI.Unpack("getPair", rawPair)
+	if err != nil || len(unpacked) != 1 {
+		return ports.ResolvedRoute{}, errors.New("invalid pancake-v2 factory.getPair response")
+	}
+	pairAddr, ok := unpacked[0].(common.Address)
+	if !ok || pairAddr == (common.Address{}) {
+		return ports.ResolvedRoute{}, errors.New("pancake-v2 pair does not exist for WBNB/token")
+	}
+	pairCode, err := rpc.CodeAt(ctx, pairAddr, blockHash)
+	if err != nil || len(pairCode) == 0 {
+		return ports.ResolvedRoute{}, errors.New("pancake-v2 pair has no runtime code")
+	}
 	return ports.ResolvedRoute{
 		ChainID:            a.chainID,
 		ProtocolID:         ProtocolID,
@@ -93,7 +126,7 @@ func (a *Adapter) Resolve(ctx context.Context, rpc ports.ReadOnlyRPC, token comm
 		DeploymentRevision: "pancakeswap-v2-bsc-mainnet",
 		PoolPhase:          "DEX_V2",
 		Token:              token,
-		PoolOrCurve:        a.router,
+		PoolOrCurve:        pairAddr,
 		RouterOrSpender:    a.router,
 		RuntimeCodeHash:    crypto.Keccak256Hash(routerCode),
 		QuoteBlockNumber:   blockNumber,
@@ -101,14 +134,41 @@ func (a *Adapter) Resolve(ctx context.Context, rpc ports.ReadOnlyRPC, token comm
 	}, nil
 }
 
-func (a *Adapter) Quote(_ context.Context, _ ports.ReadOnlyRPC, req ports.QuoteRequest) (ports.QuoteResult, error) {
-	if req.AmountInRaw == nil || req.AmountInRaw.Sign() <= 0 || req.SlippageBps > 10000 {
+// Quote queries PancakeSwap V2 Router.getAmountsOut pinned to QuoteBlockHash and applies slippage.
+func (a *Adapter) Quote(ctx context.Context, rpc ports.ReadOnlyRPC, req ports.QuoteRequest) (ports.QuoteResult, error) {
+	if rpc == nil || req.Route.Token == (common.Address{}) || req.Route.QuoteBlockHash == (common.Hash{}) || req.AmountInRaw == nil || req.AmountInRaw.Sign() <= 0 || req.SlippageBps > 10000 {
 		return ports.QuoteResult{}, errors.New("invalid quote request")
 	}
-	minOut := new(big.Int).Mul(req.AmountInRaw, new(big.Int).SetUint64(10000-req.SlippageBps))
+	var path []common.Address
+	switch req.Side {
+	case ports.SideBuy:
+		path = []common.Address{a.wbnb, req.Route.Token}
+	case ports.SideSell:
+		path = []common.Address{req.Route.Token, a.wbnb}
+	default:
+		return ports.QuoteResult{}, errors.New("unsupported side")
+	}
+	calldata, err := routerABI.Pack("getAmountsOut", req.AmountInRaw, path)
+	if err != nil {
+		return ports.QuoteResult{}, err
+	}
+	rawOut, err := rpc.CallContractAt(ctx, a.router, calldata, req.Route.QuoteBlockHash)
+	if err != nil {
+		return ports.QuoteResult{}, fmt.Errorf("pancake-v2 router.getAmountsOut failed: %w", err)
+	}
+	unpacked, err := routerABI.Unpack("getAmountsOut", rawOut)
+	if err != nil || len(unpacked) != 1 {
+		return ports.QuoteResult{}, errors.New("invalid pancake-v2 getAmountsOut response")
+	}
+	amounts, ok := unpacked[0].([]*big.Int)
+	if !ok || len(amounts) < 2 || amounts[len(amounts)-1] == nil || amounts[len(amounts)-1].Sign() <= 0 {
+		return ports.QuoteResult{}, errors.New("pancake-v2 getAmountsOut returned zero output")
+	}
+	expectedOut := new(big.Int).Set(amounts[len(amounts)-1])
+	minOut := new(big.Int).Mul(expectedOut, new(big.Int).SetUint64(10000-req.SlippageBps))
 	minOut.Div(minOut, big.NewInt(10000))
 	return ports.QuoteResult{
-		ExpectedOutRaw:   new(big.Int).Set(req.AmountInRaw),
+		ExpectedOutRaw:   expectedOut,
 		MinOutRaw:        minOut,
 		FeeBps:           25, // 0.25% PancakeSwap V2 swap fee
 		EstimatedGas:     220_000,
@@ -169,32 +229,47 @@ func BuildApproveCalldata(spender common.Address, amountRaw *big.Int) ([]byte, e
 	return erc20ABI.Pack("approve", spender, amountRaw)
 }
 
-// DecodeEffects computes the wallet's exact net ERC-20 Transfer delta from receipt logs
-// (accurate for BSC Fee-on-Transfer tax tokens).
+// DecodeEffects computes the wallet's exact net ERC-20 Transfer delta AND native BNB delta
+// (via WBNB Deposit/Withdrawal logs emitted by the router/wallet) from receipt logs.
 func (a *Adapter) DecodeEffects(route ports.ResolvedRoute, wallet common.Address, side ports.Side, receipt *types.Receipt) (ports.DecodedEffects, error) {
 	if receipt == nil || wallet == (common.Address{}) || route.Token == (common.Address{}) {
 		return ports.DecodedEffects{}, errors.New("invalid decode inputs")
 	}
 	netToken := big.NewInt(0)
+	netNative := big.NewInt(0)
 	for _, lg := range receipt.Logs {
-		if lg == nil || lg.Address != route.Token || len(lg.Topics) != 3 || lg.Topics[0] != erc20TransferTopic || len(lg.Data) != 32 {
+		if lg == nil || len(lg.Data) != 32 || len(lg.Topics) < 2 {
 			continue
 		}
-		from := common.BytesToAddress(lg.Topics[1].Bytes())
-		to := common.BytesToAddress(lg.Topics[2].Bytes())
-		amt := new(big.Int).SetBytes(lg.Data)
-		if to == wallet {
-			netToken.Add(netToken, amt)
+		if lg.Address == route.Token && len(lg.Topics) == 3 && lg.Topics[0] == erc20TransferTopic {
+			from := common.BytesToAddress(lg.Topics[1].Bytes())
+			to := common.BytesToAddress(lg.Topics[2].Bytes())
+			amt := new(big.Int).SetBytes(lg.Data)
+			if to == wallet {
+				netToken.Add(netToken, amt)
+			}
+			if from == wallet {
+				netToken.Sub(netToken, amt)
+			}
+			continue
 		}
-		if from == wallet {
-			netToken.Sub(netToken, amt)
+		if lg.Address == a.wbnb && len(lg.Topics) == 2 {
+			actor := common.BytesToAddress(lg.Topics[1].Bytes())
+			amt := new(big.Int).SetBytes(lg.Data)
+			if lg.Topics[0] == wbnbWithdrawalTopic && (actor == a.router || actor == wallet) {
+				// Router unwrapped WBNB to native BNB and sent it to the recipient wallet.
+				netNative.Add(netNative, amt)
+			} else if lg.Topics[0] == wbnbDepositTopic && (actor == a.router || actor == wallet) {
+				// Router wrapped incoming native BNB from the buyer.
+				netNative.Sub(netNative, amt)
+			}
 		}
 	}
 	return ports.DecodedEffects{
 		WalletAddress:      wallet,
 		TokenAddress:       route.Token,
 		Side:               side,
-		NetNativeDeltaWei:  big.NewInt(0),
+		NetNativeDeltaWei:  netNative,
 		NetTokenDeltaRaw:   netToken,
 		EvidenceComplete:   receipt.Status == types.ReceiptStatusSuccessful,
 		CanonicalBlockHash: receipt.BlockHash,

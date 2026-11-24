@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -170,27 +171,81 @@ func (w *WatchlistStore) Matches(trader, token string) bool {
 	return false
 }
 
-// NewWatchlistHTTPHandler serves PUT /internal/v1/watchlist on feed-<chain>.sock.
+// Snapshot returns a deterministic copy of the active persisted watchlist.
+func (w *WatchlistStore) Snapshot() WatchlistSnapshot {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	wallets := make([]string, 0, len(w.wallets))
+	for a := range w.wallets {
+		wallets = append(wallets, a)
+	}
+	sort.Strings(wallets)
+	tokens := make([]string, 0, len(w.tokens))
+	for a := range w.tokens {
+		tokens = append(tokens, a)
+	}
+	sort.Strings(tokens)
+	return WatchlistSnapshot{
+		Version: w.version,
+		Wallets: wallets,
+		Tokens:  tokens,
+	}
+}
+
+// MatchesPayload extracts trader/sender and token addresses from a normalized observation JSON payload
+// (or fallbackTrader) and returns true if either matches the active watchlist.
+func (w *WatchlistStore) MatchesPayload(fallbackTrader string, payloadJSON []byte) bool {
+	if w == nil || !w.Initialized() {
+		return true
+	}
+	if fallbackTrader != "" && w.Matches(fallbackTrader, "") {
+		return true
+	}
+	var fields struct {
+		Trader string `json:"trader"`
+		Sender string `json:"sender"`
+		From   string `json:"from"`
+		Token  string `json:"token"`
+	}
+	if err := json.Unmarshal(payloadJSON, &fields); err == nil {
+		for _, cand := range []string{fields.Trader, fields.Sender, fields.From} {
+			if cand != "" && w.Matches(cand, fields.Token) {
+				return true
+			}
+		}
+		if fields.Token != "" && w.Matches("", fields.Token) {
+			return true
+		}
+	}
+	return false
+}
+
+// NewWatchlistHTTPHandler serves GET and PUT /internal/v1/watchlist on feed-<chain>.sock.
 func NewWatchlistHTTPHandler(store *WatchlistStore) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut {
+		switch r.Method {
+		case http.MethodGet:
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(store.Snapshot())
+		case http.MethodPut:
+			var snap WatchlistSnapshot
+			dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20))
+			dec.DisallowUnknownFields()
+			if err := dec.Decode(&snap); err != nil {
+				http.Error(w, "invalid watchlist payload", http.StatusBadRequest)
+				return
+			}
+			if err := store.Replace(r.Context(), snap); err != nil {
+				http.Error(w, err.Error(), http.StatusConflict)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok", "version": snap.Version})
+		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
 		}
-		var snap WatchlistSnapshot
-		dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20))
-		dec.DisallowUnknownFields()
-		if err := dec.Decode(&snap); err != nil {
-			http.Error(w, "invalid watchlist payload", http.StatusBadRequest)
-			return
-		}
-		if err := store.Replace(r.Context(), snap); err != nil {
-			http.Error(w, err.Error(), http.StatusConflict)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok", "version": snap.Version})
 	})
 }
 

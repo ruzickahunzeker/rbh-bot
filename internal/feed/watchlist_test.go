@@ -3,6 +3,7 @@ package feed
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -37,6 +38,16 @@ func TestPersistentWatchlistSurvivesRestartAndFiltersNoise(t *testing.T) {
 	handler.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
 		t.Fatalf("PUT /internal/v1/watchlist failed: %d %s", w.Code, w.Body.String())
+	}
+	getReq := httptest.NewRequest(http.MethodGet, "/internal/v1/watchlist", nil)
+	gw := httptest.NewRecorder()
+	handler.ServeHTTP(gw, getReq)
+	if gw.Code != http.StatusOK {
+		t.Fatalf("GET /internal/v1/watchlist failed: %d %s", gw.Code, gw.Body.String())
+	}
+	var gotSnap WatchlistSnapshot
+	if err := json.Unmarshal(gw.Body.Bytes(), &gotSnap); err != nil || gotSnap.Version != 1 || len(gotSnap.Wallets) != 1 {
+		t.Fatalf("unexpected GET watchlist snapshot: %+v err=%v", gotSnap, err)
 	}
 	if err := db1.Close(); err != nil {
 		t.Fatal(err)

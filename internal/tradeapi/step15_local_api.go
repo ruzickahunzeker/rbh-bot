@@ -123,7 +123,7 @@ type LocalV2Extension struct {
 }
 
 func NewLocalV2Extension(reg *registry.Registry, provider LocalV2Provider, now func() time.Time) (*LocalV2Extension, error) {
-	if reg == nil || provider == nil {
+	if reg == nil {
 		return nil, ErrInvalid
 	}
 	if now == nil {
@@ -135,6 +135,15 @@ func NewLocalV2Extension(reg *registry.Registry, provider LocalV2Provider, now f
 		now:               now,
 		walletRequiredBlk: make(map[string]uint64),
 	}, nil
+}
+
+// IsOperationInFlight exposes the attached execution pipeline's active continuation check
+// for the Admin UDS abort-pre-sign concurrency guard.
+func (h *API) IsOperationInFlight(operationID string) bool {
+	if h == nil || h.executionPipeline == nil {
+		return false
+	}
+	return h.executionPipeline.IsOperationInFlight(operationID)
 }
 
 // SetWalletCanonicalBlock updates the dynamic MAX(inclusion_block_number) for walletID.
@@ -175,6 +184,14 @@ func (h *API) handleQuotePreflight(w http.ResponseWriter, r *http.Request, ext *
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
 		writeError(w, r, ErrInvalid)
+		return
+	}
+	if err := dec.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		writeError(w, r, ErrInvalid)
+		return
+	}
+	if ext.provider == nil {
+		writeRetryableError(w, r, http.StatusServiceUnavailable, "RPC_STATE_LAGGING", "quote provider not configured")
 		return
 	}
 	if !ext.reg.Chain().MatchesSlug(req.Chain) || req.WalletID != h.identity.WalletID || !common.IsHexAddress(req.Token) {
@@ -223,6 +240,10 @@ func (h *API) handleWalletPositions(w http.ResponseWriter, r *http.Request, ext 
 		}
 		spender = sp.Address
 	}
+	if ext.provider == nil {
+		writeRetryableError(w, r, http.StatusServiceUnavailable, "RPC_STATE_LAGGING", "position provider not configured")
+		return
+	}
 	snap, err := ext.provider.ReadPosition(
 		r.Context(),
 		walletID,
@@ -260,6 +281,10 @@ func (h *API) handleCreateApproval(w http.ResponseWriter, r *http.Request, ext *
 		writeError(w, r, ErrInvalid)
 		return
 	}
+	if err := dec.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		writeError(w, r, ErrInvalid)
+		return
+	}
 	if !ext.reg.Chain().MatchesSlug(req.Chain) || !common.IsHexAddress(req.Token) || req.TTLSeconds == 0 || req.TTLSeconds > 86400 {
 		writeError(w, r, ErrInvalid)
 		return
@@ -290,12 +315,12 @@ func (h *API) handleCreateApproval(w http.ResponseWriter, r *http.Request, ext *
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	// Idempotent lookup in SQLite manual_approval_requests.
+	// Idempotent lookup in SQLite manual_approval_requests scoped by (wallet_id, idempotency_key).
 	var existing ApprovalRecord
 	var existingFP string
 	err = tx.QueryRowContext(r.Context(),
 		`SELECT request_id, idempotency_key, chain_id, wallet_id, protocol, token, spender, amount_raw, native_gas_outlay_wei, native_input_wei, status, created_at, fingerprint
-		 FROM manual_approval_requests WHERE idempotency_key = ?`, idemKey,
+		 FROM manual_approval_requests WHERE wallet_id = ? AND idempotency_key = ?`, req.WalletID, idemKey,
 	).Scan(&existing.RequestID, &existing.IdempotencyKey, &existing.ChainID, &existing.WalletID, &existing.Protocol, &existing.Token,
 		&existing.Spender, &existing.AmountRaw, &existing.NativeGasOutlayWei, &existing.NativeInputWei, &existing.Status, &existing.CreatedAt, &existingFP)
 	if err == nil {
@@ -314,7 +339,10 @@ func (h *API) handleCreateApproval(w http.ResponseWriter, r *http.Request, ext *
 		return
 	}
 
-	reqID := "appr-" + hex.EncodeToString(fpSum[:8])
+	// Derive request_id from (wallet_id, idempotency_key) with 128-bit hash so a later
+	// re-approval of the same (token, amount) with a new Idempotency-Key never collides.
+	reqIDHash := sha256.Sum256([]byte(req.WalletID + "\x00" + idemKey))
+	reqID := "appr-" + hex.EncodeToString(reqIDHash[:16])
 	nowStr := ext.now().UTC().Format(time.RFC3339Nano)
 	rec := ApprovalRecord{
 		OperationKind:      "approval",
@@ -360,7 +388,7 @@ func (h *API) handleCreateApproval(w http.ResponseWriter, r *http.Request, ext *
 
 func (h *API) handleApprovalStatus(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("request_id")
-	rec, err := h.loadApproval(r.Context(), `WHERE request_id = ?`, id)
+	rec, err := h.loadApproval(r.Context(), `WHERE wallet_id = ? AND request_id = ?`, h.identity.WalletID, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		ipc.WriteError(w, http.StatusNotFound, "NOT_FOUND", "approval request not found", ipc.RequestID(r))
 		return
@@ -378,7 +406,7 @@ func (h *API) handleApprovalByKey(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, ErrInvalid)
 		return
 	}
-	rec, err := h.loadApproval(r.Context(), `WHERE idempotency_key = ?`, k)
+	rec, err := h.loadApproval(r.Context(), `WHERE wallet_id = ? AND idempotency_key = ?`, h.identity.WalletID, k)
 	if errors.Is(err, sql.ErrNoRows) {
 		ipc.WriteError(w, http.StatusNotFound, "NOT_FOUND", "approval request not found", ipc.RequestID(r))
 		return
@@ -390,11 +418,11 @@ func (h *API) handleApprovalByKey(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, rec)
 }
 
-func (h *API) loadApproval(ctx context.Context, where string, arg any) (ApprovalRecord, error) {
+func (h *API) loadApproval(ctx context.Context, where string, args ...any) (ApprovalRecord, error) {
 	var rec ApprovalRecord
-	err := h.store.db.QueryRowContext(ctx,
+	err := h.store.reader().QueryRowContext(ctx,
 		`SELECT request_id, idempotency_key, chain_id, wallet_id, protocol, token, spender, amount_raw, native_gas_outlay_wei, native_input_wei, status, created_at
-		 FROM manual_approval_requests `+where, arg,
+		 FROM manual_approval_requests `+where, args...,
 	).Scan(&rec.RequestID, &rec.IdempotencyKey, &rec.ChainID, &rec.WalletID, &rec.Protocol, &rec.Token,
 		&rec.Spender, &rec.AmountRaw, &rec.NativeGasOutlayWei, &rec.NativeInputWei, &rec.Status, &rec.CreatedAt)
 	if err != nil {
@@ -426,12 +454,13 @@ func (h *API) handleTradeUpdates(w http.ResponseWriter, r *http.Request) {
 		limit = v
 	}
 
+	rdb := h.store.reader()
 	var minRetained, maxSeq int64
-	if err := h.store.db.QueryRowContext(r.Context(), `SELECT min_retained_seq FROM trade_audit_retention_floor WHERE id = 1`).Scan(&minRetained); err != nil {
+	if err := rdb.QueryRowContext(r.Context(), `SELECT min_retained_seq FROM trade_audit_retention_floor WHERE id = 1`).Scan(&minRetained); err != nil {
 		writeError(w, r, err)
 		return
 	}
-	if err := h.store.db.QueryRowContext(r.Context(), `SELECT COALESCE(MAX(event_seq), 0) FROM trade_audit_events`).Scan(&maxSeq); err != nil {
+	if err := rdb.QueryRowContext(r.Context(), `SELECT COALESCE(MAX(event_seq), 0) FROM trade_audit_events`).Scan(&maxSeq); err != nil {
 		writeError(w, r, err)
 		return
 	}
@@ -440,7 +469,7 @@ func (h *API) handleTradeUpdates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := h.store.db.QueryContext(r.Context(),
+	rows, err := rdb.QueryContext(r.Context(),
 		`SELECT event_seq, operation_kind, request_id, operation_id, state, payload_json, created_at
 		 FROM trade_audit_events WHERE event_seq > ? ORDER BY event_seq ASC LIMIT ?`, afterSeq, limit)
 	if err != nil {

@@ -24,6 +24,7 @@ import (
 	"github.com/ruzickahunzeker/rbh-bot/internal/observability"
 	"github.com/ruzickahunzeker/rbh-bot/internal/storage"
 	tradecore "github.com/ruzickahunzeker/rbh-bot/internal/trade"
+	"github.com/ruzickahunzeker/rbh-bot/internal/tradeapi"
 )
 
 func Run(service config.Service) error {
@@ -147,6 +148,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		if err != nil {
 			return fmt.Errorf("initialize feed watchlist store: %w", err)
 		}
+		runner.SetWatchlist(watchlistStore)
 		watchlistHandler := ipc.RequestContext(authenticator.Middleware(feedcore.NewWatchlistHTTPHandler(watchlistStore)))
 		server.Handle("GET /internal/feed/outbox", ipc.RequestContext(authenticator.Middleware(feedcore.NewOutboxHTTPHandler(store))))
 		server.Handle("GET /internal/v1/watchlist", watchlistHandler)
@@ -171,6 +173,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		ready.Set("bot_feed_consumer_configured", true)
 	}
 	var tradeBackend *tradecore.RPCBackend
+	var userTradeAPI *tradeapi.API
 	if service == config.TradeService {
 		store, err := tradecore.NewStore(database)
 		if err != nil {
@@ -187,7 +190,8 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			if err != nil {
 				return err
 			}
-			if err := configureUserTradeAPI(server, database, cfg); err != nil {
+			userTradeAPI, err = configureUserTradeAPIWithHandle(server, database, cfg)
+			if err != nil {
 				return err
 			}
 			ready.Set("trade_api_query_ready", true)
@@ -198,7 +202,8 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			if err := store.RegisterDryRunWallet(ctx, cfg.DryRunWalletID, common.HexToAddress(cfg.DryRunFromAddress)); err != nil {
 				return err
 			}
-			if err := configureUserTradeAPI(server, database, cfg); err != nil {
+			userTradeAPI, err = configureUserTradeAPIWithHandle(server, database, cfg)
+			if err != nil {
 				return err
 			}
 			tradeBackend, err = tradecore.DialRPCBackend(ctx, cfg.RPCURL)
@@ -293,7 +298,11 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 	var adminListener net.Listener
 	if cfg.AdminSocket != "" {
 		adminControl := &runtimeEmergencyControl{}
-		adminServer = newAdminServer(string(service), cfg.AdminSocket, cfg.ChainID, log, database, adminControl, nil)
+		var isInFlight func(string) bool
+		if userTradeAPI != nil {
+			isInFlight = userTradeAPI.IsOperationInFlight
+		}
+		adminServer = newAdminServer(string(service), cfg.AdminSocket, cfg.ChainID, log, database, adminControl, isInFlight)
 		adminListener, err = adminServer.Listen()
 		if err != nil {
 			_ = listener.Close()

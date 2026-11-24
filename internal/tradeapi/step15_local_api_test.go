@@ -144,6 +144,30 @@ func TestStep15LocalQuotesApprovalsAndPositions(t *testing.T) {
 		t.Fatalf("GET /v1/approvals/by-idempotency-key failed: %d %s", kw.Code, kw.Body.String())
 	}
 
+	// 3b. P1-1: Re-approving the EXACT same (token, amount) with a NEW Idempotency-Key must succeed (no request_id collision).
+	aReq2 := httptest.NewRequest(http.MethodPost, "/v1/approvals", bytes.NewReader([]byte(apprBody)))
+	aReq2.Header.Set("Authorization", "Bearer "+testCredential)
+	aReq2.Header.Set("Idempotency-Key", "appr-ok-2")
+	aw2 := httptest.NewRecorder()
+	api.ServeHTTP(aw2, aReq2)
+	if aw2.Code != http.StatusAccepted {
+		t.Fatalf("second approval with new key failed: %d %s", aw2.Code, aw2.Body.String())
+	}
+	var appr2 ApprovalRecord
+	if err := json.Unmarshal(aw2.Body.Bytes(), &appr2); err != nil || appr2.RequestID == appr.RequestID {
+		t.Fatalf("expected distinct request_id for new idempotency key: first=%s second=%s err=%v", appr.RequestID, appr2.RequestID, err)
+	}
+
+	// 3c. P1-1: Trailing JSON garbage must be rejected with 400.
+	badTrail := httptest.NewRequest(http.MethodPost, "/v1/approvals", bytes.NewReader([]byte(apprBody+`{"extra":1}`)))
+	badTrail.Header.Set("Authorization", "Bearer "+testCredential)
+	badTrail.Header.Set("Idempotency-Key", "appr-trail-1")
+	tw := httptest.NewRecorder()
+	api.ServeHTTP(tw, badTrail)
+	if tw.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 rejecting trailing JSON garbage, got %d %s", tw.Code, tw.Body.String())
+	}
+
 	// 4. AT-22: GET /v1/wallets/{id}/positions returns 503 RPC_STATE_LAGGING (retryable=true) when node lags behind required block.
 	ext.SetWalletCanonicalBlock("wallet-01", 101) // wallet's BUY confirmed at 101, stub node still at 100
 	posReq := httptest.NewRequest(http.MethodGet, "/v1/wallets/wallet-01/positions?token=0x2000000000000000000000000000000000000002&protocol=pons-v2-curve", nil)

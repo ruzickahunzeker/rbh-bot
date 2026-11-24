@@ -118,7 +118,16 @@ func TestLoadRejectsControlledCanaryProductionEnablementInW4A(t *testing.T) {
 func TestLoadRejectsWrongChain(t *testing.T) {
 	t.Setenv("RBH_CHAIN_ID", "1")
 	if _, err := Load(FeedService); err == nil {
-		t.Fatal("expected wrong chain to be rejected")
+		t.Fatal("expected unsupported chain ID 1 to fail closed")
+	}
+	t.Setenv("RBH_CHAIN_ID", "56")
+	t.Setenv("RBH_CHAIN_SLUG", "")
+	cfg, err := Load(FeedService)
+	if err != nil {
+		t.Fatalf("expected BSC chain_id=56 to load cleanly: %v", err)
+	}
+	if cfg.ChainID != BSCChainID || cfg.ChainSlug != "bsc" {
+		t.Fatalf("unexpected BSC config: chain_id=%d slug=%q", cfg.ChainID, cfg.ChainSlug)
 	}
 }
 
