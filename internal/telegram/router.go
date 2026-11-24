@@ -395,6 +395,42 @@ func (r *Router) HandleCommand(ctx context.Context, chatID int64, text string) (
 		}
 		return sb.CheckStatus(ctx)
 
+	case "/snipe":
+		if role != "operator" {
+			return "Permission denied: operator role required.", nil
+		}
+		if len(parts) < 3 || len(parts) > 4 || !common.IsHexAddress(parts[1]) {
+			return "Usage: /snipe <token_address> <amount_wei> [launch|migration]", nil
+		}
+		amt, ok := new(big.Int).SetString(parts[2], 10)
+		if !ok || amt.Sign() <= 0 {
+			return "Invalid positive amount_wei.", nil
+		}
+		kind := "migration"
+		if len(parts) == 4 {
+			k := strings.ToLower(parts[3])
+			if k != "launch" && k != "migration" {
+				return "Trigger kind must be 'launch' (PairCreated) or 'migration' (Launchpad graduation).", nil
+			}
+			kind = k
+		}
+		nowUTC := r.now().UTC()
+		taskID := fmt.Sprintf("sn-%d-%d", chainID, nowUTC.UnixNano())
+		tokHex := strings.ToLower(common.HexToAddress(parts[1]).Hex())
+		if _, err := r.db.ExecContext(ctx,
+			`INSERT INTO sniper_tasks(task_id, chain_id, wallet_id, token, trigger_kind, amount_in_wei, max_slippage_bps, anti_mev, honeypot_check, state, created_at, updated_at)
+			 VALUES(?,?,?,?,?,?,1500,1,1,'ARMED',?,?)`,
+			taskID, chainID, walletID, tokHex, kind, amt.String(),
+			nowUTC.Format(time.RFC3339Nano), nowUTC.Format(time.RFC3339Nano),
+		); err != nil {
+			return "", err
+		}
+		if syncer, ok := r.backend.(interface{ SyncWatchlist(context.Context, uint64) error }); ok {
+			_ = syncer.SyncWatchlist(ctx, chainID)
+		}
+		return fmt.Sprintf("🎯 Armed %s sniper %s on chain %d\ntoken=%s amount_wei=%s anti_mev=ON honeypot=ON",
+			kind, taskID, chainID, tokHex, amt.String()), nil
+
 	case "/copy":
 		if role != "operator" {
 			return "Permission denied: operator role required.", nil

@@ -230,6 +230,7 @@ func (p *Poller) RegisterCommands(ctx context.Context) error {
 		{"command": "orders", "description": "查看止盈/止损条件单"},
 		{"command": "tp", "description": "创建止盈条件单"},
 		{"command": "sl", "description": "创建止损条件单"},
+		{"command": "snipe", "description": "创建开盘/毕业狙击任务"},
 		{"command": "chain", "description": "切换链 (bsc / rbh)"},
 		{"command": "help", "description": "查看全部指令帮助"},
 	}

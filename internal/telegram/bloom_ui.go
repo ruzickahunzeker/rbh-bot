@@ -244,6 +244,22 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 	case data == "orders":
 		return r.renderOrdersCard(ctx, sess), nil
 
+	case data == "sniper":
+		return r.renderSniperCard(ctx, sess), nil
+
+	case strings.HasPrefix(data, "sn:del:"):
+		taskID := strings.TrimPrefix(data, "sn:del:")
+		_, _ = r.db.ExecContext(ctx,
+			`UPDATE sniper_tasks SET state = 'CANCELLED', updated_at = ? WHERE task_id = ? AND chain_id = ? AND state = 'ARMED'`,
+			r.now().UTC().Format(time.RFC3339Nano), taskID, sess.ChainID,
+		)
+		if syncer, ok := r.backend.(interface{ SyncWatchlist(context.Context, uint64) error }); ok {
+			_ = syncer.SyncWatchlist(ctx, sess.ChainID)
+		}
+		rep := r.renderSniperCard(ctx, sess)
+		rep.AlertText = "Disarmed sniper " + taskID
+		return rep, nil
+
 	case data == "settings":
 		return r.renderSettingsCard(ctx, sess, ""), nil
 
@@ -328,10 +344,10 @@ func (r *Router) renderMainMenu(ctx context.Context, sess chatSession, edit bool
 		Text:         text,
 		EditOriginal: edit,
 		Buttons: [][]InlineButton{
-			{{Text: "📊 Positions", CallbackData: "positions"}, {Text: "👥 Copy Trade", CallbackData: "copy"}},
-			{{Text: "📈 Limit Orders", CallbackData: "orders"}, {Text: "👛 Wallets", CallbackData: "wallets"}},
-			{{Text: "⚙️ Settings", CallbackData: "settings"}, {Text: "📡 Status", CallbackData: "status"}},
-			{{Text: "🔄 Switch to " + otherChain, CallbackData: "sw_chain"}},
+			{{Text: "📊 Positions", CallbackData: "positions"}, {Text: "🎯 Sniper", CallbackData: "sniper"}},
+			{{Text: "👥 Copy Trade", CallbackData: "copy"}, {Text: "📈 Limit Orders", CallbackData: "orders"}},
+			{{Text: "👛 Wallets", CallbackData: "wallets"}, {Text: "⚙️ Settings", CallbackData: "settings"}},
+			{{Text: "📡 Status", CallbackData: "status"}, {Text: "🔄 Switch to " + otherChain, CallbackData: "sw_chain"}},
 		},
 	}
 }
@@ -675,6 +691,45 @@ func (r *Router) renderOrdersCard(ctx context.Context, sess chatSession) Reply {
 		lines = append(lines, "No active orders.\nCreate: /tp <token> <price_wei> [pct] or /sl <token> <price_wei> [pct]")
 	}
 	buttons = append(buttons, []InlineButton{{Text: "🔄 Refresh", CallbackData: "orders"}, {Text: "⬅️ Menu", CallbackData: "menu"}})
+	return Reply{
+		Text:         strings.Join(lines, "\n"),
+		EditOriginal: true,
+		Buttons:      buttons,
+	}
+}
+
+func (r *Router) renderSniperCard(ctx context.Context, sess chatSession) Reply {
+	lines := []string{fmt.Sprintf("🎯 Sniper Tasks (Launch / Migration) | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID)}
+	var buttons [][]InlineButton
+	rows, err := r.readDB.QueryContext(ctx,
+		`SELECT task_id, token, trigger_kind, amount_in_wei, state
+		 FROM sniper_tasks WHERE chain_id = ? AND state IN ('ARMED', 'TRIGGERED')
+		 ORDER BY created_at DESC LIMIT 8`,
+		sess.ChainID,
+	)
+	cnt := 0
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var tid, tok, kind, amt, st string
+			if rows.Scan(&tid, &tok, &kind, &amt, &st) == nil {
+				cnt++
+				short := tok
+				if len(short) > 12 {
+					short = short[:6] + "..." + short[len(short)-4:]
+				}
+				amtVal, _ := new(big.Int).SetString(amt, 10)
+				lines = append(lines, fmt.Sprintf("%d. [%s] %s %s amt=%s %s", cnt, st, strings.ToUpper(kind), short, formatWeiToNative(amtVal), chainNativeSymbol(sess.ChainID)))
+				if st == "ARMED" && len("sn:del:"+tid) <= 64 {
+					buttons = append(buttons, []InlineButton{{Text: fmt.Sprintf("❌ Disarm #%d (%s)", cnt, short), CallbackData: "sn:del:" + tid}})
+				}
+			}
+		}
+	}
+	if cnt == 0 {
+		lines = append(lines, "No armed sniper tasks.\nArm one: /snipe <token_ca> <amount_wei> [launch|migration]")
+	}
+	buttons = append(buttons, []InlineButton{{Text: "🔄 Refresh", CallbackData: "sniper"}, {Text: "⬅️ Menu", CallbackData: "menu"}})
 	return Reply{
 		Text:         strings.Join(lines, "\n"),
 		EditOriginal: true,

@@ -29,6 +29,9 @@ var (
 	// Flap.sh Portal TokenBought / TokenSold
 	flapBoughtTopic = crypto.Keccak256Hash([]byte("TokenBought(uint256,address,address,uint256,uint256,uint256,uint256)"))
 	flapSoldTopic   = crypto.Keccak256Hash([]byte("TokenSold(uint256,address,address,uint256,uint256,uint256,uint256)"))
+	// Sniper events: PancakeV2 PairCreated & Four.meme LiquidityAdded (graduation migration)
+	pairCreatedTopic    = crypto.Keccak256Hash([]byte("PairCreated(address,address,address,uint256)"))
+	liquidityAddedTopic = crypto.Keccak256Hash([]byte("LiquidityAdded(address,uint256,address,uint256)"))
 	// ERC-20 Transfer(address indexed from, address indexed to, uint256 value)
 	erc20TransferTopic = crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)"))
 )
@@ -226,6 +229,84 @@ func (r *EVMReceiptRunner) extractBlockObservations(blockNum uint64, receipts []
 		}
 		trader := common.HexToAddress(rcpt.From)
 		traderHex := strings.ToLower(trader.Hex())
+
+		// 1. Decode Sniper launch/migration logs (PairCreated / LiquidityAdded) before ERC-20 transfer filter,
+		// because launch/migration receipts may not transfer tokens to tx.From.
+		for idx, lg := range rcpt.Logs {
+			if len(lg.Topics) == 0 {
+				continue
+			}
+			top0 := common.HexToHash(lg.Topics[0])
+			var (
+				sniperToken common.Address
+				sniperPool  string
+				sniperVer   string
+				sniperSide  string
+			)
+			switch top0 {
+			case pairCreatedTopic:
+				if len(lg.Topics) >= 3 {
+					t0 := common.HexToAddress(lg.Topics[1])
+					t1 := common.HexToAddress(lg.Topics[2])
+					if t0 == r.wrappedNative && t1 != (common.Address{}) {
+						sniperToken = t1
+					} else if t1 == r.wrappedNative && t0 != (common.Address{}) {
+						sniperToken = t0
+					}
+					rawData := common.FromHex(lg.Data)
+					if len(rawData) >= 32 {
+						sniperPool = strings.ToLower(common.BytesToAddress(rawData[:32]).Hex())
+					} else {
+						sniperPool = strings.ToLower(common.HexToAddress(lg.Address).Hex())
+					}
+					sniperVer = "sniper-launch"
+					sniperSide = "launch"
+				}
+			case liquidityAddedTopic:
+				rawData := common.FromHex(lg.Data)
+				if len(rawData) >= 32 {
+					sniperToken = common.BytesToAddress(rawData[:32])
+					sniperPool = strings.ToLower(common.HexToAddress(lg.Address).Hex())
+					sniperVer = "sniper-migration"
+					sniperSide = "migration"
+				}
+			}
+			if sniperToken == (common.Address{}) {
+				continue
+			}
+			tokHex := strings.ToLower(sniperToken.Hex())
+			if r.watchlist != nil && r.watchlist.Initialized() && !r.watchlist.Matches("", tokHex) {
+				continue
+			}
+			logIdx := parseOptHexIndex(lg.LogIndex, idx)
+			payloadObj := NormalizedSwapPayload{
+				ChainID:       r.chainID,
+				BlockNumber:   blockNum,
+				TxHash:        strings.ToLower(txHash.Hex()),
+				PoolAddress:   sniperPool,
+				PoolVersion:   sniperVer,
+				Trader:        traderHex,
+				Token:         tokHex,
+				Side:          sniperSide,
+				TokenDeltaRaw: "1",
+				TriggerID:     ComputeTriggerID(r.chainID, txHash.Hex(), sniperPool, tokHex, sniperSide),
+				Stage:         "included",
+			}
+			if rawPayload, err := json.Marshal(payloadObj); err == nil {
+				obs := Observation{
+					ChainID:          r.chainID,
+					Source:           SourceRPC,
+					SourceSequence:   blockNum,
+					TransactionHash:  txHash,
+					StableActionPath: fmt.Sprintf("receipt/log/%06d/%s/%s", logIdx, sniperVer, sniperSide),
+					PayloadJSON:      rawPayload,
+					ObservedAt:       observedAt,
+				}
+				if obs.Validate() == nil {
+					out = append(out, obs)
+				}
+			}
+		}
 
 		// Compute net ERC-20 token delta per non-WrappedNative token for trader in this receipt.
 		tokenDelta := make(map[common.Address]*big.Int)

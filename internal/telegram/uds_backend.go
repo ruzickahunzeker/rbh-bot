@@ -404,16 +404,29 @@ func (u *UDSBackend) ListWatchedWallets(ctx context.Context, chainID uint64) ([]
 
 func (u *UDSBackend) pushWatchlistSnapshot(ctx context.Context, chainID uint64, fallbackSingle string) error {
 	var wallets []string
+	var tokens []string
 	if u.db != nil {
 		list, err := u.ListWatchedWallets(ctx, chainID)
 		if err == nil {
 			wallets = list
+		}
+		if tRows, err := u.db.QueryContext(ctx, `SELECT DISTINCT token FROM sniper_tasks WHERE chain_id = ? AND state = 'ARMED'`, chainID); err == nil {
+			defer tRows.Close()
+			for tRows.Next() {
+				var tok string
+				if tRows.Scan(&tok) == nil {
+					tokens = append(tokens, tok)
+				}
+			}
 		}
 	} else if fallbackSingle != "" {
 		wallets = []string{fallbackSingle}
 	}
 	if wallets == nil {
 		wallets = []string{}
+	}
+	if tokens == nil {
+		tokens = []string{}
 	}
 
 	cfg, ok := u.chains[chainID]
@@ -428,7 +441,7 @@ func (u *UDSBackend) pushWatchlistSnapshot(ctx context.Context, chainID uint64, 
 	body, err := json.Marshal(map[string]any{
 		"version": ver,
 		"wallets": wallets,
-		"tokens":  []string{},
+		"tokens":  tokens,
 	})
 	if err != nil {
 		return err
@@ -496,6 +509,11 @@ func (u *UDSBackend) CheckStatus(ctx context.Context) (string, error) {
 			strings.ToUpper(slug), cid, probe(cfg.TradeSocket), probe(cfg.FeedSocket), watchedCnt, activeOrdCnt))
 	}
 	return strings.Join(lines, "\n"), nil
+}
+
+// SyncWatchlist pushes the current watched wallets + armed sniper tokens to feed-<chain>.sock.
+func (u *UDSBackend) SyncWatchlist(ctx context.Context, chainID uint64) error {
+	return u.pushWatchlistSnapshot(ctx, chainID, "")
 }
 
 func (u *UDSBackend) ConfigureCopyStrategy(_ context.Context, _ uint64, _ common.Address, _ *big.Int) error {
