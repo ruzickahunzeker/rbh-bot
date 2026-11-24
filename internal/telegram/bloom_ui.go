@@ -197,23 +197,23 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 		sess.ChainID = newChain
 		sess.WalletID = newWallet
 		rep := r.renderMainMenu(ctx, sess, true)
-		rep.AlertText = fmt.Sprintf("Switched to %s (%d)", chainDisplayName(newChain), newChain)
+		rep.AlertText = fmt.Sprintf("已切换至 %s (%d)", chainDisplayName(newChain), newChain)
 		return rep, nil
 
 	case data == "status":
-		txt := "Status backend unavailable."
+		txt := "状态服务暂不可用。"
 		if sb, ok := r.backend.(StatusBackend); ok {
 			if s, err := sb.CheckStatus(ctx); err == nil {
 				txt = s
 			} else {
-				txt = "Status error: " + err.Error()
+				txt = "状态查询失败: " + err.Error()
 			}
 		}
 		return Reply{
 			Text:         txt,
 			EditOriginal: true,
 			Buttons: [][]InlineButton{
-				{{Text: "🔄 Refresh", CallbackData: "status"}, {Text: "⬅️ Menu", CallbackData: "menu"}},
+				{{Text: "🔄 刷新", CallbackData: "status"}, {Text: "⬅️ 返回主菜单", CallbackData: "menu"}},
 			},
 		}, nil
 
@@ -221,17 +221,17 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 		wallets, err := r.backend.ListWallets(ctx, sess.ChainID)
 		var body string
 		if err != nil {
-			body = fmt.Sprintf("👛 Wallets (%s %d)\nError: %v", chainDisplayName(sess.ChainID), sess.ChainID, err)
+			body = fmt.Sprintf("👛 钱包管理 (%s %d)\n查询失败: %v", chainDisplayName(sess.ChainID), sess.ChainID, err)
 		} else if len(wallets) == 0 {
-			body = fmt.Sprintf("👛 Wallets (%s %d)\nNo registered wallets.", chainDisplayName(sess.ChainID), sess.ChainID)
+			body = fmt.Sprintf("👛 钱包管理 (%s %d)\n暂无已注册钱包。", chainDisplayName(sess.ChainID), sess.ChainID)
 		} else {
-			body = fmt.Sprintf("👛 Wallets (%s %d)\nActive: %s\n\n%s", chainDisplayName(sess.ChainID), sess.ChainID, sess.WalletID, strings.Join(wallets, "\n"))
+			body = fmt.Sprintf("👛 钱包管理 (%s %d)\n当前活跃: %s\n\n%s", chainDisplayName(sess.ChainID), sess.ChainID, sess.WalletID, strings.Join(wallets, "\n"))
 		}
 		return Reply{
 			Text:         body,
 			EditOriginal: true,
 			Buttons: [][]InlineButton{
-				{{Text: "🔄 Refresh", CallbackData: "wallets"}, {Text: "⬅️ Menu", CallbackData: "menu"}},
+				{{Text: "🔄 刷新", CallbackData: "wallets"}, {Text: "⬅️ 返回主菜单", CallbackData: "menu"}},
 			},
 		}, nil
 
@@ -257,7 +257,7 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 			_ = syncer.SyncWatchlist(ctx, sess.ChainID)
 		}
 		rep := r.renderSniperCard(ctx, sess)
-		rep.AlertText = "Disarmed sniper " + taskID
+		rep.AlertText = "已撤防狙击任务 " + taskID
 		return rep, nil
 
 	case data == "settings":
@@ -272,7 +272,7 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 			_ = wb.RemoveWatchedWallet(ctx, sess.ChainID, common.HexToAddress(addrHex))
 		}
 		rep := r.renderCopyCard(ctx, sess)
-		rep.AlertText = "Removed watched wallet"
+		rep.AlertText = "已移除监控地址"
 		return rep, nil
 
 	case strings.HasPrefix(data, "co:del:"):
@@ -282,18 +282,18 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 			r.now().UTC().Format(time.RFC3339Nano), orderID, sess.ChainID,
 		)
 		rep := r.renderOrdersCard(ctx, sess)
-		rep.AlertText = "Cancelled order " + orderID
+		rep.AlertText = "已撤销条件单 " + orderID
 		return rep, nil
 
 	case strings.HasPrefix(data, "tc:"):
 		// tc:<tokKey>:<buy|sell>
 		parts := strings.Split(data, ":")
 		if len(parts) != 3 {
-			return Reply{AlertText: "Invalid token card action"}, nil
+			return Reply{AlertText: "无效的代币卡片操作"}, nil
 		}
 		cid, tok, _, err := r.lookupUIToken(ctx, parts[1])
 		if err != nil {
-			return Reply{AlertText: "Token expired; paste CA again"}, nil
+			return Reply{AlertText: "代币缓存已过期，请重新发送合约地址"}, nil
 		}
 		sess.ChainID = cid
 		return r.renderTokenCard(ctx, sess, tok, parts[2], true, ""), nil
@@ -302,7 +302,7 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 		// sb:<tokKey>:<amtNative>
 		parts := strings.Split(data, ":")
 		if len(parts) != 3 {
-			return Reply{AlertText: "Invalid buy action"}, nil
+			return Reply{AlertText: "无效的买入操作"}, nil
 		}
 		return r.executeShadowBuyButton(ctx, sess, parts[1], parts[2]), nil
 
@@ -310,12 +310,12 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 		// ss:<tokKey>:<pct>
 		parts := strings.Split(data, ":")
 		if len(parts) != 3 {
-			return Reply{AlertText: "Invalid sell action"}, nil
+			return Reply{AlertText: "无效的卖出操作"}, nil
 		}
 		return r.executeShadowSellButton(ctx, sess, parts[1], parts[2]), nil
 
 	default:
-		return Reply{AlertText: "Unknown action"}, nil
+		return Reply{AlertText: "未知操作"}, nil
 	}
 }
 
@@ -332,10 +332,10 @@ func (r *Router) renderMainMenu(ctx context.Context, sess chatSession, edit bool
 	_ = r.readDB.QueryRowContext(ctx, `SELECT COUNT(*) FROM paper_shadow_fills WHERE chain_id = ? AND wallet_id = ?`, sess.ChainID, sess.WalletID).Scan(&shadowFills)
 
 	text := strings.Join([]string{
-		fmt.Sprintf("🌸 evm-bot (Bloom UI) | %s (%d)", chainName, sess.ChainID),
-		"Mode: 🟡 SHADOW / READ-ONLY (live_enabled=false)",
-		fmt.Sprintf("Wallet: %s (%s)", sess.WalletID, sym),
-		fmt.Sprintf("Watched: %d | Orders: %d | Shadow Fills: %d", watchedCnt, ordersCnt, shadowFills),
+		fmt.Sprintf("⚡ evm-bot 交易终端 | %s (%d)", chainName, sess.ChainID),
+		"当前模式：🟡 模拟盘 / 只读模式 (live_enabled=false)",
+		fmt.Sprintf("活跃钱包：%s (%s)", sess.WalletID, sym),
+		fmt.Sprintf("监控地址：%d | 条件单：%d | 模拟成交：%d", watchedCnt, ordersCnt, shadowFills),
 		"",
 		"💡 直接发送任意 0x... 合约地址，秒出代币交易卡（自动探测内盘/DEX + 貔貅检测 + 一键模拟买卖）。",
 	}, "\n")
@@ -344,10 +344,10 @@ func (r *Router) renderMainMenu(ctx context.Context, sess chatSession, edit bool
 		Text:         text,
 		EditOriginal: edit,
 		Buttons: [][]InlineButton{
-			{{Text: "📊 Positions", CallbackData: "positions"}, {Text: "🎯 Sniper", CallbackData: "sniper"}},
-			{{Text: "👥 Copy Trade", CallbackData: "copy"}, {Text: "📈 Limit Orders", CallbackData: "orders"}},
-			{{Text: "👛 Wallets", CallbackData: "wallets"}, {Text: "⚙️ Settings", CallbackData: "settings"}},
-			{{Text: "📡 Status", CallbackData: "status"}, {Text: "🔄 Switch to " + otherChain, CallbackData: "sw_chain"}},
+			{{Text: "📊 持仓与盈亏", CallbackData: "positions"}, {Text: "🎯 狙击任务", CallbackData: "sniper"}},
+			{{Text: "👥 聪明钱跟单", CallbackData: "copy"}, {Text: "📈 限价/止盈止损", CallbackData: "orders"}},
+			{{Text: "👛 钱包管理", CallbackData: "wallets"}, {Text: "⚙️ 交易设置", CallbackData: "settings"}},
+			{{Text: "📡 系统状态", CallbackData: "status"}, {Text: "🔄 切换至 " + otherChain, CallbackData: "sw_chain"}},
 		},
 	}
 }
@@ -392,30 +392,30 @@ func (r *Router) renderTokenCard(ctx context.Context, sess chatSession, token co
 
 	shadowBal, shadowCost := r.shadowTokenPosition(ctx, sess.ChainID, sess.WalletID, token)
 	lines := []string{
-		fmt.Sprintf("🪙 Token Card | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID),
-		fmt.Sprintf("CA: %s", strings.ToLower(token.Hex())),
-		fmt.Sprintf("Route: %s", protoLabel),
+		fmt.Sprintf("🪙 代币交易卡 | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID),
+		fmt.Sprintf("合约: %s", strings.ToLower(token.Hex())),
+		fmt.Sprintf("路由: %s", protoLabel),
 		quoteLine,
 		hpLine,
-		fmt.Sprintf("Shadow Bal: %s raw (cost=%s %s)", shadowBal.String(), formatWeiToNative(shadowCost), sym),
+		fmt.Sprintf("模拟持仓: %s raw (成本=%s %s)", shadowBal.String(), formatWeiToNative(shadowCost), sym),
 	}
 	if banner != "" {
 		lines = append(lines, "", banner)
 	}
 
-	buyModeBtn := "Buy Mode"
-	sellModeBtn := "Sell Mode"
+	buyModeBtn := "买入模式"
+	sellModeBtn := "卖出模式"
 	if mode == "buy" {
-		buyModeBtn = "🟢 Buy Mode"
+		buyModeBtn = "🟢 买入模式"
 	} else {
-		sellModeBtn = "🔴 Sell Mode"
+		sellModeBtn = "🔴 卖出模式"
 	}
 
 	var rows [][]InlineButton
 	rows = append(rows, []InlineButton{
 		{Text: buyModeBtn, CallbackData: "tc:" + tokKey + ":buy"},
 		{Text: sellModeBtn, CallbackData: "tc:" + tokKey + ":sell"},
-		{Text: "🔄 Refresh", CallbackData: "tc:" + tokKey + ":" + mode},
+		{Text: "🔄 刷新", CallbackData: "tc:" + tokKey + ":" + mode},
 	})
 
 	if mode == "buy" {
@@ -426,7 +426,7 @@ func (r *Router) renderTokenCard(ctx context.Context, sess chatSession, token co
 			if p == "" {
 				continue
 			}
-			btn := InlineButton{Text: fmt.Sprintf("🟡 Buy %s %s", p, sym), CallbackData: "sb:" + tokKey + ":" + p}
+			btn := InlineButton{Text: fmt.Sprintf("🟡 买入 %s %s", p, sym), CallbackData: "sb:" + tokKey + ":" + p}
 			if i < 2 {
 				row1 = append(row1, btn)
 			} else {
@@ -442,19 +442,19 @@ func (r *Router) renderTokenCard(ctx context.Context, sess chatSession, token co
 	} else {
 		rows = append(rows,
 			[]InlineButton{
-				{Text: "🔴 Sell 25%", CallbackData: "ss:" + tokKey + ":25"},
-				{Text: "🔴 Sell 50%", CallbackData: "ss:" + tokKey + ":50"},
+				{Text: "🔴 卖出 25%", CallbackData: "ss:" + tokKey + ":25"},
+				{Text: "🔴 卖出 50%", CallbackData: "ss:" + tokKey + ":50"},
 			},
 			[]InlineButton{
-				{Text: "🔴 Sell 75%", CallbackData: "ss:" + tokKey + ":75"},
-				{Text: "🔴 Sell 100%", CallbackData: "ss:" + tokKey + ":100"},
+				{Text: "🔴 卖出 75%", CallbackData: "ss:" + tokKey + ":75"},
+				{Text: "🔴 卖出 100%", CallbackData: "ss:" + tokKey + ":100"},
 			},
 		)
 	}
 
-	mevLabel := "🛡️ Anti-MEV: ON"
+	mevLabel := "🛡️ 防夹: 开启"
 	if !st.AntiMEV && sess.ChainID != 56 {
-		mevLabel = "MEV: OFF"
+		mevLabel = "防夹: 关闭"
 	}
 	slipBps := st.BuySlippageBps
 	if mode == "sell" {
@@ -462,8 +462,8 @@ func (r *Router) renderTokenCard(ctx context.Context, sess chatSession, token co
 	}
 	rows = append(rows, []InlineButton{
 		{Text: mevLabel, CallbackData: "settings"},
-		{Text: fmt.Sprintf("Slip: %.1f%%", float64(slipBps)/100.0), CallbackData: "settings"},
-		{Text: "⬅️ Menu", CallbackData: "menu"},
+		{Text: fmt.Sprintf("滑点: %.1f%%", float64(slipBps)/100.0), CallbackData: "settings"},
+		{Text: "⬅️ 主菜单", CallbackData: "menu"},
 	})
 
 	return Reply{
@@ -504,9 +504,9 @@ func (r *Router) executeShadowBuyButton(ctx context.Context, sess chatSession, t
 		`INSERT INTO paper_shadow_fills(fill_id, chain_id, wallet_id, token, side, amount_in_raw, simulated_out_raw, spot_price_wei, source_ref, created_at)
 		 VALUES(?,?,?,?,'buy',?,?,?,?,?)`,
 		fillID, sess.ChainID, sess.WalletID, strings.ToLower(tok.Hex()),
-		amtWei.String(), outRaw.String(), spot.String(), "bloom-ui:"+proto, nowUTC.Format(time.RFC3339Nano),
+		amtWei.String(), outRaw.String(), spot.String(), "tg-ui:"+proto, nowUTC.Format(time.RFC3339Nano),
 	)
-	banner := fmt.Sprintf("✅ [SHADOW BUY] %s %s -> +%s raw via %s", amtNativeStr, chainNativeSymbol(sess.ChainID), outRaw.String(), proto)
+	banner := fmt.Sprintf("✅ [模拟买入] %s %s -> +%s raw (%s)", amtNativeStr, chainNativeSymbol(sess.ChainID), outRaw.String(), proto)
 	if st := r.loadBloomSettings(ctx, sess.ChatID); st.AutoTPSL {
 		tpPrice := new(big.Int).Mul(spot, big.NewInt(2)) // +100%
 		slPrice := new(big.Int).Mul(spot, big.NewInt(70))
@@ -528,10 +528,10 @@ func (r *Router) executeShadowBuyButton(ctx context.Context, sess chatSession, t
 			 VALUES(?,?,?,?,?,'stop_loss',?,'0',10000,?,'ACTIVE',?,?,?)`,
 			slID, sess.ChainID, sess.WalletID, strings.ToLower(tok.Hex()), slPrice.String(), "auto-"+slID, expStr, nowStr, nowStr,
 		)
-		banner += "\n🎯 Auto TP (+100%/50%) & SL (-30%/100%) armed!"
+		banner += "\n🎯 已自动挂单：止盈(+100%/卖50%) & 止损(-30%/卖100%)"
 	}
 	rep := r.renderTokenCard(ctx, sess, tok, "buy", true, banner)
-	rep.AlertText = "Shadow Buy filled!"
+	rep.AlertText = "模拟买入成功！"
 	return rep
 }
 
@@ -577,11 +577,11 @@ func (r *Router) executeShadowSellButton(ctx context.Context, sess chatSession, 
 		`INSERT INTO paper_shadow_fills(fill_id, chain_id, wallet_id, token, side, amount_in_raw, simulated_out_raw, spot_price_wei, source_ref, created_at)
 		 VALUES(?,?,?,?,'sell',?,?,?,?,?)`,
 		fillID, sess.ChainID, sess.WalletID, strings.ToLower(tok.Hex()),
-		sellAmt.String(), outWei.String(), spot.String(), "bloom-ui:"+proto, nowUTC.Format(time.RFC3339Nano),
+		sellAmt.String(), outWei.String(), spot.String(), "tg-ui:"+proto, nowUTC.Format(time.RFC3339Nano),
 	)
-	banner := fmt.Sprintf("✅ [SHADOW SELL %d%%] -%s raw -> +%s %s via %s", pct, sellAmt.String(), formatWeiToNative(outWei), chainNativeSymbol(sess.ChainID), proto)
+	banner := fmt.Sprintf("✅ [模拟卖出 %d%%] -%s raw -> +%s %s (%s)", pct, sellAmt.String(), formatWeiToNative(outWei), chainNativeSymbol(sess.ChainID), proto)
 	rep := r.renderTokenCard(ctx, sess, tok, "sell", true, banner)
-	rep.AlertText = "Shadow Sell filled!"
+	rep.AlertText = "模拟卖出成功！"
 	return rep
 }
 
@@ -591,7 +591,7 @@ func (r *Router) renderPositionsCard(ctx context.Context, sess chatSession) Repl
 		sess.ChainID, sess.WalletID,
 	)
 	sym := chainNativeSymbol(sess.ChainID)
-	lines := []string{fmt.Sprintf("📊 Shadow Positions | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID)}
+	lines := []string{fmt.Sprintf("📊 模拟持仓与盈亏 | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID)}
 	var buttons [][]InlineButton
 	count := 0
 	if err == nil {
@@ -613,34 +613,34 @@ func (r *Router) renderPositionsCard(ctx context.Context, sess chatSession) Repl
 					diff := new(big.Int).Sub(valWei, cost)
 					pct := new(big.Float).Quo(new(big.Float).SetInt(diff), new(big.Float).SetInt(cost))
 					pctVal, _ := pct.Float64()
-					pnlStr = fmt.Sprintf(" | Val: %s %s (%+.1f%%)", formatWeiToNative(valWei), sym, pctVal*100)
+					pnlStr = fmt.Sprintf(" | 现值: %s %s (%+.1f%%)", formatWeiToNative(valWei), sym, pctVal*100)
 				}
 			}
 			shortTok := tokHex
 			if len(shortTok) > 12 {
 				shortTok = shortTok[:6] + "..." + shortTok[len(shortTok)-4:]
 			}
-			lines = append(lines, fmt.Sprintf("%d. %s | Bal: %s | Cost: %s %s%s", count, shortTok, bal.String(), formatWeiToNative(cost), sym, pnlStr))
+			lines = append(lines, fmt.Sprintf("%d. %s | 余额: %s | 成本: %s %s%s", count, shortTok, bal.String(), formatWeiToNative(cost), sym, pnlStr))
 			tokKey := r.registerUIToken(ctx, sess.ChainID, tok, "")
-			buttons = append(buttons, []InlineButton{{Text: fmt.Sprintf("🪙 Open %s", shortTok), CallbackData: "tc:" + tokKey + ":sell"}})
+			buttons = append(buttons, []InlineButton{{Text: fmt.Sprintf("🪙 打开 %s", shortTok), CallbackData: "tc:" + tokKey + ":sell"}})
 		}
 	}
 	if count == 0 {
-		lines = append(lines, "No open Shadow positions yet. Paste any token CA to simulate a quick buy!")
+		lines = append(lines, "暂无模拟持仓。直接发送任意代币合约地址即可一键体验模拟买入！")
 	}
-	buttons = append(buttons, []InlineButton{{Text: "🔄 Refresh", CallbackData: "positions"}, {Text: "⬅️ Menu", CallbackData: "menu"}})
+	buttons = append(buttons, []InlineButton{{Text: "🔄 刷新", CallbackData: "positions"}, {Text: "⬅️ 返回主菜单", CallbackData: "menu"}})
 	return Reply{Text: strings.Join(lines, "\n"), Buttons: buttons, EditOriginal: true}
 }
 
 func (r *Router) renderCopyCard(ctx context.Context, sess chatSession) Reply {
-	lines := []string{fmt.Sprintf("👥 Copy Trade Watchlist | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID)}
+	lines := []string{fmt.Sprintf("👥 聪明钱跟单列表 | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID)}
 	var buttons [][]InlineButton
 	if wb, ok := r.backend.(WatchlistManagerBackend); ok {
 		list, err := wb.ListWatchedWallets(ctx, sess.ChainID)
 		if err != nil {
-			lines = append(lines, "Error: "+err.Error())
+			lines = append(lines, "查询失败: "+err.Error())
 		} else if len(list) == 0 {
-			lines = append(lines, "No watched wallets yet.\nUse: /watch <0xAddress>")
+			lines = append(lines, "暂无监控地址。\n添加指令：/watch <0x钱包地址>")
 		} else {
 			for i, addr := range list {
 				short := addr
@@ -649,13 +649,13 @@ func (r *Router) renderCopyCard(ctx context.Context, sess chatSession) Reply {
 				}
 				lines = append(lines, fmt.Sprintf("%d. 🟢 %s", i+1, addr))
 				if i < 6 {
-					buttons = append(buttons, []InlineButton{{Text: fmt.Sprintf("🗑️ Remove #%d (%s)", i+1, short), CallbackData: "cw:del:" + addr}})
+					buttons = append(buttons, []InlineButton{{Text: fmt.Sprintf("🗑️ 移除 #%d (%s)", i+1, short), CallbackData: "cw:del:" + addr}})
 				}
 			}
-			lines = append(lines, "", "Add new: /watch <0x...>")
+			lines = append(lines, "", "添加新地址：/watch <0x...>")
 		}
 	}
-	buttons = append(buttons, []InlineButton{{Text: "🔄 Refresh", CallbackData: "copy"}, {Text: "⬅️ Menu", CallbackData: "menu"}})
+	buttons = append(buttons, []InlineButton{{Text: "🔄 刷新", CallbackData: "copy"}, {Text: "⬅️ 返回主菜单", CallbackData: "menu"}})
 	return Reply{
 		Text:         strings.Join(lines, "\n"),
 		EditOriginal: true,
@@ -664,7 +664,7 @@ func (r *Router) renderCopyCard(ctx context.Context, sess chatSession) Reply {
 }
 
 func (r *Router) renderOrdersCard(ctx context.Context, sess chatSession) Reply {
-	lines := []string{fmt.Sprintf("📈 Limit / TP / SL Orders | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID)}
+	lines := []string{fmt.Sprintf("📈 限价 / 止盈止损订单 | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID)}
 	var buttons [][]InlineButton
 	rows, err := r.readDB.QueryContext(ctx,
 		`SELECT order_id, order_kind, token, trigger_price_wei, sell_bps, state
@@ -680,17 +680,17 @@ func (r *Router) renderOrdersCard(ctx context.Context, sess chatSession) Reply {
 			var bps uint64
 			if rows.Scan(&oid, &kind, &tok, &trig, &bps, &st) == nil {
 				cnt++
-				lines = append(lines, fmt.Sprintf("%d. [%s] %s %s trig=%s sell=%d%%", cnt, st, kind, tok[:10]+"...", trig, bps/100))
+				lines = append(lines, fmt.Sprintf("%d. [%s] %s %s 触发价=%s 卖出=%d%%", cnt, st, kind, tok[:10]+"...", trig, bps/100))
 				if st == "ACTIVE" && len("co:del:"+oid) <= 64 {
-					buttons = append(buttons, []InlineButton{{Text: fmt.Sprintf("❌ Cancel #%d (%s)", cnt, kind), CallbackData: "co:del:" + oid}})
+					buttons = append(buttons, []InlineButton{{Text: fmt.Sprintf("❌ 撤单 #%d (%s)", cnt, kind), CallbackData: "co:del:" + oid}})
 				}
 			}
 		}
 	}
 	if cnt == 0 {
-		lines = append(lines, "No active orders.\nCreate: /tp <token> <price_wei> [pct] or /sl <token> <price_wei> [pct]")
+		lines = append(lines, "暂无活跃条件单。\n创建：/tp <合约> <触发价wei> [百分比] 或 /sl <合约> <触发价wei> [百分比]")
 	}
-	buttons = append(buttons, []InlineButton{{Text: "🔄 Refresh", CallbackData: "orders"}, {Text: "⬅️ Menu", CallbackData: "menu"}})
+	buttons = append(buttons, []InlineButton{{Text: "🔄 刷新", CallbackData: "orders"}, {Text: "⬅️ 返回主菜单", CallbackData: "menu"}})
 	return Reply{
 		Text:         strings.Join(lines, "\n"),
 		EditOriginal: true,
@@ -699,7 +699,7 @@ func (r *Router) renderOrdersCard(ctx context.Context, sess chatSession) Reply {
 }
 
 func (r *Router) renderSniperCard(ctx context.Context, sess chatSession) Reply {
-	lines := []string{fmt.Sprintf("🎯 Sniper Tasks (Launch / Migration) | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID)}
+	lines := []string{fmt.Sprintf("🎯 狙击任务（开盘 / 内盘毕业）| %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID)}
 	var buttons [][]InlineButton
 	rows, err := r.readDB.QueryContext(ctx,
 		`SELECT task_id, token, trigger_kind, amount_in_wei, state
@@ -719,17 +719,17 @@ func (r *Router) renderSniperCard(ctx context.Context, sess chatSession) Reply {
 					short = short[:6] + "..." + short[len(short)-4:]
 				}
 				amtVal, _ := new(big.Int).SetString(amt, 10)
-				lines = append(lines, fmt.Sprintf("%d. [%s] %s %s amt=%s %s", cnt, st, strings.ToUpper(kind), short, formatWeiToNative(amtVal), chainNativeSymbol(sess.ChainID)))
+				lines = append(lines, fmt.Sprintf("%d. [%s] %s %s 金额=%s %s", cnt, st, strings.ToUpper(kind), short, formatWeiToNative(amtVal), chainNativeSymbol(sess.ChainID)))
 				if st == "ARMED" && len("sn:del:"+tid) <= 64 {
-					buttons = append(buttons, []InlineButton{{Text: fmt.Sprintf("❌ Disarm #%d (%s)", cnt, short), CallbackData: "sn:del:" + tid}})
+					buttons = append(buttons, []InlineButton{{Text: fmt.Sprintf("❌ 撤防 #%d (%s)", cnt, short), CallbackData: "sn:del:" + tid}})
 				}
 			}
 		}
 	}
 	if cnt == 0 {
-		lines = append(lines, "No armed sniper tasks.\nArm one: /snipe <token_ca> <amount_wei> [launch|migration]")
+		lines = append(lines, "暂无已布防狙击任务。\n创建：/snipe <代币合约> <金额wei> [launch|migration]")
 	}
-	buttons = append(buttons, []InlineButton{{Text: "🔄 Refresh", CallbackData: "sniper"}, {Text: "⬅️ Menu", CallbackData: "menu"}})
+	buttons = append(buttons, []InlineButton{{Text: "🔄 刷新", CallbackData: "sniper"}, {Text: "⬅️ 返回主菜单", CallbackData: "menu"}})
 	return Reply{
 		Text:         strings.Join(lines, "\n"),
 		EditOriginal: true,
@@ -739,32 +739,32 @@ func (r *Router) renderSniperCard(ctx context.Context, sess chatSession) Reply {
 
 func (r *Router) renderSettingsCard(ctx context.Context, sess chatSession, alert string) Reply {
 	st := r.loadBloomSettings(ctx, sess.ChatID)
-	mevStr := "ON (private_only locked on BSC)"
+	mevStr := "开启（BSC 锁定 private_only 防夹）"
 	if !st.AntiMEV && sess.ChainID != 56 {
-		mevStr = "OFF"
+		mevStr = "关闭"
 	}
-	confStr := "ON (Confirm Popup)"
+	confStr := "开启（发单前二次确认）"
 	if !st.ConfirmBeforeLive {
-		confStr = "OFF (Degen Instant)"
+		confStr = "关闭（极速直发）"
 	}
 	text := strings.Join([]string{
-		fmt.Sprintf("⚙️ Bloom Settings | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID),
-		fmt.Sprintf("Buy Slippage: %.1f%% | Sell Slippage: %.1f%%", float64(st.BuySlippageBps)/100.0, float64(st.SellSlippageBps)/100.0),
-		fmt.Sprintf("Gas Tier: %s", strings.ToUpper(st.GasTier)),
-		fmt.Sprintf("Anti-MEV: %s", mevStr),
-		fmt.Sprintf("Live Confirm: %s", confStr),
-		fmt.Sprintf("Auto TP/SL (+100%%/-30%%): %s", boolOnOff(st.AutoTPSL)),
-		fmt.Sprintf("Buy Presets: %s %s", st.BuyPresetsCSV, chainNativeSymbol(sess.ChainID)),
+		fmt.Sprintf("⚙️ 交易参数设置 | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID),
+		fmt.Sprintf("买入滑点：%.1f%% | 卖出滑点：%.1f%%", float64(st.BuySlippageBps)/100.0, float64(st.SellSlippageBps)/100.0),
+		fmt.Sprintf("Gas 档位：%s", strings.ToUpper(st.GasTier)),
+		fmt.Sprintf("防夹保护：%s", mevStr),
+		fmt.Sprintf("实盘确认：%s", confStr),
+		fmt.Sprintf("自动止盈止损 (+100%%/-30%%)：%s", boolOnOff(st.AutoTPSL)),
+		fmt.Sprintf("快捷买入预设：%s %s", st.BuyPresetsCSV, chainNativeSymbol(sess.ChainID)),
 	}, "\n")
 	return Reply{
 		Text:         text,
 		EditOriginal: true,
 		AlertText:    alert,
 		Buttons: [][]InlineButton{
-			{{Text: fmt.Sprintf("Buy Slip: %.0f%%", float64(st.BuySlippageBps)/100.0), CallbackData: "set:slip_buy"}, {Text: fmt.Sprintf("Sell Slip: %.0f%%", float64(st.SellSlippageBps)/100.0), CallbackData: "set:slip_sell"}},
-			{{Text: "⛽ Gas: " + strings.ToUpper(st.GasTier), CallbackData: "set:gas"}, {Text: "🛡️ Anti-MEV", CallbackData: "set:mev"}},
-			{{Text: "Confirm Live: " + boolOnOff(st.ConfirmBeforeLive), CallbackData: "set:confirm"}, {Text: "🎯 Auto TP/SL: " + boolOnOff(st.AutoTPSL), CallbackData: "set:auto_tpsl"}},
-			{{Text: "⬅️ Menu", CallbackData: "menu"}},
+			{{Text: fmt.Sprintf("买入滑点: %.0f%%", float64(st.BuySlippageBps)/100.0), CallbackData: "set:slip_buy"}, {Text: fmt.Sprintf("卖出滑点: %.0f%%", float64(st.SellSlippageBps)/100.0), CallbackData: "set:slip_sell"}},
+			{{Text: "⛽ Gas: " + strings.ToUpper(st.GasTier), CallbackData: "set:gas"}, {Text: "🛡️ 防夹保护", CallbackData: "set:mev"}},
+			{{Text: "实盘确认: " + boolOnOff(st.ConfirmBeforeLive), CallbackData: "set:confirm"}, {Text: "🎯 自动止盈止损: " + boolOnOff(st.AutoTPSL), CallbackData: "set:auto_tpsl"}},
+			{{Text: "⬅️ 返回主菜单", CallbackData: "menu"}},
 		},
 	}
 }
@@ -887,9 +887,9 @@ func chainNativeSymbol(chainID uint64) string {
 
 func boolOnOff(v bool) string {
 	if v {
-		return "ON"
+		return "开启"
 	}
-	return "OFF"
+	return "关闭"
 }
 
 func parseNativeToWei(decStr string) *big.Int {

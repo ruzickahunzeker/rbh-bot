@@ -219,7 +219,7 @@ func (p *Poller) postTelegram(ctx context.Context, methodPath string, payload ma
 // RegisterCommands populates Telegram's left-of-input-box "/" quick command menu via setMyCommands.
 func (p *Poller) RegisterCommands(ctx context.Context) error {
 	cmds := []map[string]string{
-		{"command": "start", "description": "打开 Bloom 交易主面板"},
+		{"command": "start", "description": "打开交易终端主面板"},
 		{"command": "status", "description": "查看 BSC + RBH 服务状态"},
 		{"command": "wallets", "description": "查看已注册钱包列表"},
 		{"command": "positions", "description": "查询代币余额与授权"},

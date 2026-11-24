@@ -59,9 +59,9 @@ func TestBloomUIFlowStartPasteCAShadowBuySellAndSettings(t *testing.T) {
 		t.Fatalf("expected ErrUnauthorizedChat, got %v", err)
 	}
 
-	// 1. /start renders Bloom Main Dashboard with Inline Keyboard.
+	// 1. /start renders Chinese Main Dashboard with Inline Keyboard and zero "Bloom" branding.
 	rep, err := router.HandleMessage(ctx, 7131128175, "/start")
-	if err != nil || !strings.Contains(rep.Text, "Bloom UI") || len(rep.Buttons) < 4 {
+	if err != nil || !strings.Contains(rep.Text, "交易终端") || strings.Contains(strings.ToLower(rep.Text), "bloom") || len(rep.Buttons) < 4 {
 		t.Fatalf("/start failed: %+v err=%v", rep, err)
 	}
 
@@ -78,7 +78,7 @@ func TestBloomUIFlowStartPasteCAShadowBuySellAndSettings(t *testing.T) {
 	// 3. Paste bare CA -> Instant Token Card with Buy presets.
 	ca := "0x55d398326f99059fF775485246999027B3197955"
 	card, err := router.HandleMessage(ctx, 7131128175, ca)
-	if err != nil || !strings.Contains(card.Text, "Token Card") || !strings.Contains(card.Text, "pancake-v2") {
+	if err != nil || !strings.Contains(card.Text, "代币交易卡") || !strings.Contains(card.Text, "pancake-v2") {
 		t.Fatalf("paste CA failed: %+v err=%v", card, err)
 	}
 	// Extract the 0.1 BNB buy button callback data (sb:<tokKey>:0.1)
@@ -99,7 +99,7 @@ func TestBloomUIFlowStartPasteCAShadowBuySellAndSettings(t *testing.T) {
 
 	// 4. One-tap Shadow Buy 0.1 BNB -> fills 1,000,000 raw tokens.
 	buyRep, err := router.HandleCallback(ctx, 7131128175, buy01CB)
-	if err != nil || !strings.Contains(buyRep.Text, "[SHADOW BUY]") || !strings.Contains(buyRep.Text, "Shadow Bal: 1000000") {
+	if err != nil || !strings.Contains(buyRep.Text, "[模拟买入]") || !strings.Contains(buyRep.Text, "模拟持仓: 1000000") {
 		t.Fatalf("shadow buy button failed: %+v err=%v", buyRep, err)
 	}
 
@@ -111,7 +111,7 @@ func TestBloomUIFlowStartPasteCAShadowBuySellAndSettings(t *testing.T) {
 
 	// 6. Switch to Sell Mode & tap Sell 50%.
 	sellCard, err := router.HandleCallback(ctx, 7131128175, sellModeCB)
-	if err != nil || !strings.Contains(sellCard.Text, "Token Card") {
+	if err != nil || !strings.Contains(sellCard.Text, "代币交易卡") {
 		t.Fatalf("sell mode switch failed: %+v err=%v", sellCard, err)
 	}
 	var sell50CB string
@@ -124,17 +124,17 @@ func TestBloomUIFlowStartPasteCAShadowBuySellAndSettings(t *testing.T) {
 	}
 	now = now.Add(time.Second)
 	sellRep, err := router.HandleCallback(ctx, 7131128175, sell50CB)
-	if err != nil || !strings.Contains(sellRep.Text, "[SHADOW SELL 50%]") || !strings.Contains(sellRep.Text, "Shadow Bal: 500000") {
+	if err != nil || !strings.Contains(sellRep.Text, "[模拟卖出 50%]") || !strings.Contains(sellRep.Text, "模拟持仓: 500000") {
 		t.Fatalf("shadow sell 50%% failed: %+v err=%v", sellRep, err)
 	}
 
 	// 7. Settings toggles persist cleanly.
 	setRep, err := router.HandleCallback(ctx, 7131128175, "set:slip_buy")
-	if err != nil || !strings.Contains(setRep.Text, "Buy Slippage: 10.0%") {
+	if err != nil || !strings.Contains(setRep.Text, "买入滑点：10.0%") || strings.Contains(strings.ToLower(setRep.Text), "bloom") {
 		t.Fatalf("set:slip_buy toggle failed: %+v err=%v", setRep, err)
 	}
 	setRep, err = router.HandleCallback(ctx, 7131128175, "set:confirm")
-	if err != nil || !strings.Contains(setRep.Text, "OFF (Degen Instant)") {
+	if err != nil || !strings.Contains(setRep.Text, "极速直发") {
 		t.Fatalf("set:confirm toggle failed: %+v err=%v", setRep, err)
 	}
 }
