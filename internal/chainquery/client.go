@@ -45,7 +45,14 @@ func New(endpoint string) (*Client, error) {
 	if err != nil || u.Hostname() == "" || (u.Scheme != "http" && u.Scheme != "https") || u.Fragment != "" || u.User != nil {
 		return nil, ErrUnavailable
 	}
-	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, DisableKeepAlives: true, ResponseHeaderTimeout: QueryTimeout}
+	transport := &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		DisableKeepAlives:     false,
+		MaxIdleConns:          32,
+		MaxIdleConnsPerHost:   16,
+		IdleConnTimeout:       60 * time.Second,
+		ResponseHeaderTimeout: QueryTimeout,
+	}
 	return &Client{endpoint: endpoint, http: &http.Client{Transport: transport, Timeout: QueryTimeout, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}, factoryCodeHash: common.HexToHash(FactoryCodeHash), curveCodeHash: common.HexToHash(CurveCodeHash)}, nil
 }
 

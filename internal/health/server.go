@@ -1,6 +1,7 @@
 package health
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -19,6 +20,7 @@ type MetricsWriter func(context.Context, io.Writer) error
 type Server struct {
 	name          string
 	path          string
+	socketMode    os.FileMode
 	log           *slog.Logger
 	ready         *Readiness
 	metricsWriter MetricsWriter
@@ -27,14 +29,43 @@ type Server struct {
 }
 
 func New(name, path string, log *slog.Logger, ready *Readiness) *Server {
-	s := &Server{name: name, path: path, log: log, ready: ready}
+	s := &Server{name: name, path: path, socketMode: 0o660, log: log, ready: ready}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", s.health)
 	mux.HandleFunc("GET /ready", s.readiness)
 	mux.HandleFunc("GET /metrics", s.metrics)
 	s.mux = mux
-	s.http = &http.Server{Handler: mux, ReadHeaderTimeout: 2 * time.Second}
+	s.http = &http.Server{
+		Handler:           mux,
+		ReadHeaderTimeout: 2 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
 	return s
+}
+
+// SetSocketMode sets the Unix domain socket file permission (e.g. 0o600 for admin sockets).
+func (s *Server) SetSocketMode(mode os.FileMode) {
+	if s != nil && mode != 0 {
+		s.socketMode = mode
+	}
+}
+
+// SetTimeouts overrides HTTP server read/write/idle timeouts before Serve starts.
+func (s *Server) SetTimeouts(readTimeout, writeTimeout, idleTimeout time.Duration) {
+	if s == nil || s.http == nil {
+		return
+	}
+	if readTimeout > 0 {
+		s.http.ReadTimeout = readTimeout
+	}
+	if writeTimeout > 0 {
+		s.http.WriteTimeout = writeTimeout
+	}
+	if idleTimeout > 0 {
+		s.http.IdleTimeout = idleTimeout
+	}
 }
 
 // Handle registers a service-owned internal endpoint before Serve starts.
@@ -63,11 +94,11 @@ func (s *Server) Listen() (net.Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := os.Chmod(s.path, 0o660); err != nil {
+	if err := os.Chmod(s.path, s.socketMode); err != nil {
 		_ = listener.Close()
 		return nil, err
 	}
-	s.log.Info("internal server listening", "socket", s.path)
+	s.log.Info("internal server listening", "socket", s.path, "mode", fmt.Sprintf("%04o", s.socketMode))
 	return listener, nil
 }
 
@@ -95,17 +126,22 @@ func (s *Server) readiness(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
+	var buf bytes.Buffer
 	value := 0
 	if ready, _ := s.ready.Snapshot(); ready {
 		value = 1
 	}
-	_, _ = fmt.Fprintf(w, "# TYPE rbh_service_ready gauge\nrbh_service_ready{service=%q} %d\n", s.name, value)
+	_, _ = fmt.Fprintf(&buf, "# TYPE rbh_service_ready gauge\nrbh_service_ready{service=%q} %d\n", s.name, value)
 	if s.metricsWriter != nil {
-		if err := s.metricsWriter(r.Context(), w); err != nil {
+		if err := s.metricsWriter(r.Context(), &buf); err != nil {
 			s.log.Error("write service metrics", "error", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 	}
+	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(buf.Bytes())
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
@@ -124,6 +160,12 @@ func removeStaleSocket(path string) error {
 	}
 	if info.Mode()&os.ModeSocket == 0 {
 		return fmt.Errorf("refusing to replace non-socket path %s", path)
+	}
+	// Probe whether a live process is actively listening before unlinking.
+	conn, dialErr := net.DialTimeout("unix", path, 200*time.Millisecond)
+	if dialErr == nil {
+		_ = conn.Close()
+		return fmt.Errorf("refusing to replace active socket %s", path)
 	}
 	return os.Remove(path)
 }

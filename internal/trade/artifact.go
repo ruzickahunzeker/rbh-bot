@@ -60,21 +60,38 @@ type ArtifactCipher interface {
 type AESGCMCipher struct {
 	version string
 	aead    cipher.AEAD
+	keys    map[string]cipher.AEAD
 }
 
 func NewAESGCMCipher(version string, key []byte) (*AESGCMCipher, error) {
-	if version == "" || len(key) != 32 {
+	return NewAESGCMKeyring(version, map[string][]byte{version: key})
+}
+
+// NewAESGCMKeyring constructs a multi-version AES-GCM keyring where activeVersion
+// is used for all new encryptions and every entry in keys can decrypt historical artifacts.
+func NewAESGCMKeyring(activeVersion string, keys map[string][]byte) (*AESGCMCipher, error) {
+	if activeVersion == "" || len(keys) == 0 {
 		return nil, ErrEncryption
 	}
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrEncryption, err)
+	if _, ok := keys[activeVersion]; !ok {
+		return nil, ErrEncryption
 	}
-	aead, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrEncryption, err)
+	ring := make(map[string]cipher.AEAD, len(keys))
+	for ver, rawKey := range keys {
+		if ver == "" || len(rawKey) != 32 {
+			return nil, ErrEncryption
+		}
+		block, err := aes.NewCipher(rawKey)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrEncryption, err)
+		}
+		aead, err := cipher.NewGCM(block)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrEncryption, err)
+		}
+		ring[ver] = aead
 	}
-	return &AESGCMCipher{version: version, aead: aead}, nil
+	return &AESGCMCipher{version: activeVersion, aead: ring[activeVersion], keys: ring}, nil
 }
 
 func (c *AESGCMCipher) KeyVersion() string { return c.version }
@@ -91,10 +108,19 @@ func (c *AESGCMCipher) Encrypt(plaintext, aad []byte) ([]byte, []byte, error) {
 }
 
 func (c *AESGCMCipher) Decrypt(version string, ciphertext, nonce, aad []byte) ([]byte, error) {
-	if c == nil || c.aead == nil || version != c.version {
+	if c == nil || version == "" {
 		return nil, ErrUnknownKeyVersion
 	}
-	plaintext, err := c.aead.Open(nil, nonce, ciphertext, aad)
+	var aead cipher.AEAD
+	if c.keys != nil {
+		aead = c.keys[version]
+	} else if version == c.version {
+		aead = c.aead
+	}
+	if aead == nil {
+		return nil, ErrUnknownKeyVersion
+	}
+	plaintext, err := aead.Open(nil, nonce, ciphertext, aad)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrArtifactIntegrity, err)
 	}

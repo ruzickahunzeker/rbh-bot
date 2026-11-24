@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 
@@ -61,7 +62,11 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 	}
 	if service == config.TradeService {
 		gates = append(gates, "recovery_ready")
-		if cfg.TradeStartupProfile != config.TradeProfileRecoveryOnly {
+		switch cfg.TradeStartupProfile {
+		case config.TradeProfileRecoveryOnly:
+		case config.TradeProfileQueryAndRecovery:
+			gates = append(gates, "trade_api_query_ready")
+		default:
 			gates = append(gates, "pons_curve_dry_run_configured")
 		}
 	}
@@ -115,7 +120,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		server.SetMetricsWriter(func(metricCtx context.Context, writer io.Writer) error {
 			return writeFeedMetrics(metricCtx, writer, store)
 		})
-		server.Handle("GET /internal/feed/outbox", authenticator.Middleware(feedcore.NewOutboxHTTPHandler(store)))
+		server.Handle("GET /internal/feed/outbox", ipc.RequestContext(authenticator.Middleware(feedcore.NewOutboxHTTPHandler(store))))
 	}
 	if service == config.BotService {
 		store, err := botcore.NewStore(database)
@@ -144,6 +149,15 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			if err != nil {
 				return err
 			}
+		} else if cfg.TradeStartupProfile == config.TradeProfileQueryAndRecovery {
+			artifactCipher, err = loadRecoveryCipher(cfg)
+			if err != nil {
+				return err
+			}
+			if err := configureUserTradeAPI(server, database, cfg); err != nil {
+				return err
+			}
+			ready.Set("trade_api_query_ready", true)
 		} else {
 			if cfg.RPCURL == "" || cfg.DryRunWalletID == "" || !common.IsHexAddress(cfg.DryRunFromAddress) || common.HexToAddress(cfg.DryRunFromAddress) == (common.Address{}) || cfg.ExecutionPrivateKey == "" || cfg.ArtifactEncryptionKey == "" || cfg.ArtifactKeyVersion == "" {
 				return errors.New("trade execution kernel configuration is incomplete")
@@ -166,7 +180,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			if _, err := engine.Recover(ctx); err != nil {
 				return fmt.Errorf("recover trade dry-runs: %w", err)
 			}
-			server.Handle("POST /internal/trade/dry-run", authenticator.Middleware(tradecore.NewDryRunHTTPHandler(engine)))
+			server.Handle("POST /internal/trade/dry-run", ipc.RequestContext(authenticator.Middleware(tradecore.NewDryRunHTTPHandler(engine))))
 			privateKey, err := crypto.HexToECDSA(cfg.ExecutionPrivateKey)
 			if err != nil {
 				return errors.New("invalid execution signer configuration")
@@ -187,7 +201,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			if err != nil {
 				return err
 			}
-			server.Handle("POST /internal/trade/prepare-execution", authenticator.Middleware(tradecore.NewPrepareExecutionHandler(kernel)))
+			server.Handle("POST /internal/trade/prepare-execution", ipc.RequestContext(authenticator.Middleware(tradecore.NewPrepareExecutionHandler(kernel))))
 			ready.Set("pons_curve_dry_run_configured", true)
 		}
 		recoveryRPC, err := tradecore.DialReadOnlyRecoveryRPC(ctx, cfg.RPCURL)
@@ -233,30 +247,60 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 	}
 	ready.Set("socket_bound", true)
 	errCh := make(chan error, 4)
-	go func() { errCh <- server.Serve(listener) }()
+	var bgWG sync.WaitGroup
+	bgWG.Add(1)
+	go func() {
+		defer bgWG.Done()
+		errCh <- server.Serve(listener)
+	}()
 	if runner != nil {
-		go func() { errCh <- runner.Run(ctx) }()
-		go monitorFeedReadiness(ctx, ready, runner)
+		bgWG.Add(2)
+		go func() {
+			defer bgWG.Done()
+			errCh <- runner.Run(ctx)
+		}()
+		go func() {
+			defer bgWG.Done()
+			monitorFeedReadiness(ctx, ready, runner)
+		}()
 	}
 	if botConsumer != nil {
-		go func() { errCh <- botConsumer.Run(ctx, 100*time.Millisecond) }()
+		bgWG.Add(1)
+		go func() {
+			defer bgWG.Done()
+			errCh <- botConsumer.Run(ctx, 100*time.Millisecond)
+		}()
 	}
 	if canaryProduction != nil {
+		bgWG.Add(2)
 		go func() {
+			defer bgWG.Done()
 			<-recoveryLoop.done
 			errCh <- recoveryLoop.err
 		}()
-		go monitorRecoveryReadiness(ctx, ready, canaryProduction)
+		go func() {
+			defer bgWG.Done()
+			monitorRecoveryReadiness(ctx, ready, canaryProduction)
+		}()
+	}
+
+	drainAll := func() error {
+		stop()
+		err := shutdownApplication(server, canaryProduction)
+		if recoveryLoop != nil {
+			recoveryLoop.stopAndWait()
+		}
+		bgWG.Wait()
+		return err
 	}
 
 	select {
 	case err := <-errCh:
 		wasCanceled := ctx.Err() != nil
-		stop()
 		if wasCanceled {
-			return shutdownApplication(server, canaryProduction)
+			return drainAll()
 		}
-		if shutdownErr := shutdownApplication(server, canaryProduction); shutdownErr != nil {
+		if shutdownErr := drainAll(); shutdownErr != nil {
 			if err == nil {
 				return shutdownErr
 			}
@@ -267,7 +311,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		}
 		return err
 	case <-ctx.Done():
-		return shutdownApplication(server, canaryProduction)
+		return drainAll()
 	}
 }
 

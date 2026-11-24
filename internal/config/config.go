@@ -13,8 +13,9 @@ const ChainID uint64 = 4663
 const CanaryProductionModeDisabled = "DISABLED"
 
 const (
-	TradeProfileLegacy       = "LEGACY"
-	TradeProfileRecoveryOnly = "RECOVERY_ONLY"
+	TradeProfileLegacy           = "LEGACY"
+	TradeProfileRecoveryOnly     = "RECOVERY_ONLY"
+	TradeProfileQueryAndRecovery = "QUERY_AND_RECOVERY"
 )
 
 type Service string
@@ -57,16 +58,29 @@ func (c Config) ValidateTradeStartupProfile() error {
 	if c.TradeStartupProfile == "" || c.TradeStartupProfile == TradeProfileLegacy {
 		return nil
 	}
-	if c.Service != TradeService || c.TradeStartupProfile != TradeProfileRecoveryOnly {
+	if c.Service != TradeService {
 		return fmt.Errorf("invalid trade startup profile")
 	}
-	if c.LiveEnabled || c.CanaryProductionMode != CanaryProductionModeDisabled ||
-		c.TradeAPIConfigFile != "" || c.TradeAPIReadQueries || c.TradeAPIManualIntake ||
-		c.TradeAPIValidateOrders || c.TradeAPIValidationPolicy != 0 || c.TradeAPIManualAdmission ||
-		c.ExecutionPrivateKey != "" || c.DryRunWalletID != "" || c.DryRunFromAddress != "" {
-		return fmt.Errorf("recovery-only startup rejects execution and user API configuration")
+	switch c.TradeStartupProfile {
+	case TradeProfileRecoveryOnly:
+		if c.LiveEnabled || c.CanaryProductionMode != CanaryProductionModeDisabled ||
+			c.TradeAPIConfigFile != "" || c.TradeAPIReadQueries || c.TradeAPIManualIntake ||
+			c.TradeAPIValidateOrders || c.TradeAPIValidationPolicy != 0 || c.TradeAPIManualAdmission ||
+			c.ExecutionPrivateKey != "" || c.DryRunWalletID != "" || c.DryRunFromAddress != "" {
+			return fmt.Errorf("recovery-only startup rejects execution and user API configuration")
+		}
+		return nil
+	case TradeProfileQueryAndRecovery:
+		if c.LiveEnabled || c.CanaryProductionMode != CanaryProductionModeDisabled ||
+			c.TradeAPIConfigFile == "" || c.TradeAPIManualIntake ||
+			c.TradeAPIValidateOrders || c.TradeAPIValidationPolicy != 0 || c.TradeAPIManualAdmission ||
+			c.ExecutionPrivateKey != "" || c.DryRunWalletID != "" || c.DryRunFromAddress != "" {
+			return fmt.Errorf("query-and-recovery startup requires user API config and rejects execution/admission configuration")
+		}
+		return nil
+	default:
+		return fmt.Errorf("invalid trade startup profile")
 	}
-	return nil
 }
 
 func Load(service Service) (Config, error) {

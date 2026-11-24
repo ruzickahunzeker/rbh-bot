@@ -7,12 +7,20 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"net/url"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	_ "modernc.org/sqlite"
+)
+
+const (
+	DefaultBusyTimeoutMS    = 5000
+	DefaultJournalSizeLimit = 64 * 1024 * 1024 // 64 MiB
 )
 
 type Owner string
@@ -27,34 +35,55 @@ const (
 var migrationFiles embed.FS
 
 type Database struct {
-	owner Owner
-	db    *sql.DB
+	owner  Owner
+	path   string
+	db     *sql.DB
+	readMu sync.Mutex
+	readDB *sql.DB
+	closed bool
 }
 
 func Open(ctx context.Context, owner Owner, path string) (*Database, error) {
 	if ctx == nil || path == "" || !validOwner(owner) {
 		return nil, errors.New("invalid database configuration")
 	}
-	db, err := sql.Open("sqlite", path)
+	writerDSN := buildSQLiteDSN(path, owner, false)
+	db, err := sql.Open("sqlite", writerDSN)
 	if err != nil {
 		return nil, fmt.Errorf("open %s database: %w", owner, err)
 	}
-	// One process owns one database. A single connection makes connection-local
-	// SQLite PRAGMAs deterministic and leaves concurrency control to SQLite WAL.
+	// One process owns one database. A single writer connection serializes writes
+	// cleanly while DSN PRAGMAs + _txlock=immediate make every connection deterministic.
 	db.SetMaxOpenConns(1)
 	db.SetMaxIdleConns(1)
 	if err := configure(ctx, db, owner); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
-	return &Database{owner: owner, db: db}, nil
+	return &Database{owner: owner, path: path, db: db}, nil
 }
 
 func (d *Database) Close() error {
-	if d == nil || d.db == nil {
+	if d == nil {
 		return nil
 	}
-	return d.db.Close()
+	d.readMu.Lock()
+	d.closed = true
+	rdb := d.readDB
+	d.readDB = nil
+	d.readMu.Unlock()
+	var errs []error
+	if rdb != nil {
+		if err := rdb.Close(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if d.db != nil {
+		if err := d.db.Close(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
 }
 
 func (d *Database) Ping(ctx context.Context) error {
@@ -64,7 +93,7 @@ func (d *Database) Ping(ctx context.Context) error {
 	return d.db.PingContext(ctx)
 }
 
-// SQLDB returns the underlying handle only to code that proves the expected
+// SQLDB returns the single-writer handle only to code that proves the expected
 // service owner. This keeps service-owned write boundaries explicit while
 // allowing domain stores to use transactions directly.
 func (d *Database) SQLDB(owner Owner) (*sql.DB, error) {
@@ -75,6 +104,55 @@ func (d *Database) SQLDB(owner Owner) (*sql.DB, error) {
 		return nil, fmt.Errorf("database owner mismatch: have %s want %s", d.owner, owner)
 	}
 	return d.db, nil
+}
+
+// ReadDB lazily opens and returns a bounded read-only SQLite connection pool
+// (mode=ro, query_only=1) for read queries without contending with the single writer.
+func (d *Database) ReadDB(owner Owner) (*sql.DB, error) {
+	if d == nil || d.db == nil {
+		return nil, errors.New("database is closed")
+	}
+	if owner != d.owner {
+		return nil, fmt.Errorf("database owner mismatch: have %s want %s", d.owner, owner)
+	}
+	if d.path == ":memory:" || strings.HasPrefix(d.path, "file::memory:") {
+		return d.db, nil
+	}
+	d.readMu.Lock()
+	defer d.readMu.Unlock()
+	if d.closed {
+		return nil, errors.New("database is closed")
+	}
+	if d.readDB != nil {
+		return d.readDB, nil
+	}
+	readDSN := buildSQLiteDSN(d.path, d.owner, true)
+	rdb, err := sql.Open("sqlite", readDSN)
+	if err != nil {
+		return nil, fmt.Errorf("open %s read pool: %w", d.owner, err)
+	}
+	rdb.SetMaxOpenConns(4)
+	rdb.SetMaxIdleConns(4)
+	rdb.SetConnMaxIdleTime(2 * time.Minute)
+	var queryOnly int
+	if err := rdb.QueryRow("PRAGMA query_only").Scan(&queryOnly); err != nil || queryOnly != 1 {
+		_ = rdb.Close()
+		return nil, fmt.Errorf("validate %s read pool query_only: %v", d.owner, err)
+	}
+	d.readDB = rdb
+	return d.readDB, nil
+}
+
+// WALSizeBytes returns the current on-disk size of the SQLite WAL file (0 if absent).
+func (d *Database) WALSizeBytes() int64 {
+	if d == nil || d.path == "" || d.path == ":memory:" || strings.HasPrefix(d.path, "file:") {
+		return 0
+	}
+	info, err := os.Stat(d.path + "-wal")
+	if err != nil {
+		return 0
+	}
+	return info.Size()
 }
 
 func (d *Database) Migrate(ctx context.Context) error {
@@ -146,7 +224,11 @@ func (d *Database) Migrate(ctx context.Context) error {
 }
 
 func (d *Database) Validate(ctx context.Context) error {
-	wants := map[string]int{"foreign_keys": 1, "busy_timeout": 5000}
+	wants := map[string]int{
+		"foreign_keys":       1,
+		"busy_timeout":       DefaultBusyTimeoutMS,
+		"journal_size_limit": DefaultJournalSizeLimit,
+	}
 	if d.owner == TradeOwner {
 		wants["synchronous"] = 2 // FULL
 	}
@@ -166,6 +248,15 @@ func (d *Database) Validate(ctx context.Context) error {
 	if !strings.EqualFold(mode, "wal") {
 		return fmt.Errorf("PRAGMA journal_mode=%s, want wal", mode)
 	}
+	if d.readDB != nil {
+		var queryOnly int
+		if err := d.readDB.QueryRowContext(ctx, "PRAGMA query_only").Scan(&queryOnly); err != nil {
+			return fmt.Errorf("read pool PRAGMA query_only: %w", err)
+		}
+		if queryOnly != 1 {
+			return fmt.Errorf("read pool PRAGMA query_only=%d, want 1", queryOnly)
+		}
+	}
 	return nil
 }
 
@@ -173,7 +264,8 @@ func configure(ctx context.Context, db *sql.DB, owner Owner) error {
 	statements := []string{
 		"PRAGMA journal_mode=WAL",
 		"PRAGMA foreign_keys=ON",
-		"PRAGMA busy_timeout=5000",
+		fmt.Sprintf("PRAGMA busy_timeout=%d", DefaultBusyTimeoutMS),
+		fmt.Sprintf("PRAGMA journal_size_limit=%d", DefaultJournalSizeLimit),
 	}
 	if owner == TradeOwner {
 		statements = append(statements, "PRAGMA synchronous=FULL")
@@ -184,6 +276,29 @@ func configure(ctx context.Context, db *sql.DB, owner Owner) error {
 		}
 	}
 	return db.PingContext(ctx)
+}
+
+func buildSQLiteDSN(path string, owner Owner, readOnly bool) string {
+	if path == ":memory:" || strings.HasPrefix(path, "file:") {
+		return path
+	}
+	q := url.Values{}
+	q.Add("_pragma", fmt.Sprintf("busy_timeout(%d)", DefaultBusyTimeoutMS))
+	if readOnly {
+		q.Set("mode", "ro")
+		q.Add("_pragma", "query_only(1)")
+		q.Add("_pragma", "foreign_keys(1)")
+	} else {
+		q.Add("_pragma", "journal_mode(WAL)")
+		q.Add("_pragma", "foreign_keys(1)")
+		q.Add("_pragma", fmt.Sprintf("journal_size_limit(%d)", DefaultJournalSizeLimit))
+		if owner == TradeOwner {
+			q.Add("_pragma", "synchronous(FULL)")
+		}
+		q.Set("_txlock", "immediate")
+	}
+	u := url.URL{Scheme: "file", Path: path, RawQuery: q.Encode()}
+	return u.String()
 }
 
 func validOwner(owner Owner) bool {

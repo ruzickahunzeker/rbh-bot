@@ -74,3 +74,61 @@ func TestReadinessOverUnixSocketAndShutdown(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestListenRefusesActiveUnixSocket(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "active.sock")
+	first := New("first", path, slog.New(slog.NewTextHandler(io.Discard, nil)), NewReadiness())
+	listener, err := first.Listen()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+
+	second := New("second", path, slog.New(slog.NewTextHandler(io.Discard, nil)), NewReadiness())
+	if _, err := second.Listen(); err == nil {
+		t.Fatal("expected second listener to refuse overwriting active unix socket")
+	}
+}
+
+func TestAdminSocketMode0600AndBufferedMetricsError(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "admin.sock")
+	server := New("admin", path, slog.New(slog.NewTextHandler(io.Discard, nil)), NewReadiness())
+	server.SetSocketMode(0o600)
+	server.SetMetricsWriter(func(_ context.Context, w io.Writer) error {
+		_, _ = io.WriteString(w, "partial_metric 1\n")
+		return io.ErrUnexpectedEOF
+	})
+	listener, err := server.Listen()
+	if err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got != 0o600 {
+		t.Fatalf("got socket mode %04o, want 0600", got)
+	}
+	done := make(chan error, 1)
+	go func() { done <- server.Serve(listener) }()
+	defer func() {
+		_ = server.Shutdown(context.Background())
+		<-done
+	}()
+
+	client := &http.Client{Transport: &http.Transport{DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, "unix", path)
+	}}, Timeout: time.Second}
+	resp, err := client.Get("http://unix/metrics")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("got status %d, want 500 on metrics writer error", resp.StatusCode)
+	}
+	if len(body) != 0 {
+		t.Fatalf("expected empty body when buffered metrics fail, got %q", string(body))
+	}
+}

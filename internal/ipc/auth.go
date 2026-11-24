@@ -22,21 +22,44 @@ const (
 	HeaderBodyHash  = "X-RBH-Body-SHA256"
 	HeaderSignature = "X-RBH-Signature"
 	HeaderRequestID = "X-Request-ID"
+
+	DefaultMaxReplayCacheSize = 65536
 )
 
 type Authenticator struct {
-	secret []byte
-	window time.Duration
-	now    func() time.Time
-	mu     sync.Mutex
-	seen   map[string]time.Time
+	secret  []byte
+	window  time.Duration
+	maxSeen int
+	now     func() time.Time
+	mu      sync.Mutex
+	seen    map[string]time.Time
 }
 
 func NewAuthenticator(secret []byte, window time.Duration) (*Authenticator, error) {
-	if len(secret) < 32 || window <= 0 {
-		return nil, errors.New("IPC secret must be at least 32 bytes and window must be positive")
+	return NewAuthenticatorWithLimit(secret, window, DefaultMaxReplayCacheSize)
+}
+
+func NewAuthenticatorWithLimit(secret []byte, window time.Duration, maxSeen int) (*Authenticator, error) {
+	if len(secret) < 32 || window <= 0 || maxSeen <= 0 {
+		return nil, errors.New("IPC secret must be at least 32 bytes, window and replay cache limit must be positive")
 	}
-	return &Authenticator{secret: append([]byte(nil), secret...), window: window, now: time.Now, seen: make(map[string]time.Time)}, nil
+	return &Authenticator{
+		secret:  append([]byte(nil), secret...),
+		window:  window,
+		maxSeen: maxSeen,
+		now:     time.Now,
+		seen:    make(map[string]time.Time),
+	}, nil
+}
+
+// ReplayCacheStats reports current active nonce count and bounded capacity for metrics.
+func (a *Authenticator) ReplayCacheStats() (size int, capacity int) {
+	if a == nil {
+		return 0, 0
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return len(a.seen), a.maxSeen
 }
 
 func (a *Authenticator) Sign(req *http.Request, body []byte) error {
@@ -83,14 +106,19 @@ func (a *Authenticator) Verify(req *http.Request) error {
 	if requestTime.Before(now.Add(-a.window)) || requestTime.After(now.Add(a.window)) {
 		return errors.New("request timestamp outside allowed window")
 	}
-	body, err := io.ReadAll(io.LimitReader(req.Body, (1<<20)+1))
-	if err != nil {
-		return fmt.Errorf("read request body: %w", err)
+	var body []byte
+	if req.Body != nil {
+		body, err = io.ReadAll(io.LimitReader(req.Body, (1<<20)+1))
+		if err != nil {
+			return fmt.Errorf("read request body: %w", err)
+		}
+		if len(body) > 1<<20 {
+			return errors.New("request body exceeds limit")
+		}
+		req.Body = io.NopCloser(bytes.NewReader(body))
+	} else {
+		req.Body = http.NoBody
 	}
-	if len(body) > 1<<20 {
-		return errors.New("request body exceeds limit")
-	}
-	req.Body = io.NopCloser(bytes.NewReader(body))
 	actualHash := sha256.Sum256(body)
 	if !hmac.Equal([]byte(bodyHash), []byte(hex.EncodeToString(actualHash[:]))) {
 		return errors.New("request body hash mismatch")
@@ -112,6 +140,10 @@ func (a *Authenticator) claimNonce(nonce string, now time.Time) error {
 	}
 	if _, exists := a.seen[nonce]; exists {
 		return errors.New("request nonce replayed")
+	}
+	if len(a.seen) >= a.maxSeen {
+		// Fail-closed: never evict an unexpired nonce within the replay window.
+		return errors.New("replay cache capacity exceeded")
 	}
 	a.seen[nonce] = now.Add(a.window)
 	return nil

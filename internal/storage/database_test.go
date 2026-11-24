@@ -74,6 +74,36 @@ func TestRejectsUnknownOwner(t *testing.T) {
 	}
 }
 
+func TestReadDBPoolIsReadOnlyAndWALValidated(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "ro_pool.db")
+	db, err := Open(ctx, TradeOwner, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := db.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	readPool, err := db.ReadDB(TradeOwner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var count int
+	if err := readPool.QueryRowContext(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&count); err != nil {
+		t.Fatalf("read pool query failed: %v", err)
+	}
+	if count == 0 {
+		t.Fatal("expected migrated rows visible via read pool")
+	}
+	if _, err := readPool.ExecContext(ctx, "CREATE TABLE should_fail(id INTEGER)"); err == nil {
+		t.Fatal("expected read-only pool to reject write DDL")
+	}
+	if _, err := db.ReadDB(BotOwner); err == nil {
+		t.Fatal("expected owner mismatch to be rejected on ReadDB")
+	}
+}
+
 func TestManualExecutionBindingUpgradeFrom020PreservesDurableRows(t *testing.T) {
 	ctx := context.Background()
 	d, err := Open(ctx, TradeOwner, filepath.Join(t.TempDir(), "upgrade.db"))
