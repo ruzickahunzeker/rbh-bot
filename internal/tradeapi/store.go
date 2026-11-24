@@ -53,6 +53,7 @@ type Record struct {
 	SendAuthorized     bool               `json:"send_authorized"`
 	SubmissionQueued   bool               `json:"submission_queued"`
 	Duplicate          bool               `json:"duplicate"`
+	ContinuationActive bool               `json:"continuation_active,omitempty"`
 }
 
 // RecordProgress is a read-only projection of verified durable facts. It is
