@@ -200,6 +200,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 					TradeSocket: cfg.TradeSocketRBH,
 					BearerToken: cfg.TradeAPITokenRBH,
 					FeedSocket:  feedSockRBH,
+					RPCURL:      cfg.RPCURLRBH,
 				},
 				config.BSCChainID: {
 					ChainSlug:   "bsc",
@@ -414,8 +415,8 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			server.Handle("POST /internal/trade/prepare-execution", ipc.RequestContext(authenticator.Middleware(tradecore.NewPrepareExecutionHandler(kernel))))
 			ready.Set("pons_curve_dry_run_configured", true)
 		}
-		if cfg.TradeStartupProfile == config.TradeProfileQueryAndRecovery && cfg.ChainID != config.ChainID {
-			// Non-Robinhood chains (e.g. BSC 56, Base 8453) in read-only QUERY_AND_RECOVERY mode
+		if cfg.TradeStartupProfile == config.TradeProfileQueryAndRecovery && (cfg.ChainID != config.ChainID || cfg.ReadOnlyQueryOnly) {
+			// Read-only QUERY_AND_RECOVERY instances on non-RBH chains or with explicit EVM_READONLY_QUERY_ONLY=true
 			// do not bind to the Robinhood V1 Pons-Curve canary_control_state(4663) recovery worker.
 			server.SetMetricsWriter(func(_ context.Context, writer io.Writer) error {
 				return writeRuntimeMetrics(writer, database, authenticator)

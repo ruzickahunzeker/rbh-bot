@@ -71,7 +71,7 @@ func (r *Router) loadSession(ctx context.Context, chatID int64) (chatSession, er
 
 func (r *Router) loadBloomSettings(ctx context.Context, chatID int64) bloomSettings {
 	st := bloomSettings{
-		BuyPresetsCSV:     "0.05,0.1,0.5,1",
+		BuyPresetsCSV:     "0.05,0.1,0.25,0.5,1",
 		BuySlippageBps:    500,
 		SellSlippageBps:   1000,
 		GasTier:           "fast",
@@ -191,16 +191,19 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 		return Reply{}, err
 	}
 	switch {
+	case data == "noop":
+		return Reply{AlertText: fmt.Sprintf("当前链：%s (%d)", chainDisplayName(sess.ChainID), sess.ChainID)}, nil
+
 	case data == "menu":
 		return r.renderMainMenu(ctx, sess, true), nil
 
-	case data == "sw_chain":
-		newChain := uint64(4663)
-		newWallet := "wallet-rbh-readonly"
-		if sess.ChainID == 4663 {
-			newChain = 56
-			newWallet = "wallet-bsc-readonly"
+	case data == "sw_chain", data == "sw_c:next", data == "sw_c:prev":
+		delta := 1
+		if data == "sw_c:prev" {
+			delta = -1
 		}
+		newChain := nextChainInRing(sess.ChainID, delta)
+		newWallet := defaultWalletForChain(newChain)
 		if _, err := r.db.ExecContext(ctx,
 			`UPDATE telegram_allowlist SET active_chain_id = ?, active_wallet_id = ?, updated_at = ? WHERE chat_id = ?`,
 			newChain, newWallet, r.now().UTC().Format(time.RFC3339Nano), chatID,
@@ -349,8 +352,79 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 		rep.AlertText = "已撤销条件单 " + orderID
 		return rep, nil
 
+	case data == "co:delall":
+		_, _ = r.db.ExecContext(ctx,
+			`UPDATE conditional_orders SET state = 'CANCELLED', updated_at = ? WHERE chain_id = ? AND state = 'ACTIVE'`,
+			r.now().UTC().Format(time.RFC3339Nano), sess.ChainID,
+		)
+		rep := r.renderOrdersCard(ctx, sess)
+		rep.AlertText = "已撤销当前链全部活跃条件单"
+		return rep, nil
+
+	case strings.HasPrefix(data, "lo:"):
+		return r.executeRelativeLimitOrder(ctx, sess, data), nil
+
+	case strings.HasPrefix(data, "tc_c:"):
+		// tc_c:<tokKey>:<mode>:<prev|next> -> switch chain and re-probe same token CA!
+		parts := strings.Split(data, ":")
+		if len(parts) != 4 {
+			return Reply{AlertText: "无效切链参数"}, nil
+		}
+		_, tok, _, err := r.lookupUIToken(ctx, parts[1])
+		if err != nil {
+			return Reply{AlertText: "代币缓存已过期，请重新发送合约地址"}, nil
+		}
+		delta := 1
+		if parts[3] == "prev" {
+			delta = -1
+		}
+		newChain := nextChainInRing(sess.ChainID, delta)
+		newWallet := defaultWalletForChain(newChain)
+		_, _ = r.db.ExecContext(ctx,
+			`UPDATE telegram_allowlist SET active_chain_id = ?, active_wallet_id = ?, updated_at = ? WHERE chat_id = ?`,
+			newChain, newWallet, r.now().UTC().Format(time.RFC3339Nano), chatID,
+		)
+		sess.ChainID = newChain
+		sess.WalletID = newWallet
+		rep := r.renderTokenCard(ctx, sess, tok, parts[2], true, "")
+		rep.AlertText = fmt.Sprintf("已切换至 %s (%d) 并重新探测合约", chainDisplayName(newChain), newChain)
+		return rep, nil
+
+	case strings.HasPrefix(data, "tc_g:"):
+		// tc_g:<tokKey>:<mode> -> cycle gas tier directly inside Token Card
+		parts := strings.Split(data, ":")
+		if len(parts) != 3 {
+			return Reply{AlertText: "无效 Gas 参数"}, nil
+		}
+		cid, tok, _, err := r.lookupUIToken(ctx, parts[1])
+		if err != nil {
+			return Reply{AlertText: "代币缓存已过期"}, nil
+		}
+		sess.ChainID = cid
+		st := r.loadBloomSettings(ctx, sess.ChatID)
+		switch st.GasTier {
+		case "standard":
+			st.GasTier = "fast"
+		case "fast":
+			st.GasTier = "turbo"
+		default:
+			st.GasTier = "standard"
+		}
+		_ = r.saveBloomSettings(ctx, sess.ChatID, st)
+		rep := r.renderTokenCard(ctx, sess, tok, parts[2], true, "")
+		rep.AlertText = "Gas 档位已切换为：" + gasTierCN(st.GasTier)
+		return rep, nil
+
+	case strings.HasPrefix(data, "tc_w:"):
+		// tc_w:<tokKey>:<mode> -> cycle wallet directly inside Token Card
+		parts := strings.Split(data, ":")
+		if len(parts) != 3 {
+			return Reply{AlertText: "无效钱包参数"}, nil
+		}
+		return r.cycleTokenCardWallet(ctx, sess, parts[1], parts[2]), nil
+
 	case strings.HasPrefix(data, "tc:"):
-		// tc:<tokKey>:<buy|sell>
+		// tc:<tokKey>:<buy|sell|limit>
 		parts := strings.Split(data, ":")
 		if len(parts) != 3 {
 			return Reply{AlertText: "无效的代币卡片操作"}, nil
@@ -386,10 +460,6 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 func (r *Router) renderMainMenu(ctx context.Context, sess chatSession, edit bool) Reply {
 	chainName := chainDisplayName(sess.ChainID)
 	sym := chainNativeSymbol(sess.ChainID)
-	otherChain := "RBH (4663)"
-	if sess.ChainID == 4663 {
-		otherChain = "BSC (56)"
-	}
 	var watchedCnt, ordersCnt, shadowFills int
 	_ = r.readDB.QueryRowContext(ctx, `SELECT COUNT(*) FROM watched_wallets WHERE chain_id = ? AND enabled = 1`, sess.ChainID).Scan(&watchedCnt)
 	_ = r.readDB.QueryRowContext(ctx, `SELECT COUNT(*) FROM conditional_orders WHERE chain_id = ? AND state = 'ACTIVE'`, sess.ChainID).Scan(&ordersCnt)
@@ -408,16 +478,17 @@ func (r *Router) renderMainMenu(ctx context.Context, sess chatSession, edit bool
 		Text:         text,
 		EditOriginal: edit,
 		Buttons: [][]InlineButton{
+			chainTopSwitcherRow(sess.ChainID, "sw_c:prev", "sw_c:next"),
 			{{Text: "📊 持仓与盈亏", CallbackData: "positions"}, {Text: "🎯 狙击任务", CallbackData: "sniper"}},
 			{{Text: "👥 聪明钱跟单", CallbackData: "copy"}, {Text: "📈 限价/止盈止损", CallbackData: "orders"}},
 			{{Text: "👛 钱包管理", CallbackData: "wallets"}, {Text: "⚙️ 交易设置", CallbackData: "settings"}},
-			{{Text: "📡 系统状态", CallbackData: "status"}, {Text: "🔄 切换至 " + otherChain, CallbackData: "sw_chain"}},
+			{{Text: "📡 系统状态", CallbackData: "status"}, {Text: "📑 今日复盘", CallbackData: "report"}},
 		},
 	}
 }
 
 func (r *Router) renderTokenCard(ctx context.Context, sess chatSession, token common.Address, mode string, edit bool, banner string) Reply {
-	if mode != "sell" {
+	if mode != "sell" && mode != "limit" {
 		mode = "buy"
 	}
 	st := r.loadBloomSettings(ctx, sess.ChatID)
@@ -468,70 +539,102 @@ func (r *Router) renderTokenCard(ctx context.Context, sess chatSession, token co
 		lines = append(lines, "", banner)
 	}
 
-	buyModeBtn := "买入模式"
-	sellModeBtn := "卖出模式"
-	if mode == "buy" {
-		buyModeBtn = "🟢 买入模式"
-	} else {
-		sellModeBtn = "🔴 卖出模式"
+	buyModeBtn := "买入"
+	sellModeBtn := "卖出"
+	limitModeBtn := "限价"
+	switch mode {
+	case "buy":
+		buyModeBtn = "🟢 买入"
+	case "sell":
+		sellModeBtn = "🔴 卖出"
+	case "limit":
+		limitModeBtn = "📈 限价"
 	}
 
 	var rows [][]InlineButton
+	// Row 1: Top Multi-Chain Left/Right Switcher Bar
+	rows = append(rows, chainTopSwitcherRow(sess.ChainID, "tc_c:"+tokKey+":"+mode+":prev", "tc_c:"+tokKey+":"+mode+":next"))
+	// Row 2: Buy / Sell / Limit 3-mode switcher
 	rows = append(rows, []InlineButton{
 		{Text: buyModeBtn, CallbackData: "tc:" + tokKey + ":buy"},
 		{Text: sellModeBtn, CallbackData: "tc:" + tokKey + ":sell"},
-		{Text: "🔄 刷新", CallbackData: "tc:" + tokKey + ":" + mode},
+		{Text: limitModeBtn, CallbackData: "tc:" + tokKey + ":limit"},
 	})
 
-	if mode == "buy" {
+	switch mode {
+	case "buy":
 		presets := strings.Split(st.BuyPresetsCSV, ",")
-		var row1, row2 []InlineButton
-		for i, p := range presets {
+		var buyBtns []InlineButton
+		for _, p := range presets {
 			p = strings.TrimSpace(p)
 			if p == "" {
 				continue
 			}
-			btn := InlineButton{Text: fmt.Sprintf("🟡 买入 %s %s", p, sym), CallbackData: "sb:" + tokKey + ":" + p}
-			if i < 2 {
-				row1 = append(row1, btn)
-			} else {
-				row2 = append(row2, btn)
+			buyBtns = append(buyBtns, InlineButton{Text: fmt.Sprintf("🟡 %s %s", p, sym), CallbackData: "sb:" + tokKey + ":" + p})
+			if len(buyBtns) == 5 {
+				break
 			}
 		}
-		if len(row1) > 0 {
-			rows = append(rows, row1)
+		buyBtns = append(buyBtns, InlineButton{Text: "✏️ 自定义", CallbackData: "in:buy:" + tokKey})
+		for i := 0; i < len(buyBtns); i += 3 {
+			end := i + 3
+			if end > len(buyBtns) {
+				end = len(buyBtns)
+			}
+			rows = append(rows, buyBtns[i:end])
 		}
-		if len(row2) > 0 {
-			rows = append(rows, row2)
-		}
-		rows = append(rows, []InlineButton{{Text: "✏️ 自定义买入 " + sym, CallbackData: "in:buy:" + tokKey}})
-	} else {
+	case "sell":
 		rows = append(rows,
 			[]InlineButton{
-				{Text: "🔴 卖出 25%", CallbackData: "ss:" + tokKey + ":25"},
-				{Text: "🔴 卖出 50%", CallbackData: "ss:" + tokKey + ":50"},
+				{Text: "🔴 卖 10%", CallbackData: "ss:" + tokKey + ":10"},
+				{Text: "🔴 卖 25%", CallbackData: "ss:" + tokKey + ":25"},
+				{Text: "🔴 卖 50%", CallbackData: "ss:" + tokKey + ":50"},
 			},
 			[]InlineButton{
-				{Text: "🔴 卖出 75%", CallbackData: "ss:" + tokKey + ":75"},
-				{Text: "🔴 卖出 100%", CallbackData: "ss:" + tokKey + ":100"},
+				{Text: "🔴 卖 75%", CallbackData: "ss:" + tokKey + ":75"},
+				{Text: "🔴 卖 100%", CallbackData: "ss:" + tokKey + ":100"},
+				{Text: "✏️ 自定义%", CallbackData: "in:sell:" + tokKey},
 			},
-			[]InlineButton{{Text: "✏️ 自定义卖出 %", CallbackData: "in:sell:" + tokKey}},
+		)
+	case "limit":
+		rows = append(rows,
+			[]InlineButton{
+				{Text: "📉 跌10%买", CallbackData: "lo:buy:" + tokKey + ":-10"},
+				{Text: "📉 跌20%买", CallbackData: "lo:buy:" + tokKey + ":-20"},
+				{Text: "📉 跌30%买", CallbackData: "lo:buy:" + tokKey + ":-30"},
+			},
+			[]InlineButton{
+				{Text: "📈 涨50%卖50%", CallbackData: "lo:tp:" + tokKey + ":50:50"},
+				{Text: "📈 涨100%卖50%", CallbackData: "lo:tp:" + tokKey + ":100:50"},
+				{Text: "📈 涨200%全卖", CallbackData: "lo:tp:" + tokKey + ":200:100"},
+			},
+			[]InlineButton{
+				{Text: "🛑 跌20%止损", CallbackData: "lo:sl:" + tokKey + ":-20:100"},
+				{Text: "🛑 跌30%止损", CallbackData: "lo:sl:" + tokKey + ":-30:100"},
+				{Text: "🛑 跌50%止损", CallbackData: "lo:sl:" + tokKey + ":-50:100"},
+			},
 		)
 	}
 
-	mevLabel := "🛡️ 防夹: 开启"
-	if !st.AntiMEV && sess.ChainID != 56 {
-		mevLabel = "防夹: 关闭"
-	}
 	slipBps := st.BuySlippageBps
 	if mode == "sell" {
 		slipBps = st.SellSlippageBps
 	}
-	rows = append(rows, []InlineButton{
-		{Text: mevLabel, CallbackData: "settings"},
-		{Text: fmt.Sprintf("滑点: %.1f%%", float64(slipBps)/100.0), CallbackData: "settings"},
-		{Text: "⬅️ 主菜单", CallbackData: "menu"},
-	})
+	shortW := sess.WalletID
+	if len(shortW) > 10 {
+		shortW = shortW[:10]
+	}
+	rows = append(rows,
+		[]InlineButton{
+			{Text: "👛 " + shortW, CallbackData: "tc_w:" + tokKey + ":" + mode},
+			{Text: "⛽ " + gasTierCN(st.GasTier), CallbackData: "tc_g:" + tokKey + ":" + mode},
+			{Text: fmt.Sprintf("滑点 %.0f%%", float64(slipBps)/100.0), CallbackData: "settings"},
+		},
+		[]InlineButton{
+			{Text: "🔄 刷新", CallbackData: "tc:" + tokKey + ":" + mode},
+			{Text: "🏠 主页", CallbackData: "menu"},
+		},
+	)
 
 	return Reply{
 		Text:         strings.Join(lines, "\n"),
@@ -758,7 +861,9 @@ func (r *Router) renderOrdersCard(ctx context.Context, sess chatSession) Reply {
 		}
 	}
 	if cnt == 0 {
-		lines = append(lines, "暂无活跃条件单。\n创建：/tp <合约> <触发价wei> [百分比] 或 /sl <合约> <触发价wei> [百分比]")
+		lines = append(lines, "暂无活跃条件单。\n提示：在任意代币交易卡点「📈 限价」即可一键按涨跌幅挂单！")
+	} else {
+		buttons = append(buttons, []InlineButton{{Text: "🗑️ 一键撤销全部", CallbackData: "co:delall"}})
 	}
 	buttons = append(buttons, []InlineButton{{Text: "🔄 刷新", CallbackData: "orders"}, {Text: "⬅️ 返回主菜单", CallbackData: "menu"}})
 	return Reply{
@@ -963,6 +1068,17 @@ func boolOnOff(v bool) string {
 		return "开启"
 	}
 	return "关闭"
+}
+
+func gasTierCN(tier string) string {
+	switch strings.ToLower(tier) {
+	case "standard":
+		return "标准"
+	case "turbo":
+		return "极速"
+	default:
+		return "快速"
+	}
 }
 
 func parseNativeToWei(decStr string) *big.Int {

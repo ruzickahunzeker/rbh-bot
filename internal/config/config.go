@@ -69,9 +69,11 @@ type Config struct {
 	TradeSocketRBH           string
 	TradeAPITokenRBH         string
 	FeedSocketRBH            string
+	RPCURLRBH                string
 	TradeSocketBSC           string
 	TradeAPITokenBSC         string
 	FeedSocketBSC            string
+	ReadOnlyQueryOnly        bool     // EVM_READONLY_QUERY_ONLY=true skips V1 canary recovery worker
 	PrivateRelayURLs         []string // comma-separated EVM_PRIVATE_RELAY_URLS for BSC private_only
 	MaxOrderNativeWei        string   // EVM_MAX_ORDER_WEI hard safety cap per live order
 	DryRunWalletID           string
@@ -257,9 +259,11 @@ func Load(service Service) (Config, error) {
 		TradeSocketRBH:           os.Getenv("EVM_TRADE_SOCKET_RBH"),
 		TradeAPITokenRBH:         os.Getenv("EVM_TRADE_API_TOKEN_RBH"),
 		FeedSocketRBH:            os.Getenv("EVM_FEED_SOCKET_RBH"),
+		RPCURLRBH:                os.Getenv("EVM_RPC_URL_RBH"),
 		TradeSocketBSC:           os.Getenv("EVM_TRADE_SOCKET_BSC"),
 		TradeAPITokenBSC:         os.Getenv("EVM_TRADE_API_TOKEN_BSC"),
 		FeedSocketBSC:            os.Getenv("EVM_FEED_SOCKET_BSC"),
+		ReadOnlyQueryOnly:        strings.EqualFold(os.Getenv("EVM_READONLY_QUERY_ONLY"), "true"),
 		PrivateRelayURLs:         splitNonEmptyCSV(os.Getenv("EVM_PRIVATE_RELAY_URLS")),
 		MaxOrderNativeWei:        env("EVM_MAX_ORDER_WEI", "50000000000000000"), // default 0.05 native unit cap
 		DryRunWalletID:           envPref("EVM_DRY_RUN_WALLET_ID", "RBH_DRY_RUN_WALLET_ID", ""),

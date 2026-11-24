@@ -143,8 +143,8 @@ func (r *Router) handlePendingInputReply(ctx context.Context, sess chatSession, 
 				clean = append(clean, p)
 			}
 		}
-		if len(clean) == 0 || len(clean) > 4 {
-			return Reply{Text: "❌ 请输入 1~4 个逗号分隔的正数金额，例如：0.02,0.05,0.1,0.5"}, true
+		if len(clean) == 0 || len(clean) > 5 {
+			return Reply{Text: "❌ 请输入 1~5 个逗号分隔的正数金额，例如：0.05,0.1,0.25,0.5,1"}, true
 		}
 		st := r.loadBloomSettings(ctx, sess.ChatID)
 		st.BuyPresetsCSV = strings.Join(clean, ",")
