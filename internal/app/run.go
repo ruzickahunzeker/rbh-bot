@@ -143,7 +143,14 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			}
 			return writeRuntimeMetrics(writer, database, authenticator)
 		})
+		watchlistStore, err := feedcore.NewWatchlistStore(database)
+		if err != nil {
+			return fmt.Errorf("initialize feed watchlist store: %w", err)
+		}
+		watchlistHandler := ipc.RequestContext(authenticator.Middleware(feedcore.NewWatchlistHTTPHandler(watchlistStore)))
 		server.Handle("GET /internal/feed/outbox", ipc.RequestContext(authenticator.Middleware(feedcore.NewOutboxHTTPHandler(store))))
+		server.Handle("GET /internal/v1/watchlist", watchlistHandler)
+		server.Handle("PUT /internal/v1/watchlist", watchlistHandler)
 	}
 	if service == config.BotService {
 		store, err := botcore.NewStore(database)
