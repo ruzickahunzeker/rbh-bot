@@ -131,7 +131,15 @@ func TestQueryAndRecoveryStartupWithAdminSocketAndMetrics(t *testing.T) {
 		t.Fatalf("missing runtime metrics in /metrics:\n%s", string(mBody))
 	}
 
-	// Verify admin emergency-stop and resume over 0600 admin socket.
+	// Verify admin /ready returns 200 OK.
+	adminReadyResp, err := adminClient.Get("http://unix/ready")
+	if err != nil || adminReadyResp.StatusCode != http.StatusOK {
+		cancel()
+		t.Fatalf("admin /ready failed: err=%v resp=%v", err, adminReadyResp)
+	}
+	_ = adminReadyResp.Body.Close()
+
+	// Verify admin emergency-stop persists emergency_stopped=1 into authoritative canary_control_state.
 	stopResp, err := adminClient.Post("http://unix/admin/v1/control/emergency-stop", "application/json", bytes.NewReader([]byte(`{"reason":"drill"}`)))
 	if err != nil || stopResp.StatusCode != http.StatusOK {
 		cancel()
@@ -144,6 +152,39 @@ func TestQueryAndRecoveryStartupWithAdminSocketAndMetrics(t *testing.T) {
 		cancel()
 		t.Fatalf("expected emergency_stopped=true, got %#v", stopPayload)
 	}
+
+	// Verify durable SQLite canary_control_state reflects emergency_stopped=1.
+	verifyDB, err := storage.Open(context.Background(), storage.TradeOwner, dbPath)
+	if err != nil {
+		cancel()
+		t.Fatal(err)
+	}
+	readPool, err := verifyDB.ReadDB(storage.TradeOwner)
+	if err != nil {
+		_ = verifyDB.Close()
+		cancel()
+		t.Fatal(err)
+	}
+	var dbStopped int
+	if err := readPool.QueryRow(`SELECT emergency_stopped FROM canary_control_state WHERE singleton = 1`).Scan(&dbStopped); err != nil || dbStopped != 1 {
+		_ = verifyDB.Close()
+		cancel()
+		t.Fatalf("expected canary_control_state.emergency_stopped=1, got %d err=%v", dbStopped, err)
+	}
+	// Verify resume clears canary_control_state.emergency_stopped=0.
+	resumeResp, err := adminClient.Post("http://unix/admin/v1/control/resume", "application/json", bytes.NewReader([]byte(`{}`)))
+	if err != nil || resumeResp.StatusCode != http.StatusOK {
+		_ = verifyDB.Close()
+		cancel()
+		t.Fatalf("admin resume failed: err=%v resp=%v", err, resumeResp)
+	}
+	_ = resumeResp.Body.Close()
+	if err := readPool.QueryRow(`SELECT emergency_stopped FROM canary_control_state WHERE singleton = 1`).Scan(&dbStopped); err != nil || dbStopped != 0 {
+		_ = verifyDB.Close()
+		cancel()
+		t.Fatalf("expected canary_control_state.emergency_stopped=0 after resume, got %d err=%v", dbStopped, err)
+	}
+	_ = verifyDB.Close()
 
 	// Verify admin online VACUUM INTO backup over 0600 admin socket.
 	backupDest := filepath.Join(root, "backup", "trade-snap.db")
@@ -164,5 +205,43 @@ func TestQueryAndRecoveryStartupWithAdminSocketAndMetrics(t *testing.T) {
 	cancel()
 	if err := <-done; err != nil {
 		t.Fatalf("graceful shutdown failed: %v", err)
+	}
+}
+
+func TestRunConfiguredEnforcesChainIdentityBeforeMigration(t *testing.T) {
+	root := t.TempDir()
+	dbPath := filepath.Join(root, "bsc.db")
+	// Bind database to BSC (56).
+	db, err := storage.Open(context.Background(), storage.TradeOwner, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.VerifyOrInitChainIdentity(context.Background(), storage.ChainIdentity{ChainID: 56, ChainSlug: "bsc", NetworkKind: "mainnet"}); err != nil {
+		_ = db.Close()
+		t.Fatal(err)
+	}
+	_ = db.Close()
+
+	// Starting an RBH (4663) instance with EnforceChainIdentity=true must fail before migrations.
+	cfg := config.Config{
+		Service:               config.TradeService,
+		TradeStartupProfile:   config.TradeProfileRecoveryOnly,
+		DataDir:               root,
+		Database:              dbPath,
+		Socket:                filepath.Join(root, "trade.sock"),
+		LogLevel:              "ERROR",
+		ChainID:               4663,
+		ChainSlug:             "rbh",
+		NetworkKind:           "mainnet",
+		EnforceChainIdentity:  true,
+		InternalAuthSecret:    strings.Repeat("s", 32),
+		RPCURL:                "http://127.0.0.1:1",
+		CanaryProductionMode:  config.CanaryProductionModeDisabled,
+		ArtifactKeyVersion:    "v1",
+		ArtifactEncryptionKey: strings.Repeat("11", 32),
+	}
+	err = runConfigured(context.Background(), cfg)
+	if err == nil || !strings.Contains(err.Error(), "chain identity") {
+		t.Fatalf("expected wrong-chain database rejection before migration, got %v", err)
 	}
 }

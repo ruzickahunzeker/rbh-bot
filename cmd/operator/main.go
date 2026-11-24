@@ -63,6 +63,16 @@ func runBindChain(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+	if *dbPath == "" {
+		return fmt.Errorf("--db is required")
+	}
+	info, err := os.Stat(*dbPath)
+	if err != nil {
+		return fmt.Errorf("existing database file not found: %w", err)
+	}
+	if info.IsDir() {
+		return fmt.Errorf("--db path %q is a directory", *dbPath)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	db, err := storage.Open(ctx, storage.Owner(*owner), *dbPath)

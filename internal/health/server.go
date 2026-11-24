@@ -84,7 +84,12 @@ func (s *Server) SetMetricsWriter(writer MetricsWriter) {
 }
 
 func (s *Server) Listen() (net.Listener, error) {
-	if err := os.MkdirAll(filepath.Dir(s.path), 0o750); err != nil {
+	dirMode := os.FileMode(0o750)
+	if s.socketMode == 0o600 {
+		// Restrict parent directory for owner-only admin sockets to close the Listen->Chmod window.
+		dirMode = 0o700
+	}
+	if err := os.MkdirAll(filepath.Dir(s.path), dirMode); err != nil {
 		return nil, err
 	}
 	if err := removeStaleSocket(s.path); err != nil {

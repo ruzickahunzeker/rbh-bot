@@ -37,6 +37,9 @@ type Config struct {
 	AdminSocket              string
 	LogLevel                 string
 	ChainID                  uint64
+	ChainSlug                string
+	NetworkKind              string
+	EnforceChainIdentity     bool
 	LiveEnabled              bool
 	InternalAuthSecret       string
 	RPCURL                   string
@@ -63,6 +66,9 @@ type Config struct {
 // ValidateTimeouts enforces the Step 0B timeout inequality whenever timeouts are explicitly configured:
 // BotClientTimeout > HTTPWriteTimeout > (PreSendRPCBudget + BroadcastRPCTimeout + 2s).
 func (c Config) ValidateTimeouts() error {
+	if c.AdminSocket != "" && c.Socket != "" && filepath.Clean(c.AdminSocket) == filepath.Clean(c.Socket) {
+		return fmt.Errorf("admin socket must be distinct from business socket")
+	}
 	if c.HTTPWriteTimeout < 0 || c.BotClientTimeout < 0 || c.PreSendRPCBudget < 0 || c.BroadcastRPCTimeout < 0 {
 		return fmt.Errorf("timeout configuration must be non-negative")
 	}
@@ -198,7 +204,11 @@ func Load(service Service) (Config, error) {
 		Socket:                   filepath.Join(socketDir, string(service)+".sock"),
 		AdminSocket:              os.Getenv("RBH_ADMIN_SOCKET"),
 		LogLevel:                 strings.ToUpper(env("RBH_LOG_LEVEL", "INFO")),
-		ChainID:                  chainID, LiveEnabled: live,
+		ChainID:                  chainID,
+		ChainSlug:                env("RBH_CHAIN_SLUG", "rbh"),
+		NetworkKind:              env("RBH_NETWORK_KIND", "mainnet"),
+		EnforceChainIdentity:     service == TradeService || service == FeedService,
+		LiveEnabled:              live,
 		InternalAuthSecret:       os.Getenv("RBH_INTERNAL_AUTH_SECRET"),
 		RPCURL:                   os.Getenv("ROBINHOOD_RPC_URL"),
 		DryRunWalletID:           os.Getenv("RBH_DRY_RUN_WALLET_ID"),

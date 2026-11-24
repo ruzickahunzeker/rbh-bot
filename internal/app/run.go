@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -83,6 +82,23 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 	}
 	defer database.Close()
 	ready.Set("database_open", true)
+	if cfg.EnforceChainIdentity && (service == config.TradeService || service == config.FeedService) {
+		slug := cfg.ChainSlug
+		if slug == "" && cfg.ChainID == config.ChainID {
+			slug = "rbh"
+		}
+		netKind := cfg.NetworkKind
+		if netKind == "" {
+			netKind = "mainnet"
+		}
+		if err := database.VerifyOrInitChainIdentity(context.Background(), storage.ChainIdentity{
+			ChainID:     cfg.ChainID,
+			ChainSlug:   slug,
+			NetworkKind: netKind,
+		}); err != nil {
+			return err
+		}
+	}
 	if err := database.Migrate(context.Background()); err != nil {
 		return err
 	}
@@ -122,7 +138,10 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			return err
 		}
 		server.SetMetricsWriter(func(metricCtx context.Context, writer io.Writer) error {
-			return writeFeedMetrics(metricCtx, writer, store)
+			if err := writeFeedMetrics(metricCtx, writer, store); err != nil {
+				return err
+			}
+			return writeRuntimeMetrics(writer, database, authenticator)
 		})
 		server.Handle("GET /internal/feed/outbox", ipc.RequestContext(authenticator.Middleware(feedcore.NewOutboxHTTPHandler(store))))
 	}
@@ -139,6 +158,9 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		if err != nil {
 			return err
 		}
+		server.SetMetricsWriter(func(_ context.Context, writer io.Writer) error {
+			return writeRuntimeMetrics(writer, database, authenticator)
+		})
 		ready.Set("bot_feed_consumer_configured", true)
 	}
 	var tradeBackend *tradecore.RPCBackend
@@ -193,11 +215,14 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			if err != nil || signer.Address() != common.HexToAddress(cfg.DryRunFromAddress) {
 				return errors.New("execution signer does not match configured wallet")
 			}
-			encryptionKey, err := hex.DecodeString(cfg.ArtifactEncryptionKey)
+			keys, err := cfg.ParseArtifactKeyring()
 			if err != nil {
 				return errors.New("invalid artifact encryption configuration")
 			}
-			artifactCipher, err = tradecore.NewAESGCMCipher(cfg.ArtifactKeyVersion, encryptionKey)
+			artifactCipher, err = tradecore.NewAESGCMKeyring(cfg.ArtifactKeyVersion, keys)
+			for _, k := range keys {
+				clear(k)
+			}
 			if err != nil {
 				return errors.New("invalid artifact encryption configuration")
 			}
@@ -261,7 +286,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 	var adminListener net.Listener
 	if cfg.AdminSocket != "" {
 		adminControl := &runtimeEmergencyControl{}
-		adminServer = newAdminServer(string(service), cfg.AdminSocket, log, database, adminControl)
+		adminServer = newAdminServer(string(service), cfg.AdminSocket, cfg.ChainID, log, database, adminControl)
 		adminListener, err = adminServer.Listen()
 		if err != nil {
 			_ = listener.Close()
