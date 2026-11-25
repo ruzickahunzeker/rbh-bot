@@ -55,28 +55,46 @@ func mustParseABI(src string) abi.ABI {
 }
 
 type Adapter struct {
-	chainID uint64
-	router  common.Address
-	factory common.Address
-	wbnb    common.Address
+	chainID    uint64
+	protocolID string
+	quoteAsset string
+	router     common.Address
+	factory    common.Address
+	wbnb       common.Address
 }
 
 func NewAdapter() *Adapter {
+	return NewCustomAdapter(bsc.ChainID, ProtocolID, "BNB", bsc.PancakeV2Factory, bsc.PancakeV2Router, bsc.WBNBAddress)
+}
+
+// NewCustomAdapter constructs a reusable Uniswap V2-compatible adapter for any EVM chain
+// (e.g. ETH Uniswap V2, Base Uniswap V2, HyperEVM HyperSwap V2, BSC PancakeSwap V2).
+func NewCustomAdapter(chainID uint64, protocolID, quoteAsset string, factory, router, wrappedNative common.Address) *Adapter {
 	return &Adapter{
-		chainID: bsc.ChainID,
-		router:  bsc.PancakeV2Router,
-		factory: bsc.PancakeV2Factory,
-		wbnb:    bsc.WBNBAddress,
+		chainID:    chainID,
+		protocolID: protocolID,
+		quoteAsset: quoteAsset,
+		router:     router,
+		factory:    factory,
+		wbnb:       wrappedNative,
 	}
 }
 
 func (a *Adapter) Describe() ports.AdapterDescriptor {
+	pid := a.protocolID
+	if pid == "" {
+		pid = ProtocolID
+	}
+	qa := a.quoteAsset
+	if qa == "" {
+		qa = "BNB"
+	}
 	return ports.AdapterDescriptor{
 		ChainID:              a.chainID,
-		ProtocolID:           ProtocolID,
+		ProtocolID:           pid,
 		AdapterRevision:      AdapterRevision,
 		PoolPhase:            "DEX_V2",
-		QuoteAsset:           "BNB",
+		QuoteAsset:           qa,
 		SupportsBuy:          true,
 		SupportsSell:         true,
 		AllowanceModel:       ports.AllowanceERC20Direct,

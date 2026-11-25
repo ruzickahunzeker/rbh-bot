@@ -25,6 +25,8 @@ var (
 	WETHAddress           = common.HexToAddress("0x4200000000000000000000000000000000000006")
 	OPGasPriceOracle      = common.HexToAddress("0x420000000000000000000000000000000000000F")
 	Multicall3Address     = common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")
+	UniswapV2Factory      = common.HexToAddress("0x8909Dc15e40173Ff4699343b6eB8132c65e18eC6")
+	UniswapV2Router02     = common.HexToAddress("0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24")
 	UniswapV3Factory      = common.HexToAddress("0x33128a8fC17869897dcE68Ed026d694621f6FDfD")
 	UniswapV3QuoterV2     = common.HexToAddress("0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a")
 	UniswapV3SwapRouter02 = common.HexToAddress("0x2626664c2603336E57B271c5C0b26F421741e481")

@@ -4,8 +4,12 @@ import (
 	"net/http"
 
 	"github.com/ruzickahunzeker/rbh-bot/internal/chainquery"
+	"github.com/ruzickahunzeker/rbh-bot/internal/chains/arc"
 	basechain "github.com/ruzickahunzeker/rbh-bot/internal/chains/base"
 	"github.com/ruzickahunzeker/rbh-bot/internal/chains/bsc"
+	"github.com/ruzickahunzeker/rbh-bot/internal/chains/elysium"
+	"github.com/ruzickahunzeker/rbh-bot/internal/chains/ethereum"
+	"github.com/ruzickahunzeker/rbh-bot/internal/chains/hyperevm"
 	"github.com/ruzickahunzeker/rbh-bot/internal/chains/robinhood"
 	"github.com/ruzickahunzeker/rbh-bot/internal/config"
 	"github.com/ruzickahunzeker/rbh-bot/internal/ipc"
@@ -107,13 +111,53 @@ func buildChainRegistry(chainID uint64) (*registry.Registry, error) {
 				kyberswap.ProtocolID:  {Address: bsc.KyberMetaRouter},
 			},
 		)
+	case config.ETHChainID:
+		return registry.New(
+			ethereum.Profile(),
+			[]ports.ProtocolAdapter{
+				pancakev2.NewCustomAdapter(ethereum.ChainID, "uniswap-v2-eth", "ETH", ethereum.UniswapV2Factory, ethereum.UniswapV2Router02, ethereum.WETHAddress),
+				univ3.NewCustomAdapter(ethereum.ChainID, "uniswap-v3-eth", "ETH", ethereum.UniswapV3Factory, ethereum.UniswapV3QuoterV2, ethereum.UniswapV3SwapRouter02, ethereum.WETHAddress),
+			},
+			map[string]registry.TrustedSpender{
+				"uniswap-v2-eth": {Address: ethereum.UniswapV2Router02},
+				"uniswap-v3-eth": {Address: ethereum.UniswapV3SwapRouter02},
+			},
+		)
 	case config.BaseChainID:
 		return registry.New(
 			basechain.Profile(),
-			[]ports.ProtocolAdapter{univ3.NewBaseAdapter()},
-			map[string]registry.TrustedSpender{
-				univ3.ProtocolID: {Address: basechain.UniswapV3SwapRouter02},
+			[]ports.ProtocolAdapter{
+				univ3.NewBaseAdapter(),
+				pancakev2.NewCustomAdapter(basechain.ChainID, "uniswap-v2-base", "ETH", basechain.UniswapV2Factory, basechain.UniswapV2Router02, basechain.WETHAddress),
 			},
+			map[string]registry.TrustedSpender{
+				univ3.ProtocolID:  {Address: basechain.UniswapV3SwapRouter02},
+				"uniswap-v2-base": {Address: basechain.UniswapV2Router02},
+			},
+		)
+	case config.HyperEVMChainID:
+		return registry.New(
+			hyperevm.Profile(),
+			[]ports.ProtocolAdapter{
+				pancakev2.NewCustomAdapter(hyperevm.ChainID, "hyperswap-v2", "HYPE", hyperevm.HyperSwapV2Factory, hyperevm.HyperSwapV2Router, hyperevm.WHYPEAddress),
+				univ3.NewCustomAdapter(hyperevm.ChainID, "hyperswap-v3", "HYPE", hyperevm.HyperSwapV3Factory, hyperevm.HyperSwapV3Quoter, hyperevm.HyperSwapV3Router, hyperevm.WHYPEAddress),
+			},
+			map[string]registry.TrustedSpender{
+				"hyperswap-v2": {Address: hyperevm.HyperSwapV2Router},
+				"hyperswap-v3": {Address: hyperevm.HyperSwapV3Router},
+			},
+		)
+	case config.ArcChainID:
+		return registry.New(
+			arc.Profile(),
+			nil,
+			nil,
+		)
+	case config.ElysiumChainID:
+		return registry.New(
+			elysium.Profile(),
+			nil,
+			nil,
 		)
 	default:
 		return registry.New(

@@ -103,14 +103,20 @@ func NewBaseAdapter() *Adapter {
 
 // NewBSCAdapter constructs a Uniswap V3 adapter for BNB Smart Chain (chain_id=56).
 func NewBSCAdapter() *Adapter {
+	return NewCustomAdapter(bsc.ChainID, ProtocolIDBSC, "BNB", bsc.UniswapV3Factory, bsc.UniswapV3QuoterV2, bsc.UniswapV3SwapRouter02, bsc.WBNBAddress)
+}
+
+// NewCustomAdapter constructs a reusable Uniswap V3 SwapRouter02 adapter for any EVM chain
+// (e.g. Ethereum Mainnet, Base, BSC, HyperEVM HyperSwap V3, Arc).
+func NewCustomAdapter(chainID uint64, protocolID, quoteAsset string, factory, quoter, router, wrappedNative common.Address) *Adapter {
 	return &Adapter{
-		chainID:    bsc.ChainID,
-		protocolID: ProtocolIDBSC,
-		quoteAsset: "BNB",
-		factory:    bsc.UniswapV3Factory,
-		quoter:     bsc.UniswapV3QuoterV2,
-		router:     bsc.UniswapV3SwapRouter02,
-		weth:       bsc.WBNBAddress,
+		chainID:    chainID,
+		protocolID: protocolID,
+		quoteAsset: quoteAsset,
+		factory:    factory,
+		quoter:     quoter,
+		router:     router,
+		weth:       wrappedNative,
 		feeTier:    3000,
 	}
 }

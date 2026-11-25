@@ -172,14 +172,22 @@ func (r *Router) HandleCommand(ctx context.Context, chatID int64, text string) (
 		}
 		var newChain uint64
 		switch strings.ToLower(parts[1]) {
-		case "rbh", "robinhood", "4663":
-			newChain = 4663
+		case "eth", "ethereum", "evm", "1":
+			newChain = 1
 		case "bsc", "56":
 			newChain = 56
+		case "hype", "hyperevm", "999":
+			newChain = 999
+		case "rbh", "robinhood", "4663":
+			newChain = 4663
+		case "arc", "5042":
+			newChain = 5042
 		case "base", "8453":
 			newChain = 8453
+		case "ely", "elysium", "99901":
+			newChain = 99901
 		default:
-			return "Unsupported chain. Use rbh, bsc, or base.", nil
+			return "Unsupported chain. Use bsc, rbh, base, eth, hype, arc, or ely.", nil
 		}
 		if _, err := r.db.ExecContext(ctx,
 			`UPDATE telegram_allowlist SET active_chain_id = ?, updated_at = ? WHERE chat_id = ?`,

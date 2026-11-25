@@ -1046,20 +1046,34 @@ func (r *Router) shadowTokenPosition(ctx context.Context, chainID uint64, wallet
 
 func chainDisplayName(chainID uint64) string {
 	switch chainID {
+	case 1:
+		return "ETH"
 	case 56:
 		return "BSC"
+	case 999:
+		return "HYPE"
+	case 5042:
+		return "ARC"
 	case 8453:
 		return "Base"
+	case 99901:
+		return "ELY"
 	default:
 		return "RBH"
 	}
 }
 
 func chainNativeSymbol(chainID uint64) string {
-	if chainID == 56 {
+	switch chainID {
+	case 56:
 		return "BNB"
+	case 999, 99901:
+		return "HYPE"
+	case 5042:
+		return "USDC"
+	default:
+		return "ETH"
 	}
-	return "ETH"
 }
 
 func boolOnOff(v bool) string {

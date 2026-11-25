@@ -11,23 +11,66 @@ import (
 )
 
 const (
-	ChainID     uint64 = 4663
-	BSCChainID  uint64 = 56
-	BaseChainID uint64 = 8453
+	ETHChainID      uint64 = 1
+	BSCChainID      uint64 = 56
+	HyperEVMChainID uint64 = 999
+	ChainID         uint64 = 4663
+	ArcChainID      uint64 = 5042
+	BaseChainID     uint64 = 8453
+	ElysiumChainID  uint64 = 99901
 )
 
 func IsSupportedChainID(chainID uint64) bool {
-	return chainID == ChainID || chainID == BSCChainID || chainID == BaseChainID
+	switch chainID {
+	case ETHChainID, BSCChainID, HyperEVMChainID, ChainID, ArcChainID, BaseChainID, ElysiumChainID:
+		return true
+	default:
+		return false
+	}
 }
 
 func DefaultChainSlug(chainID uint64) string {
 	switch chainID {
+	case ETHChainID:
+		return "eth"
 	case BSCChainID:
 		return "bsc"
+	case HyperEVMChainID:
+		return "hype"
+	case ArcChainID:
+		return "arc"
 	case BaseChainID:
 		return "base"
+	case ElysiumChainID:
+		return "ely"
 	default:
 		return "rbh"
+	}
+}
+
+func DefaultNativeSymbol(chainID uint64) string {
+	switch chainID {
+	case BSCChainID:
+		return "BNB"
+	case HyperEVMChainID, ElysiumChainID:
+		return "HYPE"
+	case ArcChainID:
+		return "USDC"
+	default:
+		return "ETH"
+	}
+}
+
+func DefaultBuyPresetsForChain(chainID uint64) string {
+	switch chainID {
+	case ArcChainID:
+		return "10,25,50,100,250"
+	case HyperEVMChainID, ElysiumChainID:
+		return "0.5,1,2,5,10"
+	case ETHChainID, BaseChainID:
+		return "0.02,0.05,0.1,0.25,0.5"
+	default:
+		return "0.05,0.1,0.25,0.5,1"
 	}
 }
 
@@ -73,6 +116,7 @@ type Config struct {
 	TradeSocketBSC           string
 	TradeAPITokenBSC         string
 	FeedSocketBSC            string
+	ChainsManifestPath       string   // optional EVM_CHAINS_MANIFEST JSON path for dynamic N-chain topology
 	ReadOnlyQueryOnly        bool     // EVM_READONLY_QUERY_ONLY=true skips V1 canary recovery worker
 	PrivateRelayURLs         []string // comma-separated EVM_PRIVATE_RELAY_URLS for BSC private_only
 	MaxOrderNativeWei        string   // EVM_MAX_ORDER_WEI hard safety cap per live order
@@ -263,6 +307,7 @@ func Load(service Service) (Config, error) {
 		TradeSocketBSC:           os.Getenv("EVM_TRADE_SOCKET_BSC"),
 		TradeAPITokenBSC:         os.Getenv("EVM_TRADE_API_TOKEN_BSC"),
 		FeedSocketBSC:            os.Getenv("EVM_FEED_SOCKET_BSC"),
+		ChainsManifestPath:       os.Getenv("EVM_CHAINS_MANIFEST"),
 		ReadOnlyQueryOnly:        strings.EqualFold(os.Getenv("EVM_READONLY_QUERY_ONLY"), "true"),
 		PrivateRelayURLs:         splitNonEmptyCSV(os.Getenv("EVM_PRIVATE_RELAY_URLS")),
 		MaxOrderNativeWei:        env("EVM_MAX_ORDER_WEI", "50000000000000000"), // default 0.05 native unit cap

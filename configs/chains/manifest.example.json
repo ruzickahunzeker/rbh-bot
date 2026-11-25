@@ -1,0 +1,93 @@
+[
+  {
+    "chain_id": 56,
+    "slug": "bsc",
+    "name": "BSC",
+    "native_symbol": "BNB",
+    "trade_socket": "/root/evm-bot/data/bsc/run/trade-service.sock",
+    "trade_token": "REPLACE_WITH_LOCAL_BEARER_TOKEN",
+    "feed_socket": "/root/evm-bot/data/bsc/run/feed-service.sock",
+    "rpc_url": "https://bsc-rpc.publicnode.com",
+    "default_wallet": "wallet-bsc-readonly",
+    "protocols": ["four-meme", "flap", "pancake-v2", "pancake-v3", "uniswap-v3-bsc", "kyber-agg-bsc"],
+    "default_buy_presets": "0.05,0.1,0.25,0.5,1"
+  },
+  {
+    "chain_id": 4663,
+    "slug": "rbh",
+    "name": "RBH",
+    "native_symbol": "ETH",
+    "trade_socket": "/root/evm-bot/data/rbh/run/trade-service.sock",
+    "trade_token": "REPLACE_WITH_LOCAL_BEARER_TOKEN",
+    "feed_socket": "/root/evm-bot/data/rbh/run/feed-service.sock",
+    "rpc_url": "https://robinhood-rpc.publicnode.com",
+    "default_wallet": "wallet-rbh-readonly",
+    "protocols": ["pons-v2-curve", "pons-v4"],
+    "default_buy_presets": "0.02,0.05,0.1,0.25,0.5"
+  },
+  {
+    "chain_id": 8453,
+    "slug": "base",
+    "name": "Base",
+    "native_symbol": "ETH",
+    "trade_socket": "/root/evm-bot/data/base/run/trade-service.sock",
+    "trade_token": "REPLACE_WITH_LOCAL_BEARER_TOKEN",
+    "feed_socket": "/root/evm-bot/data/base/run/feed-service.sock",
+    "rpc_url": "https://base-rpc.publicnode.com",
+    "default_wallet": "wallet-base-readonly",
+    "protocols": ["uniswap-v3", "uniswap-v2-base"],
+    "default_buy_presets": "0.02,0.05,0.1,0.25,0.5"
+  },
+  {
+    "chain_id": 1,
+    "slug": "eth",
+    "name": "ETH",
+    "native_symbol": "ETH",
+    "trade_socket": "/root/evm-bot/data/eth/run/trade-service.sock",
+    "trade_token": "REPLACE_WITH_LOCAL_BEARER_TOKEN",
+    "feed_socket": "/root/evm-bot/data/eth/run/feed-service.sock",
+    "rpc_url": "https://ethereum-rpc.publicnode.com",
+    "default_wallet": "wallet-eth-readonly",
+    "protocols": ["uniswap-v3-eth", "uniswap-v2-eth"],
+    "default_buy_presets": "0.02,0.05,0.1,0.25,0.5"
+  },
+  {
+    "chain_id": 999,
+    "slug": "hype",
+    "name": "HYPE",
+    "native_symbol": "HYPE",
+    "trade_socket": "/root/evm-bot/data/hype/run/trade-service.sock",
+    "trade_token": "REPLACE_WITH_LOCAL_BEARER_TOKEN",
+    "feed_socket": "/root/evm-bot/data/hype/run/feed-service.sock",
+    "rpc_url": "https://rpc.hyperliquid.xyz/evm",
+    "default_wallet": "wallet-hype-readonly",
+    "protocols": ["hyperswap-v3", "hyperswap-v2"],
+    "default_buy_presets": "0.5,1,2,5,10"
+  },
+  {
+    "chain_id": 5042,
+    "slug": "arc",
+    "name": "ARC",
+    "native_symbol": "USDC",
+    "trade_socket": "/root/evm-bot/data/arc/run/trade-service.sock",
+    "trade_token": "REPLACE_WITH_LOCAL_BEARER_TOKEN",
+    "feed_socket": "/root/evm-bot/data/arc/run/feed-service.sock",
+    "rpc_url": "https://rpc.mainnet.arc.io",
+    "default_wallet": "wallet-arc-readonly",
+    "protocols": [],
+    "default_buy_presets": "10,25,50,100,250"
+  },
+  {
+    "chain_id": 99901,
+    "slug": "ely",
+    "name": "ELY",
+    "native_symbol": "HYPE",
+    "trade_socket": "/root/evm-bot/data/ely/run/trade-service.sock",
+    "trade_token": "REPLACE_WITH_LOCAL_BEARER_TOKEN",
+    "feed_socket": "/root/evm-bot/data/ely/run/feed-service.sock",
+    "rpc_url": "https://rpc.elysium.kinetiq.xyz",
+    "default_wallet": "wallet-ely-readonly",
+    "protocols": [],
+    "default_buy_presets": "0.5,1,2,5,10"
+  }
+]

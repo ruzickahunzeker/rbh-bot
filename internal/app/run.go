@@ -18,8 +18,12 @@ import (
 	parser "github.com/0xfnzero/rbh-parser-sdk/rbhparser"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ruzickahunzeker/rbh-bot/internal/chains/arc"
 	basechain "github.com/ruzickahunzeker/rbh-bot/internal/chains/base"
 	"github.com/ruzickahunzeker/rbh-bot/internal/chains/bsc"
+	"github.com/ruzickahunzeker/rbh-bot/internal/chains/elysium"
+	"github.com/ruzickahunzeker/rbh-bot/internal/chains/ethereum"
+	"github.com/ruzickahunzeker/rbh-bot/internal/chains/hyperevm"
 	botcore "github.com/ruzickahunzeker/rbh-bot/internal/bot"
 	"github.com/ruzickahunzeker/rbh-bot/internal/config"
 	feedcore "github.com/ruzickahunzeker/rbh-bot/internal/feed"
@@ -676,10 +680,18 @@ func monitorEVMFeedReadiness(ctx context.Context, ready *health.Readiness, runne
 
 func wrappedNativeForChain(chainID uint64) common.Address {
 	switch chainID {
+	case config.ETHChainID:
+		return ethereum.WETHAddress
 	case config.BSCChainID:
 		return bsc.WBNBAddress
+	case config.HyperEVMChainID:
+		return hyperevm.WHYPEAddress
+	case config.ArcChainID:
+		return arc.WrappedUSDCAddress
 	case config.BaseChainID:
 		return basechain.WETHAddress
+	case config.ElysiumChainID:
+		return elysium.WHYPEAddress
 	default:
 		return common.Address{}
 	}

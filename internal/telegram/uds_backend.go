@@ -229,10 +229,14 @@ func (u *UDSBackend) fetchQuote(ctx context.Context, chainID uint64, walletID, p
 func (u *UDSBackend) ProbeTokenQuote(ctx context.Context, chainID uint64, walletID string, token common.Address, side string, amountRaw *big.Int) (protocol string, poolPhase string, expectedOut *big.Int, quoteBlock uint64, err error) {
 	var candidates []string
 	switch chainID {
+	case 1:
+		candidates = []string{"uniswap-v3-eth", "uniswap-v2-eth"}
 	case 56:
 		candidates = []string{"four-meme", "flap", "pancake-v2", "pancake-v3", "uniswap-v3-bsc", "kyber-agg-bsc"}
+	case 999:
+		candidates = []string{"hyperswap-v3", "hyperswap-v2"}
 	case 8453:
-		candidates = []string{"uniswap-v3"}
+		candidates = []string{"uniswap-v3", "uniswap-v2-base"}
 	default:
 		candidates = []string{"pons-v2-curve", "pons-v4"}
 	}
@@ -529,8 +533,8 @@ func (u *UDSBackend) CheckStatus(ctx context.Context) (string, error) {
 	}
 
 	var lines []string
-	lines = append(lines, "evm-bot Multi-Chain Status (live_enabled=false):")
-	for _, cid := range []uint64{56, 4663, 8453} {
+	lines = append(lines, "evm-bot 多链服务状态 (live_enabled=false):")
+	for _, cid := range []uint64{56, 4663, 8453, 1, 999, 5042, 99901} {
 		cfg, ok := u.chains[cid]
 		if !ok {
 			continue

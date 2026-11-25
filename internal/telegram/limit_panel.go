@@ -28,10 +28,18 @@ func nextChainInRing(current uint64, delta int) uint64 {
 
 func defaultWalletForChain(chainID uint64) string {
 	switch chainID {
+	case 1:
+		return "wallet-eth-readonly"
 	case 56:
 		return "wallet-bsc-readonly"
+	case 999:
+		return "wallet-hype-readonly"
+	case 5042:
+		return "wallet-arc-readonly"
 	case 8453:
 		return "wallet-base-readonly"
+	case 99901:
+		return "wallet-ely-readonly"
 	default:
 		return "wallet-rbh-readonly"
 	}

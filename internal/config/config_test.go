@@ -116,9 +116,9 @@ func TestLoadRejectsControlledCanaryProductionEnablementInW4A(t *testing.T) {
 }
 
 func TestLoadRejectsWrongChain(t *testing.T) {
-	t.Setenv("RBH_CHAIN_ID", "1")
+	t.Setenv("RBH_CHAIN_ID", "99999999")
 	if _, err := Load(FeedService); err == nil {
-		t.Fatal("expected unsupported chain ID 1 to fail closed")
+		t.Fatal("expected unsupported chain ID 99999999 to fail closed")
 	}
 	t.Setenv("RBH_CHAIN_ID", "56")
 	t.Setenv("RBH_CHAIN_SLUG", "")
