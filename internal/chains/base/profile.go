@@ -30,6 +30,11 @@ var (
 	UniswapV3Factory      = common.HexToAddress("0x33128a8fC17869897dcE68Ed026d694621f6FDfD")
 	UniswapV3QuoterV2     = common.HexToAddress("0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a")
 	UniswapV3SwapRouter02 = common.HexToAddress("0x2626664c2603336E57B271c5C0b26F421741e481")
+	UniswapV4PoolManager  = common.HexToAddress("0x498581ff718922c3f8e6a244956af099b2652b2b")
+	UniswapV4Quoter       = common.HexToAddress("0x0d5e0f971ed27fbff6c2837bf31316121532048d")
+	UniswapV4UniversalRouter = common.HexToAddress("0x6ff5693b99212da76ad316178a184ab56d299b43")
+	AerodromePoolFactory  = common.HexToAddress("0x420DD381b31aEf6683db6B902084cB0FFECe40Da")
+	AerodromeRouter       = common.HexToAddress("0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43")
 
 	// DefaultMinGasPriceWei is 0.001 gwei (Base L2 sequencer minimum priority floor).
 	DefaultMinGasPriceWei = big.NewInt(1_000_000)

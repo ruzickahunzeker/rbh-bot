@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ruzickahunzeker/rbh-bot/internal/chains/bsc"
+	"github.com/ruzickahunzeker/rbh-bot/internal/chains/robinhood"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/ports"
 )
 
@@ -140,24 +141,41 @@ func mustParseABI(src string) abi.ABI {
 }
 
 type Adapter struct {
-	chainID uint64
-	portal  common.Address
+	chainID    uint64
+	portal     common.Address
+	quoteAsset string
+	deployRev  string
 }
 
 func NewAdapter() *Adapter {
 	return &Adapter{
-		chainID: bsc.ChainID,
-		portal:  bsc.FlapPortal,
+		chainID:    bsc.ChainID,
+		portal:     bsc.FlapPortal,
+		quoteAsset: "BNB",
+		deployRev:  "flap-portal-bsc-mainnet",
+	}
+}
+
+func NewRBHAdapter() *Adapter {
+	return &Adapter{
+		chainID:    robinhood.ChainID,
+		portal:     robinhood.FlapPortal,
+		quoteAsset: "ETH",
+		deployRev:  "flap-portal-rbh-mainnet",
 	}
 }
 
 func (a *Adapter) Describe() ports.AdapterDescriptor {
+	qa := a.quoteAsset
+	if qa == "" {
+		qa = "BNB"
+	}
 	return ports.AdapterDescriptor{
 		ChainID:              a.chainID,
 		ProtocolID:           ProtocolID,
 		AdapterRevision:      AdapterRevision,
 		PoolPhase:            "BONDING_CURVE",
-		QuoteAsset:           "BNB",
+		QuoteAsset:           qa,
 		SupportsBuy:          true,
 		SupportsSell:         true,
 		AllowanceModel:       ports.AllowanceERC20Direct,
@@ -206,7 +224,7 @@ func (a *Adapter) Resolve(ctx context.Context, rpc ports.ReadOnlyRPC, token comm
 		ChainID:            a.chainID,
 		ProtocolID:         ProtocolID,
 		AdapterRevision:    AdapterRevision,
-		DeploymentRevision: "flap-portal-bsc-mainnet",
+		DeploymentRevision: a.deployRev,
 		PoolPhase:          "BONDING_CURVE",
 		Token:              token,
 		PoolOrCurve:        a.portal,

@@ -23,6 +23,9 @@ var (
 	UniswapV3Factory      = common.HexToAddress("0x1F98431c8aD98523631AE4a59f267346ea31F984")
 	UniswapV3QuoterV2     = common.HexToAddress("0x61fFE014bA17989E743c5F6cB21bF9697530B21e")
 	UniswapV3SwapRouter02 = common.HexToAddress("0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45")
+	UniswapV4PoolManager  = common.HexToAddress("0x000000000004444c5dc75cB358380D2e3dE08A90")
+	UniswapV4Quoter       = common.HexToAddress("0x99bd42B2B22e531f283b7F8a86dFf631EB16A9D1")
+	UniswapV4UniversalRouter = common.HexToAddress("0x66a9893cc07d91d95644aedd05d03f95e1dba8af")
 )
 
 func Profile() evm.ChainProfile {

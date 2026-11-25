@@ -230,15 +230,15 @@ func (u *UDSBackend) ProbeTokenQuote(ctx context.Context, chainID uint64, wallet
 	var candidates []string
 	switch chainID {
 	case 1:
-		candidates = []string{"uniswap-v3-eth", "uniswap-v2-eth"}
+		candidates = []string{"uniswap-v4-eth", "uniswap-v3-eth", "uniswap-v2-eth"}
 	case 56:
-		candidates = []string{"four-meme", "flap", "pancake-v2", "pancake-v3", "uniswap-v3-bsc", "kyber-agg-bsc"}
+		candidates = []string{"four-meme", "flap", "pancake-v2", "pancake-v3", "uniswap-v2-bsc", "uniswap-v3-bsc", "uniswap-v4-bsc", "kyber-agg-bsc"}
 	case 999:
 		candidates = []string{"hyperswap-v3", "hyperswap-v2"}
 	case 8453:
-		candidates = []string{"uniswap-v3", "uniswap-v2-base"}
+		candidates = []string{"aerodrome-v2", "uniswap-v4-base", "uniswap-v3", "uniswap-v2-base"}
 	default:
-		candidates = []string{"pons-v2-curve", "pons-v4"}
+		candidates = []string{"pons-v2-curve", "flap", "uniswap-v3-rbh", "uniswap-v4-rbh", "pons-v4"}
 	}
 
 	type probeRes struct {
@@ -336,15 +336,22 @@ func (u *UDSBackend) ConfiguredChainIDs() []uint64 {
 	return out
 }
 
-// QuoteShadowFill satisfies bot.ShadowQuoter using live read-only POST /v1/quotes over local UDS.
+// QuoteShadowFill satisfies bot.ShadowQuoter using Best-Route ProbeTokenQuote over local UDS.
 func (u *UDSBackend) QuoteShadowFill(ctx context.Context, chainID uint64, walletID string, token common.Address, side string, amountInRaw *big.Int) (*big.Int, *big.Int, error) {
-	q, err := u.fetchQuote(ctx, chainID, walletID, defaultProtocolForChain(chainID), token, side, amountInRaw)
-	if err != nil {
-		return nil, nil, err
-	}
-	outRaw, ok := new(big.Int).SetString(q.ExpectedOutRaw, 10)
-	if !ok || outRaw.Sign() <= 0 {
-		return nil, nil, errors.New("invalid quote expected_out_raw")
+	_, _, outRaw, _, err := u.ProbeTokenQuote(ctx, chainID, walletID, token, side, amountInRaw)
+	if err != nil || outRaw == nil || outRaw.Sign() <= 0 {
+		q, fErr := u.fetchQuote(ctx, chainID, walletID, defaultProtocolForChain(chainID), token, side, amountInRaw)
+		if fErr != nil {
+			if err != nil {
+				return nil, nil, err
+			}
+			return nil, nil, fErr
+		}
+		var ok bool
+		outRaw, ok = new(big.Int).SetString(q.ExpectedOutRaw, 10)
+		if !ok || outRaw.Sign() <= 0 {
+			return nil, nil, errors.New("invalid quote expected_out_raw")
+		}
 	}
 	var spot *big.Int
 	if side == "sell" {

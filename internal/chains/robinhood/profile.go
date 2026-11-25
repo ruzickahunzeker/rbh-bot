@@ -22,10 +22,19 @@ var NodeInterfaceAddress = common.HexToAddress("0x000000000000000000000000000000
 // Multicall3Address is the canonical Multicall3 deployment address across EVM chains.
 var Multicall3Address = common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")
 
-// Robinhood Chain (4663) Uniswap V4 canonical contracts (verified against rbh-parser-sdk).
+// Robinhood Chain (4663) Uniswap V3, V4, and Flap canonical contracts (verified against rbh-trade-sdk).
 var (
+	WETHAddress       = common.HexToAddress("0x0Bd7D308f8E1639FAb988df18A8011F41EAcAD73")
+	V3Factory         = common.HexToAddress("0x1f7d7550B1b028f7571E69A784071F0205FD2EfA")
+	V3QuoterV2        = common.HexToAddress("0x33e885ed0ec9bf04ecfb19341582aadcb4c8a9e7")
+	V3SwapRouter02    = common.HexToAddress("0xCaf681a66D020601342297493863E78C959E5cb2")
 	V4PoolManager     = common.HexToAddress("0x8366a39CC670B4001A1121B8F6A443A643e40951")
+	V4Quoter          = common.HexToAddress("0x8dc178efb8111bb0973dd9d722ebeff267c98f94")
 	V4UniversalRouter = common.HexToAddress("0x8876789976dEcBfCbBbe364623C63652db8C0904")
+	PonsMemeHook      = common.HexToAddress("0xE5e702641Ea86F4ae6cC3cDaeD2B886f976Be044")
+	BagsHook          = common.HexToAddress("0x2380aBf72C17aABAb76480244759AC7E2932EEcC")
+	O1Hook            = common.HexToAddress("0x0310cFEbE1D7A69f2414f6595bBe9d17c5342aCc")
+	FlapPortal        = common.HexToAddress("0x26605f322f7ff986f381bB9a6e3f5DAb0BeaeB09")
 )
 
 func Profile() evm.ChainProfile {

@@ -13,6 +13,7 @@ import (
 	"github.com/ruzickahunzeker/rbh-bot/internal/chains/robinhood"
 	"github.com/ruzickahunzeker/rbh-bot/internal/config"
 	"github.com/ruzickahunzeker/rbh-bot/internal/ipc"
+	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/aerodrome"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/flap"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/fourmeme"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/kyberswap"
@@ -22,6 +23,7 @@ import (
 	ponsv4 "github.com/ruzickahunzeker/rbh-bot/internal/protocols/pons/v4"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/ports"
 	univ3 "github.com/ruzickahunzeker/rbh-bot/internal/protocols/uniswap/v3"
+	univ4 "github.com/ruzickahunzeker/rbh-bot/internal/protocols/uniswap/v4"
 	"github.com/ruzickahunzeker/rbh-bot/internal/registry"
 	"github.com/ruzickahunzeker/rbh-bot/internal/storage"
 	"github.com/ruzickahunzeker/rbh-bot/internal/tradeapi"
@@ -97,7 +99,9 @@ func buildChainRegistry(chainID uint64) (*registry.Registry, error) {
 			[]ports.ProtocolAdapter{
 				pancakev2.NewAdapter(),
 				pancakev3.NewAdapter(),
+				pancakev2.NewCustomAdapter(bsc.ChainID, "uniswap-v2-bsc", "BNB", bsc.UniswapV2Factory, bsc.UniswapV2Router02, bsc.WBNBAddress),
 				univ3.NewBSCAdapter(),
+				univ4.NewBSCAdapter(),
 				fourmeme.NewAdapter(),
 				flap.NewAdapter(),
 				kyberswap.NewBSCAdapter(),
@@ -105,7 +109,9 @@ func buildChainRegistry(chainID uint64) (*registry.Registry, error) {
 			map[string]registry.TrustedSpender{
 				pancakev2.ProtocolID:  {Address: bsc.PancakeV2Router},
 				pancakev3.ProtocolID:  {Address: bsc.PancakeV3SmartRouter},
+				"uniswap-v2-bsc":      {Address: bsc.UniswapV2Router02},
 				univ3.ProtocolIDBSC:   {Address: bsc.UniswapV3SwapRouter02},
+				univ4.ProtocolIDBSC:   {Address: bsc.UniswapV4UniversalRouter},
 				fourmeme.ProtocolID:   {Address: bsc.FourMemeTokenManager2},
 				flap.ProtocolID:       {Address: bsc.FlapPortal},
 				kyberswap.ProtocolID:  {Address: bsc.KyberMetaRouter},
@@ -117,22 +123,28 @@ func buildChainRegistry(chainID uint64) (*registry.Registry, error) {
 			[]ports.ProtocolAdapter{
 				pancakev2.NewCustomAdapter(ethereum.ChainID, "uniswap-v2-eth", "ETH", ethereum.UniswapV2Factory, ethereum.UniswapV2Router02, ethereum.WETHAddress),
 				univ3.NewCustomAdapter(ethereum.ChainID, "uniswap-v3-eth", "ETH", ethereum.UniswapV3Factory, ethereum.UniswapV3QuoterV2, ethereum.UniswapV3SwapRouter02, ethereum.WETHAddress),
+				univ4.NewETHAdapter(),
 			},
 			map[string]registry.TrustedSpender{
-				"uniswap-v2-eth": {Address: ethereum.UniswapV2Router02},
-				"uniswap-v3-eth": {Address: ethereum.UniswapV3SwapRouter02},
+				"uniswap-v2-eth":    {Address: ethereum.UniswapV2Router02},
+				"uniswap-v3-eth":    {Address: ethereum.UniswapV3SwapRouter02},
+				univ4.ProtocolIDETH: {Address: ethereum.UniswapV4UniversalRouter},
 			},
 		)
 	case config.BaseChainID:
 		return registry.New(
 			basechain.Profile(),
 			[]ports.ProtocolAdapter{
+				aerodrome.NewBaseAdapter(),
 				univ3.NewBaseAdapter(),
+				univ4.NewBaseAdapter(),
 				pancakev2.NewCustomAdapter(basechain.ChainID, "uniswap-v2-base", "ETH", basechain.UniswapV2Factory, basechain.UniswapV2Router02, basechain.WETHAddress),
 			},
 			map[string]registry.TrustedSpender{
-				univ3.ProtocolID:  {Address: basechain.UniswapV3SwapRouter02},
-				"uniswap-v2-base": {Address: basechain.UniswapV2Router02},
+				aerodrome.ProtocolID: {Address: basechain.AerodromeRouter},
+				univ3.ProtocolID:     {Address: basechain.UniswapV3SwapRouter02},
+				univ4.ProtocolIDBase: {Address: basechain.UniswapV4UniversalRouter},
+				"uniswap-v2-base":    {Address: basechain.UniswapV2Router02},
 			},
 		)
 	case config.HyperEVMChainID:
@@ -162,9 +174,18 @@ func buildChainRegistry(chainID uint64) (*registry.Registry, error) {
 	default:
 		return registry.New(
 			robinhood.Profile(),
-			[]ports.ProtocolAdapter{v2curve.NewAdapter(), ponsv4.NewAdapter()},
+			[]ports.ProtocolAdapter{
+				v2curve.NewAdapter(),
+				flap.NewRBHAdapter(),
+				univ3.NewCustomAdapter(robinhood.ChainID, "uniswap-v3-rbh", "ETH", robinhood.V3Factory, robinhood.V3QuoterV2, robinhood.V3SwapRouter02, robinhood.WETHAddress),
+				univ4.NewRBHAdapter(),
+				ponsv4.NewAdapter(),
+			},
 			map[string]registry.TrustedSpender{
-				ponsv4.ProtocolID: {Address: robinhood.V4UniversalRouter},
+				flap.ProtocolID:     {Address: robinhood.FlapPortal},
+				"uniswap-v3-rbh":    {Address: robinhood.V3SwapRouter02},
+				univ4.ProtocolIDRBH: {Address: robinhood.V4UniversalRouter},
+				ponsv4.ProtocolID:   {Address: robinhood.V4UniversalRouter},
 			},
 		)
 	}

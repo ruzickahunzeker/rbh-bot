@@ -242,7 +242,7 @@ func (r *MultiChainRuntime) evaluateCopyProfileFilter(ctx context.Context, chain
 			return true, "", "", 0
 		}
 	case "dex":
-		if pv != "v2" && pv != "v3" && pv != "pancake-v2" && pv != "pancake-v3" && pv != "uniswap-v3-bsc" {
+		if pv != "v2" && pv != "v3" && pv != "v4" && pv != "pancake-v2" && pv != "pancake-v3" && pv != "uniswap-v3-bsc" && pv != "aerodrome-v2" {
 			return true, "", "", 0
 		}
 	case "pons":

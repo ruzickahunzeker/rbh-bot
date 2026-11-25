@@ -260,3 +260,92 @@ func TestEVMReceiptRunnerBSCLaunchpadsDecode(t *testing.T) {
 		t.Fatalf("unexpected flap payload: %+v", pFlap)
 	}
 }
+
+func TestEVMReceiptRunnerDecodesUniswapV4Swaps(t *testing.T) {
+	ctx := context.Background()
+	db, err := storage.Open(ctx, storage.FeedOwner, filepath.Join(t.TempDir(), "feed-v4.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := db.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	store, err := NewStore(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ws, err := NewWatchlistStore(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	trader := common.HexToAddress("0x000000000000000000000000000000000000CAFE")
+	v4Tok := common.HexToAddress("0x0000000000000000000000000000000000008888")
+	poolMgr := common.HexToAddress("0x498581fF718922c3f8e6A244956aF099B2652b2b")
+	weth := common.HexToAddress("0x4200000000000000000000000000000000000006")
+
+	if err := ws.Replace(ctx, WatchlistSnapshot{Version: 1, Wallets: []string{trader.Hex()}}); err != nil {
+		t.Fatal(err)
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Method string `json:"method"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		w.Header().Set("Content-Type", "application/json")
+		switch req.Method {
+		case "eth_blockNumber":
+			_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": 1, "result": "0x3000"})
+		case "eth_getBlockReceipts":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"jsonrpc": "2.0", "id": 1,
+				"result": []any{
+					map[string]any{
+						"transactionHash": common.HexToHash("0x8888").Hex(),
+						"blockNumber":     "0x3000",
+						"from":            trader.Hex(),
+						"status":          "0x1",
+						"logs": []any{
+							map[string]any{
+								"address":  v4Tok.Hex(),
+								"topics":   []string{erc20TransferTopic.Hex(), common.BytesToHash(poolMgr.Bytes()).Hex(), common.BytesToHash(trader.Bytes()).Hex()},
+								"data":     "0x" + common.Bytes2Hex(common.LeftPadBytes(big.NewInt(9_900_000).Bytes(), 32)),
+								"logIndex": "0x0",
+							},
+							map[string]any{
+								"address":  poolMgr.Hex(),
+								"topics":   []string{v4SwapTopic.Hex(), common.HexToHash("0xabcd").Hex(), common.BytesToHash(trader.Bytes()).Hex()},
+								"data":     "0x" + common.Bytes2Hex(make([]byte, 6*32)),
+								"logIndex": "0x1",
+							},
+						},
+					},
+				},
+			})
+		}
+	}))
+	defer srv.Close()
+
+	runner, err := NewEVMReceiptRunner(8453, weth, srv.URL, store, ws, 5*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := runner.PollOnce(ctx, time.Date(2026, 11, 25, 2, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("PollOnce: %v", err)
+	}
+	if res.InsertedObservations != 1 {
+		t.Fatalf("expected 1 V4 swap observation, got %+v", res)
+	}
+	items, err := store.ReadOutboxAfter(ctx, 0, 10)
+	if err != nil || len(items) != 1 {
+		t.Fatalf("ReadOutboxAfter: len=%d err=%v", len(items), err)
+	}
+	var pV4 NormalizedSwapPayload
+	_ = json.Unmarshal(items[0].PayloadJSON, &pV4)
+	if pV4.PoolVersion != "v4" || pV4.Side != "buy" || pV4.TokenDeltaRaw != "9900000" {
+		t.Fatalf("unexpected V4 payload: %+v", pV4)
+	}
+}
