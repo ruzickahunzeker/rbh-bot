@@ -5,7 +5,6 @@ package v4
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -24,16 +23,20 @@ import (
 )
 
 const (
-	ProtocolIDETH  = "uniswap-v4-eth"
-	ProtocolIDBSC  = "uniswap-v4-bsc"
-	ProtocolIDBase = "uniswap-v4-base"
-	ProtocolIDRBH  = "uniswap-v4-rbh"
-	AdapterRevision = "uniswap-v4-r1"
+	ProtocolIDETH   = "uniswap-v4-eth"
+	ProtocolIDBSC   = "uniswap-v4-bsc"
+	ProtocolIDBase  = "uniswap-v4-base"
+	ProtocolIDRBH   = "uniswap-v4-rbh"
+	AdapterRevision = "uniswap-v4-r2"
 
+	commandWrapETH          byte = 0x0b
+	commandUnwrapWETH       byte = 0x0c
+	commandSweep            byte = 0x04
 	commandV4Swap           byte = 0x10
 	actionSwapExactInSingle byte = 0x06
+	actionSettle            byte = 0x0b
 	actionSettleAll         byte = 0x0c
-	actionTakeAll           byte = 0x0f
+	actionTake              byte = 0x0e
 )
 
 const v4QuoterABIJSON = `[{
@@ -83,10 +86,16 @@ var (
 	universalRouterABI = mustParseABI(universalRouterABIJSON)
 	v4PlanArgs         = mustArgs("bytes", "bytes[]")
 	addrUintArgs       = mustArgs("address", "uint256")
-	v4SwapActionArgs   = mustV4SwapActionArgs()
+	addrUintBoolArgs   = mustArgs("address", "uint256", "bool")
+	addrAddrUintArgs   = mustArgs("address", "address", "uint256")
+	v4SwapActionArgs   = mustV4SwapActionArgs(false)
+	rbhSwapActionArgs  = mustV4SwapActionArgs(true)
+	poolKeyArgs        = mustArgs("address", "address", "uint24", "int24", "address")
 	maxUint128         = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(1))
 
-	erc20TransferTopic = crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)"))
+	erc20TransferTopic  = crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)"))
+	wethDepositTopic    = crypto.Keccak256Hash([]byte("Deposit(address,uint256)"))
+	wethWithdrawalTopic = crypto.Keccak256Hash([]byte("Withdrawal(address,uint256)"))
 	// V4 PoolManager Swap(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick, uint24 fee)
 	V4PoolSwapTopic = crypto.Keccak256Hash([]byte("Swap(bytes32,address,int128,int128,uint160,uint128,int24,uint24)"))
 )
@@ -111,8 +120,8 @@ func mustArgs(names ...string) abi.Arguments {
 	return out
 }
 
-func mustV4SwapActionArgs() abi.Arguments {
-	t, err := abi.NewType("tuple", "ExactInputSingleParams", []abi.ArgumentMarshaling{
+func mustV4SwapActionArgs(rbh bool) abi.Arguments {
+	fields := []abi.ArgumentMarshaling{
 		{Name: "poolKey", Type: "tuple", Components: []abi.ArgumentMarshaling{
 			{Name: "currency0", Type: "address"},
 			{Name: "currency1", Type: "address"},
@@ -123,8 +132,12 @@ func mustV4SwapActionArgs() abi.Arguments {
 		{Name: "zeroForOne", Type: "bool"},
 		{Name: "amountIn", Type: "uint128"},
 		{Name: "amountOutMinimum", Type: "uint128"},
-		{Name: "hookData", Type: "bytes"},
-	})
+	}
+	if rbh {
+		fields = append(fields, abi.ArgumentMarshaling{Name: "minHopPriceX36", Type: "uint256"})
+	}
+	fields = append(fields, abi.ArgumentMarshaling{Name: "hookData", Type: "bytes"})
+	t, err := abi.NewType("tuple", "ExactInputSingleParams", fields)
 	if err != nil {
 		panic(err)
 	}
@@ -154,6 +167,16 @@ type swapActionABI struct {
 	HookData         []byte
 }
 
+// RBH's fork adds a price floor before hookData; official deployments use swapActionABI.
+type rbhSwapActionABI struct {
+	PoolKey          poolKeyABI
+	ZeroForOne       bool
+	AmountIn         *big.Int
+	AmountOutMinimum *big.Int
+	MinHopPriceX36   *big.Int
+	HookData         []byte
+}
+
 // PoolTierCandidate defines one (fee, tickSpacing, hooks) V4 pool configuration to probe.
 type PoolTierCandidate struct {
 	Fee         uint32
@@ -171,14 +194,15 @@ var defaultPoolTiers = []PoolTierCandidate{
 }
 
 type Adapter struct {
-	chainID       uint64
-	protocolID    string
-	quoteAsset    string
-	poolManager   common.Address
-	quoter        common.Address
-	router        common.Address
-	wrappedNative common.Address
-	extraHooks    []common.Address
+	chainID           uint64
+	protocolID        string
+	quoteAsset        string
+	poolManager       common.Address
+	quoter            common.Address
+	router            common.Address
+	wrappedNative     common.Address
+	extraHooks        []common.Address
+	hasMinHopPriceX36 bool
 }
 
 func NewETHAdapter() *Adapter {
@@ -219,14 +243,15 @@ func NewBaseAdapter() *Adapter {
 
 func NewRBHAdapter() *Adapter {
 	return &Adapter{
-		chainID:       robinhood.ChainID,
-		protocolID:    ProtocolIDRBH,
-		quoteAsset:    "ETH",
-		poolManager:   robinhood.V4PoolManager,
-		quoter:        robinhood.V4Quoter,
-		router:        robinhood.V4UniversalRouter,
-		wrappedNative: robinhood.WETHAddress,
-		extraHooks:    []common.Address{robinhood.PonsMemeHook, robinhood.BagsHook, robinhood.O1Hook},
+		chainID:           robinhood.ChainID,
+		protocolID:        ProtocolIDRBH,
+		quoteAsset:        "ETH",
+		poolManager:       robinhood.V4PoolManager,
+		quoter:            robinhood.V4Quoter,
+		router:            robinhood.V4UniversalRouter,
+		wrappedNative:     robinhood.WETHAddress,
+		extraHooks:        []common.Address{robinhood.PonsMemeHook, robinhood.BagsHook, robinhood.O1Hook},
+		hasMinHopPriceX36: true,
 	}
 }
 
@@ -239,7 +264,7 @@ func (a *Adapter) Describe() ports.AdapterDescriptor {
 		QuoteAsset:           a.quoteAsset,
 		SupportsBuy:          true,
 		SupportsSell:         true,
-		AllowanceModel:       ports.AllowanceERC20Direct,
+		AllowanceModel:       ports.AllowancePermit2,
 		FeeOnTransferSupport: false,
 		DeadlineCapability:   ports.DeadlineContractDeadlineUnix,
 	}
@@ -271,7 +296,8 @@ func decodeKeyMeta(meta string, token common.Address) (poolKeyABI, common.Addres
 	quoteCur := common.HexToAddress(parts[1])
 	fee64, err1 := strconv.ParseUint(parts[2], 10, 32)
 	ts64, err2 := strconv.ParseInt(parts[3], 10, 32)
-	if err1 != nil || err2 != nil {
+	if err1 != nil || err2 != nil || fee64 > 0xffffff || ts64 <= 0 || ts64 > 0x7fffff ||
+		!common.IsHexAddress(parts[1]) || !common.IsHexAddress(parts[4]) || quoteCur == token {
 		return poolKeyABI{}, common.Address{}, false
 	}
 	hook := common.HexToAddress(parts[4])
@@ -398,9 +424,8 @@ func (a *Adapter) Quote(ctx context.Context, rpc ports.ReadOnlyRPC, req ports.Qu
 		return ports.QuoteResult{}, errors.New("invalid uniswap-v4 quote request")
 	}
 	key, quoteCur, ok := decodeKeyMeta(req.Route.DeploymentRevision, req.Route.Token)
-	if !ok {
-		key = makeOrderedPoolKey(common.Address{}, req.Route.Token, 3000, 60, common.Address{})
-		quoteCur = common.Address{}
+	if !ok || (quoteCur != (common.Address{}) && quoteCur != a.wrappedNative) {
+		return ports.QuoteResult{}, errors.New("invalid V4 pool metadata")
 	}
 	var zeroForOne bool
 	switch req.Side {
@@ -448,9 +473,17 @@ func (a *Adapter) Quote(ctx context.Context, rpc ports.ReadOnlyRPC, req ports.Qu
 	}, nil
 }
 
-// BuildUnsigned encodes UniversalRouter.execute([0x10], [v4Plan], deadline) for V4 ExactInputSingle.
+// encodeSwap uses the ABI of the selected deployment, including RBH's extra price floor.
+func (a *Adapter) encodeSwap(key poolKeyABI, zeroForOne bool, amountIn, minOut *big.Int, hookData []byte) ([]byte, error) {
+	if a.hasMinHopPriceX36 {
+		return rbhSwapActionArgs.Pack(rbhSwapActionABI{key, zeroForOne, amountIn, minOut, big.NewInt(0), hookData})
+	}
+	return v4SwapActionArgs.Pack(swapActionABI{key, zeroForOne, amountIn, minOut, hookData})
+}
+
+// BuildUnsigned always accepts/pays native currency, wrapping or unwrapping for WETH/WBNB pools.
 func (a *Adapter) BuildUnsigned(req ports.QuoteRequest, quote ports.QuoteResult) (ports.UnsignedTx, error) {
-	if req.Route.Token == (common.Address{}) || req.AmountInRaw == nil || req.AmountInRaw.Sign() <= 0 ||
+	if req.Route.Token == (common.Address{}) || req.Recipient == (common.Address{}) || req.AmountInRaw == nil || req.AmountInRaw.Sign() <= 0 ||
 		req.AmountInRaw.Cmp(maxUint128) > 0 || req.ContractExpiry <= 0 {
 		return ports.UnsignedTx{}, errors.New("incomplete uniswap-v4 build inputs")
 	}
@@ -458,85 +491,121 @@ func (a *Adapter) BuildUnsigned(req ports.QuoteRequest, quote ports.QuoteResult)
 		return ports.UnsignedTx{}, errors.New("invalid uniswap-v4 minOut")
 	}
 	key, quoteCur, ok := decodeKeyMeta(req.Route.DeploymentRevision, req.Route.Token)
-	if !ok {
-		key = makeOrderedPoolKey(common.Address{}, req.Route.Token, 3000, 60, common.Address{})
-		quoteCur = common.Address{}
+	if !ok || (quoteCur != (common.Address{}) && quoteCur != a.wrappedNative) {
+		return ports.UnsignedTx{}, errors.New("invalid V4 pool metadata")
 	}
-	var (
-		currencyIn  common.Address
-		currencyOut common.Address
-		zeroForOne  bool
-		value       = big.NewInt(0)
-	)
+	currencyIn, currencyOut := quoteCur, req.Route.Token
+	value := big.NewInt(0)
 	switch req.Side {
 	case ports.SideBuy:
-		currencyIn = quoteCur
-		currencyOut = req.Route.Token
-		zeroForOne = currencyIn == key.Currency0
-		if currencyIn == (common.Address{}) {
-			value = new(big.Int).Set(req.AmountInRaw)
-		}
+		value.Set(req.AmountInRaw)
 	case ports.SideSell:
-		currencyIn = req.Route.Token
-		currencyOut = quoteCur
-		zeroForOne = currencyIn == key.Currency0
+		currencyIn, currencyOut = req.Route.Token, quoteCur
 	default:
 		return ports.UnsignedTx{}, errors.New("unsupported side")
 	}
-
-	swapParam, err := v4SwapActionArgs.Pack(swapActionABI{
-		PoolKey:          key,
-		ZeroForOne:       zeroForOne,
-		AmountIn:         new(big.Int).Set(req.AmountInRaw),
-		AmountOutMinimum: new(big.Int).Set(quote.MinOutRaw),
-		HookData:         []byte{},
-	})
+	swapParam, err := a.encodeSwap(key, currencyIn == key.Currency0, req.AmountInRaw, quote.MinOutRaw, nil)
 	if err != nil {
 		return ports.UnsignedTx{}, err
 	}
-	settleParam, err := addrUintArgs.Pack(currencyIn, new(big.Int).Set(req.AmountInRaw))
+	settleAction := actionSettleAll
+	settleParam, err := addrUintArgs.Pack(currencyIn, req.AmountInRaw)
 	if err != nil {
 		return ports.UnsignedTx{}, err
 	}
-	takeParam, err := addrUintArgs.Pack(currencyOut, new(big.Int).Set(quote.MinOutRaw))
+	commands := []byte{}
+	inputs := [][]byte{}
+	wrappedPool := quoteCur == a.wrappedNative
+	addressThis := common.BigToAddress(big.NewInt(2))
+	if wrappedPool && req.Side == ports.SideBuy {
+		wrap, packErr := addrUintArgs.Pack(addressThis, req.AmountInRaw)
+		if packErr != nil {
+			return ports.UnsignedTx{}, packErr
+		}
+		commands = append(commands, commandWrapETH)
+		inputs = append(inputs, wrap)
+		// OPEN_DELTA (0) settles exactly the debt using the router's wrapped balance.
+		settleAction = actionSettle
+		settleParam, err = addrUintBoolArgs.Pack(currencyIn, big.NewInt(0), false)
+		if err != nil {
+			return ports.UnsignedTx{}, err
+		}
+	}
+	takeRecipient := req.Recipient
+	if wrappedPool && req.Side == ports.SideSell {
+		takeRecipient = addressThis
+	}
+	// TAKE with OPEN_DELTA sends the full output to the explicit recipient. The swap enforces minOut.
+	takeParam, err := addrAddrUintArgs.Pack(currencyOut, takeRecipient, big.NewInt(0))
 	if err != nil {
 		return ports.UnsignedTx{}, err
 	}
-	v4Plan, err := v4PlanArgs.Pack(
-		[]byte{actionSwapExactInSingle, actionSettleAll, actionTakeAll},
-		[][]byte{swapParam, settleParam, takeParam},
-	)
+	plan, err := v4PlanArgs.Pack([]byte{actionSwapExactInSingle, settleAction, actionTake}, [][]byte{swapParam, settleParam, takeParam})
 	if err != nil {
 		return ports.UnsignedTx{}, err
 	}
-	calldata, err := universalRouterABI.Pack("execute", []byte{commandV4Swap}, [][]byte{v4Plan}, big.NewInt(req.ContractExpiry))
+	commands = append(commands, commandV4Swap)
+	inputs = append(inputs, plan)
+	if wrappedPool {
+		// On buys refund any unused wrapped input; on sells deliver native proceeds.
+		minimum := big.NewInt(0)
+		if req.Side == ports.SideSell {
+			minimum = quote.MinOutRaw
+		}
+		unwrap, packErr := addrUintArgs.Pack(req.Recipient, minimum)
+		if packErr != nil {
+			return ports.UnsignedTx{}, packErr
+		}
+		commands = append(commands, commandUnwrapWETH)
+		inputs = append(inputs, unwrap)
+	} else if req.Side == ports.SideBuy {
+		refund, packErr := addrAddrUintArgs.Pack(common.Address{}, req.Recipient, big.NewInt(0))
+		if packErr != nil {
+			return ports.UnsignedTx{}, packErr
+		}
+		commands = append(commands, commandSweep)
+		inputs = append(inputs, refund)
+	}
+	calldata, err := universalRouterABI.Pack("execute", commands, inputs, big.NewInt(req.ContractExpiry))
 	if err != nil {
 		return ports.UnsignedTx{}, err
 	}
-	_ = hex.EncodeToString // keep hex available for debugging if needed
-	return ports.UnsignedTx{
-		To:               a.router,
-		Value:            value,
-		Calldata:         calldata,
-		Spender:          a.router,
-		ContractDeadline: req.ContractExpiry,
-		Summary:          string(req.Side) + ":" + a.protocolID,
-	}, nil
+	return ports.UnsignedTx{To: a.router, Value: value, Calldata: calldata, Spender: a.router,
+		ContractDeadline: req.ContractExpiry, Summary: string(req.Side) + ":" + a.protocolID}, nil
 }
 
-// DecodeEffects computes net wallet ERC-20 Transfer delta and verifies PoolManager V4 Swap log presence.
+// DecodeEffects scopes swap evidence to the resolved PoolKey and router.
 func (a *Adapter) DecodeEffects(route ports.ResolvedRoute, wallet common.Address, side ports.Side, receipt *types.Receipt) (ports.DecodedEffects, error) {
-	if receipt == nil || wallet == (common.Address{}) || route.Token == (common.Address{}) {
+	if receipt == nil || wallet == (common.Address{}) || route.Token == (common.Address{}) || (side != ports.SideBuy && side != ports.SideSell) {
 		return ports.DecodedEffects{}, errors.New("invalid uniswap-v4 decode inputs")
 	}
-	netToken := big.NewInt(0)
+	key, quoteCur, ok := decodeKeyMeta(route.DeploymentRevision, route.Token)
+	if !ok || (quoteCur != (common.Address{}) && quoteCur != a.wrappedNative) {
+		return ports.DecodedEffects{}, errors.New("invalid V4 pool metadata")
+	}
+	encodedKey, err := poolKeyArgs.Pack(key.Currency0, key.Currency1, key.Fee, key.TickSpacing, key.Hooks)
+	if err != nil {
+		return ports.DecodedEffects{}, err
+	}
+	poolID := crypto.Keccak256Hash(encodedKey)
+	netToken, netNative := big.NewInt(0), big.NewInt(0)
+	deposits, withdrawals, mints, burns := big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0)
 	sawV4Swap := false
 	for _, lg := range receipt.Logs {
 		if lg == nil || len(lg.Topics) == 0 {
 			continue
 		}
-		if lg.Address == a.poolManager && lg.Topics[0] == V4PoolSwapTopic {
+		if lg.Address == a.poolManager && lg.Topics[0] == V4PoolSwapTopic && len(lg.Topics) == 3 &&
+			lg.Topics[1] == poolID && common.BytesToAddress(lg.Topics[2].Bytes()) == a.router && len(lg.Data) == 192 {
 			sawV4Swap = true
+			if quoteCur == (common.Address{}) {
+				// Native currency sorts first. Swap deltas are signed from the caller's perspective.
+				delta := new(big.Int).SetBytes(lg.Data[:32])
+				if lg.Data[0]&0x80 != 0 {
+					delta.Sub(delta, new(big.Int).Lsh(big.NewInt(1), 256))
+				}
+				netNative.Add(netNative, delta)
+			}
 			continue
 		}
 		if lg.Address == route.Token && len(lg.Topics) == 3 && lg.Topics[0] == erc20TransferTopic && len(lg.Data) == 32 {
@@ -550,14 +619,39 @@ func (a *Adapter) DecodeEffects(route ports.ResolvedRoute, wallet common.Address
 				netToken.Sub(netToken, amt)
 			}
 		}
+		if quoteCur == a.wrappedNative && lg.Address == a.wrappedNative && len(lg.Data) == 32 {
+			amt := new(big.Int).SetBytes(lg.Data)
+			isActor := func(addr common.Address) bool { return addr == a.router || addr == wallet }
+			if len(lg.Topics) == 2 && isActor(common.BytesToAddress(lg.Topics[1].Bytes())) {
+				if lg.Topics[0] == wethDepositTopic {
+					deposits.Add(deposits, amt)
+				} else if lg.Topics[0] == wethWithdrawalTopic {
+					withdrawals.Add(withdrawals, amt)
+				}
+			} else if len(lg.Topics) == 3 && lg.Topics[0] == erc20TransferTopic {
+				// RBH WETH emits mint/burn Transfer events instead of Deposit/Withdrawal.
+				from, to := common.BytesToAddress(lg.Topics[1].Bytes()), common.BytesToAddress(lg.Topics[2].Bytes())
+				if from == (common.Address{}) && isActor(to) {
+					mints.Add(mints, amt)
+				} else if to == (common.Address{}) && isActor(from) {
+					burns.Add(burns, amt)
+				}
+			}
+		}
 	}
-	return ports.DecodedEffects{
-		WalletAddress:      wallet,
-		TokenAddress:       route.Token,
-		Side:               side,
-		NetNativeDeltaWei:  big.NewInt(0),
-		NetTokenDeltaRaw:   netToken,
-		EvidenceComplete:   receipt.Status == types.ReceiptStatusSuccessful && sawV4Swap,
-		CanonicalBlockHash: receipt.BlockHash,
-	}, nil
+	if quoteCur == a.wrappedNative {
+		// Prefer explicit wrapper events when present so tokens emitting both are counted once.
+		if deposits.Sign() == 0 {
+			deposits = mints
+		}
+		if withdrawals.Sign() == 0 {
+			withdrawals = burns
+		}
+		netNative.Sub(withdrawals, deposits)
+	}
+	complete := receipt.Status == types.ReceiptStatusSuccessful && sawV4Swap &&
+		((side == ports.SideBuy && netToken.Sign() > 0 && netNative.Sign() < 0) ||
+			(side == ports.SideSell && netToken.Sign() < 0 && netNative.Sign() > 0))
+	return ports.DecodedEffects{WalletAddress: wallet, TokenAddress: route.Token, Side: side,
+		NetNativeDeltaWei: netNative, NetTokenDeltaRaw: netToken, EvidenceComplete: complete, CanonicalBlockHash: receipt.BlockHash}, nil
 }

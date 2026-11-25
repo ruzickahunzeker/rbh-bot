@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/permit2"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/ports"
 	"github.com/ruzickahunzeker/rbh-bot/internal/registry"
 )
@@ -71,12 +72,13 @@ type MultiChainOrderRequest struct {
 
 // MultiChainOrderResult summarizes the executed step(s), tx hashes, and decoded receipt effects.
 type MultiChainOrderResult struct {
-	OperationID   string
-	ApproveTxHash common.Hash
-	SwapTxHash    common.Hash
-	Route         ports.ResolvedRoute
-	Quote         ports.QuoteResult
-	Effects       ports.DecodedEffects
+	OperationID      string
+	ApproveTxHash    common.Hash
+	ApprovalTxHashes []common.Hash
+	SwapTxHash       common.Hash
+	Route            ports.ResolvedRoute
+	Quote            ports.QuoteResult
+	Effects          ports.DecodedEffects
 }
 
 // MultiChainExecutor orchestrates V2 multi-chain Resolve -> HoneypotGuard -> Quote ->
@@ -172,61 +174,71 @@ func (e *MultiChainExecutor) Execute(ctx context.Context, req MultiChainOrderReq
 		return MultiChainOrderResult{}, fmt.Errorf("build unsigned: %w", err)
 	}
 
-	// Check whether ERC-20 approve step 0 is needed before sell.
-	needApprove := false
+	var approvals []permit2.Approval
 	if req.Side == ports.SideSell && unsignedSwap.Spender != (common.Address{}) {
-		allowance, err := e.readAllowance(ctx, req.Token, e.wallet, unsignedSwap.Spender, blkHash)
-		if err != nil {
-			return MultiChainOrderResult{}, fmt.Errorf("read allowance: %w", err)
+		if adapter.Describe().AllowanceModel == ports.AllowancePermit2 {
+			state, readErr := permit2.Read(ctx, e.backend, e.wallet, req.Token, unsignedSwap.Spender, blkHash)
+			if readErr != nil {
+				return MultiChainOrderResult{}, fmt.Errorf("read Permit2 allowances: %w", readErr)
+			}
+			approvals, err = state.Approvals(req.Token, unsignedSwap.Spender, req.AmountInRaw, uint64(qReq.ContractExpiry))
+		} else {
+			var allowance *big.Int
+			allowance, err = e.readAllowance(ctx, req.Token, e.wallet, unsignedSwap.Spender, blkHash)
+			if err == nil && allowance.Cmp(req.AmountInRaw) < 0 {
+				var cd []byte
+				cd, err = erc20ExecABI.Pack("approve", unsignedSwap.Spender, req.AmountInRaw)
+				approvals = append(approvals, permit2.Approval{To: req.Token, Calldata: cd, Kind: "approve_exact"})
+			}
 		}
-		if allowance.Cmp(req.AmountInRaw) < 0 {
-			needApprove = true
+		if err != nil {
+			return MultiChainOrderResult{}, fmt.Errorf("prepare approvals: %w", err)
 		}
 	}
 
-	var res MultiChainOrderResult
-	res.OperationID = req.OperationID
-	res.Route = route
-	res.Quote = quote
-
-	swapStepID := req.OperationID + ":step:0"
-	swapStepIndex := 0
-	if needApprove {
-		approveStepID := req.OperationID + ":step:0"
-		swapStepID = req.OperationID + ":step:1"
-		swapStepIndex = 1
-		if err := e.store.RegisterStepChain(ctx, req.OperationID, []StepSpec{
-			{StepID: approveStepID, StepIndex: 0, StepKind: "approve_exact"},
-			{StepID: swapStepID, StepIndex: 1, StepKind: string(req.Side)},
-		}, now); err != nil {
-			return res, fmt.Errorf("register 2-step chain: %w", err)
+	res := MultiChainOrderResult{OperationID: req.OperationID, Route: route, Quote: quote}
+	stepID := func(i int) string { return fmt.Sprintf("%s:step:%d", req.OperationID, i) }
+	steps := make([]StepSpec, 0, len(approvals)+1)
+	for i, approval := range approvals {
+		steps = append(steps, StepSpec{StepID: stepID(i), StepIndex: i, StepKind: approval.Kind})
+	}
+	swapStepID := stepID(len(approvals))
+	steps = append(steps, StepSpec{StepID: swapStepID, StepIndex: len(approvals), StepKind: string(req.Side)})
+	if err := e.store.RegisterStepChain(ctx, req.OperationID, steps, now); err != nil {
+		return res, fmt.Errorf("register step chain: %w", err)
+	}
+	for i, approval := range approvals {
+		unlocked, unlockErr := e.store.CanUnlockStep(ctx, req.OperationID, i)
+		if unlockErr != nil || !unlocked {
+			return res, ErrApproveNotConfirmed
 		}
-
-		approveCalldata, err := erc20ExecABI.Pack("approve", unsignedSwap.Spender, new(big.Int).Set(req.AmountInRaw))
+		approveTxHash, approveRcpt, sendErr := e.signCommitBroadcastWait(
+			ctx, req.OperationID, stepID(i), "initial", approval.To, big.NewInt(0), approval.Calldata, 80_000, now,
+		)
+		res.ApproveTxHash = approveTxHash
+		res.ApprovalTxHashes = append(res.ApprovalTxHashes, approveTxHash)
+		if sendErr != nil || approveRcpt == nil || approveRcpt.Status != gethtypes.ReceiptStatusSuccessful {
+			_ = e.store.UpdateStepStatus(ctx, stepID(i), "FAILED", now)
+			return res, fmt.Errorf("%w: %v", ErrApproveNotConfirmed, sendErr)
+		}
+		if err := e.store.UpdateStepStatus(ctx, stepID(i), "CONFIRMED_CONTINUITY", now); err != nil {
+			return res, err
+		}
+	}
+	if unlocked, err := e.store.CanUnlockStep(ctx, req.OperationID, len(approvals)); err != nil || !unlocked {
+		return res, ErrApproveNotConfirmed
+	}
+	if len(approvals) > 0 && adapter.Describe().AllowanceModel == ports.AllowancePermit2 {
+		_, approvalBlock, err := e.backend.LatestBlock(ctx)
 		if err != nil {
 			return res, err
 		}
-		approveTxHash, approveRcpt, err := e.signCommitBroadcastWait(
-			ctx, req.OperationID, approveStepID, "initial",
-			req.Token, big.NewInt(0), approveCalldata, 80_000, now,
-		)
-		res.ApproveTxHash = approveTxHash
-		if err != nil || approveRcpt == nil || approveRcpt.Status != gethtypes.ReceiptStatusSuccessful {
-			_ = e.store.UpdateStepStatus(ctx, approveStepID, "FAILED", now)
-			return res, fmt.Errorf("%w: %v", ErrApproveNotConfirmed, err)
+		state, err := permit2.Read(ctx, e.backend, e.wallet, req.Token, unsignedSwap.Spender, approvalBlock)
+		if err != nil {
+			return res, fmt.Errorf("verify confirmed Permit2 allowances: %w", err)
 		}
-		if err := e.store.UpdateStepStatus(ctx, approveStepID, "CONFIRMED_CONTINUITY", now); err != nil {
-			return res, err
-		}
-		unlocked, err := e.store.CanUnlockStep(ctx, req.OperationID, swapStepIndex)
-		if err != nil || !unlocked {
+		if state.Effective(uint64(qReq.ContractExpiry)).Cmp(req.AmountInRaw) < 0 {
 			return res, ErrApproveNotConfirmed
-		}
-	} else {
-		if err := e.store.RegisterStepChain(ctx, req.OperationID, []StepSpec{
-			{StepID: swapStepID, StepIndex: 0, StepKind: string(req.Side)},
-		}, now); err != nil {
-			return res, fmt.Errorf("register 1-step chain: %w", err)
 		}
 	}
 

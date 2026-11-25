@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ruzickahunzeker/rbh-bot/internal/chains/evm"
+	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/permit2"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/ports"
 	"github.com/ruzickahunzeker/rbh-bot/internal/registry"
 	"github.com/ruzickahunzeker/rbh-bot/internal/storage"
@@ -238,10 +239,28 @@ func (p *RPCLocalV2Provider) QuotePreflight(ctx context.Context, req QuotePrefli
 	allowance := big.NewInt(0)
 	needsApprove := false
 	if side == ports.SideSell && spender != (common.Address{}) && p.walletAddr != (common.Address{}) {
-		allowData, err := erc20ReadABI.Pack("allowance", p.walletAddr, spender)
-		if err == nil {
-			if rawAllow, cErr := p.CallContractAt(ctx, tokenAddr, allowData, blockHash); cErr == nil && len(rawAllow) >= 32 {
-				allowance = new(big.Int).SetBytes(rawAllow[:32])
+		if adapter.Describe().AllowanceModel == ports.AllowancePermit2 {
+			state, readErr := permit2.Read(ctx, p, p.walletAddr, tokenAddr, spender, blockHash)
+			if readErr != nil {
+				return QuotePreflightResponse{}, readErr
+			}
+			var header struct {
+				Timestamp string `json:"timestamp"`
+			}
+			if err := p.rpcCall(ctx, "eth_getBlockByHash", []any{blockHash.Hex(), false}, &header); err != nil {
+				return QuotePreflightResponse{}, err
+			}
+			blockTime, err := strconv.ParseUint(strings.TrimPrefix(header.Timestamp, "0x"), 16, 64)
+			if err != nil {
+				return QuotePreflightResponse{}, errors.New("invalid pinned block timestamp")
+			}
+			allowance = state.Effective(blockTime)
+		} else {
+			allowData, err := erc20ReadABI.Pack("allowance", p.walletAddr, spender)
+			if err == nil {
+				if rawAllow, cErr := p.CallContractAt(ctx, tokenAddr, allowData, blockHash); cErr == nil && len(rawAllow) >= 32 {
+					allowance = new(big.Int).SetBytes(rawAllow[:32])
+				}
 			}
 		}
 		needsApprove = allowance.Cmp(amtIn) < 0

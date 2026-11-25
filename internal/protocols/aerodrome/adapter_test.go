@@ -118,3 +118,24 @@ func TestAerodromeAdapterResolveQuoteBuildAndDecode(t *testing.T) {
 		t.Fatalf("unexpected effects: %+v", eff)
 	}
 }
+
+func TestAerodromeNativeDeltasIgnoreOtherActors(t *testing.T) {
+	a := NewBaseAdapter()
+	wallet := common.HexToAddress("0xCAFE")
+	route := ports.ResolvedRoute{Token: common.HexToAddress("0x1234")}
+	for _, side := range []ports.Side{ports.SideBuy, ports.SideSell} {
+		topic, want := wethDepositTopic, int64(-100)
+		if side == ports.SideSell {
+			topic, want = wethWithdrawalTopic, 100
+		}
+		amount := common.LeftPadBytes(big.NewInt(100).Bytes(), 32)
+		rcpt := &types.Receipt{Status: 1, Logs: []*types.Log{
+			{Address: a.weth, Topics: []common.Hash{topic, common.BytesToHash(a.router.Bytes())}, Data: amount},
+			{Address: a.weth, Topics: []common.Hash{wethWithdrawalTopic, common.HexToHash("0xdead")}, Data: amount},
+		}}
+		effects, err := a.DecodeEffects(route, wallet, side, rcpt)
+		if err != nil || effects.NetNativeDeltaWei.Int64() != want {
+			t.Fatalf("%s: effects=%+v err=%v", side, effects, err)
+		}
+	}
+}

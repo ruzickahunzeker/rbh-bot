@@ -90,6 +90,7 @@ var (
 	factoryABI          = mustParseABI(aeroFactoryABIJSON)
 	routerABI           = mustParseABI(aeroRouterABIJSON)
 	erc20TransferTopic  = crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)"))
+	wethDepositTopic    = crypto.Keccak256Hash([]byte("Deposit(address,uint256)"))
 	wethWithdrawalTopic = crypto.Keccak256Hash([]byte("Withdrawal(address,uint256)"))
 )
 
@@ -287,8 +288,17 @@ func (a *Adapter) DecodeEffects(route ports.ResolvedRoute, wallet common.Address
 			if from == wallet {
 				netToken.Sub(netToken, amt)
 			}
-		} else if lg.Address == a.weth && len(lg.Topics) >= 2 && lg.Topics[0] == wethWithdrawalTopic && len(lg.Data) == 32 {
-			netNative.Add(netNative, new(big.Int).SetBytes(lg.Data))
+		} else if lg.Address == a.weth && len(lg.Topics) == 2 && len(lg.Data) == 32 {
+			actor := common.BytesToAddress(lg.Topics[1].Bytes())
+			if actor != a.router && actor != wallet {
+				continue
+			}
+			amt := new(big.Int).SetBytes(lg.Data)
+			if lg.Topics[0] == wethWithdrawalTopic {
+				netNative.Add(netNative, amt)
+			} else if lg.Topics[0] == wethDepositTopic {
+				netNative.Sub(netNative, amt)
+			}
 		}
 	}
 	return ports.DecodedEffects{

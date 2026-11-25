@@ -97,7 +97,8 @@ func TestUniswapV4AdapterResolveQuoteBuildAndDecode(t *testing.T) {
 		Logs: []*types.Log{
 			{
 				Address: bsc.UniswapV4PoolManager,
-				Topics:  []common.Hash{V4PoolSwapTopic},
+				Topics:  []common.Hash{V4PoolSwapTopic, testPoolID(t, route), common.BytesToHash(a.router.Bytes())},
+				Data:    testSwapData(new(big.Int).Neg(qReq.AmountInRaw), rpc.outAmt),
 			},
 			{
 				Address: token,
