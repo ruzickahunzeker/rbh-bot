@@ -196,9 +196,13 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 		if err != nil {
 			return err
 		}
+		manifestEntries, err := config.LoadChainsManifest(cfg.ChainsManifestPath)
+		if err != nil {
+			return fmt.Errorf("load chains manifest: %w", err)
+		}
 		var udsBackend *telegram.UDSBackend
 		if cfg.TelegramBotToken != "" || cfg.PaperShadowEnabled {
-			udsBackend = telegram.NewUDSBackendWithWatchlist(map[uint64]telegram.ChainUDSConfig{
+			udsMap := map[uint64]telegram.ChainUDSConfig{
 				config.ChainID: {
 					ChainSlug:   "rbh",
 					TradeSocket: cfg.TradeSocketRBH,
@@ -213,7 +217,17 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 					FeedSocket:  feedSockBSC,
 					RPCURL:      cfg.RPCURL,
 				},
-			}, database, authenticator)
+			}
+			for _, me := range manifestEntries {
+				udsMap[me.ChainID] = telegram.ChainUDSConfig{
+					ChainSlug:   me.Slug,
+					TradeSocket: me.TradeSocket,
+					BearerToken: me.TradeToken,
+					FeedSocket:  me.FeedSocket,
+					RPCURL:      me.RPCURL,
+				}
+			}
+			udsBackend = telegram.NewUDSBackendWithWatchlist(udsMap, database, authenticator)
 		}
 		if cfg.TelegramBotToken != "" {
 			tgRouter, err := telegram.NewRouter(database, udsBackend, nil)
@@ -277,6 +291,30 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 					StrategyID:     "shadow-rbh",
 					WalletID:       rbhWallet,
 					FixedAmountRaw: big.NewInt(10_000_000_000_000_000), // 0.01 ETH
+					MaxSignalAge:   60 * time.Second,
+				})
+			}
+			seenStreamChain := make(map[uint64]bool)
+			for _, s := range streams {
+				seenStreamChain[s.ChainID] = true
+			}
+			for _, me := range manifestEntries {
+				if seenStreamChain[me.ChainID] || me.FeedSocket == "" {
+					continue
+				}
+				mSrc, err := botcore.NewHTTPOutboxSource(me.FeedSocket, authenticator)
+				if err != nil {
+					return err
+				}
+				seenStreamChain[me.ChainID] = true
+				streams = append(streams, botcore.FeedStreamConfig{
+					ChainID:        me.ChainID,
+					FeedInstanceID: "feed-" + me.Slug,
+					Source:         mSrc,
+					PrincipalID:    "operator-local",
+					StrategyID:     "shadow-" + me.Slug,
+					WalletID:       me.DefaultWallet,
+					FixedAmountRaw: big.NewInt(10_000_000_000_000_000),
 					MaxSignalAge:   60 * time.Second,
 				})
 			}

@@ -149,3 +149,51 @@ func TestPancakeV2AdapterResolveQuoteBuildAndDecode(t *testing.T) {
 		t.Fatalf("expected net native delta %s, got %s", bnbProceeds.String(), effects.NetNativeDeltaWei.String())
 	}
 }
+
+type customChainV2RPC struct {
+	factory   common.Address
+	pairAddr  common.Address
+	callCount int
+}
+
+func (c *customChainV2RPC) CodeAt(_ context.Context, _ common.Address, _ common.Hash) ([]byte, error) {
+	return []byte{0x60, 0x80}, nil
+}
+
+func (c *customChainV2RPC) CallContractAt(_ context.Context, to common.Address, data []byte, _ common.Hash) ([]byte, error) {
+	if to == c.factory && len(data) >= 4 && bytes.Equal(data[:4], factoryABI.Methods["getPair"].ID) {
+		c.callCount++
+		return factoryABI.Methods["getPair"].Outputs.Pack(c.pairAddr)
+	}
+	return nil, nil
+}
+
+func TestCustomV2AdapterNonBSCProtocolIDAndNoBSC2HopPollution(t *testing.T) {
+	ethFactory := common.HexToAddress("0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f")
+	ethRouter := common.HexToAddress("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D")
+	weth := common.HexToAddress("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")
+	token := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	pair := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	blk := common.HexToHash("0xabcd")
+
+	adp := NewCustomAdapter(1, "uniswap-v2-eth", "ETH", ethFactory, ethRouter, weth)
+
+	// 1. Resolved route must preserve "uniswap-v2-eth", NOT "pancake-v2".
+	rpcOK := &customChainV2RPC{factory: ethFactory, pairAddr: pair}
+	route, err := adp.Resolve(context.Background(), rpcOK, token, 100, blk)
+	if err != nil {
+		t.Fatalf("Resolve ETH V2 failed: %v", err)
+	}
+	if route.ProtocolID != "uniswap-v2-eth" {
+		t.Fatalf("expected ProtocolID uniswap-v2-eth, got %q", route.ProtocolID)
+	}
+
+	// 2. When WETH/token pair is missing on ETH (chain_id=1), it must NOT probe BSC USDT/USD1 (callCount == 1).
+	rpcEmpty := &customChainV2RPC{factory: ethFactory, pairAddr: common.Address{}}
+	if _, err := adp.Resolve(context.Background(), rpcEmpty, token, 100, blk); err == nil {
+		t.Fatal("expected error when pair missing")
+	}
+	if rpcEmpty.callCount != 1 {
+		t.Fatalf("expected exactly 1 getPair call on non-BSC chain (no BSC USDT/USD1 pollution), got %d", rpcEmpty.callCount)
+	}
+}

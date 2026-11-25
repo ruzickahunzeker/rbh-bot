@@ -328,7 +328,8 @@ func (r *Router) handleWalletOrBridgePendingInput(ctx context.Context, sess chat
 		}
 		rep := r.renderWalletManagerCard(ctx, sess, "私钥已加密导入")
 		rep.EditOriginal = false
-		rep.Text = fmt.Sprintf("✅ 已安全导入并 AES-256-GCM 加密保存钱包 %s (%s)\n⚠️ 请立即手动删除你刚才发送的私钥消息！\n\n%s", sum.WalletID, sum.Address.Hex(), rep.Text)
+		rep.DeleteUserMessage = true
+		rep.Text = fmt.Sprintf("✅ 已安全导入并 AES-256-GCM 加密保存钱包 %s (%s)（已自动删除你的明文私钥消息）\n\n%s", sum.WalletID, sum.Address.Hex(), rep.Text)
 		return rep, true
 
 	case "br_quote":

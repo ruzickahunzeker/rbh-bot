@@ -13,17 +13,32 @@ import (
 // Adding new chains later (e.g. Base 8453, ETH 1, ARB 42161) only requires appending here.
 var supportedChains = []uint64{56, 4663}
 
-func nextChainInRing(current uint64, delta int) uint64 {
+// ConfiguredChainsBackend is optionally implemented by Backend to dynamically drive the top chain bar.
+type ConfiguredChainsBackend interface {
+	ConfiguredChainIDs() []uint64
+}
+
+func (r *Router) activeChainsRing() []uint64 {
+	if cb, ok := r.backend.(ConfiguredChainsBackend); ok {
+		if list := cb.ConfiguredChainIDs(); len(list) > 0 {
+			return list
+		}
+	}
+	return supportedChains
+}
+
+func (r *Router) nextChain(current uint64, delta int) uint64 {
+	ring := r.activeChainsRing()
 	idx := 0
-	for i, cid := range supportedChains {
+	for i, cid := range ring {
 		if cid == current {
 			idx = i
 			break
 		}
 	}
-	n := len(supportedChains)
+	n := len(ring)
 	nextIdx := (idx + delta + n) % n
-	return supportedChains[nextIdx]
+	return ring[nextIdx]
 }
 
 func defaultWalletForChain(chainID uint64) string {
@@ -86,11 +101,7 @@ func (r *Router) executeRelativeLimitOrder(ctx context.Context, sess chatSession
 		rep.AlertText = "获取参考价失败"
 		return rep
 	}
-	spot := new(big.Int).Mul(probeWei, big.NewInt(1_000_000_000))
-	spot.Div(spot, outRaw)
-	if spot.Sign() <= 0 {
-		spot = big.NewInt(1)
-	}
+	spot := ComputeScaledSpotPrice(probeWei, outRaw)
 	mult := 100 + pctDelta
 	if mult <= 1 {
 		mult = 1

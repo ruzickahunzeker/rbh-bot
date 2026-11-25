@@ -302,6 +302,40 @@ func (u *UDSBackend) QuoteToken(ctx context.Context, chainID uint64, walletID, p
 	), nil
 }
 
+// ComputeScaledSpotPrice returns floor((nativeWei * 10^36) / tokenRaw) >= 1 so even
+// 1-trillion-supply 18-decimal meme coins retain 18+ digits of price precision without underflow.
+func ComputeScaledSpotPrice(nativeWei, tokenRaw *big.Int) *big.Int {
+	if nativeWei == nil || nativeWei.Sign() <= 0 || tokenRaw == nil || tokenRaw.Sign() <= 0 {
+		return big.NewInt(1)
+	}
+	scale := new(big.Int).Exp(big.NewInt(10), big.NewInt(36), nil)
+	spot := new(big.Int).Mul(nativeWei, scale)
+	spot.Div(spot, tokenRaw)
+	if spot.Sign() <= 0 {
+		return big.NewInt(1)
+	}
+	return spot
+}
+
+// ConfiguredChainIDs returns the ordered list of configured chain IDs in this UDSBackend.
+func (u *UDSBackend) ConfiguredChainIDs() []uint64 {
+	order := []uint64{56, 4663, 8453, 1, 999, 5042, 99901}
+	var out []uint64
+	seen := make(map[uint64]bool)
+	for _, cid := range order {
+		if _, ok := u.chains[cid]; ok {
+			out = append(out, cid)
+			seen[cid] = true
+		}
+	}
+	for cid := range u.chains {
+		if !seen[cid] {
+			out = append(out, cid)
+		}
+	}
+	return out
+}
+
 // QuoteShadowFill satisfies bot.ShadowQuoter using live read-only POST /v1/quotes over local UDS.
 func (u *UDSBackend) QuoteShadowFill(ctx context.Context, chainID uint64, walletID string, token common.Address, side string, amountInRaw *big.Int) (*big.Int, *big.Int, error) {
 	q, err := u.fetchQuote(ctx, chainID, walletID, defaultProtocolForChain(chainID), token, side, amountInRaw)
@@ -312,10 +346,11 @@ func (u *UDSBackend) QuoteShadowFill(ctx context.Context, chainID uint64, wallet
 	if !ok || outRaw.Sign() <= 0 {
 		return nil, nil, errors.New("invalid quote expected_out_raw")
 	}
-	spot := new(big.Int).Mul(amountInRaw, big.NewInt(1_000_000_000))
-	spot.Div(spot, outRaw)
-	if spot.Sign() <= 0 {
-		spot = big.NewInt(1)
+	var spot *big.Int
+	if side == "sell" {
+		spot = ComputeScaledSpotPrice(outRaw, amountInRaw)
+	} else {
+		spot = ComputeScaledSpotPrice(amountInRaw, outRaw)
 	}
 	return outRaw, spot, nil
 }

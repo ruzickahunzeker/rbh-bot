@@ -228,3 +228,20 @@ func TestM20ToM25FullPanels(t *testing.T) {
 		t.Fatalf("bridge quote failed: %+v err=%v", qRep, err)
 	}
 }
+
+func TestComputeScaledSpotPriceNoMemeUnderflow(t *testing.T) {
+	// 0.01 BNB (1e16 wei) buying 50,000,000 tokens with 18 decimals (5e25 raw units).
+	// Under old 1e9 scaling this underflowed to 1; with 1e36 scaling it equals 200,000,000,000,000,000,000,000,000 (2e26).
+	amtWei := big.NewInt(10_000_000_000_000_000)
+	memeOut, _ := new(big.Int).SetString("50000000000000000000000000", 10)
+	spot := ComputeScaledSpotPrice(amtWei, memeOut)
+	if spot.Cmp(big.NewInt(1_000_000)) <= 0 {
+		t.Fatalf("expected high-precision non-underflowing spot price for 1B-supply meme token, got %s", spot.String())
+	}
+	// +100% TP must be strictly 2x spot, -30% SL must be strictly 0.7x spot.
+	tp := new(big.Int).Mul(spot, big.NewInt(2))
+	sl := new(big.Int).Div(new(big.Int).Mul(spot, big.NewInt(70)), big.NewInt(100))
+	if tp.Cmp(spot) <= 0 || sl.Cmp(spot) >= 0 || sl.Cmp(big.NewInt(1)) <= 0 {
+		t.Fatalf("expected distinct TP (%s) > spot (%s) > SL (%s) > 1", tp, spot, sl)
+	}
+}

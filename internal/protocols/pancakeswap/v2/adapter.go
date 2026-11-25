@@ -134,33 +134,40 @@ func (a *Adapter) Resolve(ctx context.Context, rpc ports.ReadOnlyRPC, token comm
 		return addr, nil
 	}
 
-	deployRev := "pancakeswap-v2-bsc-mainnet"
+	pid := a.Describe().ProtocolID
+	deployRev := pid + "-mainnet"
+	if a.chainID == bsc.ChainID {
+		deployRev = "pancakeswap-v2-bsc-mainnet"
+	}
 	pairAddr, err := lookupPair(a.wbnb)
 	if err != nil {
-		return ports.ResolvedRoute{}, fmt.Errorf("pancake-v2 factory.getPair failed: %w", err)
+		return ports.ResolvedRoute{}, fmt.Errorf("%s factory.getPair failed: %w", pid, err)
 	}
-	if pairAddr == (common.Address{}) && token != bsc.USDTAddress {
-		if p, pErr := lookupPair(bsc.USDTAddress); pErr == nil && p != (common.Address{}) {
-			pairAddr = p
-			deployRev = "pancakeswap-v2-bsc-2hop-usdt"
+	// Only probe BSC's USDT/USD1 2-hop pairs when running on BSC (chain_id=56).
+	if a.chainID == bsc.ChainID {
+		if pairAddr == (common.Address{}) && token != bsc.USDTAddress {
+			if p, pErr := lookupPair(bsc.USDTAddress); pErr == nil && p != (common.Address{}) {
+				pairAddr = p
+				deployRev = "pancakeswap-v2-bsc-2hop-usdt"
+			}
 		}
-	}
-	if pairAddr == (common.Address{}) && token != bsc.USD1Address {
-		if p, pErr := lookupPair(bsc.USD1Address); pErr == nil && p != (common.Address{}) {
-			pairAddr = p
-			deployRev = "pancakeswap-v2-bsc-2hop-usd1"
+		if pairAddr == (common.Address{}) && token != bsc.USD1Address {
+			if p, pErr := lookupPair(bsc.USD1Address); pErr == nil && p != (common.Address{}) {
+				pairAddr = p
+				deployRev = "pancakeswap-v2-bsc-2hop-usd1"
+			}
 		}
 	}
 	if pairAddr == (common.Address{}) {
-		return ports.ResolvedRoute{}, errors.New("pancake-v2 pair does not exist for WBNB/USDT/USD1")
+		return ports.ResolvedRoute{}, fmt.Errorf("%s pair does not exist", pid)
 	}
 	pairCode, err := rpc.CodeAt(ctx, pairAddr, blockHash)
 	if err != nil || len(pairCode) == 0 {
-		return ports.ResolvedRoute{}, errors.New("pancake-v2 pair has no runtime code")
+		return ports.ResolvedRoute{}, fmt.Errorf("%s pair has no runtime code", pid)
 	}
 	return ports.ResolvedRoute{
 		ChainID:            a.chainID,
-		ProtocolID:         ProtocolID,
+		ProtocolID:         pid,
 		AdapterRevision:    AdapterRevision,
 		DeploymentRevision: deployRev,
 		PoolPhase:          "DEX_V2",
@@ -277,7 +284,7 @@ func (a *Adapter) BuildUnsigned(req ports.QuoteRequest, quote ports.QuoteResult)
 		Calldata:         calldata,
 		Spender:          a.router,
 		ContractDeadline: req.ContractExpiry,
-		Summary:          string(req.Side) + ":" + ProtocolID,
+		Summary:          string(req.Side) + ":" + a.Describe().ProtocolID,
 	}, nil
 }
 

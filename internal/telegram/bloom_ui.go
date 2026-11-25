@@ -24,12 +24,13 @@ type InlineButton struct {
 // Reply is a rich Telegram response supporting Inline Keyboards, in-place message editing,
 // callback toast notifications, optional HTML parse mode, and auto-delete for sensitive secrets.
 type Reply struct {
-	Text          string
-	Buttons       [][]InlineButton
-	EditOriginal  bool
-	AlertText     string
-	ParseMode     string
-	AutoDeleteSec int
+	Text              string
+	Buttons           [][]InlineButton
+	EditOriginal      bool
+	AlertText         string
+	ParseMode         string
+	AutoDeleteSec     int
+	DeleteUserMessage bool
 }
 
 // ProbeQuoteBackend is optionally implemented by Backend for Paste-CA auto-routing and one-tap Shadow trades.
@@ -204,7 +205,7 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 		if data == "sw_c:prev" {
 			delta = -1
 		}
-		newChain := nextChainInRing(sess.ChainID, delta)
+		newChain := r.nextChain(sess.ChainID, delta)
 		newWallet := defaultWalletForChain(newChain)
 		if _, err := r.db.ExecContext(ctx,
 			`UPDATE telegram_allowlist SET active_chain_id = ?, active_wallet_id = ?, updated_at = ? WHERE chat_id = ?`,
@@ -371,7 +372,7 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 		if parts[3] == "prev" {
 			delta = -1
 		}
-		newChain := nextChainInRing(sess.ChainID, delta)
+		newChain := r.nextChain(sess.ChainID, delta)
 		newWallet := defaultWalletForChain(newChain)
 		_, _ = r.db.ExecContext(ctx,
 			`UPDATE telegram_allowlist SET active_chain_id = ?, active_wallet_id = ?, updated_at = ? WHERE chat_id = ?`,
@@ -657,11 +658,7 @@ func (r *Router) executeShadowBuyButton(ctx context.Context, sess chatSession, t
 		rep.AlertText = "Quote failed"
 		return rep
 	}
-	spot := new(big.Int).Mul(amtWei, big.NewInt(1_000_000_000))
-	spot.Div(spot, outRaw)
-	if spot.Sign() <= 0 {
-		spot = big.NewInt(1)
-	}
+	spot := ComputeScaledSpotPrice(amtWei, outRaw)
 	nowUTC := r.now().UTC()
 	fillID := fmt.Sprintf("ui-buy-%d-%d", sess.ChainID, nowUTC.UnixNano())
 	_, _ = r.db.ExecContext(ctx,
@@ -730,11 +727,7 @@ func (r *Router) executeShadowSellButton(ctx context.Context, sess chatSession, 
 		rep.AlertText = "Sell quote failed"
 		return rep
 	}
-	spot := new(big.Int).Mul(outWei, big.NewInt(1_000_000_000))
-	spot.Div(spot, sellAmt)
-	if spot.Sign() <= 0 {
-		spot = big.NewInt(1)
-	}
+	spot := ComputeScaledSpotPrice(outWei, sellAmt)
 	nowUTC := r.now().UTC()
 	fillID := fmt.Sprintf("ui-sell-%d-%d", sess.ChainID, nowUTC.UnixNano())
 	_, _ = r.db.ExecContext(ctx,

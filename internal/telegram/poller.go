@@ -116,7 +116,10 @@ func (p *Poller) PollOnce(ctx context.Context, pollTimeoutSec int) (int, error) 
 				continue
 			}
 			_ = p.AnswerCallback(ctx, upd.CallbackQuery.ID, rep.AlertText)
-			if rep.Text != "" {
+			if rep.DeleteUserMessage && upd.Message.MessageID > 0 {
+			_ = p.DeleteMessage(ctx, chatID, upd.Message.MessageID)
+		}
+		if rep.Text != "" {
 				if rep.EditOriginal && msgID > 0 {
 					if editErr := p.EditReply(ctx, chatID, msgID, rep); editErr != nil {
 						// Fallback to sendMessage if Telegram says message cannot be edited
@@ -142,6 +145,9 @@ func (p *Poller) PollOnce(ctx context.Context, pollTimeoutSec int) (int, error) 
 		if err != nil {
 			rep = Reply{Text: "Request failed. Check local service logs."}
 			p.log.Warn("telegram command error", "chat_id", chatID, "err", err)
+		}
+		if rep.DeleteUserMessage && upd.Message.MessageID > 0 {
+			_ = p.DeleteMessage(ctx, chatID, upd.Message.MessageID)
 		}
 		if rep.Text != "" {
 			if sendErr := p.SendReply(ctx, chatID, rep); sendErr != nil {
