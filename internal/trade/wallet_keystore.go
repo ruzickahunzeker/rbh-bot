@@ -21,20 +21,24 @@ import (
 )
 
 const (
-	keystoreVersion = 1
-	scryptN         = 32768
-	scryptR         = 8
-	scryptP         = 1
-	scryptKeyLen    = 32
+	keystoreVersion   = 1
+	keystoreVersionV2 = 2
+	scryptN           = 32768
+	scryptR           = 8
+	scryptP           = 1
+	scryptKeyLen      = 32
 )
 
 // EncryptedWalletFile is an on-disk AES-256-GCM + scrypt encrypted wallet envelope (mode 0600).
-// AAD binds wallet_id, chain_id, and checksummed address so ciphertexts cannot be transplanted.
+// Version 1 AAD binds wallet_id, chain_id, and address (legacy); Version 2 AAD binds wallet_id and
+// address only so the same EVM wallet is chain-agnostic across all EVM chains.
 type EncryptedWalletFile struct {
 	Version       int    `json:"version"`
 	WalletID      string `json:"wallet_id"`
-	ChainID       uint64 `json:"chain_id"`
+	ChainID       uint64 `json:"chain_id,omitempty"`
 	Address       string `json:"address"`
+	OwnerChatID   int64  `json:"owner_chat_id,omitempty"`
+	WalletType    string `json:"wallet_type,omitempty"`
 	KDF           string `json:"kdf"`
 	SaltHex       string `json:"salt_hex"`
 	NonceHex      string `json:"nonce_hex"`
@@ -44,15 +48,22 @@ type EncryptedWalletFile struct {
 
 // KeystoreSummary holds non-sensitive wallet metadata for listing without decrypting.
 type KeystoreSummary struct {
-	FilePath  string
-	WalletID  string
-	ChainID   uint64
-	Address   common.Address
-	CreatedAt string
+	FilePath    string
+	Version     int
+	WalletID    string
+	ChainID     uint64 // 0 for chain-agnostic v2 wallets; legacy chain_id for v1
+	Address     common.Address
+	OwnerChatID int64
+	WalletType  string
+	CreatedAt   string
 }
 
 func keystoreAAD(walletID string, chainID uint64, addr common.Address) []byte {
 	return []byte(fmt.Sprintf("evm-bot:keystore:v%d|%s|%d|%s", keystoreVersion, walletID, chainID, strings.ToLower(addr.Hex())))
+}
+
+func keystoreAADv2(walletID string, addr common.Address) []byte {
+	return []byte(fmt.Sprintf("evm-bot:keystore:v%d|%s|%s", keystoreVersionV2, walletID, strings.ToLower(addr.Hex())))
 }
 
 func validateWalletID(walletID string) error {
@@ -99,7 +110,59 @@ func ImportEncryptedWallet(dir, walletID string, chainID uint64, privKeyHex, pas
 	return writeEncryptedKeystore(dir, walletID, chainID, privBytes, crypto.PubkeyToAddress(priv.PublicKey), passphrase)
 }
 
+// CreateGlobalEncryptedWallet generates a fresh secp256k1 private key and stores it as a
+// chain-agnostic Keystore v2 envelope (mode 0600, AAD bound to wallet_id + address).
+func CreateGlobalEncryptedWallet(dir, walletID string, ownerChatID int64, passphrase string) (KeystoreSummary, error) {
+	if err := validateWalletID(walletID); err != nil {
+		return KeystoreSummary{}, err
+	}
+	if len(passphrase) < 8 {
+		return KeystoreSummary{}, errors.New("passphrase (>= 8 chars) is required")
+	}
+	priv, err := crypto.GenerateKey()
+	if err != nil {
+		return KeystoreSummary{}, err
+	}
+	privBytes := crypto.FromECDSA(priv)
+	defer clear(privBytes)
+	return writeEncryptedKeystoreEnvelope(dir, keystoreVersionV2, walletID, 0, ownerChatID, privBytes, crypto.PubkeyToAddress(priv.PublicKey), passphrase)
+}
+
+// ImportGlobalEncryptedWallet imports a hex private key as a chain-agnostic Keystore v2 wallet.
+// If a keystore for the exact same EVM address already exists in dir, it returns (existing, true, nil)
+// without creating a duplicate keystore file.
+func ImportGlobalEncryptedWallet(dir, walletID string, ownerChatID int64, privKeyHex, passphrase string) (KeystoreSummary, bool, error) {
+	if err := validateWalletID(walletID); err != nil {
+		return KeystoreSummary{}, false, err
+	}
+	if len(passphrase) < 8 {
+		return KeystoreSummary{}, false, errors.New("passphrase (>= 8 chars) is required")
+	}
+	cleanHex := strings.TrimPrefix(strings.TrimSpace(privKeyHex), "0x")
+	priv, err := crypto.HexToECDSA(cleanHex)
+	if err != nil {
+		return KeystoreSummary{}, false, fmt.Errorf("invalid secp256k1 private key: %w", err)
+	}
+	privBytes := crypto.FromECDSA(priv)
+	defer clear(privBytes)
+	addr := crypto.PubkeyToAddress(priv.PublicKey)
+
+	if existing, err := ListEncryptedWallets(dir); err == nil {
+		for _, w := range existing {
+			if w.Address == addr {
+				return w, true, nil
+			}
+		}
+	}
+	sum, err := writeEncryptedKeystoreEnvelope(dir, keystoreVersionV2, walletID, 0, ownerChatID, privBytes, addr, passphrase)
+	return sum, false, err
+}
+
 func writeEncryptedKeystore(dir, walletID string, chainID uint64, privBytes []byte, addr common.Address, passphrase string) (KeystoreSummary, error) {
+	return writeEncryptedKeystoreEnvelope(dir, keystoreVersion, walletID, chainID, 0, privBytes, addr, passphrase)
+}
+
+func writeEncryptedKeystoreEnvelope(dir string, version int, walletID string, chainID uint64, ownerChatID int64, privBytes []byte, addr common.Address, passphrase string) (KeystoreSummary, error) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return KeystoreSummary{}, err
 	}
@@ -130,15 +193,22 @@ func writeEncryptedKeystore(dir, walletID string, chainID uint64, privBytes []by
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return KeystoreSummary{}, err
 	}
-	aad := keystoreAAD(walletID, chainID, addr)
+	var aad []byte
+	if version == keystoreVersionV2 {
+		aad = keystoreAADv2(walletID, addr)
+	} else {
+		aad = keystoreAAD(walletID, chainID, addr)
+	}
 	ct := gcm.Seal(nil, nonce, privBytes, aad)
 
 	nowStr := time.Now().UTC().Format(time.RFC3339)
 	env := EncryptedWalletFile{
-		Version:       keystoreVersion,
+		Version:       version,
 		WalletID:      walletID,
 		ChainID:       chainID,
 		Address:       addr.Hex(),
+		OwnerChatID:   ownerChatID,
+		WalletType:    "keystore",
 		KDF:           "scrypt-n32768-r8-p1",
 		SaltHex:       hex.EncodeToString(salt),
 		NonceHex:      hex.EncodeToString(nonce),
@@ -153,15 +223,19 @@ func writeEncryptedKeystore(dir, walletID string, chainID uint64, privBytes []by
 		return KeystoreSummary{}, err
 	}
 	return KeystoreSummary{
-		FilePath:  dest,
-		WalletID:  walletID,
-		ChainID:   chainID,
-		Address:   addr,
-		CreatedAt: nowStr,
+		FilePath:    dest,
+		Version:     version,
+		WalletID:    walletID,
+		ChainID:     chainID,
+		Address:     addr,
+		OwnerChatID: ownerChatID,
+		WalletType:  "keystore",
+		CreatedAt:   nowStr,
 	}, nil
 }
 
-// LoadEncryptedWallet decrypts a 0600 keystore file, verifies AAD + derived address, and returns the ECDSA key.
+// LoadEncryptedWallet decrypts a 0600 keystore file (v1 legacy chain-bound or v2 chain-agnostic),
+// verifies AAD + derived address, and returns the ECDSA key.
 func LoadEncryptedWallet(keystorePath, passphrase string) (*ecdsa.PrivateKey, KeystoreSummary, error) {
 	info, err := os.Stat(keystorePath)
 	if err != nil {
@@ -178,7 +252,7 @@ func LoadEncryptedWallet(keystorePath, passphrase string) (*ecdsa.PrivateKey, Ke
 	if err := json.Unmarshal(raw, &env); err != nil {
 		return nil, KeystoreSummary{}, err
 	}
-	if env.Version != keystoreVersion || !common.IsHexAddress(env.Address) {
+	if (env.Version != keystoreVersion && env.Version != keystoreVersionV2) || !common.IsHexAddress(env.Address) {
 		return nil, KeystoreSummary{}, errors.New("unsupported or malformed keystore envelope")
 	}
 	salt, err := hex.DecodeString(env.SaltHex)
@@ -208,7 +282,12 @@ func LoadEncryptedWallet(keystorePath, passphrase string) (*ecdsa.PrivateKey, Ke
 		return nil, KeystoreSummary{}, err
 	}
 	expectedAddr := common.HexToAddress(env.Address)
-	aad := keystoreAAD(env.WalletID, env.ChainID, expectedAddr)
+	var aad []byte
+	if env.Version == keystoreVersionV2 {
+		aad = keystoreAADv2(env.WalletID, expectedAddr)
+	} else {
+		aad = keystoreAAD(env.WalletID, env.ChainID, expectedAddr)
+	}
 	plain, err := gcm.Open(nil, nonce, ct, aad)
 	if err != nil {
 		return nil, KeystoreSummary{}, errors.New("keystore decryption failed (wrong passphrase or tampered AAD)")
@@ -222,16 +301,23 @@ func LoadEncryptedWallet(keystorePath, passphrase string) (*ecdsa.PrivateKey, Ke
 	if crypto.PubkeyToAddress(priv.PublicKey) != expectedAddr {
 		return nil, KeystoreSummary{}, errors.New("decrypted private key does not match envelope address")
 	}
+	wType := env.WalletType
+	if wType == "" {
+		wType = "keystore"
+	}
 	return priv, KeystoreSummary{
-		FilePath:  keystorePath,
-		WalletID:  env.WalletID,
-		ChainID:   env.ChainID,
-		Address:   expectedAddr,
-		CreatedAt: env.CreatedAt,
+		FilePath:    keystorePath,
+		Version:     env.Version,
+		WalletID:    env.WalletID,
+		ChainID:     env.ChainID,
+		Address:     expectedAddr,
+		OwnerChatID: env.OwnerChatID,
+		WalletType:  wType,
+		CreatedAt:   env.CreatedAt,
 	}, nil
 }
 
-// ListEncryptedWallets scans dir for *.json encrypted wallet envelopes and returns non-sensitive summaries.
+// ListEncryptedWallets scans dir for *.json encrypted wallet envelopes (v1 and v2) and returns non-sensitive summaries.
 func ListEncryptedWallets(dir string) ([]KeystoreSummary, error) {
 	entries, err := os.ReadDir(dir)
 	if errors.Is(err, os.ErrNotExist) {
@@ -254,12 +340,22 @@ func ListEncryptedWallets(dir string) ([]KeystoreSummary, error) {
 		if json.Unmarshal(raw, &env) != nil || env.WalletID == "" || !common.IsHexAddress(env.Address) {
 			continue
 		}
+		if env.Version != keystoreVersion && env.Version != keystoreVersionV2 {
+			continue
+		}
+		wType := env.WalletType
+		if wType == "" {
+			wType = "keystore"
+		}
 		out = append(out, KeystoreSummary{
-			FilePath:  p,
-			WalletID:  env.WalletID,
-			ChainID:   env.ChainID,
-			Address:   common.HexToAddress(env.Address),
-			CreatedAt: env.CreatedAt,
+			FilePath:    p,
+			Version:     env.Version,
+			WalletID:    env.WalletID,
+			ChainID:     env.ChainID,
+			Address:     common.HexToAddress(env.Address),
+			OwnerChatID: env.OwnerChatID,
+			WalletType:  wType,
+			CreatedAt:   env.CreatedAt,
 		})
 	}
 	return out, nil

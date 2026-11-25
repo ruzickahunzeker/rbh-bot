@@ -90,7 +90,8 @@ func NewRouter(database *storage.Database, backend Backend, now func() time.Time
 	return &Router{db: db, readDB: rdb, backend: backend, now: now}, nil
 }
 
-// AllowChat registers or updates a whitelisted Telegram chat_id in bot.db.
+// AllowChat registers or refreshes a whitelisted Telegram chat_id in bot.db.
+// On restart/re-registration it preserves the user's persisted active_chain_id and active_wallet_id.
 func (r *Router) AllowChat(ctx context.Context, chatID int64, username, role string, activeChainID uint64, activeWalletID string) error {
 	if chatID == 0 || activeChainID == 0 {
 		return errors.New("invalid chat allowlist entry")
@@ -98,7 +99,13 @@ func (r *Router) AllowChat(ctx context.Context, chatID int64, username, role str
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO telegram_allowlist(chat_id, username, role, active_chain_id, active_wallet_id, enabled, updated_at)
 		 VALUES(?,?,?,?,?,1,?)
-		 ON CONFLICT(chat_id) DO UPDATE SET username=excluded.username, role=excluded.role, active_chain_id=excluded.active_chain_id, active_wallet_id=excluded.active_wallet_id, enabled=1, updated_at=excluded.updated_at`,
+		 ON CONFLICT(chat_id) DO UPDATE SET
+		   username = excluded.username,
+		   role = excluded.role,
+		   active_chain_id = CASE WHEN telegram_allowlist.active_chain_id > 0 THEN telegram_allowlist.active_chain_id ELSE excluded.active_chain_id END,
+		   active_wallet_id = CASE WHEN TRIM(telegram_allowlist.active_wallet_id) != '' THEN telegram_allowlist.active_wallet_id ELSE excluded.active_wallet_id END,
+		   enabled = 1,
+		   updated_at = excluded.updated_at`,
 		chatID, username, role, activeChainID, activeWalletID, r.now().UTC().Format(time.RFC3339Nano),
 	)
 	return err

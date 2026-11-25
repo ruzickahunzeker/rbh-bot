@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	tradecore "github.com/ruzickahunzeker/rbh-bot/internal/trade"
 )
@@ -28,55 +29,42 @@ func keystorePassphrase() string {
 	return os.Getenv("EVM_WALLET_PASSPHRASE")
 }
 
-// renderWalletManagerCard renders M24 Full Wallet Management:
-// lists both UDS-registered wallets and local AES-256-GCM encrypted keystores as clickable buttons,
-// plus Create New Wallet and Import Private Key actions.
+// renderWalletManagerCard renders M35 Global EVM Wallet Management:
+// lists all EVM wallets authorized for this user (both chain-agnostic/legacy Keystore wallets and readonly wallets),
+// clearly distinguishing signable vs readonly wallets. Switching chains preserves the active wallet.
 func (r *Router) renderWalletManagerCard(ctx context.Context, sess chatSession, alert string) Reply {
-	dir := keystoreDirPath()
-	ksList, _ := tradecore.ListEncryptedWallets(dir)
-	udsWallets, _ := r.backend.ListWallets(ctx, sess.ChainID)
+	wallets := r.syncAndListAuthorizedWallets(ctx, sess.ChatID, sess.ChainID)
 
 	lines := []string{
-		fmt.Sprintf("👛 钱包管理 | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID),
-		fmt.Sprintf("当前活跃钱包：%s", sess.WalletID),
+		fmt.Sprintf("👛 全局 EVM 钱包管理 | 当前链：%s (%d)", chainDisplayName(sess.ChainID), sess.ChainID),
+		fmt.Sprintf("当前活跃钱包：%s（切链自动保留，全 EVM 链通用）", sess.WalletID),
 		"",
 	}
 	var btns [][]InlineButton
-	seen := make(map[string]bool)
 
-	for _, w := range ksList {
-		if w.ChainID != sess.ChainID {
-			continue
-		}
-		seen[w.WalletID] = true
+	for _, w := range wallets {
 		star := ""
 		if w.WalletID == sess.WalletID {
 			star = "⭐ "
 		}
-		short := w.Address.Hex()
-		short = short[:6] + "..." + short[len(short)-4:]
-		lines = append(lines, fmt.Sprintf("• %s%s (%s) [加密Keystore]", star, w.WalletID, short))
+		short := "无地址"
+		if w.Address != (common.Address{}) {
+			full := w.Address.Hex()
+			short = full[:6] + "..." + full[len(full)-4:]
+		}
+		typeBadge := "[只读钱包]"
+		icon := "👁️"
+		if w.CanSign {
+			typeBadge = "[可签名 Keystore]"
+			icon = "🔑"
+		}
+		lines = append(lines, fmt.Sprintf("• %s%s (%s) %s", star, w.WalletID, short, typeBadge))
 		if len("wm:open:"+w.WalletID) <= 64 {
-			btns = append(btns, []InlineButton{{Text: fmt.Sprintf("🔑 %s%s (%s)", star, w.WalletID, short), CallbackData: "wm:open:" + w.WalletID}})
+			btns = append(btns, []InlineButton{{Text: fmt.Sprintf("%s %s%s (%s)", icon, star, w.WalletID, short), CallbackData: "wm:open:" + w.WalletID}})
 		}
 	}
-	for _, wStr := range udsWallets {
-		f := strings.Fields(wStr)
-		if len(f) == 0 || seen[f[0]] {
-			continue
-		}
-		id := f[0]
-		star := ""
-		if id == sess.WalletID {
-			star = "⭐ "
-		}
-		lines = append(lines, fmt.Sprintf("• %s%s [只读注册]", star, wStr))
-		if len("wm:open:"+id) <= 64 {
-			btns = append(btns, []InlineButton{{Text: fmt.Sprintf("👛 %s%s", star, id), CallbackData: "wm:open:" + id}})
-		}
-	}
-	if len(lines) <= 3 {
-		lines = append(lines, "当前链暂无钱包，点击下方「创建新钱包」或「导入私钥」。")
+	if len(wallets) == 0 {
+		lines = append(lines, "暂无可用 EVM 钱包，点击下方「创建新钱包」或「导入私钥」。")
 	}
 
 	btns = append(btns,
@@ -98,43 +86,45 @@ func (r *Router) renderWalletManagerCard(ctx context.Context, sess chatSession, 
 }
 
 func (r *Router) renderWalletDetailCard(ctx context.Context, sess chatSession, walletID, alert string) Reply {
-	dir := keystoreDirPath()
-	ksPath := filepath.Join(dir, walletID+".json")
-	isKeystore := false
-	addrStr := "只读注册钱包"
-	if ksList, err := tradecore.ListEncryptedWallets(dir); err == nil {
-		for _, w := range ksList {
-			if w.WalletID == walletID {
-				isKeystore = true
-				addrStr = w.Address.Hex()
-				break
-			}
-		}
+	w, ok := r.resolveAuthorizedWallet(ctx, sess.ChatID, sess.ChainID, walletID)
+	if !ok {
+		return Reply{AlertText: "无权查看该钱包或钱包不存在"}
+	}
+	addrStr := "未绑定地址"
+	if w.Address != (common.Address{}) {
+		addrStr = w.Address.Hex()
 	}
 	star := "否"
 	if walletID == sess.WalletID {
 		star = "是 ⭐"
 	}
-	text := strings.Join([]string{
-		fmt.Sprintf("👛 钱包详情 | %s (%d)", chainDisplayName(sess.ChainID), sess.ChainID),
-		"钱包 ID：" + walletID,
+	typeDesc := "只读钱包（仅查询/模拟，不可签名）"
+	if w.CanSign {
+		typeDesc = "可签名 Keystore（全 EVM 链通用，按链隔离资产与 Nonce）"
+	}
+	lines := []string{
+		fmt.Sprintf("👛 钱包详情 | 当前链：%s (%d)", chainDisplayName(sess.ChainID), sess.ChainID),
+		"钱包 ID：" + w.WalletID,
 		"地址：" + addrStr,
+		"类型：" + typeDesc,
 		"当前活跃：" + star,
-		fmt.Sprintf("加密存储：%v (%s)", isKeystore, ksPath),
-	}, "\n")
+	}
+	if w.KeystorePath != "" {
+		lines = append(lines, "加密文件："+w.KeystorePath)
+	}
 
 	var btns [][]InlineButton
-	btns = append(btns, []InlineButton{{Text: "⭐ 设为活跃钱包", CallbackData: "wm:act:" + walletID}})
-	if isKeystore {
+	btns = append(btns, []InlineButton{{Text: "⭐ 设为活跃钱包", CallbackData: "wm:act:" + w.WalletID}})
+	if w.CanSign {
 		btns = append(btns,
 			[]InlineButton{
-				{Text: "🔑 导出私钥 (30秒焚毁)", CallbackData: "wm:exp1:" + walletID},
-				{Text: "🗑️ 删除钱包", CallbackData: "wm:del1:" + walletID},
+				{Text: "🔑 导出私钥 (30秒焚毁)", CallbackData: "wm:exp1:" + w.WalletID},
+				{Text: "🗑️ 删除钱包", CallbackData: "wm:del1:" + w.WalletID},
 			},
 		)
 	}
 	btns = append(btns, []InlineButton{{Text: "« 返回钱包列表", CallbackData: "wallets"}, {Text: "🏠 主页", CallbackData: "menu"}})
-	return Reply{Text: text, EditOriginal: true, AlertText: alert, Buttons: btns}
+	return Reply{Text: strings.Join(lines, "\n"), EditOriginal: true, AlertText: alert, Buttons: btns}
 }
 
 func (r *Router) handleWalletManagerCallback(ctx context.Context, sess chatSession, data string) Reply {
@@ -153,12 +143,12 @@ func (r *Router) handleWalletManagerCallback(ctx context.Context, sess chatSessi
 	case "open":
 		return r.renderWalletDetailCard(ctx, sess, wid, "")
 	case "act":
-		_, _ = r.db.ExecContext(ctx,
-			`UPDATE telegram_allowlist SET active_wallet_id = ?, updated_at = ? WHERE chat_id = ?`,
-			wid, r.now().UTC().Format(time.RFC3339Nano), sess.ChatID,
-		)
+		if _, ok := r.resolveAuthorizedWallet(ctx, sess.ChatID, sess.ChainID, wid); !ok {
+			return Reply{AlertText: "无权切换到该钱包或钱包不存在"}
+		}
+		_ = r.setActiveWalletID(ctx, sess.ChatID, wid)
 		sess.WalletID = wid
-		return r.renderWalletDetailCard(ctx, sess, wid, "已设为当前活跃钱包")
+		return r.renderWalletDetailCard(ctx, sess, wid, "已设为当前活跃钱包（跨链保留）")
 	case "create":
 		pass := keystorePassphrase()
 		if len(pass) < 8 {
@@ -167,12 +157,27 @@ func (r *Router) handleWalletManagerCallback(ctx context.Context, sess chatSessi
 				AlertText: "未配置加密口令",
 			}
 		}
-		newID := fmt.Sprintf("w-%s-%d", strings.ToLower(chainDisplayName(sess.ChainID)), r.now().UTC().Unix()%100000)
-		sum, err := tradecore.CreateEncryptedWallet(dir, newID, sess.ChainID, pass)
+		existingKeystores := r.countAuthorizedKeystoreWallets(ctx, sess.ChatID, sess.ChainID)
+		newID := fmt.Sprintf("w-evm-%d", r.now().UTC().UnixNano()%100000000)
+		sum, err := tradecore.CreateGlobalEncryptedWallet(dir, newID, sess.ChatID, pass)
 		if err != nil {
 			return Reply{AlertText: "创建失败: " + err.Error()}
 		}
-		return r.renderWalletManagerCard(ctx, sess, fmt.Sprintf("已创建 %s (%s)", sum.WalletID, sum.Address.Hex()[:10]))
+		r.registerGlobalWalletRow(ctx, GlobalWallet{
+			WalletID:     sum.WalletID,
+			Address:      sum.Address,
+			WalletType:   "keystore",
+			KeystorePath: sum.FilePath,
+			OwnerChatID:  sess.ChatID,
+			CanSign:      true,
+		})
+		alertMsg := fmt.Sprintf("已创建全链钱包 %s (%s)", sum.WalletID, sum.Address.Hex()[:10])
+		if existingKeystores == 0 {
+			_ = r.setActiveWalletID(ctx, sess.ChatID, sum.WalletID)
+			sess.WalletID = sum.WalletID
+			alertMsg += "，已自动设为活跃钱包"
+		}
+		return r.renderWalletManagerCard(ctx, sess, alertMsg)
 	case "import":
 		if len(keystorePassphrase()) < 8 {
 			return Reply{
@@ -180,9 +185,13 @@ func (r *Router) handleWalletManagerCallback(ctx context.Context, sess chatSessi
 				AlertText: "未配置加密口令",
 			}
 		}
-		r.setPendingInput(ctx, sess.ChatID, "wm_import", fmt.Sprintf("%d", sess.ChainID))
-		return Reply{Text: "📥 请直接回复要导入的 0x 私钥（系统将立即 AES-256-GCM 加密落盘，请发送后手动删除原消息）：", AlertText: "请回复私钥"}
+		r.setPendingInput(ctx, sess.ChatID, "wm_import", "evm")
+		return Reply{Text: "📥 请直接回复要导入的 0x 私钥（系统将自动去重、AES-256-GCM 跨链通用加密落盘，并自动删除你的明文消息）：", AlertText: "请回复私钥"}
 	case "exp1":
+		w, ok := r.resolveAuthorizedWallet(ctx, sess.ChatID, sess.ChainID, wid)
+		if !ok || !w.CanSign {
+			return Reply{AlertText: "无权导出该钱包或该钱包为只读钱包"}
+		}
 		return Reply{
 			Text:         fmt.Sprintf("⚠️ 安全确认：确定要导出钱包 %s 的明文私钥吗？\n私钥将以隐藏遮罩发送，并在 30 秒后自动阅后即焚删除。", wid),
 			EditOriginal: true,
@@ -191,11 +200,19 @@ func (r *Router) handleWalletManagerCallback(ctx context.Context, sess chatSessi
 			},
 		}
 	case "exp2":
+		w, ok := r.resolveAuthorizedWallet(ctx, sess.ChatID, sess.ChainID, wid)
+		if !ok || !w.CanSign {
+			return Reply{AlertText: "无权导出该钱包或该钱包为只读钱包"}
+		}
 		pass := keystorePassphrase()
 		if len(pass) < 8 {
 			return Reply{AlertText: "服务端未配置 EVM_WALLET_PASSPHRASE，无法解密"}
 		}
-		priv, sum, err := tradecore.LoadEncryptedWallet(filepath.Join(dir, wid+".json"), pass)
+		ksPath := w.KeystorePath
+		if ksPath == "" {
+			ksPath = filepath.Join(dir, wid+".json")
+		}
+		priv, sum, err := tradecore.LoadEncryptedWallet(ksPath, pass)
 		if err != nil {
 			return Reply{AlertText: "解密失败: " + err.Error()}
 		}
@@ -209,19 +226,55 @@ func (r *Router) handleWalletManagerCallback(ctx context.Context, sess chatSessi
 			AlertText:     "私钥已发送，30秒后自动删除",
 		}
 	case "del1":
+		w, ok := r.resolveAuthorizedWallet(ctx, sess.ChatID, sess.ChainID, wid)
+		if !ok || !w.CanSign {
+			return Reply{AlertText: "无权删除该钱包或该钱包为只读钱包"}
+		}
+		if blockers := r.walletDeleteBlockers(ctx, wid); len(blockers) > 0 {
+			return Reply{
+				Text:         fmt.Sprintf("⛔ 无法删除钱包 %s：检测到全链仍有活跃引用：\n• %s\n请先取消挂单、关闭跟单/狙击策略并等待未完成交易结束后再删除。", wid, strings.Join(blockers, "\n• ")),
+				EditOriginal: true,
+				AlertText:    "存在活跃挂单或策略，禁止删除",
+				Buttons: [][]InlineButton{
+					{{Text: "« 返回钱包详情", CallbackData: "wm:open:" + wid}, {Text: "🏠 主页", CallbackData: "menu"}},
+				},
+			}
+		}
 		return Reply{
-			Text:         fmt.Sprintf("⚠️ 危险操作：确定要永久删除加密钱包 %s 吗？\n删除前请确保已备份私钥且钱包无余额！", wid),
+			Text:         fmt.Sprintf("⚠️ 危险操作：确定要永久删除加密钱包 %s 吗？\n删除前请确保已备份私钥且全链无余额！", wid),
 			EditOriginal: true,
 			Buttons: [][]InlineButton{
 				{{Text: "🗑️ 确认永久删除", CallbackData: "wm:del2:" + wid}, {Text: "❌ 取消", CallbackData: "wm:open:" + wid}},
 			},
 		}
 	case "del2":
-		ksPath := filepath.Join(dir, wid+".json")
-		if err := os.Remove(ksPath); err != nil {
+		w, ok := r.resolveAuthorizedWallet(ctx, sess.ChatID, sess.ChainID, wid)
+		if !ok || !w.CanSign {
+			return Reply{AlertText: "无权删除该钱包或该钱包为只读钱包"}
+		}
+		if blockers := r.walletDeleteBlockers(ctx, wid); len(blockers) > 0 {
+			return Reply{AlertText: "禁止删除：" + strings.Join(blockers, "；")}
+		}
+		ksPath := w.KeystorePath
+		if ksPath == "" {
+			ksPath = filepath.Join(dir, wid+".json")
+		}
+		if err := os.Remove(ksPath); err != nil && !os.IsNotExist(err) {
 			return Reply{AlertText: "删除失败: " + err.Error()}
 		}
-		return r.renderWalletManagerCard(ctx, sess, "已删除钱包 "+wid)
+		if r.db != nil {
+			_, _ = r.db.ExecContext(ctx, `DELETE FROM evm_wallets WHERE wallet_id = ?`, wid)
+		}
+		if sess.WalletID == wid {
+			remaining := r.syncAndListAuthorizedWallets(ctx, sess.ChatID, sess.ChainID)
+			nextID := ""
+			if len(remaining) > 0 {
+				nextID = remaining[0].WalletID
+			}
+			_ = r.setActiveWalletID(ctx, sess.ChatID, nextID)
+			sess.WalletID = nextID
+		}
+		return r.renderWalletManagerCard(ctx, sess, "已安全删除钱包 "+wid)
 	}
 	return Reply{AlertText: "未知钱包操作"}
 }
@@ -319,17 +372,45 @@ func (r *Router) handleWalletOrBridgePendingInput(ctx context.Context, sess chat
 	case "wm_import":
 		pass := keystorePassphrase()
 		if len(pass) < 8 {
-			return Reply{Text: "❌ 服务端未配置 EVM_WALLET_PASSPHRASE"}, true
+			return Reply{Text: "❌ 服务端未配置 EVM_WALLET_PASSPHRASE", DeleteUserMessage: true}, true
 		}
-		wid := fmt.Sprintf("imp-%s-%d", strings.ToLower(chainDisplayName(sess.ChainID)), r.now().UTC().Unix()%100000)
-		sum, err := tradecore.ImportEncryptedWallet(keystoreDirPath(), wid, sess.ChainID, input, pass)
+		existingKeystores := r.countAuthorizedKeystoreWallets(ctx, sess.ChatID, sess.ChainID)
+		wid := fmt.Sprintf("imp-evm-%d", r.now().UTC().UnixNano()%100000000)
+		sum, duplicate, err := tradecore.ImportGlobalEncryptedWallet(keystoreDirPath(), wid, sess.ChatID, input, pass)
 		if err != nil {
-			return Reply{Text: "❌ 私钥导入失败: " + err.Error()}, true
+			return Reply{Text: "❌ 私钥导入失败: " + err.Error(), DeleteUserMessage: true}, true
+		}
+		if duplicate {
+			if sum.OwnerChatID != 0 && sum.OwnerChatID != sess.ChatID {
+				return Reply{
+					Text:              "⛔ 该私钥对应地址已归属其他用户，拒绝重复导入（已自动删除你的明文私钥消息）。",
+					DeleteUserMessage: true,
+				}, true
+			}
+			rep := r.renderWalletManagerCard(ctx, sess, "已识别为现有钱包")
+			rep.EditOriginal = false
+			rep.DeleteUserMessage = true
+			rep.Text = fmt.Sprintf("ℹ️ 该私钥对应地址已存在，未重复创建：%s (%s)（已自动删除你的明文私钥消息）\n\n%s", sum.WalletID, sum.Address.Hex(), rep.Text)
+			return rep, true
+		}
+		r.registerGlobalWalletRow(ctx, GlobalWallet{
+			WalletID:     sum.WalletID,
+			Address:      sum.Address,
+			WalletType:   "keystore",
+			KeystorePath: sum.FilePath,
+			OwnerChatID:  sess.ChatID,
+			CanSign:      true,
+		})
+		autoNote := ""
+		if existingKeystores == 0 {
+			_ = r.setActiveWalletID(ctx, sess.ChatID, sum.WalletID)
+			sess.WalletID = sum.WalletID
+			autoNote = "，并已自动设为当前活跃钱包"
 		}
 		rep := r.renderWalletManagerCard(ctx, sess, "私钥已加密导入")
 		rep.EditOriginal = false
 		rep.DeleteUserMessage = true
-		rep.Text = fmt.Sprintf("✅ 已安全导入并 AES-256-GCM 加密保存钱包 %s (%s)（已自动删除你的明文私钥消息）\n\n%s", sum.WalletID, sum.Address.Hex(), rep.Text)
+		rep.Text = fmt.Sprintf("✅ 已安全导入全链钱包 %s (%s)%s（已自动删除你的明文私钥消息）\n\n%s", sum.WalletID, sum.Address.Hex(), autoNote, rep.Text)
 		return rep, true
 
 	case "br_quote":

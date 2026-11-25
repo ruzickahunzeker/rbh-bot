@@ -148,7 +148,7 @@ func TestBloomUIFlowStartPasteCAShadowBuySellAndSettings(t *testing.T) {
 	if reportRep, err := router.HandleMessage(ctx, 7131128175, "/report"); err != nil || !strings.Contains(reportRep.Text, "今日交易复盘") {
 		t.Fatalf("/report failed: %+v err=%v", reportRep, err)
 	}
-	if swRep, err := router.HandleCallback(ctx, 7131128175, "sw_w:wallet-bsc-2"); err != nil || !strings.Contains(swRep.Text, "wallet-bsc-2") {
+	if swRep, err := router.HandleCallback(ctx, 7131128175, "sw_w:w-1"); err != nil || !strings.Contains(swRep.Text, "w-1") {
 		t.Fatalf("sw_w failed: %+v err=%v", swRep, err)
 	}
 }

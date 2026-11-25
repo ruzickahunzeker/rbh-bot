@@ -199,8 +199,13 @@ func (p *RPCLocalV2Provider) latestBlockHead(ctx context.Context) (uint64, commo
 }
 
 // QuotePreflight resolves the protocol route and quotes expected/min output on a pinned blockHash,
-// plus live ERC-20 allowance when Side=="sell". Zero DB writes, zero reservations.
+// plus live ERC-20/Permit2 allowance when Side=="sell". Zero DB writes, zero reservations.
 func (p *RPCLocalV2Provider) QuotePreflight(ctx context.Context, req QuotePreflightRequest, spender common.Address) (QuotePreflightResponse, error) {
+	return p.QuotePreflightForWallet(ctx, req, p.walletAddr, spender)
+}
+
+// QuotePreflightForWallet resolves the protocol route and checks live allowance for the explicit walletAddr.
+func (p *RPCLocalV2Provider) QuotePreflightForWallet(ctx context.Context, req QuotePreflightRequest, walletAddr common.Address, spender common.Address) (QuotePreflightResponse, error) {
 	if p == nil || p.reg == nil {
 		return QuotePreflightResponse{}, evm.ErrRPCStateLagging
 	}
@@ -230,7 +235,7 @@ func (p *RPCLocalV2Provider) QuotePreflight(ctx context.Context, req QuotePrefli
 		Side:        side,
 		AmountInRaw: amtIn,
 		SlippageBps: req.SlippageBps,
-		Recipient:   p.walletAddr,
+		Recipient:   walletAddr,
 	})
 	if err != nil {
 		return QuotePreflightResponse{}, err
@@ -238,9 +243,9 @@ func (p *RPCLocalV2Provider) QuotePreflight(ctx context.Context, req QuotePrefli
 
 	allowance := big.NewInt(0)
 	needsApprove := false
-	if side == ports.SideSell && spender != (common.Address{}) && p.walletAddr != (common.Address{}) {
+	if side == ports.SideSell && spender != (common.Address{}) && walletAddr != (common.Address{}) {
 		if adapter.Describe().AllowanceModel == ports.AllowancePermit2 {
-			state, readErr := permit2.Read(ctx, p, p.walletAddr, tokenAddr, spender, blockHash)
+			state, readErr := permit2.Read(ctx, p, walletAddr, tokenAddr, spender, blockHash)
 			if readErr != nil {
 				return QuotePreflightResponse{}, readErr
 			}
@@ -256,7 +261,7 @@ func (p *RPCLocalV2Provider) QuotePreflight(ctx context.Context, req QuotePrefli
 			}
 			allowance = state.Effective(blockTime)
 		} else {
-			allowData, err := erc20ReadABI.Pack("allowance", p.walletAddr, spender)
+			allowData, err := erc20ReadABI.Pack("allowance", walletAddr, spender)
 			if err == nil {
 				if rawAllow, cErr := p.CallContractAt(ctx, tokenAddr, allowData, blockHash); cErr == nil && len(rawAllow) >= 32 {
 					allowance = new(big.Int).SetBytes(rawAllow[:32])

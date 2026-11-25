@@ -182,30 +182,18 @@ func (r *Router) cycleTokenCardWallet(ctx context.Context, sess chatSession, tok
 		return Reply{AlertText: "代币缓存已过期"}
 	}
 	sess.ChainID = cid
-	wallets, err := r.backend.ListWallets(ctx, sess.ChainID)
-	if err != nil || len(wallets) == 0 {
-		return Reply{AlertText: "当前链暂无其他钱包可切换"}
+	wallets := r.syncAndListAuthorizedWallets(ctx, sess.ChatID, sess.ChainID)
+	if len(wallets) == 0 {
+		return Reply{AlertText: "暂无可用 EVM 钱包"}
 	}
-	var ids []string
-	for _, w := range wallets {
-		if f := strings.Fields(w); len(f) > 0 {
-			ids = append(ids, f[0])
-		}
-	}
-	if len(ids) == 0 {
-		return Reply{AlertText: "无可用钱包"}
-	}
-	nextID := ids[0]
-	for i, id := range ids {
-		if id == sess.WalletID {
-			nextID = ids[(i+1)%len(ids)]
+	nextID := wallets[0].WalletID
+	for i, w := range wallets {
+		if w.WalletID == sess.WalletID {
+			nextID = wallets[(i+1)%len(wallets)].WalletID
 			break
 		}
 	}
-	_, _ = r.db.ExecContext(ctx,
-		`UPDATE telegram_allowlist SET active_wallet_id = ?, updated_at = ? WHERE chat_id = ?`,
-		nextID, r.now().UTC().Format(time.RFC3339Nano), sess.ChatID,
-	)
+	_ = r.setActiveWalletID(ctx, sess.ChatID, nextID)
 	sess.WalletID = nextID
 	rep := r.renderTokenCard(ctx, sess, tok, mode, true, "")
 	rep.AlertText = "已切换执行钱包：" + nextID

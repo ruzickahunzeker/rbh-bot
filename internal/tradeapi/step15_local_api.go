@@ -119,6 +119,7 @@ type LocalV2Extension struct {
 	now      func() time.Time
 
 	mu                sync.Mutex
+	resolver          WalletResolver
 	walletRequiredBlk map[string]uint64
 }
 
@@ -197,8 +198,13 @@ func (h *API) handleQuotePreflight(w http.ResponseWriter, r *http.Request, ext *
 		writeRetryableError(w, r, http.StatusServiceUnavailable, "RPC_STATE_LAGGING", "quote provider not configured")
 		return
 	}
-	if !ext.reg.Chain().MatchesSlug(req.Chain) || req.WalletID != h.identity.WalletID || !common.IsHexAddress(req.Token) {
+	if !ext.reg.Chain().MatchesSlug(req.Chain) || !common.IsHexAddress(req.Token) {
 		writeError(w, r, ErrInvalid)
+		return
+	}
+	wallet, ok := ext.resolveWallet(r.Context(), h.identity, req.WalletID)
+	if !ok {
+		ipc.WriteError(w, http.StatusForbidden, "WALLET_SCOPE_DENIED", "wallet outside caller scope", ipc.RequestID(r))
 		return
 	}
 	amt, ok := new(big.Int).SetString(req.AmountRaw, 10)
@@ -211,7 +217,12 @@ func (h *API) handleQuotePreflight(w http.ResponseWriter, r *http.Request, ext *
 		ipc.WriteError(w, http.StatusBadRequest, "UNSUPPORTED_PROTOCOL", err.Error(), ipc.RequestID(r))
 		return
 	}
-	resp, err := ext.provider.QuotePreflight(r.Context(), req, sp.Address)
+	var resp QuotePreflightResponse
+	if wp, hasWP := ext.provider.(WalletPreflightProvider); hasWP {
+		resp, err = wp.QuotePreflightForWallet(r.Context(), req, wallet.Address, sp.Address)
+	} else {
+		resp, err = ext.provider.QuotePreflight(r.Context(), req, sp.Address)
+	}
 	if err != nil {
 		if errors.Is(err, evm.ErrRPCStateLagging) {
 			writeRetryableError(w, r, http.StatusServiceUnavailable, "RPC_STATE_LAGGING", err.Error())
@@ -225,7 +236,8 @@ func (h *API) handleQuotePreflight(w http.ResponseWriter, r *http.Request, ext *
 
 func (h *API) handleWalletPositions(w http.ResponseWriter, r *http.Request, ext *LocalV2Extension) {
 	walletID := r.PathValue("wallet_id")
-	if walletID != h.identity.WalletID {
+	wallet, ok := ext.resolveWallet(r.Context(), h.identity, walletID)
+	if !ok {
 		ipc.WriteError(w, http.StatusForbidden, "WALLET_SCOPE_DENIED", "wallet outside caller scope", ipc.RequestID(r))
 		return
 	}
@@ -249,11 +261,11 @@ func (h *API) handleWalletPositions(w http.ResponseWriter, r *http.Request, ext 
 	}
 	snap, err := ext.provider.ReadPosition(
 		r.Context(),
-		walletID,
-		common.HexToAddress(h.identity.WalletAddress),
+		wallet.WalletID,
+		wallet.Address,
 		common.HexToAddress(tokenHex),
 		spender,
-		ext.requiredBlock(walletID),
+		ext.requiredBlock(wallet.WalletID),
 	)
 	if err != nil {
 		if errors.Is(err, evm.ErrRPCStateLagging) {
@@ -292,7 +304,7 @@ func (h *API) handleCreateApproval(w http.ResponseWriter, r *http.Request, ext *
 		writeError(w, r, ErrInvalid)
 		return
 	}
-	if req.WalletID != h.identity.WalletID {
+	if _, ok := ext.resolveWallet(r.Context(), h.identity, req.WalletID); !ok {
 		ipc.WriteError(w, http.StatusForbidden, "WALLET_SCOPE_DENIED", "wallet outside caller scope", ipc.RequestID(r))
 		return
 	}

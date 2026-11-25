@@ -206,17 +206,15 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 			delta = -1
 		}
 		newChain := r.nextChain(sess.ChainID, delta)
-		newWallet := defaultWalletForChain(newChain)
 		if _, err := r.db.ExecContext(ctx,
-			`UPDATE telegram_allowlist SET active_chain_id = ?, active_wallet_id = ?, updated_at = ? WHERE chat_id = ?`,
-			newChain, newWallet, r.now().UTC().Format(time.RFC3339Nano), chatID,
+			`UPDATE telegram_allowlist SET active_chain_id = ?, updated_at = ? WHERE chat_id = ?`,
+			newChain, r.now().UTC().Format(time.RFC3339Nano), chatID,
 		); err != nil {
 			return Reply{}, err
 		}
 		sess.ChainID = newChain
-		sess.WalletID = newWallet
 		rep := r.renderMainMenu(ctx, sess, true)
-		rep.AlertText = fmt.Sprintf("已切换至 %s (%d)", chainDisplayName(newChain), newChain)
+		rep.AlertText = fmt.Sprintf("已切换至 %s (%d)（保留钱包 %s）", chainDisplayName(newChain), newChain, sess.WalletID)
 		return rep, nil
 
 	case data == "status":
@@ -253,13 +251,14 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 
 	case strings.HasPrefix(data, "sw_w:"):
 		newWalletID := strings.TrimPrefix(data, "sw_w:")
-		if newWalletID != "" {
-			_, _ = r.db.ExecContext(ctx,
-				`UPDATE telegram_allowlist SET active_wallet_id = ?, updated_at = ? WHERE chat_id = ?`,
-				newWalletID, r.now().UTC().Format(time.RFC3339Nano), chatID,
-			)
-			sess.WalletID = newWalletID
+		if newWalletID == "" {
+			return Reply{AlertText: "无效钱包 ID"}, nil
 		}
+		if _, ok := r.resolveAuthorizedWallet(ctx, chatID, sess.ChainID, newWalletID); !ok {
+			return Reply{AlertText: "无权切换到该钱包或钱包不存在"}, nil
+		}
+		_ = r.setActiveWalletID(ctx, chatID, newWalletID)
+		sess.WalletID = newWalletID
 		rep := r.renderMainMenu(ctx, sess, true)
 		rep.AlertText = "已切换活跃钱包为 " + newWalletID
 		return rep, nil
@@ -373,15 +372,13 @@ func (r *Router) HandleCallback(ctx context.Context, chatID int64, data string) 
 			delta = -1
 		}
 		newChain := r.nextChain(sess.ChainID, delta)
-		newWallet := defaultWalletForChain(newChain)
 		_, _ = r.db.ExecContext(ctx,
-			`UPDATE telegram_allowlist SET active_chain_id = ?, active_wallet_id = ?, updated_at = ? WHERE chat_id = ?`,
-			newChain, newWallet, r.now().UTC().Format(time.RFC3339Nano), chatID,
+			`UPDATE telegram_allowlist SET active_chain_id = ?, updated_at = ? WHERE chat_id = ?`,
+			newChain, r.now().UTC().Format(time.RFC3339Nano), chatID,
 		)
 		sess.ChainID = newChain
-		sess.WalletID = newWallet
 		rep := r.renderTokenCard(ctx, sess, tok, parts[2], true, "")
-		rep.AlertText = fmt.Sprintf("已切换至 %s (%d) 并重新探测合约", chainDisplayName(newChain), newChain)
+		rep.AlertText = fmt.Sprintf("已切换至 %s (%d) 并重新探测合约（保留钱包 %s）", chainDisplayName(newChain), newChain, sess.WalletID)
 		return rep, nil
 
 	case strings.HasPrefix(data, "tc_g:"):

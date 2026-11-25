@@ -324,18 +324,12 @@ func (r *Router) handleCopyProfileCallback(ctx context.Context, sess chatSession
 		_ = r.saveCopyProfile(ctx, p)
 		return r.renderCopyProfileCard(ctx, sess, key, fmt.Sprintf("最大延迟：%ds", p.MaxDelaySec))
 	case "wallet":
-		wallets, _ := r.backend.ListWallets(ctx, p.ChainID)
-		var ids []string
-		for _, w := range wallets {
-			if f := strings.Fields(w); len(f) > 0 {
-				ids = append(ids, f[0])
-			}
-		}
-		if len(ids) > 0 {
-			next := ids[0]
-			for i, id := range ids {
-				if id == p.WalletID {
-					next = ids[(i+1)%len(ids)]
+		wallets := r.syncAndListAuthorizedWallets(ctx, sess.ChatID, p.ChainID)
+		if len(wallets) > 0 {
+			next := wallets[0].WalletID
+			for i, w := range wallets {
+				if w.WalletID == p.WalletID {
+					next = wallets[(i+1)%len(wallets)].WalletID
 					break
 				}
 			}

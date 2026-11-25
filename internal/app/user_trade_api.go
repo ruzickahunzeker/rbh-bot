@@ -2,6 +2,8 @@ package app
 
 import (
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/ruzickahunzeker/rbh-bot/internal/chainquery"
 	"github.com/ruzickahunzeker/rbh-bot/internal/chains/arc"
@@ -84,6 +86,11 @@ func configureUserTradeAPIWithHandle(server routeRegistrar, database *storage.Da
 	if err != nil {
 		return nil, err
 	}
+	ksDir := strings.TrimSpace(os.Getenv("EVM_KEYSTORE_DIR"))
+	if ksDir == "" {
+		ksDir = "/root/evm-bot/data/keystore"
+	}
+	ext.SetWalletResolver(tradeapi.NewKeystoreDirWalletResolver(ksDir))
 	if err := userAPI.AttachLocalV2(ext); err != nil {
 		return nil, err
 	}
