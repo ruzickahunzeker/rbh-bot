@@ -99,21 +99,42 @@ func (a *Adapter) Resolve(ctx context.Context, rpc ports.ReadOnlyRPC, token comm
 	if err != nil || len(tokenCode) == 0 {
 		return ports.ResolvedRoute{}, errors.New("target token has no runtime code")
 	}
-	calldata, err := factoryABI.Pack("getPair", a.wbnb, token)
-	if err != nil {
-		return ports.ResolvedRoute{}, err
+	lookupPair := func(quoteTok common.Address) (common.Address, error) {
+		cd, err := factoryABI.Pack("getPair", quoteTok, token)
+		if err != nil {
+			return common.Address{}, err
+		}
+		rawPair, err := rpc.CallContractAt(ctx, a.factory, cd, blockHash)
+		if err != nil {
+			return common.Address{}, err
+		}
+		unpacked, err := factoryABI.Unpack("getPair", rawPair)
+		if err != nil || len(unpacked) != 1 {
+			return common.Address{}, errors.New("invalid pancake-v2 factory.getPair response")
+		}
+		addr, _ := unpacked[0].(common.Address)
+		return addr, nil
 	}
-	rawPair, err := rpc.CallContractAt(ctx, a.factory, calldata, blockHash)
+
+	deployRev := "pancakeswap-v2-bsc-mainnet"
+	pairAddr, err := lookupPair(a.wbnb)
 	if err != nil {
 		return ports.ResolvedRoute{}, fmt.Errorf("pancake-v2 factory.getPair failed: %w", err)
 	}
-	unpacked, err := factoryABI.Unpack("getPair", rawPair)
-	if err != nil || len(unpacked) != 1 {
-		return ports.ResolvedRoute{}, errors.New("invalid pancake-v2 factory.getPair response")
+	if pairAddr == (common.Address{}) && token != bsc.USDTAddress {
+		if p, pErr := lookupPair(bsc.USDTAddress); pErr == nil && p != (common.Address{}) {
+			pairAddr = p
+			deployRev = "pancakeswap-v2-bsc-2hop-usdt"
+		}
 	}
-	pairAddr, ok := unpacked[0].(common.Address)
-	if !ok || pairAddr == (common.Address{}) {
-		return ports.ResolvedRoute{}, errors.New("pancake-v2 pair does not exist for WBNB/token")
+	if pairAddr == (common.Address{}) && token != bsc.USD1Address {
+		if p, pErr := lookupPair(bsc.USD1Address); pErr == nil && p != (common.Address{}) {
+			pairAddr = p
+			deployRev = "pancakeswap-v2-bsc-2hop-usd1"
+		}
+	}
+	if pairAddr == (common.Address{}) {
+		return ports.ResolvedRoute{}, errors.New("pancake-v2 pair does not exist for WBNB/USDT/USD1")
 	}
 	pairCode, err := rpc.CodeAt(ctx, pairAddr, blockHash)
 	if err != nil || len(pairCode) == 0 {
@@ -123,7 +144,7 @@ func (a *Adapter) Resolve(ctx context.Context, rpc ports.ReadOnlyRPC, token comm
 		ChainID:            a.chainID,
 		ProtocolID:         ProtocolID,
 		AdapterRevision:    AdapterRevision,
-		DeploymentRevision: "pancakeswap-v2-bsc-mainnet",
+		DeploymentRevision: deployRev,
 		PoolPhase:          "DEX_V2",
 		Token:              token,
 		PoolOrCurve:        pairAddr,
@@ -134,19 +155,38 @@ func (a *Adapter) Resolve(ctx context.Context, rpc ports.ReadOnlyRPC, token comm
 	}, nil
 }
 
+func (a *Adapter) swapPath(route ports.ResolvedRoute, side ports.Side) ([]common.Address, error) {
+	var hop common.Address
+	switch route.DeploymentRevision {
+	case "pancakeswap-v2-bsc-2hop-usdt":
+		hop = bsc.USDTAddress
+	case "pancakeswap-v2-bsc-2hop-usd1":
+		hop = bsc.USD1Address
+	}
+	switch side {
+	case ports.SideBuy:
+		if hop != (common.Address{}) {
+			return []common.Address{a.wbnb, hop, route.Token}, nil
+		}
+		return []common.Address{a.wbnb, route.Token}, nil
+	case ports.SideSell:
+		if hop != (common.Address{}) {
+			return []common.Address{route.Token, hop, a.wbnb}, nil
+		}
+		return []common.Address{route.Token, a.wbnb}, nil
+	default:
+		return nil, errors.New("unsupported side")
+	}
+}
+
 // Quote queries PancakeSwap V2 Router.getAmountsOut pinned to QuoteBlockHash and applies slippage.
 func (a *Adapter) Quote(ctx context.Context, rpc ports.ReadOnlyRPC, req ports.QuoteRequest) (ports.QuoteResult, error) {
 	if rpc == nil || req.Route.Token == (common.Address{}) || req.Route.QuoteBlockHash == (common.Hash{}) || req.AmountInRaw == nil || req.AmountInRaw.Sign() <= 0 || req.SlippageBps > 10000 {
 		return ports.QuoteResult{}, errors.New("invalid quote request")
 	}
-	var path []common.Address
-	switch req.Side {
-	case ports.SideBuy:
-		path = []common.Address{a.wbnb, req.Route.Token}
-	case ports.SideSell:
-		path = []common.Address{req.Route.Token, a.wbnb}
-	default:
-		return ports.QuoteResult{}, errors.New("unsupported side")
+	path, err := a.swapPath(req.Route, req.Side)
+	if err != nil {
+		return ports.QuoteResult{}, err
 	}
 	calldata, err := routerABI.Pack("getAmountsOut", req.AmountInRaw, path)
 	if err != nil {
@@ -196,13 +236,15 @@ func (a *Adapter) BuildUnsigned(req ports.QuoteRequest, quote ports.QuoteResult)
 		value    *big.Int
 		err      error
 	)
+	path, err := a.swapPath(req.Route, req.Side)
+	if err != nil {
+		return ports.UnsignedTx{}, err
+	}
 	switch req.Side {
 	case ports.SideBuy:
-		path := []common.Address{a.wbnb, req.Route.Token}
 		calldata, err = routerABI.Pack("swapExactETHForTokensSupportingFeeOnTransferTokens", minOut, path, req.Recipient, deadline)
 		value = new(big.Int).Set(req.AmountInRaw)
 	case ports.SideSell:
-		path := []common.Address{req.Route.Token, a.wbnb}
 		calldata, err = routerABI.Pack("swapExactTokensForETHSupportingFeeOnTransferTokens", req.AmountInRaw, minOut, path, req.Recipient, deadline)
 		value = big.NewInt(0)
 	default:

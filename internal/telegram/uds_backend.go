@@ -224,31 +224,62 @@ func (u *UDSBackend) fetchQuote(ctx context.Context, chainID uint64, walletID, p
 	return qResp, err
 }
 
-// ProbeTokenQuote tries the chain's supported protocols in priority order (Launchpads -> DEX)
-// to auto-detect where token is currently tradable and return a structured live quote.
+// ProbeTokenQuote fans out concurrently across all registered protocols on chainID
+// and selects the route returning the highest ExpectedOutRaw (Best-Route Aggregator).
 func (u *UDSBackend) ProbeTokenQuote(ctx context.Context, chainID uint64, walletID string, token common.Address, side string, amountRaw *big.Int) (protocol string, poolPhase string, expectedOut *big.Int, quoteBlock uint64, err error) {
 	var candidates []string
 	switch chainID {
 	case 56:
-		candidates = []string{"four-meme", "flap", "pancake-v2", "pancake-v3"}
+		candidates = []string{"four-meme", "flap", "pancake-v2", "pancake-v3", "uniswap-v3-bsc", "kyber-agg-bsc"}
 	case 8453:
 		candidates = []string{"uniswap-v3"}
 	default:
-		candidates = []string{"pons-v2-curve"}
+		candidates = []string{"pons-v2-curve", "pons-v4"}
 	}
+
+	type probeRes struct {
+		q   udsQuoteResponse
+		out *big.Int
+		err error
+	}
+	results := make([]probeRes, len(candidates))
+	probeCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	for i, proto := range candidates {
+		wg.Add(1)
+		go func(idx int, p string) {
+			defer wg.Done()
+			q, qErr := u.fetchQuote(probeCtx, chainID, walletID, p, token, side, amountRaw)
+			if qErr != nil {
+				results[idx] = probeRes{err: qErr}
+				return
+			}
+			outVal, ok := new(big.Int).SetString(q.ExpectedOutRaw, 10)
+			if !ok || outVal.Sign() <= 0 {
+				results[idx] = probeRes{err: errors.New("zero quote output")}
+				return
+			}
+			results[idx] = probeRes{q: q, out: outVal}
+		}(i, proto)
+	}
+	wg.Wait()
+
+	var best *probeRes
 	var lastErr error
-	for _, proto := range candidates {
-		q, qErr := u.fetchQuote(ctx, chainID, walletID, proto, token, side, amountRaw)
-		if qErr != nil {
-			lastErr = qErr
+	for i := range results {
+		r := &results[i]
+		if r.err != nil {
+			lastErr = r.err
 			continue
 		}
-		outVal, ok := new(big.Int).SetString(q.ExpectedOutRaw, 10)
-		if !ok || outVal.Sign() <= 0 {
-			lastErr = errors.New("zero quote output")
-			continue
+		if best == nil || r.out.Cmp(best.out) > 0 {
+			best = r
 		}
-		return q.Protocol, q.PoolPhase, outVal, q.QuoteBlockNumber, nil
+	}
+	if best != nil {
+		return best.q.Protocol, best.q.PoolPhase, best.out, best.q.QuoteBlockNumber, nil
 	}
 	if lastErr == nil {
 		lastErr = errors.New("no tradable route found")

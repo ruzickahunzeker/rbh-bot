@@ -11,9 +11,11 @@ import (
 	"github.com/ruzickahunzeker/rbh-bot/internal/ipc"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/flap"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/fourmeme"
+	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/kyberswap"
 	pancakev2 "github.com/ruzickahunzeker/rbh-bot/internal/protocols/pancakeswap/v2"
 	pancakev3 "github.com/ruzickahunzeker/rbh-bot/internal/protocols/pancakeswap/v3"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/pons/v2curve"
+	ponsv4 "github.com/ruzickahunzeker/rbh-bot/internal/protocols/pons/v4"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/ports"
 	univ3 "github.com/ruzickahunzeker/rbh-bot/internal/protocols/uniswap/v3"
 	"github.com/ruzickahunzeker/rbh-bot/internal/registry"
@@ -91,14 +93,18 @@ func buildChainRegistry(chainID uint64) (*registry.Registry, error) {
 			[]ports.ProtocolAdapter{
 				pancakev2.NewAdapter(),
 				pancakev3.NewAdapter(),
+				univ3.NewBSCAdapter(),
 				fourmeme.NewAdapter(),
 				flap.NewAdapter(),
+				kyberswap.NewBSCAdapter(),
 			},
 			map[string]registry.TrustedSpender{
-				pancakev2.ProtocolID: {Address: bsc.PancakeV2Router},
-				pancakev3.ProtocolID: {Address: bsc.PancakeV3SmartRouter},
-				fourmeme.ProtocolID:  {Address: bsc.FourMemeTokenManager2},
-				flap.ProtocolID:      {Address: bsc.FlapPortal},
+				pancakev2.ProtocolID:  {Address: bsc.PancakeV2Router},
+				pancakev3.ProtocolID:  {Address: bsc.PancakeV3SmartRouter},
+				univ3.ProtocolIDBSC:   {Address: bsc.UniswapV3SwapRouter02},
+				fourmeme.ProtocolID:   {Address: bsc.FourMemeTokenManager2},
+				flap.ProtocolID:       {Address: bsc.FlapPortal},
+				kyberswap.ProtocolID:  {Address: bsc.KyberMetaRouter},
 			},
 		)
 	case config.BaseChainID:
@@ -112,8 +118,10 @@ func buildChainRegistry(chainID uint64) (*registry.Registry, error) {
 	default:
 		return registry.New(
 			robinhood.Profile(),
-			[]ports.ProtocolAdapter{v2curve.NewAdapter()},
-			nil,
+			[]ports.ProtocolAdapter{v2curve.NewAdapter(), ponsv4.NewAdapter()},
+			map[string]registry.TrustedSpender{
+				ponsv4.ProtocolID: {Address: robinhood.V4UniversalRouter},
+			},
 		)
 	}
 }

@@ -22,6 +22,12 @@ var NodeInterfaceAddress = common.HexToAddress("0x000000000000000000000000000000
 // Multicall3Address is the canonical Multicall3 deployment address across EVM chains.
 var Multicall3Address = common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")
 
+// Robinhood Chain (4663) Uniswap V4 canonical contracts (verified against rbh-parser-sdk).
+var (
+	V4PoolManager     = common.HexToAddress("0x8366a39CC670B4001A1121B8F6A443A643e40951")
+	V4UniversalRouter = common.HexToAddress("0x8876789976dEcBfCbBbe364623C63652db8C0904")
+)
+
 func Profile() evm.ChainProfile {
 	return evm.ChainProfile{
 		ChainID:         ChainID,

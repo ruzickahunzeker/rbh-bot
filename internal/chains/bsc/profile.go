@@ -19,12 +19,18 @@ const (
 
 var (
 	WBNBAddress       = common.HexToAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
+	USDTAddress       = common.HexToAddress("0x55d398326f99059fF775485246999027B3197955")
+	USD1Address       = common.HexToAddress("0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d")
 	Multicall3Address = common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")
 	PancakeV2Router     = common.HexToAddress("0x10ED43C718714eb63d5aA57B78B54704E256024E")
 	PancakeV2Factory    = common.HexToAddress("0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73")
 	PancakeV3Factory      = common.HexToAddress("0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865")
 	PancakeV3QuoterV2     = common.HexToAddress("0xB048Bbc1Ee6b733FFfCFb9e9CeF7375518e25997")
 	PancakeV3SmartRouter  = common.HexToAddress("0x13f4EA83D0bd40E75C8222255bc855a974568Dd4")
+	UniswapV3Factory      = common.HexToAddress("0xdB1d10011AD0Ff90774D0C6Bb92e5C5c8b4461F7")
+	UniswapV3QuoterV2     = common.HexToAddress("0x78D78E420Da98ad378D7799bE8f4AF69033EB077")
+	UniswapV3SwapRouter02 = common.HexToAddress("0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2")
+	KyberMetaRouter       = common.HexToAddress("0x6131B5fae19EA4f9D964eAc0408E4408b66337b5")
 	FourMemeTokenManager2 = common.HexToAddress("0x5c952063c7fc8610FFDB798152D69F0B9550762b")
 	FourMemeHelper3       = common.HexToAddress("0xF251F83e40a78868FcfA3FA4599Dad6494E46034")
 	FlapPortal            = common.HexToAddress("0xe2cE6ab80874Fa9Fa2aAE65D277Dd6B8e65C9De0")

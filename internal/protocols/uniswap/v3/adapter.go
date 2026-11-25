@@ -14,11 +14,13 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	basechain "github.com/ruzickahunzeker/rbh-bot/internal/chains/base"
+	"github.com/ruzickahunzeker/rbh-bot/internal/chains/bsc"
 	"github.com/ruzickahunzeker/rbh-bot/internal/protocols/ports"
 )
 
 const (
 	ProtocolID      = "uniswap-v3"
+	ProtocolIDBSC   = "uniswap-v3-bsc"
 	AdapterRevision = "uniswap-v3-base-r1"
 )
 
@@ -76,32 +78,58 @@ type exactInputSingleParams struct {
 }
 
 type Adapter struct {
-	chainID uint64
-	factory common.Address
-	quoter  common.Address
-	router  common.Address
-	weth    common.Address
-	feeTier uint32
+	chainID    uint64
+	protocolID string
+	quoteAsset string
+	factory    common.Address
+	quoter     common.Address
+	router     common.Address
+	weth       common.Address
+	feeTier    uint32
 }
 
 func NewBaseAdapter() *Adapter {
 	return &Adapter{
-		chainID: basechain.ChainID,
-		factory: basechain.UniswapV3Factory,
-		quoter:  basechain.UniswapV3QuoterV2,
-		router:  basechain.UniswapV3SwapRouter02,
-		weth:    basechain.WETHAddress,
-		feeTier: 3000,
+		chainID:    basechain.ChainID,
+		protocolID: ProtocolID,
+		quoteAsset: "ETH",
+		factory:    basechain.UniswapV3Factory,
+		quoter:     basechain.UniswapV3QuoterV2,
+		router:     basechain.UniswapV3SwapRouter02,
+		weth:       basechain.WETHAddress,
+		feeTier:    3000,
+	}
+}
+
+// NewBSCAdapter constructs a Uniswap V3 adapter for BNB Smart Chain (chain_id=56).
+func NewBSCAdapter() *Adapter {
+	return &Adapter{
+		chainID:    bsc.ChainID,
+		protocolID: ProtocolIDBSC,
+		quoteAsset: "BNB",
+		factory:    bsc.UniswapV3Factory,
+		quoter:     bsc.UniswapV3QuoterV2,
+		router:     bsc.UniswapV3SwapRouter02,
+		weth:       bsc.WBNBAddress,
+		feeTier:    3000,
 	}
 }
 
 func (a *Adapter) Describe() ports.AdapterDescriptor {
+	pid := a.protocolID
+	if pid == "" {
+		pid = ProtocolID
+	}
+	qa := a.quoteAsset
+	if qa == "" {
+		qa = "ETH"
+	}
 	return ports.AdapterDescriptor{
 		ChainID:              a.chainID,
-		ProtocolID:           ProtocolID,
+		ProtocolID:           pid,
 		AdapterRevision:      AdapterRevision,
 		PoolPhase:            "DEX_V3",
-		QuoteAsset:           "ETH",
+		QuoteAsset:           qa,
 		SupportsBuy:          true,
 		SupportsSell:         true,
 		AllowanceModel:       ports.AllowanceERC20Direct,
@@ -152,9 +180,9 @@ func (a *Adapter) Resolve(ctx context.Context, rpc ports.ReadOnlyRPC, token comm
 	}
 	return ports.ResolvedRoute{
 		ChainID:            a.chainID,
-		ProtocolID:         ProtocolID,
+		ProtocolID:         a.Describe().ProtocolID,
 		AdapterRevision:    AdapterRevision,
-		DeploymentRevision: fmt.Sprintf("uniswap-v3-base-fee-%d", chosenTier),
+		DeploymentRevision: fmt.Sprintf("%s-fee-%d", a.Describe().ProtocolID, chosenTier),
 		PoolPhase:          "DEX_V3",
 		Token:              token,
 		Factory:            a.factory,
