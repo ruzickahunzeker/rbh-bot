@@ -123,14 +123,20 @@ func (r *RPCWSRunner) blockObservations(ctx context.Context, h *rpcHeader, raw [
 				token := common.HexToAddress(payload.Token)
 				pool := common.HexToAddress(payload.PoolAddress)
 				tokens := [2]common.Address{}
+				unverifiedPool := false
 				for j, sig := range []string{"token0()", "token1()"} {
 					v, err := r.contractAddress(ctx, pool, sig, h)
 					if err != nil {
+						var remote *rpcRemoteError
+						if errors.As(err, &remote) && remote.Reverted {
+							unverifiedPool = true
+							break
+						}
 						return nil, err
 					}
 					tokens[j] = v
 				}
-				if token != tokens[0] && token != tokens[1] {
+				if unverifiedPool || (token != tokens[0] && token != tokens[1]) {
 					continue
 				}
 				// Multiple trader assets make the legacy first-token heuristic ambiguous.
@@ -197,6 +203,12 @@ func (r *RPCWSRunner) normalizeRBH(e parser.Event, receipt *types.Receipt, sende
 		p.Side = "launch"
 		p.PoolVersion = "pons-v2-curve"
 		p.PoolAddress = strings.ToLower(v.Curve.Hex())
+		if v.Curve == (common.Address{}) && v.PoolID != (common.Hash{}) {
+			p.Side = "migration"
+			p.PoolVersion = "pons-v2-v4"
+			p.PoolID = v.PoolID.Hex()
+			p.PoolAddress = strings.ToLower(e.Log.Address.Hex())
+		}
 		amount = big.NewInt(0)
 	case parser.CurveTrade:
 		registration, ok := r.parser.Registry().LookupCurve(e.Log.Address)
@@ -230,10 +242,11 @@ func (r *RPCWSRunner) normalizeRBH(e parser.Event, receipt *types.Receipt, sende
 		}
 		amount = new(big.Int).Abs(delta)
 		p.PoolVersion = e.Protocol.String() + "-v4"
+		p.PoolID = v.PoolID.Hex()
 	default:
 		return p, false
 	}
-	if token == (common.Address{}) || amount == nil || (amount.Sign() <= 0 && p.Side != "launch") {
+	if token == (common.Address{}) || amount == nil || (amount.Sign() <= 0 && p.Side != "launch" && p.Side != "migration") {
 		return p, false
 	}
 	p.Token = strings.ToLower(token.Hex())
@@ -260,7 +273,7 @@ func netTransfer(receipt *types.Receipt, token, trader common.Address) *big.Int 
 
 func (r *RPCWSRunner) contractCall(ctx context.Context, address common.Address, data []byte, h *rpcHeader) ([]byte, error) {
 	var raw hexutil.Bytes
-	err := r.call(ctx, "eth_call", []any{map[string]any{"to": address.Hex(), "data": hexutil.Encode(data)}, hexutil.EncodeUint64(uint64(h.Number))}, &raw)
+	err := r.call(ctx, "eth_call", []any{map[string]any{"to": address.Hex(), "data": hexutil.Encode(data), "gas": "0x186a0"}, hexutil.EncodeUint64(uint64(h.Number))}, &raw)
 	return []byte(raw), err
 }
 
@@ -284,6 +297,10 @@ var errUnprovenCurve = errors.New("unproven Pons curve")
 func (r *RPCWSRunner) bootstrapCurve(ctx context.Context, curve common.Address, h *rpcHeader) error {
 	token, err := r.contractAddress(ctx, curve, "token()", h)
 	if err != nil {
+		var remote *rpcRemoteError
+		if errors.As(err, &remote) && remote.Reverted {
+			return errUnprovenCurve
+		}
 		return err
 	}
 	factory := r.parser.Addresses().PonsFactory

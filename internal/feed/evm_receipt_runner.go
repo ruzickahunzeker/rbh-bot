@@ -43,6 +43,7 @@ type NormalizedSwapPayload struct {
 	ChainID       uint64    `json:"chain_id"`
 	BlockNumber   uint64    `json:"block_number"`
 	TxHash        string    `json:"tx_hash"`
+	PoolID        string    `json:"pool_id,omitempty"`
 	PoolAddress   string    `json:"pool_address"`
 	PoolVersion   string    `json:"pool_version"` // "v2" | "v3"
 	Trader        string    `json:"trader"`
@@ -169,7 +170,7 @@ func (r *EVMReceiptRunner) rpcCall(ctx context.Context, method string, params []
 		return err
 	}
 	if env.Error != nil {
-		return fmt.Errorf("rpc %s error %d: %s", method, env.Error.Code, env.Error.Message)
+		return &rpcRemoteError{Code: env.Error.Code, Reverted: strings.Contains(strings.ToLower(env.Error.Message), "revert")}
 	}
 	return json.Unmarshal(env.Result, out)
 }
@@ -461,3 +462,10 @@ type rpcHTTPError struct {
 }
 
 func (e *rpcHTTPError) Error() string { return fmt.Sprintf("RPC HTTP status %d", e.Status) }
+
+type rpcRemoteError struct {
+	Code     int
+	Reverted bool
+}
+
+func (e *rpcRemoteError) Error() string { return fmt.Sprintf("RPC remote error %d", e.Code) }

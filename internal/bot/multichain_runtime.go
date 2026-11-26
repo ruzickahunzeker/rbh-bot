@@ -131,9 +131,30 @@ func (r *MultiChainRuntime) RunOnce(ctx context.Context) (int, error) {
 			if err := json.Unmarshal(item.PayloadJSON, &payload); err != nil {
 				return totalProcessed, fmt.Errorf("decode swap payload offset=%d: %w", item.Offset, err)
 			}
+			// Older sequencer intent payloads are observation-only and are not
+			// normalized included swaps. Preserve offsets without promoting them.
+			if payload.TxHash == "" && item.Source == feed.SourceSequencer {
+				if err := r.advanceStream(ctx, stream, item.Offset, now); err != nil {
+					return totalProcessed, err
+				}
+				totalProcessed++
+				continue
+			}
+			eventTime := payload.EventTime
+			if eventTime.IsZero() {
+				if payload.BlockHash != "" {
+					return totalProcessed, fmt.Errorf("RPC block signal lacks event time")
+				}
+				eventTime = now // compatibility for legacy producers without block metadata
+			}
+			ageLimit := stream.MaxSignalAge
+			if ageLimit <= 0 {
+				ageLimit = 60 * time.Second
+			}
+			stale := now.Sub(eventTime) > ageLimit || eventTime.After(now.Add(2*time.Second))
 			// Route Sniper launch/migration events directly to SniperEngine without polluting copy-trade signals.
 			if payload.Side == string(SniperLaunch) || payload.Side == string(SniperMigration) {
-				if r.sniper != nil && common.IsHexAddress(payload.Token) {
+				if !stale && r.sniper != nil && common.IsHexAddress(payload.Token) {
 					_, _ = r.sniper.MatchAndTrigger(ctx, stream.ChainID, common.HexToAddress(payload.Token), SniperTriggerKind(payload.Side), now)
 				}
 				_, _ = r.store.db.ExecContext(ctx,
@@ -171,6 +192,13 @@ func (r *MultiChainRuntime) RunOnce(ctx context.Context) (int, error) {
 				}
 			}
 
+			if eventTime.After(now.Add(2 * time.Second)) {
+				if err := r.advanceStream(ctx, stream, item.Offset, now); err != nil {
+					return totalProcessed, err
+				}
+				totalProcessed++
+				continue
+			}
 			stage := payload.Stage
 			if stage == "" {
 				stage = "included"
@@ -185,7 +213,7 @@ func (r *MultiChainRuntime) RunOnce(ctx context.Context) (int, error) {
 				TokenAddress:    payload.Token,
 				Side:            payload.Side,
 				Stage:           stage,
-				FirstObservedAt: now,
+				FirstObservedAt: eventTime,
 			}
 			if _, err := r.store.IngestMultiChainSignal(
 				ctx,
@@ -242,7 +270,7 @@ func (r *MultiChainRuntime) evaluateCopyProfileFilter(ctx context.Context, chain
 			return true, "", "", 0
 		}
 	case "dex":
-		if pv != "v2" && pv != "v3" && pv != "v4" && pv != "pancake-v2" && pv != "pancake-v3" && pv != "uniswap-v3-bsc" && pv != "aerodrome-v2" {
+		if !strings.HasSuffix(pv, "-v4") && pv != "v2" && pv != "v3" && pv != "v4" && pv != "pancake-v2" && pv != "pancake-v3" && pv != "uniswap-v3-bsc" && pv != "aerodrome-v2" {
 			return true, "", "", 0
 		}
 	case "pons":
@@ -420,4 +448,9 @@ func shadowBalanceForWalletToken(ctx context.Context, db interface {
 		}
 	}
 	return bal
+}
+
+func (r *MultiChainRuntime) advanceStream(ctx context.Context, stream FeedStreamConfig, offset int64, now time.Time) error {
+	_, err := r.store.db.ExecContext(ctx, `INSERT INTO bot_feed_cursors(chain_id,feed_instance_id,durable_event_offset,updated_at) VALUES(?,?,?,?) ON CONFLICT(chain_id,feed_instance_id) DO UPDATE SET durable_event_offset=MAX(durable_event_offset,excluded.durable_event_offset),updated_at=excluded.updated_at`, stream.ChainID, stream.FeedInstanceID, offset, formatFixedUTC(now))
+	return err
 }
