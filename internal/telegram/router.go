@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	ErrUnauthorizedChat  = errors.New("telegram chat_id not in allowlist")
-	ErrCursorOutOfRange  = errors.New("trade-updates cursor out of range (410 Gone)")
+	ErrUnauthorizedChat = errors.New("telegram chat_id not in allowlist")
+	ErrCursorOutOfRange = errors.New("trade-updates cursor out of range (410 Gone)")
 )
 
 // Backend abstracts local UDS calls to trade-<chain> and feed-<chain> services.
@@ -87,7 +87,11 @@ func NewRouter(database *storage.Database, backend Backend, now func() time.Time
 	if now == nil {
 		now = time.Now
 	}
-	return &Router{db: db, readDB: rdb, backend: backend, now: now}, nil
+	router := &Router{db: db, readDB: rdb, backend: backend, now: now}
+	if err := router.recoverWalletDeletions(context.Background()); err != nil {
+		return nil, err
+	}
+	return router, nil
 }
 
 // AllowChat registers or refreshes a whitelisted Telegram chat_id in bot.db.
@@ -96,7 +100,12 @@ func (r *Router) AllowChat(ctx context.Context, chatID int64, username, role str
 	if chatID == 0 || activeChainID == 0 {
 		return errors.New("invalid chat allowlist entry")
 	}
-	_, err := r.db.ExecContext(ctx,
+	var err error
+	activeWalletID, err = r.defaultActiveWallet(ctx, activeWalletID)
+	if err != nil {
+		return err
+	}
+	_, err = r.db.ExecContext(ctx,
 		`INSERT INTO telegram_allowlist(chat_id, username, role, active_chain_id, active_wallet_id, enabled, updated_at)
 		 VALUES(?,?,?,?,?,1,?)
 		 ON CONFLICT(chat_id) DO UPDATE SET
@@ -440,7 +449,9 @@ func (r *Router) HandleCommand(ctx context.Context, chatID int64, text string) (
 		); err != nil {
 			return "", err
 		}
-		if syncer, ok := r.backend.(interface{ SyncWatchlist(context.Context, uint64) error }); ok {
+		if syncer, ok := r.backend.(interface {
+			SyncWatchlist(context.Context, uint64) error
+		}); ok {
 			_ = syncer.SyncWatchlist(ctx, chainID)
 		}
 		return fmt.Sprintf("🎯 Armed %s sniper %s on chain %d\ntoken=%s amount_wei=%s anti_mev=ON honeypot=ON",

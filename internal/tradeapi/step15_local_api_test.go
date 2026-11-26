@@ -74,7 +74,7 @@ func TestStep15LocalQuotesApprovalsAndPositions(t *testing.T) {
 		t.Fatal(err)
 	}
 	id := Identity{PrincipalID: "tg-bot", WalletID: "wallet-01", WalletAddress: "0x1000000000000000000000000000000000000001"}
-	api, err := New(store, id, testCredential, DefaultPolicy())
+	api, err := NewWithOptions(store, id, testCredential, DefaultPolicy(), nil, Options{WalletAccess: &WalletAccessPolicy{PrimaryCanSign: true}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,6 +93,9 @@ func TestStep15LocalQuotesApprovalsAndPositions(t *testing.T) {
 	provider := &stubLocalV2Provider{block: 100}
 	ext, err := NewLocalV2Extension(reg, provider, func() time.Time { return testNow })
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := api.ConfigureWalletResolver(ext, t.TempDir()); err != nil {
 		t.Fatal(err)
 	}
 	if err := api.AttachLocalV2(ext); err != nil {
@@ -242,6 +245,10 @@ func TestBSCMultiChainWalletTradeIntakeAndAuditUpdates(t *testing.T) {
 	}
 	ext, err := NewLocalV2Extension(bscReg, nil, func() time.Time { return testNow })
 	if err != nil {
+		t.Fatal(err)
+	}
+	api.walletAccess = WalletAccessPolicy{PrimaryCanSign: true}
+	if err := api.ConfigureWalletResolver(ext, t.TempDir()); err != nil {
 		t.Fatal(err)
 	}
 	if err := api.AttachLocalV2(ext); err != nil {

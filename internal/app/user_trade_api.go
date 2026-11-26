@@ -90,7 +90,9 @@ func configureUserTradeAPIWithHandle(server routeRegistrar, database *storage.Da
 	if ksDir == "" {
 		ksDir = "/root/evm-bot/data/keystore"
 	}
-	ext.SetWalletResolver(tradeapi.NewKeystoreDirWalletResolver(ksDir))
+	if err := userAPI.ConfigureWalletResolver(ext, ksDir); err != nil {
+		return nil, err
+	}
 	if err := userAPI.AttachLocalV2(ext); err != nil {
 		return nil, err
 	}
@@ -114,14 +116,14 @@ func buildChainRegistry(chainID uint64) (*registry.Registry, error) {
 				kyberswap.NewBSCAdapter(),
 			},
 			map[string]registry.TrustedSpender{
-				pancakev2.ProtocolID:  {Address: bsc.PancakeV2Router},
-				pancakev3.ProtocolID:  {Address: bsc.PancakeV3SmartRouter},
-				"uniswap-v2-bsc":      {Address: bsc.UniswapV2Router02},
-				univ3.ProtocolIDBSC:   {Address: bsc.UniswapV3SwapRouter02},
-				univ4.ProtocolIDBSC:   {Address: bsc.UniswapV4UniversalRouter},
-				fourmeme.ProtocolID:   {Address: bsc.FourMemeTokenManager2},
-				flap.ProtocolID:       {Address: bsc.FlapPortal},
-				kyberswap.ProtocolID:  {Address: bsc.KyberMetaRouter},
+				pancakev2.ProtocolID: {Address: bsc.PancakeV2Router},
+				pancakev3.ProtocolID: {Address: bsc.PancakeV3SmartRouter},
+				"uniswap-v2-bsc":     {Address: bsc.UniswapV2Router02},
+				univ3.ProtocolIDBSC:  {Address: bsc.UniswapV3SwapRouter02},
+				univ4.ProtocolIDBSC:  {Address: bsc.UniswapV4UniversalRouter},
+				fourmeme.ProtocolID:  {Address: bsc.FourMemeTokenManager2},
+				flap.ProtocolID:      {Address: bsc.FlapPortal},
+				kyberswap.ProtocolID: {Address: bsc.KyberMetaRouter},
 			},
 		)
 	case config.ETHChainID:

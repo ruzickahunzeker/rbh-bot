@@ -42,7 +42,7 @@ func TestUserTradeAPIStartupDefaultOffAndScopedRegistration(t *testing.T) {
 	}
 	const credential = "test-only-user-api-credential-32-characters"
 	path := filepath.Join(t.TempDir(), "api.json")
-	if err = os.WriteFile(path, []byte(`{"principal_id":"tg-bot","wallet_id":"wallet-01","wallet_address":"`+address+`","token":"`+credential+`"}`), 0600); err != nil {
+	if err = os.WriteFile(path, []byte(`{"principal_id":"tg-bot","wallet_id":"wallet-01","wallet_address":"`+address+`","token":"`+credential+`","wallet_access":{"primary_can_sign":true}}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if err = configureUserTradeAPI(routes, d, config.Config{TradeAPIConfigFile: path, InternalAuthSecret: credential}); err == nil || len(routes.handlers) != 0 {
@@ -141,7 +141,7 @@ func TestUserTradeAPIStartupDefaultOffAndScopedRegistration(t *testing.T) {
 	// Server-owned expected identity is not authority. No grant/control/usage
 	// is created and construction cannot contact even the local RPC endpoint.
 	scopeJSON := `{"authorization_id":"not-granted","authorization_epoch":1,"manual_policy_id":"manual-local","environment":"local","build_sha":"` + strings.Repeat("1", 40) + `","release_id":"local-release","deployment_id":"local-deployment"}`
-	if err := os.WriteFile(path, []byte(`{"principal_id":"tg-bot","wallet_id":"wallet-01","wallet_address":"`+address+`","token":"`+credential+`","manual_admission":`+scopeJSON+`}`), 0600); err != nil {
+	if err := os.WriteFile(path, []byte(`{"principal_id":"tg-bot","wallet_id":"wallet-01","wallet_address":"`+address+`","token":"`+credential+`","wallet_access":{"primary_can_sign":true},"manual_admission":`+scopeJSON+`}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if err := configureUserTradeAPI(admissionRoutes, d, cfg); err != nil || len(admissionRoutes.handlers) != 1 {

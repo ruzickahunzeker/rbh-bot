@@ -165,13 +165,14 @@ func (h *API) AttachLocalV2(ext *LocalV2Extension) error {
 	if h == nil || ext == nil {
 		return ErrInvalid
 	}
+	h.localV2 = ext
 	if h.policy.AllowedChain == "" && ext.reg.Chain().ChainID != 0 && ext.reg.Chain().ChainID != 4663 {
 		h.policy.AllowedChain = ext.reg.Chain().ChainSlug
 	}
 	h.mux.HandleFunc("POST /v1/quotes", func(w http.ResponseWriter, r *http.Request) { h.handleQuotePreflight(w, r, ext) })
 	h.mux.HandleFunc("POST /v1/approvals", func(w http.ResponseWriter, r *http.Request) { h.handleCreateApproval(w, r, ext) })
-	h.mux.HandleFunc("GET /v1/approvals/by-idempotency-key", func(w http.ResponseWriter, r *http.Request) { h.handleApprovalByKey(w, r) })
-	h.mux.HandleFunc("GET /v1/approvals/{request_id}", func(w http.ResponseWriter, r *http.Request) { h.handleApprovalStatus(w, r) })
+	h.mux.HandleFunc("GET /v1/approvals/by-idempotency-key", func(w http.ResponseWriter, r *http.Request) { h.handleApprovalByKey(w, r, ext) })
+	h.mux.HandleFunc("GET /v1/approvals/{request_id}", func(w http.ResponseWriter, r *http.Request) { h.handleApprovalStatus(w, r, ext) })
 	h.mux.HandleFunc("GET /v1/wallets/{wallet_id}/positions", func(w http.ResponseWriter, r *http.Request) { h.handleWalletPositions(w, r, ext) })
 	h.mux.HandleFunc("GET /v1/trade-updates", func(w http.ResponseWriter, r *http.Request) { h.handleTradeUpdates(w, r) })
 	return nil
@@ -220,8 +221,11 @@ func (h *API) handleQuotePreflight(w http.ResponseWriter, r *http.Request, ext *
 	var resp QuotePreflightResponse
 	if wp, hasWP := ext.provider.(WalletPreflightProvider); hasWP {
 		resp, err = wp.QuotePreflightForWallet(r.Context(), req, wallet.Address, sp.Address)
-	} else {
+	} else if req.WalletID == h.identity.WalletID {
 		resp, err = ext.provider.QuotePreflight(r.Context(), req, sp.Address)
+	} else {
+		ipc.WriteError(w, http.StatusServiceUnavailable, "WALLET_PROVIDER_UNSUPPORTED", "provider does not support the resolved wallet", ipc.RequestID(r))
+		return
 	}
 	if err != nil {
 		if errors.Is(err, evm.ErrRPCStateLagging) {
@@ -304,8 +308,13 @@ func (h *API) handleCreateApproval(w http.ResponseWriter, r *http.Request, ext *
 		writeError(w, r, ErrInvalid)
 		return
 	}
-	if _, ok := ext.resolveWallet(r.Context(), h.identity, req.WalletID); !ok {
+	wallet, authorized := ext.resolveWallet(r.Context(), h.identity, req.WalletID)
+	if !authorized {
 		ipc.WriteError(w, http.StatusForbidden, "WALLET_SCOPE_DENIED", "wallet outside caller scope", ipc.RequestID(r))
+		return
+	}
+	if !wallet.CanSign {
+		ipc.WriteError(w, http.StatusForbidden, "READ_ONLY_WALLET", "wallet cannot authorize signing", ipc.RequestID(r))
 		return
 	}
 	amt, ok := new(big.Int).SetString(req.AmountRaw, 10)
@@ -401,10 +410,10 @@ func (h *API) handleCreateApproval(w http.ResponseWriter, r *http.Request, ext *
 	writeJSON(w, http.StatusAccepted, rec)
 }
 
-func (h *API) handleApprovalStatus(w http.ResponseWriter, r *http.Request) {
+func (h *API) handleApprovalStatus(w http.ResponseWriter, r *http.Request, ext *LocalV2Extension) {
 	id := r.PathValue("request_id")
-	rec, err := h.loadApproval(r.Context(), `WHERE wallet_id = ? AND request_id = ?`, h.identity.WalletID, id)
-	if errors.Is(err, sql.ErrNoRows) {
+	rec, err := h.loadApproval(r.Context(), `WHERE request_id = ?`, id)
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && !approvalAuthorized(r.Context(), ext, h.identity, rec.WalletID)) {
 		ipc.WriteError(w, http.StatusNotFound, "NOT_FOUND", "approval request not found", ipc.RequestID(r))
 		return
 	}
@@ -415,13 +424,21 @@ func (h *API) handleApprovalStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, rec)
 }
 
-func (h *API) handleApprovalByKey(w http.ResponseWriter, r *http.Request) {
+func (h *API) handleApprovalByKey(w http.ResponseWriter, r *http.Request, ext *LocalV2Extension) {
 	k := r.URL.Query().Get("idempotency_key")
 	if k == "" {
 		writeError(w, r, ErrInvalid)
 		return
 	}
-	rec, err := h.loadApproval(r.Context(), `WHERE wallet_id = ? AND idempotency_key = ?`, h.identity.WalletID, k)
+	walletID := r.URL.Query().Get("wallet_id")
+	if walletID == "" {
+		walletID = h.identity.WalletID
+	}
+	if !approvalAuthorized(r.Context(), ext, h.identity, walletID) {
+		ipc.WriteError(w, http.StatusNotFound, "NOT_FOUND", "approval request not found", ipc.RequestID(r))
+		return
+	}
+	rec, err := h.loadApproval(r.Context(), `WHERE wallet_id = ? AND idempotency_key = ?`, walletID, k)
 	if errors.Is(err, sql.ErrNoRows) {
 		ipc.WriteError(w, http.StatusNotFound, "NOT_FOUND", "approval request not found", ipc.RequestID(r))
 		return
@@ -526,4 +543,9 @@ func writeRetryableError(w http.ResponseWriter, r *http.Request, status int, cod
 			"request_id": ipc.RequestID(r),
 		},
 	})
+}
+
+func approvalAuthorized(ctx context.Context, ext *LocalV2Extension, primary Identity, walletID string) bool {
+	_, ok := ext.resolveWallet(ctx, primary, walletID)
+	return ok
 }

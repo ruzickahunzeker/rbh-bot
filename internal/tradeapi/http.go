@@ -17,16 +17,19 @@ import (
 	"github.com/ruzickahunzeker/rbh-bot/internal/ipc"
 )
 
-// API owns one immutable caller/wallet scope. This initial slice is local UDS
-// only, not a public multi-tenant server. It cannot be configured to send.
+// API owns an immutable authenticated principal and legacy primary trade scope.
+// LocalV2 wallet grants expand only the explicitly configured wallet operations.
+// This local UDS API cannot be configured to send.
 type API struct {
-	store          *Store
-	identity       Identity
-	credential     [32]byte
-	policy         Policy
-	now            func() time.Time
-	mux            *http.ServeMux
-	queries        ReadQueries
+	store             *Store
+	identity          Identity
+	walletAccess      WalletAccessPolicy
+	localV2           *LocalV2Extension
+	credential        [32]byte
+	policy            Policy
+	now               func() time.Time
+	mux               *http.ServeMux
+	queries           ReadQueries
 	manualIntake      bool
 	validator         *ManualValidator
 	admissionScope    *manualAdmissionScope
@@ -37,6 +40,7 @@ type API struct {
 // validation and atomic admission are separately opt-in. Admission configuration
 // is not a grant and cannot arm an authorization or create permits.
 type Options struct {
+	WalletAccess            *WalletAccessPolicy
 	ManualIntake            bool
 	ValidationBackend       ManualValidationBackend
 	ValidationPolicyVersion uint64
@@ -68,6 +72,9 @@ func NewWithOptions(store *Store, identity Identity, token string, policy Policy
 		}
 	}
 	h := &API{store: store, identity: identity, credential: sha256.Sum256([]byte(token)), policy: policy, now: time.Now, mux: http.NewServeMux(), queries: queries, manualIntake: options.ManualIntake}
+	if options.WalletAccess != nil {
+		h.walletAccess = options.WalletAccess.clone()
+	}
 	if options.ValidationBackend != nil {
 		v, err := NewManualValidator(store, options.ValidationBackend, options.ValidationPolicyVersion)
 		if err != nil {
@@ -228,6 +235,17 @@ func (h *API) submit(w http.ResponseWriter, r *http.Request) {
 	if request.WalletID != h.identity.WalletID {
 		ipc.WriteError(w, 403, "WALLET_SCOPE_DENIED", "wallet outside caller scope", ipc.RequestID(r))
 		return
+	}
+	if h.localV2 != nil {
+		wallet, ok := h.localV2.resolveWallet(r.Context(), h.identity, request.WalletID)
+		if !ok {
+			ipc.WriteError(w, 403, "WALLET_SCOPE_DENIED", "wallet outside caller scope", ipc.RequestID(r))
+			return
+		}
+		if !wallet.CanSign {
+			ipc.WriteError(w, 403, "READ_ONLY_WALLET", "readonly wallet cannot enter execution admission", ipc.RequestID(r))
+			return
+		}
 	}
 	var record Record
 	if h.manualIntake {

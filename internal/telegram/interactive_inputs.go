@@ -84,7 +84,7 @@ func (r *Router) handlePendingInputReply(ctx context.Context, sess chatSession, 
 	switch action {
 	case "cp_amt", "cp_ratio", "cp_mcap", "cp_rng":
 		return r.handleCopyProfilePendingInput(ctx, sess, action, targetKey, input)
-	case "wm_import", "br_quote":
+	case "wm_import", "wm_recover", "wm_label", "br_quote":
 		return r.handleWalletOrBridgePendingInput(ctx, sess, action, targetKey, input)
 	case "buy":
 		if amt := parseNativeToWei(input); amt == nil || amt.Sign() <= 0 {

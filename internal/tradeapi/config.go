@@ -51,6 +51,7 @@ func LoadFileWithOptions(database *storage.Database, path string, internalCreden
 		WalletID      string                `json:"wallet_id"`
 		WalletAddress string                `json:"wallet_address"`
 		Token         string                `json:"token"`
+		WalletAccess  *WalletAccessPolicy   `json:"wallet_access,omitempty"`
 		Policy        *Policy               `json:"api_policy,omitempty"`
 		Admission     *ManualAdmissionScope `json:"manual_admission,omitempty"`
 	}
@@ -71,6 +72,9 @@ func LoadFileWithOptions(database *storage.Database, path string, internalCreden
 			return nil, configurationError
 		}
 		options.AdmissionScope = cfg.Admission
+	}
+	if cfg.WalletAccess != nil {
+		options.WalletAccess = cfg.WalletAccess
 	}
 	p := DefaultPolicy()
 	if cfg.Policy != nil {
@@ -108,6 +112,12 @@ func validateConfigObject(d *json.Decoder, policy bool) error {
 			return ErrInvalid
 		}
 		seen[key] = true
+		if !policy && key == "wallet_access" {
+			if err = validateWalletAccessConfig(d); err != nil {
+				return err
+			}
+			continue
+		}
 		if !policy && key == "api_policy" {
 			if err = validateConfigObject(d, true); err != nil {
 				return err
@@ -184,6 +194,89 @@ func validateAdmissionConfigObject(d *json.Decoder) error {
 	}
 	t, err = d.Token()
 	if err != nil || t != json.Delim('}') || len(seen) != 7 {
+		return ErrInvalid
+	}
+	return nil
+}
+
+// Strictly validate nested grant keys and duplicate keys before typed decoding.
+func validateWalletAccessConfig(d *json.Decoder) error {
+	t, err := d.Token()
+	if err != nil || t != json.Delim('{') {
+		return ErrInvalid
+	}
+	seen := map[string]bool{}
+	for d.More() {
+		t, err = d.Token()
+		key, ok := t.(string)
+		if err != nil || !ok || seen[key] {
+			return ErrInvalid
+		}
+		seen[key] = true
+		switch key {
+		case "allow_shared_keystores", "primary_can_sign":
+			t, err = d.Token()
+			if _, ok := t.(bool); err != nil || !ok {
+				return ErrInvalid
+			}
+		case "allowed_owner_chat_ids":
+			t, err = d.Token()
+			if err != nil || t != json.Delim('[') {
+				return ErrInvalid
+			}
+			for d.More() {
+				t, err = d.Token()
+				n, ok := t.(json.Number)
+				if err != nil || !ok {
+					return ErrInvalid
+				}
+				v, e := n.Int64()
+				if e != nil || v == 0 {
+					return ErrInvalid
+				}
+			}
+			t, err = d.Token()
+			if err != nil || t != json.Delim(']') {
+				return ErrInvalid
+			}
+		case "readonly_wallets":
+			t, err = d.Token()
+			if err != nil || t != json.Delim('[') {
+				return ErrInvalid
+			}
+			for d.More() {
+				t, err = d.Token()
+				if err != nil || t != json.Delim('{') {
+					return ErrInvalid
+				}
+				fields := map[string]bool{}
+				for d.More() {
+					t, err = d.Token()
+					k, ok := t.(string)
+					if err != nil || !ok || fields[k] || (k != "wallet_id" && k != "address") {
+						return ErrInvalid
+					}
+					fields[k] = true
+					t, err = d.Token()
+					if _, ok := t.(string); err != nil || !ok {
+						return ErrInvalid
+					}
+				}
+				t, err = d.Token()
+				if err != nil || t != json.Delim('}') {
+					return ErrInvalid
+				}
+			}
+			t, err = d.Token()
+			if err != nil || t != json.Delim(']') {
+				return ErrInvalid
+			}
+		default:
+			return ErrInvalid
+		}
+	}
+	t, err = d.Token()
+	if err != nil || t != json.Delim('}') {
 		return ErrInvalid
 	}
 	return nil

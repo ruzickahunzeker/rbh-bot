@@ -104,7 +104,7 @@ func TestLocalV2DynamicGlobalWalletResolutionAndScopeDenial(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ext.SetWalletResolver(NewKeystoreDirWalletResolver(ksDir))
+	ext.SetWalletResolver(NewKeystoreDirWalletResolver(ksDir, WalletAccessGrant{PrincipalID: "operator-bsc", Policy: WalletAccessPolicy{AllowedOwnerChatIDs: []int64{7131128175}}}))
 	if err := api.AttachLocalV2(ext); err != nil {
 		t.Fatal(err)
 	}

@@ -17,6 +17,10 @@ type bloomStubBackend struct {
 	stubBackend
 }
 
+func (b *bloomStubBackend) ListWallets(_ context.Context, _ uint64) ([]string, error) {
+	return []string{"w-1 (0x0000000000000000000000000000000000000001)"}, nil
+}
+
 func (b *bloomStubBackend) ProbeTokenQuote(_ context.Context, _ uint64, _ string, _ common.Address, side string, amountRaw *big.Int) (string, string, *big.Int, uint64, error) {
 	if side == "buy" {
 		// 1e17 wei (0.1 BNB) -> 1,000,000 raw tokens
