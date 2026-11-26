@@ -69,6 +69,7 @@ func (o Observation) ID() string {
 }
 
 type OutboxItem struct {
+	ObservedAt       time.Time       `json:"observed_at,omitempty"`
 	Offset           int64           `json:"offset"`
 	ObservationID    string          `json:"observation_id"`
 	Source           Source          `json:"source"`

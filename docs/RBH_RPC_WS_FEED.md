@@ -84,3 +84,18 @@ enabled read-only PublicNode integration subscribed to actual `newHeads` and
 advanced 87 blocks in 25 seconds using a temporary DB, with readiness observed.
 Tests do not send Telegram messages or submit trades. Production acceptance is
 recorded separately in the private release backup directory.
+
+## Legacy bot cursor adoption
+
+When shadow multi-chain runtime is enabled it takes exclusive ownership of feed
+consumption; the old single-chain consumer is disabled. Before takeover, every
+legacy inbox observation up to bot_progress must match the authenticated primary
+feed's offset and observation ID. Only then are legacy rows assigned the actual
+chain and the multi-chain checkpoint seeded in a single transaction. Missing or
+conflicting history fails startup; it is not guessed from the migration's RBH
+default. A private copy of production bot.db verified all 58,885 historical BSC
+rows and then consumed all 226 RBH sequencer observations without economic replay.
+Feed outbox now carries original observation timestamps as a compatibility fallback
+for old included payloads without event_time, preventing stale history becoming
+fresh merely because a consumer restarts. Already managed cursors make adoption
+idempotent on later restarts.

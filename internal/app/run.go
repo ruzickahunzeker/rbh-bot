@@ -338,6 +338,12 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 					MaxSignalAge:   60 * time.Second,
 				})
 			}
+			// The legacy consumer and multi-chain runtime must not independently
+			// ingest the same observation into the globally unique inbox.
+			if err := store.AdoptLegacyFeedCursor(ctx, cfg.ChainID, "feed-"+cfg.ChainSlug, source); err != nil {
+				return fmt.Errorf("adopt legacy feed cursor: %w", err)
+			}
+			botConsumer = nil
 			botMultiRuntime, err = botcore.NewMultiChainRuntime(
 				store,
 				streams,

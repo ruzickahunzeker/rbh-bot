@@ -294,7 +294,7 @@ func (s *Store) ReadOutboxAfter(ctx context.Context, after int64, limit int) ([]
 		limit = 100
 	}
 	rows, err := s.db.QueryContext(ctx, `
-SELECT o.offset, e.observation_id, e.source, e.source_sequence, e.tx_hash, e.stable_action_path, o.payload_json
+SELECT o.offset, e.observation_id, e.source, e.source_sequence, e.tx_hash, e.stable_action_path, o.payload_json, e.observed_at
 FROM feed_outbox o
 JOIN feed_events e ON e.offset = o.offset
 WHERE o.offset > ?
@@ -307,8 +307,8 @@ LIMIT ?`, after, limit)
 	items := make([]OutboxItem, 0, limit)
 	for rows.Next() {
 		var item OutboxItem
-		var payload, sourceSequence, transactionHash string
-		if err := rows.Scan(&item.Offset, &item.ObservationID, &item.Source, &sourceSequence, &transactionHash, &item.StableActionPath, &payload); err != nil {
+		var payload, sourceSequence, transactionHash, observedAt string
+		if err := rows.Scan(&item.Offset, &item.ObservationID, &item.Source, &sourceSequence, &transactionHash, &item.StableActionPath, &payload, &observedAt); err != nil {
 			return nil, fmt.Errorf("scan feed outbox: %w", err)
 		}
 		item.SourceSequence, err = strconv.ParseUint(sourceSequence, 10, 64)
@@ -317,6 +317,10 @@ LIMIT ?`, after, limit)
 		}
 		if len(transactionHash) != 66 {
 			return nil, fmt.Errorf("decode feed outbox transaction hash %q", transactionHash)
+		}
+		item.ObservedAt, err = time.Parse(time.RFC3339Nano, observedAt)
+		if err != nil {
+			return nil, fmt.Errorf("invalid outbox observation timestamp")
 		}
 		item.TransactionHash = common.HexToHash(transactionHash)
 		item.PayloadJSON = []byte(payload)

@@ -145,7 +145,10 @@ func (r *MultiChainRuntime) RunOnce(ctx context.Context) (int, error) {
 				if payload.BlockHash != "" {
 					return totalProcessed, fmt.Errorf("RPC block signal lacks event time")
 				}
-				eventTime = now // compatibility for legacy producers without block metadata
+				eventTime = item.ObservedAt
+				if eventTime.IsZero() {
+					eventTime = now
+				} // compatibility for older external producers
 			}
 			ageLimit := stream.MaxSignalAge
 			if ageLimit <= 0 {
