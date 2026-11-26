@@ -106,6 +106,12 @@ type Config struct {
 	InternalAuthSecret       string
 	RPCURL                   string
 	WSURL                    string
+	FeedSource               string
+	FeedStartMode            string
+	FeedStartBlock           uint64
+	FeedMaxCatchup           uint64
+	FeedMaxLag               uint64
+	FeedRequestInterval      time.Duration
 	TelegramBotToken         string
 	TelegramAllowedChatIDs   []int64
 	PaperShadowEnabled       bool
@@ -231,6 +237,10 @@ func (c Config) ValidateTradeStartupProfile() error {
 }
 
 func Load(service Service) (Config, error) {
+	reader := newChainEnv()
+	envPref := reader.pref
+	env := func(key, fallback string) string { return reader.pref(key, "", fallback) }
+
 	dataDir := envPref("EVM_DATA_DIR", "RBH_DATA_DIR", "./data")
 	socketDir := envPref("EVM_SOCKET_DIR", "RBH_SOCKET_DIR", filepath.Join(dataDir, "run"))
 	chainID, err := strconv.ParseUint(envPref("EVM_CHAIN_ID", "RBH_CHAIN_ID", "4663"), 10, 64)
@@ -296,7 +306,7 @@ func Load(service Service) (Config, error) {
 		LiveEnabled:              live,
 		InternalAuthSecret:       envPref("EVM_INTERNAL_AUTH_SECRET", "RBH_INTERNAL_AUTH_SECRET", ""),
 		RPCURL:                   rpcURL,
-		WSURL:                    os.Getenv("EVM_WS_URL"),
+		WSURL:                    envPref("EVM_WS_URL", "RBH_WS_URL", ""),
 		TelegramBotToken:         strings.TrimSpace(os.Getenv("TELEGRAM_BOT_TOKEN")),
 		TelegramAllowedChatIDs:   allowedChats,
 		PaperShadowEnabled:       paperShadow,
@@ -308,7 +318,7 @@ func Load(service Service) (Config, error) {
 		TradeAPITokenBSC:         os.Getenv("EVM_TRADE_API_TOKEN_BSC"),
 		FeedSocketBSC:            os.Getenv("EVM_FEED_SOCKET_BSC"),
 		ChainsManifestPath:       os.Getenv("EVM_CHAINS_MANIFEST"),
-		ReadOnlyQueryOnly:        strings.EqualFold(os.Getenv("EVM_READONLY_QUERY_ONLY"), "true"),
+		ReadOnlyQueryOnly:        strings.EqualFold(env("EVM_READONLY_QUERY_ONLY", "false"), "true"),
 		PrivateRelayURLs:         splitNonEmptyCSV(os.Getenv("EVM_PRIVATE_RELAY_URLS")),
 		MaxOrderNativeWei:        env("EVM_MAX_ORDER_WEI", "50000000000000000"), // default 0.05 native unit cap
 		DryRunWalletID:           envPref("EVM_DRY_RUN_WALLET_ID", "RBH_DRY_RUN_WALLET_ID", ""),
@@ -325,6 +335,61 @@ func Load(service Service) (Config, error) {
 		TradeAPIValidationPolicy: validationPolicy,
 		TradeAPIManualAdmission:  manualAdmission,
 		TradeStartupProfile:      tradeStartupProfile,
+	}
+
+	defaultSource := "sequencer"
+	if chainID != ChainID {
+		defaultSource = "rpc_poll"
+	}
+	cfg.FeedSource = env("EVM_FEED_SOURCE", defaultSource)
+	cfg.FeedStartMode = env("EVM_FEED_START_MODE", "latest")
+	var parseErr error
+	for _, field := range []struct {
+		key, fallback string
+		target        *uint64
+	}{
+		{"EVM_FEED_START_BLOCK", "0", &cfg.FeedStartBlock},
+		{"EVM_FEED_MAX_CATCHUP_BLOCKS", "200", &cfg.FeedMaxCatchup},
+		{"EVM_FEED_MAX_LAG_BLOCKS", "8", &cfg.FeedMaxLag},
+	} {
+		*field.target, parseErr = strconv.ParseUint(env(field.key, field.fallback), 10, 63)
+		if parseErr != nil {
+			return Config{}, fmt.Errorf("invalid %s", field.key)
+		}
+	}
+	cfg.FeedRequestInterval, parseErr = time.ParseDuration(env("EVM_FEED_REQUEST_INTERVAL", "50ms"))
+	if parseErr != nil || cfg.FeedRequestInterval < 0 {
+		return Config{}, fmt.Errorf("invalid feed request interval")
+	}
+	if reader.err != nil {
+		return Config{}, reader.err
+	}
+	if service == FeedService {
+		switch cfg.FeedSource {
+		case "sequencer", "rpc_poll", "rpc_ws":
+		default:
+			return Config{}, fmt.Errorf("invalid feed source")
+		}
+		if cfg.FeedSource == "sequencer" && chainID != ChainID {
+			return Config{}, fmt.Errorf("sequencer feed requires chain 4663")
+		}
+		if cfg.FeedSource == "rpc_poll" && chainID == ChainID {
+			return Config{}, fmt.Errorf("RBH RPC feed requires rpc_ws with independent block checkpoints")
+		}
+		if cfg.FeedSource == "rpc_ws" {
+			if cfg.WSURL == "" || cfg.RPCURL == "" {
+				return Config{}, fmt.Errorf("rpc_ws requires RPC_URL and WS_URL")
+			}
+			if cfg.FeedMaxCatchup == 0 || cfg.FeedMaxCatchup > 10000 || cfg.FeedMaxLag > cfg.FeedMaxCatchup {
+				return Config{}, fmt.Errorf("invalid feed catchup/lag limits")
+			}
+			if cfg.FeedStartMode != "latest" && cfg.FeedStartMode != "block" {
+				return Config{}, fmt.Errorf("invalid feed start mode")
+			}
+			if env("EVM_FEED_GAP_POLICY", "halt") != "halt" {
+				return Config{}, fmt.Errorf("only halt feed gap policy is supported")
+			}
+		}
 	}
 	if err := cfg.ValidateTradeStartupProfile(); err != nil {
 		return Config{}, err
