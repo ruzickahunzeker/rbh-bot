@@ -18,13 +18,13 @@ import (
 	parser "github.com/0xfnzero/rbh-parser-sdk/rbhparser"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	botcore "github.com/ruzickahunzeker/rbh-bot/internal/bot"
 	"github.com/ruzickahunzeker/rbh-bot/internal/chains/arc"
 	basechain "github.com/ruzickahunzeker/rbh-bot/internal/chains/base"
 	"github.com/ruzickahunzeker/rbh-bot/internal/chains/bsc"
 	"github.com/ruzickahunzeker/rbh-bot/internal/chains/elysium"
 	"github.com/ruzickahunzeker/rbh-bot/internal/chains/ethereum"
 	"github.com/ruzickahunzeker/rbh-bot/internal/chains/hyperevm"
-	botcore "github.com/ruzickahunzeker/rbh-bot/internal/bot"
 	"github.com/ruzickahunzeker/rbh-bot/internal/config"
 	feedcore "github.com/ruzickahunzeker/rbh-bot/internal/feed"
 	"github.com/ruzickahunzeker/rbh-bot/internal/health"
@@ -119,6 +119,7 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 	server := health.New(string(service), cfg.Socket, log, ready)
 	var runner *feedcore.SequencerRunner
 	var evmRunner *feedcore.EVMReceiptRunner
+	var rpcWSRunner *feedcore.RPCWSRunner
 	var botConsumer *botcore.Consumer
 	var botMultiRuntime *botcore.MultiChainRuntime
 	var priceTickWorker *botcore.PriceTickWorker
@@ -162,12 +163,19 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			return fmt.Errorf("initialize feed watchlist store: %w", err)
 		}
 		runner.SetWatchlist(watchlistStore)
-		if cfg.ChainID != config.ChainID && cfg.RPCURL != "" {
+		if cfg.FeedSource == "rpc_ws" || (cfg.FeedSource == "rpc_poll" && cfg.RPCURL != "") || (cfg.FeedSource == "" && cfg.ChainID != config.ChainID && cfg.RPCURL != "") {
 			evmRunner, err = feedcore.NewEVMReceiptRunner(cfg.ChainID, wrappedNativeForChain(cfg.ChainID), cfg.RPCURL, store, watchlistStore, 0)
 			if err != nil {
 				return err
 			}
 			runner = nil
+			if cfg.FeedSource == "rpc_ws" {
+				rpcWSRunner, err = feedcore.NewRPCWSRunner(evmRunner, value, feedcore.RPCWSOptions{WSURL: cfg.WSURL, StartMode: cfg.FeedStartMode, StartBlock: cfg.FeedStartBlock, MaxCatchup: cfg.FeedMaxCatchup, MaxLag: cfg.FeedMaxLag, RequestInterval: cfg.FeedRequestInterval, Logger: log})
+				if err != nil {
+					return err
+				}
+				evmRunner = nil
+			}
 		}
 		watchlistHandler := ipc.RequestContext(authenticator.Middleware(feedcore.NewWatchlistHTTPHandler(watchlistStore)))
 		server.Handle("GET /internal/feed/outbox", ipc.RequestContext(authenticator.Middleware(feedcore.NewOutboxHTTPHandler(store))))
@@ -564,6 +572,24 @@ func runConfigured(parent context.Context, cfg config.Config) error {
 			monitorFeedReadiness(ctx, ready, runner)
 		}()
 	}
+	if rpcWSRunner != nil {
+		bgWG.Add(2)
+		go func() { defer bgWG.Done(); reportErr(rpcWSRunner.Run(ctx)) }()
+		go func() {
+			defer bgWG.Done()
+			ticker := time.NewTicker(250 * time.Millisecond)
+			defer ticker.Stop()
+			for {
+				ready.Set("feed_stream_healthy", rpcWSRunner.Ready(ctx))
+				select {
+				case <-ctx.Done():
+					ready.Set("feed_stream_healthy", false)
+					return
+				case <-ticker.C:
+				}
+			}
+		}()
+	}
 	if evmRunner != nil {
 		bgWG.Add(2)
 		go func() {
@@ -718,6 +744,8 @@ func monitorEVMFeedReadiness(ctx context.Context, ready *health.Readiness, runne
 
 func wrappedNativeForChain(chainID uint64) common.Address {
 	switch chainID {
+	case config.ChainID:
+		return parser.DefaultAddressBook().WETH
 	case config.ETHChainID:
 		return ethereum.WETHAddress
 	case config.BSCChainID:

@@ -12,7 +12,7 @@ import (
 
 func TestOpenMigrateAndValidateEveryOwner(t *testing.T) {
 	wantMigrations := map[Owner]int{
-		FeedOwner:  6,
+		FeedOwner:  7,
 		BotOwner:   14, // M35 global catalog + wallet lifecycle/labels.
 		TradeOwner: 53, // 015..054 additive; 014 remains on its independent branch.
 	}

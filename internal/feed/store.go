@@ -77,6 +77,10 @@ func (s *Store) CommitReceipt(ctx context.Context, observations []Observation, s
 }
 
 func (s *Store) commit(ctx context.Context, observations []Observation, observedSequence *uint64, registrySnapshot *parser.RegistrySnapshot) (CommitResult, error) {
+	return s.commitBlock(ctx, observations, observedSequence, registrySnapshot, nil)
+}
+
+func (s *Store) commitBlock(ctx context.Context, observations []Observation, observedSequence *uint64, registrySnapshot *parser.RegistrySnapshot, block *rpcBlockCommit) (CommitResult, error) {
 	if s == nil || s.db == nil || ctx == nil {
 		return CommitResult{}, ErrFeedStoreUnavailable
 	}
@@ -96,6 +100,33 @@ func (s *Store) commit(ctx context.Context, observations []Observation, observed
 		}
 	}()
 
+	if block != nil {
+		var number uint64
+		var hash string
+		var degraded int
+		if err := tx.QueryRowContext(ctx, `SELECT degraded FROM feed_progress WHERE id=1`).Scan(&degraded); err != nil {
+			return CommitResult{}, err
+		}
+		if degraded != 0 {
+			return CommitResult{}, fmt.Errorf("feed is degraded")
+		}
+		if err := tx.QueryRowContext(ctx, `SELECT block_number, block_hash FROM feed_rpc_checkpoints WHERE chain_id=?`, block.ChainID).Scan(&number, &hash); err != nil {
+			return CommitResult{}, err
+		}
+		if number == block.Number && hash == block.Hash.Hex() {
+			var offset int64
+			err := tx.QueryRowContext(ctx, `SELECT durable_event_offset FROM feed_progress WHERE id=1`).Scan(&offset)
+			return CommitResult{DurableEventOffset: offset}, err
+		}
+		if number+1 != block.Number || hash != block.ParentHash.Hex() {
+			return CommitResult{}, fmt.Errorf("RPC block checkpoint continuity conflict")
+		}
+		for _, obs := range observations {
+			if obs.ChainID != block.ChainID || obs.Source != SourceRPC || obs.SourceSequence != block.Number {
+				return CommitResult{}, fmt.Errorf("RPC observation block mismatch")
+			}
+		}
+	}
 	result := CommitResult{}
 	for _, observation := range observations {
 		insert, err := tx.ExecContext(ctx, `
@@ -164,6 +195,16 @@ ON CONFLICT(id) DO UPDATE SET
   durable_event_offset = excluded.durable_event_offset,
   updated_at = excluded.updated_at`, string(payload), result.DurableEventOffset, stamp); err != nil {
 			return CommitResult{}, fmt.Errorf("persist registry snapshot: %w", err)
+		}
+	}
+	if block != nil {
+		if _, err := tx.ExecContext(ctx, `UPDATE feed_rpc_checkpoints SET block_number=?,block_hash=?,updated_at=? WHERE chain_id=?`, block.Number, block.Hash.Hex(), stamp, block.ChainID); err != nil {
+			return CommitResult{}, err
+		}
+		for _, a := range block.Audits {
+			if _, err := tx.ExecContext(ctx, `INSERT INTO feed_receipt_audits(tx_hash,block_number,receipt_status,reason,persisted_at) VALUES(?,?,?,?,?) ON CONFLICT(tx_hash) DO NOTHING`, a.TransactionHash.Hex(), a.BlockNumber, a.ReceiptStatus, a.Reason, stamp); err != nil {
+				return CommitResult{}, err
+			}
 		}
 	}
 	if err := tx.Commit(); err != nil {

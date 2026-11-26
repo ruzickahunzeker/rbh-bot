@@ -40,17 +40,19 @@ var (
 
 // NormalizedSwapPayload is the JSON payload stored in feed_events/feed_outbox for EVM V2/V3 swaps.
 type NormalizedSwapPayload struct {
-	ChainID       uint64 `json:"chain_id"`
-	BlockNumber   uint64 `json:"block_number"`
-	TxHash        string `json:"tx_hash"`
-	PoolAddress   string `json:"pool_address"`
-	PoolVersion   string `json:"pool_version"` // "v2" | "v3"
-	Trader        string `json:"trader"`
-	Token         string `json:"token"`
-	Side          string `json:"side"` // "buy" | "sell"
-	TokenDeltaRaw string `json:"token_delta_raw"`
-	TriggerID     string `json:"trigger_id"`
-	Stage         string `json:"stage"` // "included"
+	ChainID       uint64    `json:"chain_id"`
+	BlockNumber   uint64    `json:"block_number"`
+	TxHash        string    `json:"tx_hash"`
+	PoolAddress   string    `json:"pool_address"`
+	PoolVersion   string    `json:"pool_version"` // "v2" | "v3"
+	Trader        string    `json:"trader"`
+	Token         string    `json:"token"`
+	Side          string    `json:"side"` // "buy" | "sell"
+	TokenDeltaRaw string    `json:"token_delta_raw"`
+	TriggerID     string    `json:"trigger_id"`
+	Stage         string    `json:"stage"` // "included"
+	EventTime     time.Time `json:"event_time,omitempty"`
+	BlockHash     string    `json:"block_hash,omitempty"`
 }
 
 // EVMReceiptRunner polls standard EVM JSON-RPC (eth_blockNumber + eth_getBlockReceipts)
@@ -102,15 +104,22 @@ func (r *EVMReceiptRunner) Ready(ctx context.Context) bool {
 }
 
 type rpcReceipt struct {
-	TransactionHash string `json:"transactionHash"`
-	BlockNumber     string `json:"blockNumber"`
-	From            string `json:"from"`
-	Status          string `json:"status"`
-	Logs            []struct {
-		Address  string   `json:"address"`
-		Topics   []string `json:"topics"`
-		Data     string   `json:"data"`
-		LogIndex string   `json:"logIndex"`
+	TransactionHash  string `json:"transactionHash"`
+	BlockHash        string `json:"blockHash"`
+	TransactionIndex string `json:"transactionIndex"`
+	BlockNumber      string `json:"blockNumber"`
+	From             string `json:"from"`
+	Status           string `json:"status"`
+	Logs             []struct {
+		Address          string   `json:"address"`
+		Topics           []string `json:"topics"`
+		Data             string   `json:"data"`
+		LogIndex         string   `json:"logIndex"`
+		BlockHash        string   `json:"blockHash"`
+		BlockNumber      string   `json:"blockNumber"`
+		TransactionHash  string   `json:"transactionHash"`
+		TransactionIndex string   `json:"transactionIndex"`
+		Removed          bool     `json:"removed"`
 	} `json:"logs"`
 }
 
@@ -136,7 +145,14 @@ func (r *EVMReceiptRunner) rpcCall(ctx context.Context, method string, params []
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
-		return fmt.Errorf("rpc %s status %d", method, resp.StatusCode)
+		delay := time.Duration(0)
+		if seconds, e := strconv.Atoi(resp.Header.Get("Retry-After")); e == nil && seconds > 0 {
+			delay = time.Duration(seconds) * time.Second
+			if delay > time.Minute {
+				delay = time.Minute
+			}
+		}
+		return &rpcHTTPError{Status: resp.StatusCode, RetryAfter: delay}
 	}
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
 	if err != nil {
@@ -437,3 +453,11 @@ func parseOptHexIndex(s string, fallback int) int {
 	}
 	return int(v)
 }
+
+// rpcHTTPError preserves rate-limit metadata without retaining endpoint credentials.
+type rpcHTTPError struct {
+	Status     int
+	RetryAfter time.Duration
+}
+
+func (e *rpcHTTPError) Error() string { return fmt.Sprintf("RPC HTTP status %d", e.Status) }
