@@ -394,6 +394,9 @@ func Load(service Service) (Config, error) {
 	if err := cfg.ValidateTradeStartupProfile(); err != nil {
 		return Config{}, err
 	}
+	if reader.err != nil {
+		return Config{}, reader.err
+	}
 	if err := cfg.ValidateTimeouts(); err != nil {
 		return Config{}, err
 	}
